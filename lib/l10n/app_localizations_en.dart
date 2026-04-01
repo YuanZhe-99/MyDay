@@ -1,0 +1,1092 @@
+// ignore: unused_import
+import 'package:intl/intl.dart' as intl;
+import 'app_localizations.dart';
+
+// ignore_for_file: type=lint
+
+/// The translations for English (`en`).
+class AppLocalizationsEn extends AppLocalizations {
+  AppLocalizationsEn([String locale = 'en']) : super(locale);
+
+  @override
+  String get appTitle => 'MyDay!!!!!';
+
+  @override
+  String get navTodo => 'Todo';
+
+  @override
+  String get navFinance => 'Finance';
+
+  @override
+  String get navWeight => 'Weight';
+
+  @override
+  String get navIntimacy => 'Intimacy';
+
+  @override
+  String get navSettings => 'Settings';
+
+  @override
+  String get todoSectionDaily => 'Daily';
+
+  @override
+  String get todoSectionRoutine => 'Routine';
+
+  @override
+  String get todoSectionWork => 'Work';
+
+  @override
+  String get todoAddTask => 'Add Task';
+
+  @override
+  String get todoEditTask => 'Edit Task';
+
+  @override
+  String get todoTitle => 'Title';
+
+  @override
+  String get todoSubtasks => 'Subtasks';
+
+  @override
+  String get todoAddSubtask => 'Add Subtask';
+
+  @override
+  String get todoReminderTime => 'Reminder Time';
+
+  @override
+  String get todoNoTasks => 'No tasks';
+
+  @override
+  String get todoType => 'Type';
+
+  @override
+  String get todoEmoji => 'Emoji';
+
+  @override
+  String get todoDailyTask => 'Daily';
+
+  @override
+  String get todoRoutineTask => 'Routine Once';
+
+  @override
+  String get todoWorkTask => 'Work Once';
+
+  @override
+  String todoCreatedDate(String date) {
+    return 'Created: $date';
+  }
+
+  @override
+  String todoStartDate(String date) {
+    return 'Start Date: $date';
+  }
+
+  @override
+  String todoDeletedDate(String date) {
+    return 'Deleted: $date';
+  }
+
+  @override
+  String get todoPermanentDelete => 'Permanently Delete';
+
+  @override
+  String get todoPermanentDeleteConfirm =>
+      'This will permanently remove this task and all its history. Continue?';
+
+  @override
+  String get todoMorningReminder => 'Morning Plan Reminder';
+
+  @override
+  String get todoCompletionReminder => 'Completion Check Reminder';
+
+  @override
+  String get todoSetReminder => 'Set Reminder';
+
+  @override
+  String get todoClearReminder => 'Clear';
+
+  @override
+  String todoReminderSet(String time) {
+    return 'Reminder set for $time';
+  }
+
+  @override
+  String get todoCompleted => 'Completed';
+
+  @override
+  String get financeTitle => 'Finance';
+
+  @override
+  String get financeMonthlyExpense => 'Monthly Expense';
+
+  @override
+  String get financeTotalAssets => 'Total Assets';
+
+  @override
+  String get financeAccounts => 'Accounts';
+
+  @override
+  String get financeCategories => 'Categories';
+
+  @override
+  String get financeAnalysis => 'Analysis';
+
+  @override
+  String get financeExchangeRates => 'Exchange Rates';
+
+  @override
+  String get financeRefreshRates => 'Refresh Rates';
+
+  @override
+  String get financeAddTransaction => 'Add Transaction';
+
+  @override
+  String get financeEditTransaction => 'Edit Transaction';
+
+  @override
+  String get financeExpense => 'Expense';
+
+  @override
+  String get financeIncome => 'Income';
+
+  @override
+  String get financeTransfer => 'Transfer';
+
+  @override
+  String get financeAmount => 'Amount';
+
+  @override
+  String get financeNote => 'Note';
+
+  @override
+  String get financeCategory => 'Category';
+
+  @override
+  String get financeAccount => 'Account';
+
+  @override
+  String get financeFromAccount => 'From Account';
+
+  @override
+  String get financeToAccount => 'To Account';
+
+  @override
+  String get financeCurrency => 'Currency';
+
+  @override
+  String get financeDate => 'Date';
+
+  @override
+  String get financeNoTransactions => 'No transactions';
+
+  @override
+  String get financeForceBalance => 'Force Balance';
+
+  @override
+  String get financeCurrentBalance => 'Current Balance';
+
+  @override
+  String get financeAddAccount => 'Add Account';
+
+  @override
+  String get financeEditAccount => 'Edit Account';
+
+  @override
+  String get financeAddCategory => 'Add Category';
+
+  @override
+  String get financeEditCategory => 'Edit Category';
+
+  @override
+  String get financeName => 'Name';
+
+  @override
+  String get financeBankApp => 'Bank / App';
+
+  @override
+  String get financeCardNumber => 'Card Number';
+
+  @override
+  String get financeExpiry => 'Expiry';
+
+  @override
+  String get financeSecurityCode => 'Security Code';
+
+  @override
+  String get financeIcon => 'Icon';
+
+  @override
+  String get financeEmoji => 'Emoji';
+
+  @override
+  String get financeCategoryHintExpense => 'e.g. Food, Transport';
+
+  @override
+  String get financeCategoryHintIncome => 'e.g. Salary, Investment';
+
+  @override
+  String get financeThisTransaction => 'this transaction';
+
+  @override
+  String get financeNoAccounts => 'No accounts yet';
+
+  @override
+  String get financeNoCategories => 'No categories yet';
+
+  @override
+  String get financeByYear => 'By Year';
+
+  @override
+  String get financeByMonth => 'By Month';
+
+  @override
+  String get financeByDay => 'By Day';
+
+  @override
+  String get financeCustomRange => 'Custom Range';
+
+  @override
+  String get financeExpenseTrend => 'Expense Trend';
+
+  @override
+  String get financeIncomeTrend => 'Income Trend';
+
+  @override
+  String get financeAssetsTrend => 'Assets Trend';
+
+  @override
+  String get financeThisCategory => 'this category';
+
+  @override
+  String financeNoCategoriesOfType(String type) {
+    return 'No $type categories';
+  }
+
+  @override
+  String get financeImportDefaults => 'Import Defaults';
+
+  @override
+  String get financeCatFood => 'Food';
+
+  @override
+  String get financeCatTransport => 'Transport';
+
+  @override
+  String get financeCatShopping => 'Shopping';
+
+  @override
+  String get financeCatRent => 'Rent';
+
+  @override
+  String get financeCatDigital => 'Digital';
+
+  @override
+  String get financeCatEntertainment => 'Entertainment';
+
+  @override
+  String get financeCatHealthcare => 'Healthcare';
+
+  @override
+  String get financeCatEducation => 'Education';
+
+  @override
+  String get financeCatSalary => 'Salary';
+
+  @override
+  String get financeCatBonus => 'Bonus';
+
+  @override
+  String get financeCatInvestment => 'Investment';
+
+  @override
+  String get financeCatFreelance => 'Freelance';
+
+  @override
+  String get intimacyTitle => 'Intimacy';
+
+  @override
+  String get intimacyNewRecord => 'New Record';
+
+  @override
+  String get intimacyEditRecord => 'Edit Record';
+
+  @override
+  String get intimacySolo => 'Solo';
+
+  @override
+  String get intimacyPartner => 'Partner';
+
+  @override
+  String get intimacyPartners => 'Partners';
+
+  @override
+  String get intimacyAddPartner => 'Add Partner';
+
+  @override
+  String get intimacyEditPartner => 'Edit Partner';
+
+  @override
+  String get intimacyToys => 'Toys';
+
+  @override
+  String get intimacyAddToy => 'Add Toy';
+
+  @override
+  String get intimacyEditToy => 'Edit Toy';
+
+  @override
+  String get intimacyPleasure => 'Pleasure';
+
+  @override
+  String get intimacyDuration => 'Duration';
+
+  @override
+  String get intimacyLocation => 'Location (optional)';
+
+  @override
+  String get intimacyNotes => 'Notes (optional)';
+
+  @override
+  String get intimacyOrgasm => 'Had Orgasm?';
+
+  @override
+  String get intimacyWatchedPorn => 'Watched Porn?';
+
+  @override
+  String get intimacyTimer => 'Timer';
+
+  @override
+  String get intimacyNoRecords => 'No records';
+
+  @override
+  String get intimacyNoPartners => 'No partners yet';
+
+  @override
+  String get intimacyNoToys => 'No toys yet';
+
+  @override
+  String get intimacyNoPartnersHint => 'No partners — add one in Settings';
+
+  @override
+  String get intimacyShowAll => 'Show all';
+
+  @override
+  String get intimacyAllRecords => 'All Records';
+
+  @override
+  String get intimacyStart => 'Start';
+
+  @override
+  String get intimacyPause => 'Pause';
+
+  @override
+  String get intimacyResume => 'Resume';
+
+  @override
+  String get intimacyStopSave => 'Stop & Save';
+
+  @override
+  String get intimacyReset => 'Reset';
+
+  @override
+  String get intimacyTimerStartedAt => 'Started at';
+
+  @override
+  String get intimacyTimerHistory => 'History';
+
+  @override
+  String get intimacyTimerClearHistory => 'Clear';
+
+  @override
+  String get intimacyManage => 'Manage';
+
+  @override
+  String get intimacyModuleVisible => 'Visible';
+
+  @override
+  String get intimacyModuleHidden => 'Hidden';
+
+  @override
+  String get intimacySortNewest => 'Newest first';
+
+  @override
+  String get intimacySortOldest => 'Oldest first';
+
+  @override
+  String get intimacySortPleasure => 'Highest pleasure';
+
+  @override
+  String get intimacySortDuration => 'Longest duration';
+
+  @override
+  String get intimacyFilterAll => 'All';
+
+  @override
+  String get intimacyFilterSolo => 'Solo';
+
+  @override
+  String get intimacyFilterPartnered => 'With partner';
+
+  @override
+  String get intimacyFilterOrgasm => 'Had orgasm';
+
+  @override
+  String get intimacyFilterNoOrgasm => 'No orgasm';
+
+  @override
+  String get intimacyExportCsv => 'Export CSV';
+
+  @override
+  String get intimacyExportCsvSuccess => 'CSV exported successfully';
+
+  @override
+  String get intimacyExportCsvEmpty => 'No records to export';
+
+  @override
+  String get settingsTitle => 'Settings';
+
+  @override
+  String get settingsGeneral => 'General';
+
+  @override
+  String get settingsLanguage => 'Language';
+
+  @override
+  String get settingsTheme => 'Theme';
+
+  @override
+  String get settingsThemeSystem => 'System';
+
+  @override
+  String get settingsThemeLight => 'Light';
+
+  @override
+  String get settingsThemeDark => 'Dark';
+
+  @override
+  String get settingsPrivacy => 'Privacy';
+
+  @override
+  String get settingsIntimacyModule => 'Intimacy Module';
+
+  @override
+  String get settingsData => 'Data';
+
+  @override
+  String get settingsStorageLocation => 'Storage Location';
+
+  @override
+  String get settingsStoragePathHint =>
+      'Enter the directory path for storing data. Leave empty to use default.';
+
+  @override
+  String get settingsDirectoryPath => 'Directory Path';
+
+  @override
+  String get settingsResetDefault => 'Reset to Default';
+
+  @override
+  String get settingsResetDefaultLocation => 'Reset to default location';
+
+  @override
+  String get settingsStoragePathUpdated => 'Storage path updated';
+
+  @override
+  String get settingsOpenDataFolder => 'Open Data Folder';
+
+  @override
+  String get settingsOpenDataFolderDesc =>
+      'Open the application data directory';
+
+  @override
+  String get settingsWebDAVSync => 'WebDAV Sync';
+
+  @override
+  String get settingsWebDAVNotConfigured => 'Not configured';
+
+  @override
+  String get settingsWebDAVConfigured => 'Configured';
+
+  @override
+  String get settingsWebDAVServerURL => 'Server URL';
+
+  @override
+  String get settingsWebDAVUsername => 'Username';
+
+  @override
+  String get settingsWebDAVPassword => 'Password';
+
+  @override
+  String get settingsWebDAVRemotePath => 'Remote Path';
+
+  @override
+  String get settingsWebDAVTestConnection => 'Test Connection';
+
+  @override
+  String get settingsWebDAVConnectionSuccess => 'Connection successful';
+
+  @override
+  String get settingsWebDAVConnectionFailed => 'Connection failed';
+
+  @override
+  String get settingsWebDAVSyncNow => 'Sync Now';
+
+  @override
+  String get settingsWebDAVAutoSync => 'Auto Sync';
+
+  @override
+  String get settingsWebDAVAutoSyncDesc =>
+      'Automatically sync after editing and when the app resumes';
+
+  @override
+  String get settingsWebDAVSyncing => 'Syncing...';
+
+  @override
+  String get settingsWebDAVSyncSuccess => 'Sync completed';
+
+  @override
+  String get settingsWebDAVSyncFailed => 'Sync failed';
+
+  @override
+  String get settingsWebDAVConflictTitle => 'Sync Conflicts';
+
+  @override
+  String get settingsWebDAVConflictDesc =>
+      'Both local and remote have changes for the following records. Choose which version to keep for each:';
+
+  @override
+  String get settingsWebDAVKeepLocal => 'Keep Local';
+
+  @override
+  String get settingsWebDAVKeepRemote => 'Keep Remote';
+
+  @override
+  String get settingsWebDAVConflictApply => 'Apply';
+
+  @override
+  String get settingsWebDAVNextcloud => 'Nextcloud Preset';
+
+  @override
+  String get settingsWebDAVCustom => 'Custom Server';
+
+  @override
+  String get settingsImportExport => 'Import / Export';
+
+  @override
+  String get settingsExportJSON => 'Export ZIP';
+
+  @override
+  String get settingsExportCSV => 'Export CSV';
+
+  @override
+  String get csvExportFinance => 'Export Finance CSV';
+
+  @override
+  String get csvExportFinanceDesc => 'Finance transactions as plaintext';
+
+  @override
+  String get csvExportIntimacy => 'Export Intimacy CSV';
+
+  @override
+  String get csvExportIntimacyDesc => 'Intimacy records as plaintext';
+
+  @override
+  String get csvExportWeight => 'Export Weight CSV';
+
+  @override
+  String get csvExportWeightDesc => 'Weight records as plaintext';
+
+  @override
+  String get settingsImport => 'Import from File';
+
+  @override
+  String get settingsExportSuccess => 'Exported successfully';
+
+  @override
+  String get settingsExportFailed => 'Export failed';
+
+  @override
+  String get settingsImportSuccess => 'Imported successfully';
+
+  @override
+  String get settingsImportFailed => 'Import failed';
+
+  @override
+  String get settingsImportConfirm =>
+      'This will replace all current data. Continue?';
+
+  @override
+  String get settingsExportCSVWarning =>
+      'CSV data will be exported as plaintext. Continue?';
+
+  @override
+  String get settingsAbout => 'About';
+
+  @override
+  String get settingsAboutTitle => 'About MyDay!!!!!';
+
+  @override
+  String get commonSave => 'Save';
+
+  @override
+  String get commonCancel => 'Cancel';
+
+  @override
+  String get commonDelete => 'Delete';
+
+  @override
+  String get commonEdit => 'Edit';
+
+  @override
+  String get commonAdd => 'Add';
+
+  @override
+  String get commonConfirm => 'Confirm';
+
+  @override
+  String get commonYes => 'Yes';
+
+  @override
+  String get commonNo => 'No';
+
+  @override
+  String get commonOk => 'OK';
+
+  @override
+  String get commonClose => 'Close';
+
+  @override
+  String get commonName => 'Name';
+
+  @override
+  String get commonEmojiOptional => 'Emoji (optional)';
+
+  @override
+  String commonDeleteConfirm(String item) {
+    return 'Delete $item?';
+  }
+
+  @override
+  String commonMinutes(int count) {
+    return '${count}min';
+  }
+
+  @override
+  String get settingsExportSection => 'Export';
+
+  @override
+  String get settingsImportSection => 'Import';
+
+  @override
+  String get settingsExportFullBackup => 'Full backup of all data';
+
+  @override
+  String get settingsExportJSONPlaintext =>
+      'All data will be exported as a ZIP archive';
+
+  @override
+  String get settingsExportCSVPlaintext => 'Finance transactions as plaintext';
+
+  @override
+  String get settingsImportRestore => 'Restore from ZIP backup';
+
+  @override
+  String get settingsImportData => 'Import Data';
+
+  @override
+  String get csvImportFinance => 'Import Finance CSV';
+
+  @override
+  String get csvImportFinanceDesc =>
+      'Merge transactions from CSV (will not overwrite existing data)';
+
+  @override
+  String get csvImportIntimacy => 'Import Intimacy CSV';
+
+  @override
+  String get csvImportIntimacyDesc =>
+      'Merge records from CSV (will not overwrite existing data)';
+
+  @override
+  String get csvImportConfirm =>
+      'CSV data will be merged into existing records. Continue?';
+
+  @override
+  String csvImportSuccess(int count) {
+    return 'Imported $count records successfully';
+  }
+
+  @override
+  String get csvImportFailed => 'CSV import failed';
+
+  @override
+  String get csvImportEmpty => 'No valid records found in CSV';
+
+  @override
+  String get csvTemplate => 'CSV Templates';
+
+  @override
+  String get csvTemplateFinance => 'Download Finance Template';
+
+  @override
+  String get csvTemplateIntimacy => 'Download Intimacy Template';
+
+  @override
+  String get csvTemplateSaved => 'Template saved';
+
+  @override
+  String get settingsWebDAVDisconnect => 'Disconnect';
+
+  @override
+  String get settingsWebDAVConfigSaved => 'Configuration saved';
+
+  @override
+  String get settingsWebDAVConfigRemoved => 'Configuration removed';
+
+  @override
+  String get commonDontAskMinutes => 'Don\'t ask for 5 minutes';
+
+  @override
+  String get intimacyHideConfirm =>
+      'Hiding the module will not delete your data. You can re-enable it anytime.';
+
+  @override
+  String get settingsLicenses => 'Open Source Licenses';
+
+  @override
+  String get settingsPrivacyPolicy => 'Privacy Policy';
+
+  @override
+  String get settingsDesktop => 'Desktop';
+
+  @override
+  String get settingsMinimizeToTray => 'Minimize to Tray';
+
+  @override
+  String get settingsCloseToTray => 'Close to Tray';
+
+  @override
+  String get financeBankPresets => 'Bank Presets';
+
+  @override
+  String get financeBankSearch => 'Search bank or app...';
+
+  @override
+  String get financeBankNoResults => 'No matching banks found';
+
+  @override
+  String get financeSubscriptions => 'Subscriptions';
+
+  @override
+  String get financeSubscription => 'Subscription';
+
+  @override
+  String get financeAddSubscription => 'Add Subscription';
+
+  @override
+  String get financeEditSubscription => 'Edit Subscription';
+
+  @override
+  String get financeStartDate => 'Start Date';
+
+  @override
+  String get financeTrialDays => 'Trial Days';
+
+  @override
+  String get financeBillingCycle => 'Billing Cycle';
+
+  @override
+  String get financeBillingCycleMonthly => 'Monthly';
+
+  @override
+  String get financeBillingCycleYearly => 'Yearly';
+
+  @override
+  String financeEveryXMonths(int count) {
+    return 'Every $count month(s)';
+  }
+
+  @override
+  String financeEveryXYears(int count) {
+    return 'Every $count year(s)';
+  }
+
+  @override
+  String get financeBillingDay => 'Billing Day';
+
+  @override
+  String get financeBillingMonth => 'Billing Month';
+
+  @override
+  String get financeMonthlyDue => 'Monthly Due';
+
+  @override
+  String get financeMonthlyAvg => 'Monthly Avg';
+
+  @override
+  String get financeYearlyAvg => 'Yearly Avg';
+
+  @override
+  String get financeNoSubscriptions => 'No subscriptions';
+
+  @override
+  String get financeActiveSubscriptions => 'Active';
+
+  @override
+  String get financeHistoricalSubscriptions => 'History';
+
+  @override
+  String get financeCancelSubscription => 'Cancel Subscription';
+
+  @override
+  String get financeCancelImmediate => 'Cancel Now';
+
+  @override
+  String get financeCancelAtExpiry => 'Cancel at Expiry';
+
+  @override
+  String get financeNextBilling => 'Next Billing';
+
+  @override
+  String get financeExpiryDate => 'Expiry';
+
+  @override
+  String get financeTotalSpent => 'Total Spent';
+
+  @override
+  String get financeImportHistory => 'Import Historical Transactions';
+
+  @override
+  String get financeImportHistoryDesc =>
+      'Start date is before today. Import historical transactions?';
+
+  @override
+  String get financeThisSubscription => 'this subscription';
+
+  @override
+  String financeCancelledOn(String date) {
+    return 'Cancelled $date';
+  }
+
+  @override
+  String get financeInterval => 'Interval';
+
+  @override
+  String get financeImage => 'Image';
+
+  @override
+  String get financePickImage => 'Pick Image';
+
+  @override
+  String get financeChangeImage => 'Change';
+
+  @override
+  String get financeUpcomingRenewals => 'Upcoming Renewals';
+
+  @override
+  String get financeSubscriptionReminder => 'Subscription Reminder';
+
+  @override
+  String get financeReminderTime => 'Notification Time';
+
+  @override
+  String get financeReminderEnabled => 'Notify upcoming renewals';
+
+  @override
+  String financeSubscriptionDueSoon(String name, int days) {
+    return '$name is due in $days day(s)';
+  }
+
+  @override
+  String financeSubscriptionDueToday(String name) {
+    return '$name is due today';
+  }
+
+  @override
+  String get financeSortBy => 'Sort';
+
+  @override
+  String get financeSortByRenewal => 'By Renewal Date';
+
+  @override
+  String get financeSortByName => 'By Name';
+
+  @override
+  String get financeSortCustom => 'Custom';
+
+  @override
+  String get financeSortReorder => 'Reorder';
+
+  @override
+  String get financeSortDone => 'Done';
+
+  @override
+  String get financeRestoreSubscription => 'Restore';
+
+  @override
+  String get backupTitle => 'Backup';
+
+  @override
+  String get backupLocalOnlyNote =>
+      'Backups are stored locally on this device only. Use WebDAV Sync for cloud backup.';
+
+  @override
+  String get backupSettings => 'Settings';
+
+  @override
+  String get backupAutoDaily => 'Daily Auto-Backup';
+
+  @override
+  String get backupAutoDailyDesc => 'Automatically create backup once per day';
+
+  @override
+  String get backupRetention => 'Keep backups';
+
+  @override
+  String get backupRetentionForever => 'Forever';
+
+  @override
+  String backupRetentionDays(int count) {
+    return '$count days';
+  }
+
+  @override
+  String get backupManual => 'Manual Backup';
+
+  @override
+  String get backupCreateNow => 'Create Backup Now';
+
+  @override
+  String backupHistory(int count) {
+    return 'Backups ($count)';
+  }
+
+  @override
+  String get backupEmpty => 'No backups yet';
+
+  @override
+  String get backupCreated => 'Backup created successfully';
+
+  @override
+  String get backupFailed => 'Backup failed';
+
+  @override
+  String get backupRestore => 'Restore';
+
+  @override
+  String get backupRestoreConfirmTitle => 'Confirm Restore';
+
+  @override
+  String get backupRestoreConfirmDesc =>
+      'This will replace selected module data. Continue?';
+
+  @override
+  String get backupRestoreSelectModules => 'Select Modules to Restore';
+
+  @override
+  String get backupRestoreAll => 'All Modules';
+
+  @override
+  String get backupRestoreSuccess =>
+      'Restore successful. Please restart the app.';
+
+  @override
+  String get backupRestoreFailed => 'Restore failed';
+
+  @override
+  String get backupDeleteConfirmTitle => 'Delete Backup';
+
+  @override
+  String get backupDeleteConfirmDesc =>
+      'This backup will be permanently deleted.';
+
+  @override
+  String get backupModuleTodo => 'Todo';
+
+  @override
+  String get backupModuleFinance => 'Finance';
+
+  @override
+  String get backupModuleRates => 'Exchange Rates';
+
+  @override
+  String get backupModuleIntimacy => 'Intimacy';
+
+  @override
+  String intimacyRecordCount(int count) {
+    return '$count records';
+  }
+
+  @override
+  String get weightTitle => 'Weight';
+
+  @override
+  String get weightSetHeight => 'Set Height';
+
+  @override
+  String get weightNoRecords => 'No weight records yet';
+
+  @override
+  String get weightAddRecord => 'Add Record';
+
+  @override
+  String get weightKg => 'Weight (kg)';
+
+  @override
+  String get weightHeightCm => 'Height (cm)';
+
+  @override
+  String get weightNote => 'Note';
+
+  @override
+  String get weightNoteHint => 'Optional note';
+
+  @override
+  String get weightChart => 'Trend';
+
+  @override
+  String get weightAll => 'All';
+
+  @override
+  String get weightHistory => 'History';
+
+  @override
+  String get weightShowAll => 'Show all records';
+
+  @override
+  String get weightDays => 'days';
+
+  @override
+  String get weightDaysAgo => 'days ago';
+
+  @override
+  String get weightWeeksAgo => 'weeks ago';
+
+  @override
+  String get weightToday => 'Today';
+
+  @override
+  String get weightYesterday => 'Yesterday';
+
+  @override
+  String get weightRecent => 'Recent';
+
+  @override
+  String get weightExportCsv => 'Export CSV';
+
+  @override
+  String get weightExportCsvSuccess => 'Weight data exported successfully';
+
+  @override
+  String get weightExportCsvEmpty => 'No weight records to export';
+
+  @override
+  String get csvImportWeight => 'Import Weight CSV';
+
+  @override
+  String get csvImportWeightDesc =>
+      'Merge weight records from CSV (Date, Time, Weight)';
+
+  @override
+  String get csvTemplateWeight => 'Download Weight Template';
+}

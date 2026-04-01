@@ -1,0 +1,2154 @@
+[
+  {
+    "id": "galicia",
+    "country": "ar",
+    "localTitle": "Banco Galicia/Naranja",
+    "engTitle": "Galicia Bank / Naranja",
+    "color": "#ff6319",
+    "domain": "bancogalicia.com"
+  },
+  {
+    "id": "macro",
+    "country": "ar",
+    "localTitle": "Banco Macro",
+    "engTitle": "Macro Bank",
+    "color": "#0c75a5",
+    "domain": "macro.com.ar"
+  },
+  {
+    "id": "hsbc",
+    "country": "ar",
+    "localTitle": "HSBC",
+    "engTitle": "HSBC",
+    "color": "#dd1f26",
+    "domain": "hsbc.com.ar"
+  },
+  {
+    "id": "icbc",
+    "country": "ar",
+    "localTitle": "ICBC",
+    "engTitle": "ICBC",
+    "color": "#ffffff",
+    "domain": "icbc.com.ar"
+  },
+  {
+    "id": "santanderrio",
+    "country": "ar",
+    "localTitle": "Santander Rio",
+    "engTitle": "Santander Rio",
+    "color": "#ef3340",
+    "domain": "santanderrio.com.ar"
+  },
+  {
+    "id": "wilobank",
+    "country": "ar",
+    "localTitle": "Wilobank",
+    "engTitle": "Wilobank",
+    "color": "#008fab",
+    "domain": "wilobank.com"
+  },
+  {
+    "id": "anz",
+    "country": "au",
+    "localTitle": "ANZ",
+    "engTitle": "ANZ",
+    "color": "#007dba",
+    "domain": "anz.com"
+  },
+  {
+    "id": "bankaust",
+    "country": "au",
+    "localTitle": "Bank Australia",
+    "engTitle": "Bank Australia",
+    "color": "#dc188b",
+    "domain": "bankaust.com.au"
+  },
+  {
+    "id": "bwe",
+    "country": "au",
+    "localTitle": "Bankwest",
+    "engTitle": "Bankwest",
+    "color": "#f79534",
+    "domain": "bankwest.com.au"
+  },
+  {
+    "id": "cba",
+    "country": "au",
+    "localTitle": "Commonwealth Bank of Australia",
+    "engTitle": "Commonwealth Bank of Australia",
+    "color": "#f3c40e",
+    "domain": "commbank.com.au"
+  },
+  {
+    "id": "go",
+    "country": "au",
+    "localTitle": "GO",
+    "engTitle": "GO",
+    "color": "#486d11",
+    "domain": "gomastercard.com.au"
+  },
+  {
+    "id": "ing",
+    "country": "au",
+    "localTitle": "ING Direct",
+    "engTitle": "ING Direct",
+    "color": "#ff6200",
+    "domain": "ingdirect.com.au"
+  },
+  {
+    "id": "lom",
+    "country": "au",
+    "localTitle": "Lombard",
+    "engTitle": "Lombard",
+    "color": "#002d55",
+    "domain": "lombardfinance.com.au"
+  },
+  {
+    "id": "suncorp",
+    "country": "au",
+    "localTitle": "Suncorp",
+    "engTitle": "Suncorp",
+    "color": "#006f66",
+    "domain": "suncorp.com.au"
+  },
+  {
+    "id": "up",
+    "country": "au",
+    "localTitle": "Up",
+    "engTitle": "Up",
+    "color": "#ff7a64",
+    "domain": "up.com.au"
+  },
+  {
+    "id": "amexbelgiumcorporate",
+    "country": "be",
+    "localTitle": "American Express",
+    "engTitle": "American Express",
+    "color": "#67b198",
+    "domain": "network.americanexpress.com"
+  },
+  {
+    "id": "belfius",
+    "country": "be",
+    "localTitle": "Belfius Bank",
+    "engTitle": "Belfius Bank",
+    "color": "#325c6c",
+    "domain": "belfius.be"
+  },
+  {
+    "id": "ingbelgium",
+    "country": "be",
+    "localTitle": "ING Belgium",
+    "engTitle": "ING Belgium",
+    "color": "#ff6600",
+    "domain": "ing.be"
+  },
+  {
+    "id": "absolutbank",
+    "country": "by",
+    "localTitle": "Абсолютбанк",
+    "engTitle": "Absolutbank",
+    "color": "#b72930",
+    "domain": "absolutbank.by"
+  },
+  {
+    "id": "alfabank",
+    "country": "by",
+    "localTitle": "Альфабанк",
+    "engTitle": "Alfabank",
+    "color": "#ee3124",
+    "domain": "alfabank.by"
+  },
+  {
+    "id": "bpssberbank",
+    "country": "by",
+    "localTitle": "БПС-Сбербанк",
+    "engTitle": "BPS-Sberbank",
+    "color": "#1b991b",
+    "domain": "bps-sberbank.by"
+  },
+  {
+    "id": "belveb",
+    "country": "by",
+    "localTitle": "Банк БелВЭБ",
+    "engTitle": "BelVEB Bank",
+    "color": "#f37637",
+    "domain": "bveb.by"
+  },
+  {
+    "id": "moskvaminsk",
+    "country": "by",
+    "localTitle": "Банк Москва-Минск",
+    "engTitle": "Bank Moskva-Minsk",
+    "color": "#f2000d",
+    "domain": "mmbank.by"
+  },
+  {
+    "id": "belswissbank",
+    "country": "by",
+    "localTitle": "БелСвиссБанк",
+    "engTitle": "BelSwiss",
+    "color": "#ee1d23",
+    "domain": "bsb.by"
+  },
+  {
+    "id": "belapb",
+    "country": "by",
+    "localTitle": "Белагропромбанк",
+    "engTitle": "Belagroprombank",
+    "color": "#fab606",
+    "domain": "belapb.by"
+  },
+  {
+    "id": "belarusbank",
+    "country": "by",
+    "localTitle": "Беларусбанк",
+    "engTitle": "Belarusbank",
+    "color": "#127d49",
+    "domain": "belarusbank.by"
+  },
+  {
+    "id": "belgazprom",
+    "country": "by",
+    "localTitle": "Белгазпромбанк",
+    "engTitle": "Belgazprombank",
+    "color": "#0079c2",
+    "domain": "belgazprombank.by"
+  },
+  {
+    "id": "belinvestbank",
+    "country": "by",
+    "localTitle": "Белинвестбанк",
+    "engTitle": "Belinvestbank",
+    "color": "#009881",
+    "domain": "belinvestbank.by"
+  },
+  {
+    "id": "belaruskynarodny",
+    "country": "by",
+    "localTitle": "Белорусский народный банк",
+    "engTitle": "Beloruskii Narodny Bank",
+    "color": "#f89828",
+    "domain": "bnb.by"
+  },
+  {
+    "id": "vtb",
+    "country": "by",
+    "localTitle": "ВТБ (Беларусь)",
+    "engTitle": "VTB (Belarus)",
+    "color": "#002e77",
+    "domain": "vtb-bank.by"
+  },
+  {
+    "id": "deltabank",
+    "country": "by",
+    "localTitle": "Дельтабанк",
+    "engTitle": "Delta Bank",
+    "color": "#d81e05",
+    "domain": "deltabank.by"
+  },
+  {
+    "id": "mtb",
+    "country": "by",
+    "localTitle": "МТБанк",
+    "engTitle": "MTBank",
+    "color": "#005aab",
+    "domain": "mtbank.by"
+  },
+  {
+    "id": "paritetbank",
+    "country": "by",
+    "localTitle": "Паритетбанк",
+    "engTitle": "Paritetbank",
+    "color": "#0360a7",
+    "domain": "paritetbank.by"
+  },
+  {
+    "id": "priorbank",
+    "country": "by",
+    "localTitle": "Приорбанк",
+    "engTitle": "Priorbank",
+    "color": "#ffff00",
+    "domain": "priorbank.by"
+  },
+  {
+    "id": "trustbank",
+    "country": "by",
+    "localTitle": "Трастбанк",
+    "engTitle": "Trustbank",
+    "color": "#a81429",
+    "domain": "trustbank.by"
+  },
+  {
+    "id": "homecredit",
+    "country": "by",
+    "localTitle": "Хоум Кредит Банк",
+    "engTitle": "Home Credit Bank",
+    "color": "#e03a3e",
+    "domain": "homecredit.by"
+  },
+  {
+    "id": "scotiabank",
+    "country": "ca",
+    "localTitle": "Scotiabank",
+    "engTitle": "Scotiabank",
+    "color": "#d81e05",
+    "domain": "scotiabank.com"
+  },
+  {
+    "id": "tdcanadatrust",
+    "country": "ca",
+    "localTitle": "TD Canada Trust",
+    "engTitle": "TD Canada Trust",
+    "color": "#20b14a",
+    "domain": "tdcanadatrust.com"
+  },
+  {
+    "id": "tangerine",
+    "country": "ca",
+    "localTitle": "Tangerine",
+    "engTitle": "Tangerine",
+    "color": "#fa823c",
+    "domain": "tangerine.ca"
+  },
+  {
+    "id": "citic",
+    "country": "cn",
+    "localTitle": "中信银行",
+    "engTitle": "China Citic Bank",
+    "color": "#c8151c",
+    "domain": "bank.ecitic.com"
+  },
+  {
+    "id": "ceb",
+    "country": "cn",
+    "localTitle": "中国光大银行",
+    "engTitle": "China Everbright Bank",
+    "color": "#691585",
+    "domain": "cebbank.cn"
+  },
+  {
+    "id": "abc",
+    "country": "cn",
+    "localTitle": "中国农业银行",
+    "engTitle": "Agricultural Bank of China",
+    "color": "#319c8b",
+    "domain": "abchina.com"
+  },
+  {
+    "id": "icbc",
+    "country": "cn",
+    "localTitle": "中国工商银行",
+    "engTitle": "Industrial and Commercial Bank of China",
+    "color": "#c90000",
+    "domain": "icbc.com.cn"
+  },
+  {
+    "id": "ccb",
+    "country": "cn",
+    "localTitle": "中国建设银行",
+    "engTitle": "China Construction Bank",
+    "color": "#0c69b0",
+    "domain": "ccb.com"
+  },
+  {
+    "id": "cmib",
+    "country": "cn",
+    "localTitle": "中国民生银行",
+    "engTitle": "China Minsheng Bank",
+    "color": "#0053b6",
+    "domain": "cmbc.com.cn"
+  },
+  {
+    "id": "cgb",
+    "country": "cn",
+    "localTitle": "中国银行",
+    "engTitle": "China Guangfa Bank",
+    "color": "#e60021",
+    "domain": "cgbchina.com.cn"
+  },
+  {
+    "id": "boc",
+    "country": "cn",
+    "localTitle": "中国银行",
+    "engTitle": "Bank of China",
+    "color": "#a71e32",
+    "domain": "boc.cn"
+  },
+  {
+    "id": "boco",
+    "country": "cn",
+    "localTitle": "交通银行",
+    "engTitle": "Bank of Communications",
+    "color": "#023978",
+    "domain": "bankcomm.com"
+  },
+  {
+    "id": "cib",
+    "country": "cn",
+    "localTitle": "兴业银行",
+    "engTitle": "Industrial Bank Co. Ltd.",
+    "color": "#004097",
+    "domain": "cib.com.cn"
+  },
+  {
+    "id": "hxb",
+    "country": "cn",
+    "localTitle": "华夏银行",
+    "engTitle": "Huaxia Bank",
+    "color": "#d80c18",
+    "domain": "hxb.com.cn"
+  },
+  {
+    "id": "pab",
+    "country": "cn",
+    "localTitle": "平安银行",
+    "engTitle": "Ping An Bank",
+    "color": "#e95303",
+    "domain": "bank.pingan.com"
+  },
+  {
+    "id": "cmb",
+    "country": "cn",
+    "localTitle": "招商银行",
+    "engTitle": "China Merchants Bank",
+    "color": "#b0110c",
+    "domain": "cmbchina.com"
+  },
+  {
+    "id": "spdb",
+    "country": "cn",
+    "localTitle": "浦东发展银行",
+    "engTitle": "Shanghai Pudong Development Bank",
+    "color": "#072154",
+    "domain": "spdb.com.cn"
+  },
+  {
+    "id": "hellenicbank",
+    "country": "cy",
+    "localTitle": "Ελληνική Τράπεζα",
+    "engTitle": "Hellenic Bank",
+    "color": "#003f7e",
+    "domain": "hellenicbank.com"
+  },
+  {
+    "id": "airbank",
+    "country": "cz",
+    "localTitle": "Airbank",
+    "engTitle": "Airbank",
+    "color": "#99cc33",
+    "domain": "airbank.cz"
+  },
+  {
+    "id": "fio-banka",
+    "country": "cz",
+    "localTitle": "Fio banka",
+    "engTitle": "Fio banka",
+    "color": "#00458a",
+    "domain": "fio.cz"
+  },
+  {
+    "id": "csob",
+    "country": "cz",
+    "localTitle": "ČSOB",
+    "engTitle": "ČSOB",
+    "color": "#0099cc",
+    "domain": "csob.cz"
+  },
+  {
+    "id": "n26",
+    "country": "de",
+    "localTitle": "N26",
+    "engTitle": "N26",
+    "color": "#383838",
+    "domain": "n26.com"
+  },
+  {
+    "id": "postbank",
+    "country": "de",
+    "localTitle": "Postbank",
+    "engTitle": "Postbank",
+    "color": "#ffcc00",
+    "domain": "postbank.de"
+  },
+  {
+    "id": "jyskebank",
+    "country": "dk",
+    "localTitle": "Jyske Bank",
+    "engTitle": "Jyske Bank",
+    "color": "#005231",
+    "domain": "jyskebank.dk"
+  },
+  {
+    "id": "nykredit",
+    "country": "dk",
+    "localTitle": "Nykredit",
+    "engTitle": "Nykredit",
+    "color": "#10137c",
+    "domain": "nykredit.dk"
+  },
+  {
+    "id": "nordeafinland",
+    "country": "fi",
+    "localTitle": "Nordea Pankki Suomi Oyj",
+    "engTitle": "Nordea",
+    "color": "#055b90",
+    "domain": "nordea.fi"
+  },
+  {
+    "id": "boursorama",
+    "country": "fr",
+    "localTitle": "Boursorama",
+    "engTitle": "Boursorama",
+    "color": "#d20073",
+    "domain": "boursorama.com"
+  },
+  {
+    "id": "caisseepargne",
+    "country": "fr",
+    "localTitle": "Caisse d'Épargne",
+    "engTitle": "Caisse d'Épargne",
+    "color": "#e2001a",
+    "domain": "caisse-epargne.fr"
+  },
+  {
+    "id": "creditmutuel",
+    "country": "fr",
+    "localTitle": "Credit Mutuel",
+    "engTitle": "Credit Mutuel",
+    "color": "#11519b",
+    "domain": "creditmutuel.com"
+  },
+  {
+    "id": "creditagricole",
+    "country": "fr",
+    "localTitle": "Crédit Agricole",
+    "engTitle": "Crédit Agricole",
+    "color": "#00694D",
+    "domain": "credit-agricole.com"
+  },
+  {
+    "id": "fortuneo",
+    "country": "fr",
+    "localTitle": "Fortuneo",
+    "engTitle": "Fortuneo",
+    "color": "#88c648",
+    "domain": "fortuneo.fr"
+  },
+  {
+    "id": "ingdirect",
+    "country": "fr",
+    "localTitle": "ING Direct",
+    "engTitle": "ING Direct",
+    "color": "#ff6600",
+    "domain": "ingdirect.fr"
+  },
+  {
+    "id": "lcl",
+    "country": "fr",
+    "localTitle": "LCL",
+    "engTitle": "LCL",
+    "color": "#263f92",
+    "domain": "particuliers.secure.lcl.fr"
+  },
+  {
+    "id": "societe-generale",
+    "country": "fr",
+    "localTitle": "Société Générale",
+    "engTitle": "Societe Generale",
+    "color": "#e5022f",
+    "domain": "societegenerale.fr"
+  },
+  {
+    "id": "barclaycard",
+    "country": "gb",
+    "localTitle": "Barclaycard",
+    "engTitle": "Barclaycard",
+    "color": "#018fd0",
+    "domain": "barclaycard.co.uk"
+  },
+  {
+    "id": "barclays",
+    "country": "gb",
+    "localTitle": "Barclays Bank plc",
+    "engTitle": "Barclays Bank plc",
+    "color": "#00adef",
+    "domain": "barclays.co.uk"
+  },
+  {
+    "id": "curve",
+    "country": "gb",
+    "localTitle": "Curve",
+    "engTitle": "Curve",
+    "color": "#0f2d4f",
+    "domain": "imaginecurve.com"
+  },
+  {
+    "id": "hsbc",
+    "country": "gb",
+    "localTitle": "HSBC Bank plc",
+    "engTitle": "HSBC Bank plc",
+    "color": "#ee3226",
+    "domain": "hsbc.co.uk"
+  },
+  {
+    "id": "halifax",
+    "country": "gb",
+    "localTitle": "Halifax",
+    "engTitle": "Halifax",
+    "color": "#0040bb",
+    "domain": "halifax.co.uk"
+  },
+  {
+    "id": "lloydstsb",
+    "country": "gb",
+    "localTitle": "Lloyds Bank plc",
+    "engTitle": "Lloyds Bank plc",
+    "color": "#006a4d",
+    "domain": "lloydsbank.com"
+  },
+  {
+    "id": "metrobank",
+    "country": "gb",
+    "localTitle": "Metro Bank",
+    "engTitle": "Metro Bank",
+    "color": "#013760",
+    "domain": "metrobankonline.co.uk"
+  },
+  {
+    "id": "monzo",
+    "country": "gb",
+    "localTitle": "Monzo",
+    "engTitle": "Monzo",
+    "color": "#f93845",
+    "domain": "monzo.com"
+  },
+  {
+    "id": "natwest",
+    "country": "gb",
+    "localTitle": "NatWest",
+    "engTitle": "NatWest",
+    "color": "#42145f",
+    "domain": "personal.natwest.com"
+  },
+  {
+    "id": "nationwide",
+    "country": "gb",
+    "localTitle": "Nationwide",
+    "engTitle": "Nationwide",
+    "color": "#002878",
+    "domain": "nationwide.co.uk"
+  },
+  {
+    "id": "revolut",
+    "country": "gb",
+    "localTitle": "Revolut",
+    "engTitle": "Revolut",
+    "color": "#1574e2",
+    "domain": "revolut.com"
+  },
+  {
+    "id": "santander",
+    "country": "gb",
+    "localTitle": "Santander UK plc",
+    "engTitle": "Santander UK plc",
+    "color": "#ec0000",
+    "domain": "santander.co.uk"
+  },
+  {
+    "id": "soldo",
+    "country": "gb",
+    "localTitle": "Soldo",
+    "engTitle": "Soldo",
+    "color": "#fd8a43",
+    "domain": "soldo.com"
+  },
+  {
+    "id": "tsb",
+    "country": "gb",
+    "localTitle": "TSB",
+    "engTitle": "TSB",
+    "color": "#0098cf",
+    "domain": "tsb.co.uk"
+  },
+  {
+    "id": "wise",
+    "country": "gb",
+    "localTitle": "Wise",
+    "engTitle": "Wise",
+    "color": "#00b9ff",
+    "domain": "wise.com"
+  },
+  {
+    "id": "epayments",
+    "country": "gb",
+    "localTitle": "ePayments",
+    "engTitle": "ePayments",
+    "color": "#000000",
+    "domain": "epayments.com"
+  },
+  {
+    "id": "aib",
+    "country": "ie",
+    "localTitle": "AIB Bank",
+    "engTitle": "AIB Bank",
+    "color": "#7f2b7b",
+    "domain": "aib.ie"
+  },
+  {
+    "id": "bankofireland",
+    "country": "ie",
+    "localTitle": "Bank Of Ireland",
+    "engTitle": "Bank Of Ireland",
+    "color": "#013c5c",
+    "domain": "bankofireland.com"
+  },
+  {
+    "id": "hdfc",
+    "country": "in",
+    "localTitle": "HDFC",
+    "engTitle": "HDFC",
+    "color": "#004c8f",
+    "domain": "hdfcbank.com"
+  },
+  {
+    "id": "icici",
+    "country": "in",
+    "localTitle": "ICICI",
+    "engTitle": "ICICI",
+    "color": "#c01012",
+    "domain": "icicibank.com"
+  },
+  {
+    "id": "sbi",
+    "country": "in",
+    "localTitle": "SBI",
+    "engTitle": "SBI",
+    "color": "#292075",
+    "domain": "onlinesbi.com"
+  },
+  {
+    "id": "ayandeh",
+    "country": "ir",
+    "localTitle": "بانک آینده",
+    "engTitle": "Ayandeh Bank",
+    "color": "#e1b466",
+    "domain": "ba24.ir"
+  },
+  {
+    "id": "eghtesadnovin",
+    "country": "ir",
+    "localTitle": "بانک اقتصاد نوین",
+    "engTitle": "Eghtesad Novin Bank",
+    "color": "#b42728",
+    "domain": "enbank.ir"
+  },
+  {
+    "id": "ansar",
+    "country": "ir",
+    "localTitle": "بانک انصار",
+    "engTitle": "Ansar Bank",
+    "color": "#b80710",
+    "domain": "ansarbank.com"
+  },
+  {
+    "id": "iranzamin",
+    "country": "ir",
+    "localTitle": "بانک ایران زمین",
+    "engTitle": "Iran Zamin Bank",
+    "color": "#4c2a94",
+    "domain": "izbank.ir"
+  },
+  {
+    "id": "tejarat",
+    "country": "ir",
+    "localTitle": "بانک تجارت",
+    "engTitle": "Tejarat Bank",
+    "color": "#2f4a98",
+    "domain": "tejaratbank.ir"
+  },
+  {
+    "id": "toseetaavon",
+    "country": "ir",
+    "localTitle": "بانک توسعه تعاون",
+    "engTitle": "Tose'e Ta'avon Bank",
+    "color": "#50b5d1",
+    "domain": "ttbank.ir"
+  },
+  {
+    "id": "exportdevelopment",
+    "country": "ir",
+    "localTitle": "بانک توسعه صادرات",
+    "engTitle": "Export Development Bank",
+    "color": "#006000",
+    "domain": "edbi.ir"
+  },
+  {
+    "id": "hekmatiranian",
+    "country": "ir",
+    "localTitle": "بانک حکمت ایرانیان",
+    "engTitle": "Hekmat Iranian Bank",
+    "color": "#1d538d",
+    "domain": "hibank24.ir"
+  },
+  {
+    "id": "middleeast",
+    "country": "ir",
+    "localTitle": "بانک خاورمیانه",
+    "engTitle": "Middle East Bank",
+    "color": "#f39200",
+    "domain": "middleeastbank.ir"
+  },
+  {
+    "id": "day",
+    "country": "ir",
+    "localTitle": "بانک دی",
+    "engTitle": "Day Bank",
+    "color": "#008b9a",
+    "domain": "bank-day.org"
+  },
+  {
+    "id": "refah",
+    "country": "ir",
+    "localTitle": "بانک رفاه",
+    "engTitle": "Refah Bank",
+    "color": "#004b84",
+    "domain": "rb24.ir"
+  },
+  {
+    "id": "saman",
+    "country": "ir",
+    "localTitle": "بانک سامان",
+    "engTitle": "Saman Bank",
+    "color": "#009ddc",
+    "domain": "sb24.com"
+  },
+  {
+    "id": "sarmayeh",
+    "country": "ir",
+    "localTitle": "بانک سرمایه",
+    "engTitle": "Sarmayeh Bank",
+    "color": "#000064",
+    "domain": "sbank.ir"
+  },
+  {
+    "id": "sepah",
+    "country": "ir",
+    "localTitle": "بانک سپه",
+    "engTitle": "Sepah Bank",
+    "color": "#e67a00",
+    "domain": "ebanksepah.ir"
+  },
+  {
+    "id": "sina",
+    "country": "ir",
+    "localTitle": "بانک سینا",
+    "engTitle": "Sina Bank",
+    "color": "#07519a",
+    "domain": "sinabank.ir"
+  },
+  {
+    "id": "shahr",
+    "country": "ir",
+    "localTitle": "بانک شهر",
+    "engTitle": "Shahr Bank",
+    "color": "#ed1b24",
+    "domain": "shahr-bank.ir"
+  },
+  {
+    "id": "saderat",
+    "country": "ir",
+    "localTitle": "بانک صادرات",
+    "engTitle": "Saderat Bank",
+    "color": "#005da2",
+    "domain": "bsi.ir"
+  },
+  {
+    "id": "industryandmine",
+    "country": "ir",
+    "localTitle": "بانک صنعت و معدن",
+    "engTitle": "Bank of Industry and Mine",
+    "color": "#e7c07d",
+    "domain": "bim.ir"
+  },
+  {
+    "id": "resalat",
+    "country": "ir",
+    "localTitle": "بانک قرض الحسنه رسالت",
+    "engTitle": "Resalat Gharzolhasaneh Bank",
+    "color": "#0098a7",
+    "domain": "rqbank.ir"
+  },
+  {
+    "id": "qarzolqasanehmehriran",
+    "country": "ir",
+    "localTitle": "بانک قرض‌الحسنه مهر ایرانیان",
+    "engTitle": "Qarzol-Hasaneh Mehr Iran Bank",
+    "color": "#009738",
+    "domain": "qmb.ir"
+  },
+  {
+    "id": "ghavamin",
+    "country": "ir",
+    "localTitle": "بانک قوامین",
+    "engTitle": "Ghavamin Bank",
+    "color": "#00a652",
+    "domain": "ghbi.ir"
+  },
+  {
+    "id": "central",
+    "country": "ir",
+    "localTitle": "بانک مرکزی جمهوری اسلامی ایران",
+    "engTitle": "Central Bank of the Islamic Republic of Iran",
+    "color": "#22304d",
+    "domain": "cbi.ir"
+  },
+  {
+    "id": "maskan",
+    "country": "ir",
+    "localTitle": "بانک مسکن",
+    "engTitle": "Maskan Bank",
+    "color": "#e84b0a",
+    "domain": "bank-maskan.ir"
+  },
+  {
+    "id": "mellat",
+    "country": "ir",
+    "localTitle": "بانک ملت",
+    "engTitle": "Mellat Bank",
+    "color": "#d81736",
+    "domain": "bankmellat.ir"
+  },
+  {
+    "id": "melli",
+    "country": "ir",
+    "localTitle": "بانک ملی ایران",
+    "engTitle": "Melli Bank",
+    "color": "#dc3c00",
+    "domain": "bmi.ir"
+  },
+  {
+    "id": "mehreghtesad",
+    "country": "ir",
+    "localTitle": "بانک مهر اقتصاد",
+    "engTitle": "Mehr Eqtesad Bank",
+    "color": "#00a651",
+    "domain": "bank-maskan.ir"
+  },
+  {
+    "id": "parsian",
+    "country": "ir",
+    "localTitle": "بانک پارسیان",
+    "engTitle": "Parsian Bank",
+    "color": "#ffc41e",
+    "domain": "parsian-bank.ir"
+  },
+  {
+    "id": "pasargad",
+    "country": "ir",
+    "localTitle": "بانک پاسارگاد",
+    "engTitle": "Pasargad Bank",
+    "color": "#ffc41e",
+    "domain": "bpi.ir"
+  },
+  {
+    "id": "karafarin",
+    "country": "ir",
+    "localTitle": "بانک کارآفرین",
+    "engTitle": "Karafarin Bank",
+    "color": "#1f764c",
+    "domain": "karafarinbank.ir"
+  },
+  {
+    "id": "keshavarzi",
+    "country": "ir",
+    "localTitle": "بانک کشاورزی",
+    "engTitle": "Keshavarzi Bank",
+    "color": "#005902",
+    "domain": "bki.ir"
+  },
+  {
+    "id": "tourism",
+    "country": "ir",
+    "localTitle": "بانک گردشگری",
+    "engTitle": "Tourism Bank",
+    "color": "#b11116",
+    "domain": "tourismbank.ir"
+  },
+  {
+    "id": "tosee",
+    "country": "ir",
+    "localTitle": "مؤسسه اعتباری توسعه",
+    "engTitle": "Tosee Credit Institution",
+    "color": "#a41b1b",
+    "domain": "cid.ir"
+  },
+  {
+    "id": "melal",
+    "country": "ir",
+    "localTitle": "مؤسسه اعتباری ملل",
+    "engTitle": "Melal Credit Institution",
+    "color": "#f9bb08",
+    "domain": "bank-melal.ir"
+  },
+  {
+    "id": "noor",
+    "country": "ir",
+    "localTitle": "مؤسسه اعتباری نور",
+    "engTitle": "Noor Credit Institution",
+    "color": "#0bbbb9",
+    "domain": "noorbank.ir"
+  },
+  {
+    "id": "kosar",
+    "country": "ir",
+    "localTitle": "مؤسسه اعتباری کوثر",
+    "engTitle": "Kosar Financial and Credit Institution",
+    "color": "#802b68",
+    "domain": "kosarfci.ir"
+  },
+  {
+    "id": "post",
+    "country": "ir",
+    "localTitle": "پست بانک",
+    "engTitle": "Post Bank",
+    "color": "#006600",
+    "domain": "ib.postbank.ir"
+  },
+  {
+    "id": "demirbank",
+    "country": "kg",
+    "localTitle": "Демир Кыргыз Интернэшнл Банк",
+    "engTitle": "DemirBank",
+    "color": "#c21f1a",
+    "domain": "demirbank.kg"
+  },
+  {
+    "id": "jusan",
+    "country": "kz",
+    "localTitle": "Jusan Банк",
+    "engTitle": "Jusan Bank",
+    "color": "#d66920",
+    "domain": "jusan.kz"
+  },
+  {
+    "id": "kaspi",
+    "country": "kz",
+    "localTitle": "Kaspi Банк",
+    "engTitle": "Kaspi Bank",
+    "color": "#F14635",
+    "domain": "kaspi.kz"
+  },
+  {
+    "id": "bcc",
+    "country": "kz",
+    "localTitle": "Банк ЦентрКредит",
+    "engTitle": "Bank CenterCredit",
+    "color": "#008047",
+    "domain": "bcc.kz"
+  },
+  {
+    "id": "berekebank",
+    "country": "kz",
+    "localTitle": "БерекеБанк",
+    "engTitle": "Berekebank",
+    "color": "#309c0b",
+    "domain": "berekebank.kz"
+  },
+  {
+    "id": "halyk",
+    "country": "kz",
+    "localTitle": "Народный банк Казахстана",
+    "engTitle": "Halyk Bank",
+    "color": "#008fb4",
+    "domain": "halykbank.kz"
+  },
+  {
+    "id": "bunq",
+    "country": "nl",
+    "localTitle": "bunq",
+    "engTitle": "bunq",
+    "color": "#ffffff",
+    "domain": "bunq.com"
+  },
+  {
+    "id": "bnz",
+    "country": "nz",
+    "localTitle": "Bank of New Zealand",
+    "engTitle": "Bank of New Zealand",
+    "color": "#002f6b",
+    "domain": "bnz.co.nz"
+  },
+  {
+    "id": "millennium",
+    "country": "pl",
+    "localTitle": "Bank Millennium",
+    "engTitle": "Bank Millennium",
+    "color": "#c82059",
+    "domain": "bankmillennium.pl"
+  },
+  {
+    "id": "deutsche-bank-polska",
+    "country": "pl",
+    "localTitle": "Deutsche Bank Polska",
+    "engTitle": "Deutsche Bank Polska",
+    "color": "#00abdf",
+    "domain": "deutschebank.pl"
+  },
+  {
+    "id": "ing-bsk",
+    "country": "pl",
+    "localTitle": "ING Bank Slaski",
+    "engTitle": "ING Bank Slaski",
+    "color": "#ff6200",
+    "domain": "ingbank.pl"
+  },
+  {
+    "id": "raiffeisen-polbank",
+    "country": "pl",
+    "localTitle": "Raiffeisen Polbank",
+    "engTitle": "Raiffeisen Polbank",
+    "color": "#fff533",
+    "domain": "raiffeisenpolbank.com"
+  },
+  {
+    "id": "bpi",
+    "country": "pt",
+    "localTitle": "Banco Português de Investimento (BPI)",
+    "engTitle": "Portuguese Investment Bank",
+    "color": "#ff8d00",
+    "domain": "www.bancobpi.pt"
+  },
+  {
+    "id": "millenniumbcp",
+    "country": "pt",
+    "localTitle": "Millennium BCP",
+    "engTitle": "Millennium BCP",
+    "color": "#e7046b",
+    "domain": "www.millenniumbcp.pt"
+  },
+  {
+    "id": "societegeneralebanka",
+    "country": "rs",
+    "localTitle": "Societe Generale Banka Srbija Ad Beograd",
+    "engTitle": "Societe Generale Banka Srbija Ad Beograd",
+    "color": "#ed1a3a",
+    "domain": "societegenerale.rs"
+  },
+  {
+    "id": "avangard",
+    "country": "ru",
+    "localTitle": "Авангард",
+    "engTitle": "Avangard",
+    "color": "#187543",
+    "domain": "avangard.ru"
+  },
+  {
+    "id": "akbarsbank",
+    "country": "ru",
+    "localTitle": "Ак Барс Банк",
+    "engTitle": "Ak Bars Bank",
+    "color": "#019d3c",
+    "domain": "akbars.ru"
+  },
+  {
+    "id": "alfabank",
+    "country": "ru",
+    "localTitle": "Альфа-Банк",
+    "engTitle": "Alfa-Bank",
+    "color": "#f22f17",
+    "domain": "alfabank.ru"
+  },
+  {
+    "id": "openbank",
+    "country": "ru",
+    "localTitle": "Банк Открытие",
+    "engTitle": "Bank Otkritie",
+    "color": "#00b4e3",
+    "domain": "open.ru"
+  },
+  {
+    "id": "rsb",
+    "country": "ru",
+    "localTitle": "Банк Русский Стандарт",
+    "engTitle": "Russian Standard Bank",
+    "color": "#930d2d",
+    "domain": "rsb.ru"
+  },
+  {
+    "id": "vtb",
+    "country": "ru",
+    "localTitle": "ВТБ",
+    "engTitle": "VTB",
+    "color": "#00498f",
+    "domain": "vtb.ru"
+  },
+  {
+    "id": "vozrozhdenie",
+    "country": "ru",
+    "localTitle": "Возрождение",
+    "engTitle": "Vozrozhdenie",
+    "color": "#224f84",
+    "domain": "vbank.bm-bank.ru"
+  },
+  {
+    "id": "gazprombank",
+    "country": "ru",
+    "localTitle": "Газпромбанк",
+    "engTitle": "Gazprombank",
+    "color": "#00448b",
+    "domain": "gazprombank.ru"
+  },
+  {
+    "id": "qiwi",
+    "country": "ru",
+    "localTitle": "Киви",
+    "engTitle": "QIWI",
+    "color": "#ff9f00",
+    "domain": "qiwi.ru"
+  },
+  {
+    "id": "promsvyazbank",
+    "country": "ru",
+    "localTitle": "Промсвязьбанк",
+    "engTitle": "Promsvyazbank",
+    "color": "#274193",
+    "domain": "psbank.ru"
+  },
+  {
+    "id": "raiffeisen",
+    "country": "ru",
+    "localTitle": "Райффайзенбанк",
+    "engTitle": "Raiffeisenbank",
+    "color": "#fff300",
+    "domain": "raiffeisen.ru"
+  },
+  {
+    "id": "renaissance",
+    "country": "ru",
+    "localTitle": "Ренессанс Капитал",
+    "engTitle": "Renaissance Capital",
+    "color": "#343434",
+    "domain": "rencap.ru"
+  },
+  {
+    "id": "rosbank",
+    "country": "ru",
+    "localTitle": "Росбанк",
+    "engTitle": "Rosbank",
+    "color": "#e60028",
+    "domain": "rosbank.ru"
+  },
+  {
+    "id": "siab",
+    "country": "ru",
+    "localTitle": "СИАБ",
+    "engTitle": "SIAB",
+    "color": "#0f255c",
+    "domain": "siab.ru"
+  },
+  {
+    "id": "sberbank",
+    "country": "ru",
+    "localTitle": "СберБанк",
+    "engTitle": "SberBank",
+    "color": "#309c0b",
+    "domain": "sberbank.ru"
+  },
+  {
+    "id": "citibank",
+    "country": "ru",
+    "localTitle": "Ситибанк",
+    "engTitle": "Citibank",
+    "color": "#0088cf",
+    "domain": "citibank.ru"
+  },
+  {
+    "id": "sovcombank",
+    "country": "ru",
+    "localTitle": "Совкомбанк",
+    "engTitle": "Sovcombank",
+    "color": "#134c7c",
+    "domain": "sovcombank.ru"
+  },
+  {
+    "id": "tinkoff",
+    "country": "ru",
+    "localTitle": "Тинькофф Банк",
+    "engTitle": "Tinkoff Bank",
+    "color": "#ffdd2d",
+    "domain": "tinkoff.ru"
+  },
+  {
+    "id": "trust",
+    "country": "ru",
+    "localTitle": "Траст",
+    "engTitle": "Trust",
+    "color": "#f8ab21",
+    "domain": "trust.ru"
+  },
+  {
+    "id": "uralsibbank",
+    "country": "ru",
+    "localTitle": "УралСиб Банк",
+    "engTitle": "UralSib Bank",
+    "color": "#53b548",
+    "domain": "uralsib.ru"
+  },
+  {
+    "id": "homecredit",
+    "country": "ru",
+    "localTitle": "Хоум Кредит Банк",
+    "engTitle": "Home Credit Bank",
+    "color": "#c7102e",
+    "domain": "homecredit.ru"
+  },
+  {
+    "id": "yoomoney",
+    "country": "ru",
+    "localTitle": "ЮMoney",
+    "engTitle": "YooMoney",
+    "color": "#8b3ffd",
+    "domain": "yoomoney.ru"
+  },
+  {
+    "id": "unicreditbank",
+    "country": "ru",
+    "localTitle": "ЮниКредит Банк",
+    "engTitle": "UniCredit Bank",
+    "color": "#e3001a",
+    "domain": "unicreditbank.ru"
+  },
+  {
+    "id": "akbank",
+    "country": "tr",
+    "localTitle": "Akbank",
+    "engTitle": "Akbank",
+    "color": "#4285f4",
+    "domain": "akbank.com"
+  },
+  {
+    "id": "bankasya",
+    "country": "tr",
+    "localTitle": "Bank Asya",
+    "engTitle": "Bank Asya",
+    "color": "#4285f4",
+    "domain": "bankasya.com.tr"
+  },
+  {
+    "id": "denizbank",
+    "country": "tr",
+    "localTitle": "Denizbank",
+    "engTitle": "Denizbank",
+    "color": "#4285f4",
+    "domain": "denizbank.com"
+  },
+  {
+    "id": "finansbank",
+    "country": "tr",
+    "localTitle": "Finansbank",
+    "engTitle": "Finansbank",
+    "color": "#4285f4",
+    "domain": "finansbank.com.tr"
+  },
+  {
+    "id": "garanti",
+    "country": "tr",
+    "localTitle": "Garanti Bankasi",
+    "engTitle": "Garanti Bankasi",
+    "color": "#4285f4",
+    "domain": "garanti.com.tr"
+  },
+  {
+    "id": "hsbc",
+    "country": "tr",
+    "localTitle": "HSBC",
+    "engTitle": "HSBC",
+    "color": "#4285f4",
+    "domain": "hsbc.com.tr"
+  },
+  {
+    "id": "halkbank",
+    "country": "tr",
+    "localTitle": "Halk Bankası",
+    "engTitle": "Halk Bankası",
+    "color": "#4285f4",
+    "domain": "halkbank.com.tr"
+  },
+  {
+    "id": "ingbank",
+    "country": "tr",
+    "localTitle": "ING Bank",
+    "engTitle": "ING Bank",
+    "color": "#4285f4",
+    "domain": "ingbank.com.tr"
+  },
+  {
+    "id": "kuveytturk",
+    "country": "tr",
+    "localTitle": "Kuveyt Türk",
+    "engTitle": "Kuveyt Türk",
+    "color": "#4285f4",
+    "domain": "kuveytturk.com.tr"
+  },
+  {
+    "id": "teb",
+    "country": "tr",
+    "localTitle": "Türk Ekonomi Bankası",
+    "engTitle": "Türk Ekonomi Bankası",
+    "color": "#4285f4",
+    "domain": "teb.com.tr"
+  },
+  {
+    "id": "turkiyefinans",
+    "country": "tr",
+    "localTitle": "Türkiye Finans",
+    "engTitle": "Türkiye Finans",
+    "color": "#4285f4",
+    "domain": "turkiyefinans.com.tr"
+  },
+  {
+    "id": "isbank",
+    "country": "tr",
+    "localTitle": "Türkiye İş Bankası",
+    "engTitle": "Türkiye İş Bankası",
+    "color": "#4285f4",
+    "domain": "isbank.com.tr"
+  },
+  {
+    "id": "vakifbank",
+    "country": "tr",
+    "localTitle": "Vakıf Bank",
+    "engTitle": "Vakıf Bank",
+    "color": "#4285f4",
+    "domain": "vakifbank.com.tr"
+  },
+  {
+    "id": "yapikredi",
+    "country": "tr",
+    "localTitle": "Yapı ve Kredi Bankası",
+    "engTitle": "Yapı ve Kredi Bankası",
+    "color": "#4285f4",
+    "domain": "yapikredi.com.tr"
+  },
+  {
+    "id": "ziraatbankasi",
+    "country": "tr",
+    "localTitle": "Ziraat Bankası",
+    "engTitle": "Ziraat Bankası",
+    "color": "#4285f4",
+    "domain": "ziraatbank.com.tr"
+  },
+  {
+    "id": "albaraka",
+    "country": "tr",
+    "localTitle": "al Baraka",
+    "engTitle": "al Baraka",
+    "color": "#4285f4",
+    "domain": "albaraka.com.tr"
+  },
+  {
+    "id": "ininal",
+    "country": "tr",
+    "localTitle": "ininal",
+    "engTitle": "ininal",
+    "color": "#51504E",
+    "domain": "ininal.com"
+  },
+  {
+    "id": "sekerbank",
+    "country": "tr",
+    "localTitle": "Şeker Bank",
+    "engTitle": "Şeker Bank",
+    "color": "#4285f4",
+    "domain": "sekerbank.com.tr"
+  },
+  {
+    "id": "scsb",
+    "country": "tw",
+    "localTitle": "上海商業儲蓄銀行",
+    "engTitle": "he Shanghai Commercial & Savings Bank, Ltd. ",
+    "color": "#c42607",
+    "domain": "scsb.com.tw"
+  },
+  {
+    "id": "ctbcbank",
+    "country": "tw",
+    "localTitle": "中國信託商業銀行",
+    "engTitle": "CTBC Bank",
+    "color": "#007d7d",
+    "domain": "ctbcbank.com"
+  },
+  {
+    "id": "tcbbank",
+    "country": "tw",
+    "localTitle": "台中商業銀行",
+    "engTitle": "Taichung Bank",
+    "color": "#ce1624",
+    "domain": "tcbbank.com.tw"
+  },
+  {
+    "id": "fubon",
+    "country": "tw",
+    "localTitle": "台北富邦銀行",
+    "engTitle": "Taipei Fubon Bank",
+    "color": "#007c97",
+    "domain": "fubon.com"
+  },
+  {
+    "id": "cathaybk",
+    "country": "tw",
+    "localTitle": "國泰世華商業銀行",
+    "engTitle": "Cathay United Bank",
+    "color": "#11a847",
+    "domain": "cathaybk.com.tw"
+  },
+  {
+    "id": "anz",
+    "country": "tw",
+    "localTitle": "澳盛(台灣)商業銀行",
+    "engTitle": "ANZ Bank (Taiwan)",
+    "color": "#003f67",
+    "domain": "anz.tw"
+  },
+  {
+    "id": "esunbank",
+    "country": "tw",
+    "localTitle": "玉山銀行",
+    "engTitle": "E.SUN Bank",
+    "color": "#009d99",
+    "domain": "esunbank.com.tw"
+  },
+  {
+    "id": "citibank",
+    "country": "tw",
+    "localTitle": "花旗(台灣)銀行",
+    "engTitle": "Citibank Taiwan",
+    "color": "#0088cf",
+    "domain": "citibank.com.tw"
+  },
+  {
+    "id": "hncb",
+    "country": "tw",
+    "localTitle": "華南銀行",
+    "engTitle": "Hua Nan Bank",
+    "color": "#ce1624",
+    "domain": "hncb.com.tw"
+  },
+  {
+    "id": "otp",
+    "country": "ua",
+    "localTitle": "OTP Bank",
+    "engTitle": "OTP Bank",
+    "color": "#a3d044",
+    "domain": "otpbank.com.ua"
+  },
+  {
+    "id": "alfabank",
+    "country": "ua",
+    "localTitle": "Альфа-Банк",
+    "engTitle": "Alfa-Bank",
+    "color": "#ed1c2a",
+    "domain": "alfabank.ua"
+  },
+  {
+    "id": "diamant",
+    "country": "ua",
+    "localTitle": "Діамантбанк",
+    "engTitle": "Diamantbank",
+    "color": "#0a2855",
+    "domain": "diamantbank.ua"
+  },
+  {
+    "id": "kredobank",
+    "country": "ua",
+    "localTitle": "Кредобанк",
+    "engTitle": "KredoBank",
+    "color": "#275797",
+    "domain": "kredobank.com.ua"
+  },
+  {
+    "id": "credit-agricole",
+    "country": "ua",
+    "localTitle": "Креді Агріколь Банк (Україна)",
+    "engTitle": "Credit Agricole (Ukraine)",
+    "color": "#258b92",
+    "domain": "credit-agricole.ua"
+  },
+  {
+    "id": "monobank",
+    "country": "ua",
+    "localTitle": "Монобанк",
+    "engTitle": "Monobank",
+    "color": "#535353",
+    "domain": "monobank.ua"
+  },
+  {
+    "id": "oschadbank",
+    "country": "ua",
+    "localTitle": "Ощадбанк",
+    "engTitle": "Oschadbank",
+    "color": "#06503c",
+    "domain": "oschadbank.ua"
+  },
+  {
+    "id": "pravex",
+    "country": "ua",
+    "localTitle": "ПРАВЕКС-БАНК",
+    "engTitle": "PRAVEX-BANK",
+    "color": "#701616",
+    "domain": "pravex.com.ua"
+  },
+  {
+    "id": "pumb",
+    "country": "ua",
+    "localTitle": "ПУМБ (Перший Український Міжнародний Банк)",
+    "engTitle": "FUIB (First Ukrainian International Bank)",
+    "color": "#d13239",
+    "domain": "pumb.ua"
+  },
+  {
+    "id": "privatbank",
+    "country": "ua",
+    "localTitle": "ПриватБанк",
+    "engTitle": "Privatbank",
+    "color": "#498d2f",
+    "domain": "privatbank.ua"
+  },
+  {
+    "id": "procredit",
+    "country": "ua",
+    "localTitle": "ПроКредит Банк (Украина)",
+    "engTitle": "ProCredit Bank (Ukraine)",
+    "color": "#da2027",
+    "domain": "procreditbank.com.ua"
+  },
+  {
+    "id": "raiffeisen-aval",
+    "country": "ua",
+    "localTitle": "Райффайзен Банк Аваль",
+    "engTitle": "Raiffeisen Bank Aval",
+    "color": "#fffb0b",
+    "domain": "aval.ua"
+  },
+  {
+    "id": "ukrgasbank",
+    "country": "ua",
+    "localTitle": "УКРГАЗБАНК",
+    "engTitle": "Ukrgasbank",
+    "color": "#005596",
+    "domain": "ukrgasbank.com"
+  },
+  {
+    "id": "ukrsibbank",
+    "country": "ua",
+    "localTitle": "УКРСИББАНК",
+    "engTitle": "Ukrsibbank",
+    "color": "#04703d",
+    "domain": "ukrsibbank.com"
+  },
+  {
+    "id": "ukrsotsbank",
+    "country": "ua",
+    "localTitle": "Укрсоцбанк",
+    "engTitle": "Ukrsotsbank",
+    "color": "#a50931",
+    "domain": "ukrsotsbank.com"
+  },
+  {
+    "id": "ukreximbank",
+    "country": "ua",
+    "localTitle": "Укрэксимбанк",
+    "engTitle": "Ukreximbank",
+    "color": "#0067a6",
+    "domain": "eximb.com"
+  },
+  {
+    "id": "unicreditbank",
+    "country": "ua",
+    "localTitle": "ЮниКредит Банк",
+    "engTitle": "UniCredit Bank",
+    "color": "#e3001a",
+    "domain": "unicredit.ua"
+  },
+  {
+    "id": "ally",
+    "country": "us",
+    "localTitle": "Ally",
+    "engTitle": "Ally",
+    "color": "#650360",
+    "domain": "ally.com"
+  },
+  {
+    "id": "americanexpress",
+    "country": "us",
+    "localTitle": "American Express",
+    "engTitle": "American Express",
+    "color": "#004fc5",
+    "domain": "americanexpress.com"
+  },
+  {
+    "id": "bankofamerica",
+    "country": "us",
+    "localTitle": "Bank of America",
+    "engTitle": "Bank of America",
+    "color": "#d4001a",
+    "domain": "bankofamerica.com"
+  },
+  {
+    "id": "barclays",
+    "country": "us",
+    "localTitle": "Barclays",
+    "engTitle": "Barclays",
+    "color": "#28ace2",
+    "domain": "banking.barclaysus.com"
+  },
+  {
+    "id": "capitalonebank",
+    "country": "us",
+    "localTitle": "Capital One Bank",
+    "engTitle": "Capital One Bank",
+    "color": "#004779",
+    "domain": "capitalone.com"
+  },
+  {
+    "id": "chase",
+    "country": "us",
+    "localTitle": "Chase",
+    "engTitle": "Chase",
+    "color": "#0f5ba7",
+    "domain": "chase.com"
+  },
+  {
+    "id": "citibank",
+    "country": "us",
+    "localTitle": "Citibank",
+    "engTitle": "Citibank",
+    "color": "#0088cf",
+    "domain": "online.citi.com"
+  },
+  {
+    "id": "fifththird",
+    "country": "us",
+    "localTitle": "Fifth Third Bank",
+    "engTitle": "Fifth Third Bank",
+    "color": "#254094",
+    "domain": "53.com"
+  },
+  {
+    "id": "googlewallet",
+    "country": "us",
+    "localTitle": "Google Wallet",
+    "engTitle": "Google Wallet",
+    "color": "#4285f4",
+    "domain": "wallet.google.com"
+  },
+  {
+    "id": "hsbc",
+    "country": "us",
+    "localTitle": "HSBC",
+    "engTitle": "HSBC",
+    "color": "#dd1f26",
+    "domain": "us.hsbc.com"
+  },
+  {
+    "id": "jpmorganchase",
+    "country": "us",
+    "localTitle": "JPMorgan Chase",
+    "engTitle": "JPMorgan Chase",
+    "color": "#ececeb",
+    "domain": "jpmorganchase.com"
+  },
+  {
+    "id": "metabank",
+    "country": "us",
+    "localTitle": "Metabank",
+    "engTitle": "Metabank",
+    "color": "#004990",
+    "domain": "metabank.com"
+  },
+  {
+    "id": "navyfederal",
+    "country": "us",
+    "localTitle": "Navy Federal Credit Union",
+    "engTitle": "Navy Federal Credit Union",
+    "color": "#0f4471",
+    "domain": "navyfederal.org"
+  },
+  {
+    "id": "payoneer",
+    "country": "us",
+    "localTitle": "Payoneer",
+    "engTitle": "Payoneer",
+    "color": "#ff4800",
+    "domain": "payoneer.com"
+  },
+  {
+    "id": "simple",
+    "country": "us",
+    "localTitle": "Simple",
+    "engTitle": "Simple",
+    "color": "#007cd9",
+    "domain": "simple.com"
+  },
+  {
+    "id": "suntrust",
+    "country": "us",
+    "localTitle": "SunTrust",
+    "engTitle": "SunTrust",
+    "color": "#ef7622",
+    "domain": "suntrust.com"
+  },
+  {
+    "id": "tdbank",
+    "country": "us",
+    "localTitle": "TD Bank",
+    "engTitle": "TD Bank",
+    "color": "#35b233",
+    "domain": "td.com"
+  },
+  {
+    "id": "usbank",
+    "country": "us",
+    "localTitle": "US Bank",
+    "engTitle": "US Bank",
+    "color": "#0c2074",
+    "domain": "usbank.com"
+  },
+  {
+    "id": "wellsfargo",
+    "country": "us",
+    "localTitle": "Wells Fargo",
+    "engTitle": "Wells Fargo",
+    "color": "#a00000",
+    "domain": "wellsfargo.com"
+  },
+  {
+    "id": "schwab",
+    "country": "us",
+    "localTitle": "Charles Schwab",
+    "engTitle": "Charles Schwab",
+    "color": "#00a0df",
+    "domain": "schwab.com"
+  },
+  {
+    "id": "fidelity",
+    "country": "us",
+    "localTitle": "Fidelity",
+    "engTitle": "Fidelity Investments",
+    "color": "#4a8c2e",
+    "domain": "fidelity.com"
+  },
+  {
+    "id": "vanguard",
+    "country": "us",
+    "localTitle": "Vanguard",
+    "engTitle": "Vanguard",
+    "color": "#96151d",
+    "domain": "vanguard.com"
+  },
+  {
+    "id": "morganstanley",
+    "country": "us",
+    "localTitle": "Morgan Stanley",
+    "engTitle": "Morgan Stanley",
+    "color": "#002856",
+    "domain": "morganstanley.com"
+  },
+  {
+    "id": "goldmansachs",
+    "country": "us",
+    "localTitle": "Goldman Sachs",
+    "engTitle": "Goldman Sachs",
+    "color": "#6fa8dc",
+    "domain": "goldmansachs.com"
+  },
+  {
+    "id": "merrilllynch",
+    "country": "us",
+    "localTitle": "Merrill Lynch",
+    "engTitle": "Merrill Lynch",
+    "color": "#012169",
+    "domain": "ml.com"
+  },
+  {
+    "id": "robinhood",
+    "country": "us",
+    "localTitle": "Robinhood",
+    "engTitle": "Robinhood",
+    "color": "#00c805",
+    "domain": "robinhood.com"
+  },
+  {
+    "id": "etrade",
+    "country": "us",
+    "localTitle": "E*TRADE",
+    "engTitle": "E*TRADE",
+    "color": "#6633cc",
+    "domain": "etrade.com"
+  },
+  {
+    "id": "sofi",
+    "country": "us",
+    "localTitle": "SoFi",
+    "engTitle": "SoFi",
+    "color": "#00c9b9",
+    "domain": "sofi.com"
+  },
+  {
+    "id": "chime",
+    "country": "us",
+    "localTitle": "Chime",
+    "engTitle": "Chime",
+    "color": "#1ec677",
+    "domain": "chime.com"
+  },
+  {
+    "id": "discover",
+    "country": "us",
+    "localTitle": "Discover",
+    "engTitle": "Discover",
+    "color": "#ff6600",
+    "domain": "discover.com"
+  },
+  {
+    "id": "pnc",
+    "country": "us",
+    "localTitle": "PNC",
+    "engTitle": "PNC Financial Services",
+    "color": "#f58025",
+    "domain": "pnc.com"
+  },
+  {
+    "id": "truist",
+    "country": "us",
+    "localTitle": "Truist",
+    "engTitle": "Truist Financial",
+    "color": "#553b8b",
+    "domain": "truist.com"
+  },
+  {
+    "id": "usaa",
+    "country": "us",
+    "localTitle": "USAA",
+    "engTitle": "USAA",
+    "color": "#00529b",
+    "domain": "usaa.com"
+  },
+  {
+    "id": "marcus",
+    "country": "us",
+    "localTitle": "Marcus by Goldman Sachs",
+    "engTitle": "Marcus by Goldman Sachs",
+    "color": "#1a1a2e",
+    "domain": "marcus.com"
+  },
+  {
+    "id": "venmo",
+    "country": "us",
+    "localTitle": "Venmo",
+    "engTitle": "Venmo",
+    "color": "#3d95ce",
+    "domain": "venmo.com"
+  },
+  {
+    "id": "cashapp",
+    "country": "us",
+    "localTitle": "Cash App",
+    "engTitle": "Cash App",
+    "color": "#00d632",
+    "domain": "cash.app"
+  },
+  {
+    "id": "interactivebrokers",
+    "country": "us",
+    "localTitle": "Interactive Brokers",
+    "engTitle": "Interactive Brokers",
+    "color": "#d50032",
+    "domain": "interactivebrokers.com"
+  },
+  {
+    "id": "webull",
+    "country": "us",
+    "localTitle": "Webull",
+    "engTitle": "Webull",
+    "color": "#e8371a",
+    "domain": "webull.com"
+  },
+  {
+    "id": "brou",
+    "country": "uy",
+    "localTitle": "Banco de la República Oriental del Uruguay",
+    "engTitle": "Bank of the Oriental Republic of Uruguay",
+    "color": "#024181",
+    "domain": "brou.com.uy"
+  },
+  {
+    "id": "santander",
+    "country": "uy",
+    "localTitle": "Santander",
+    "engTitle": "Santander",
+    "color": "#ff0000",
+    "domain": "santander.com.uy"
+  },
+  {
+    "id": "absa",
+    "country": "za",
+    "localTitle": "Absa",
+    "engTitle": "Absa",
+    "color": "#be0028",
+    "domain": "absa.co.za"
+  },
+  {
+    "id": "bidvest",
+    "country": "za",
+    "localTitle": "Bidvest Bank",
+    "engTitle": "Bidvest Bank",
+    "color": "#071752",
+    "domain": "bidvestbank.co.za"
+  },
+  {
+    "id": "capitec",
+    "country": "za",
+    "localTitle": "Capitec",
+    "engTitle": "Capitec",
+    "color": "#daa520",
+    "domain": "capitecbank.co.za"
+  },
+  {
+    "id": "fnb",
+    "country": "za",
+    "localTitle": "Eerste Nasionale Bank (ENB)",
+    "engTitle": "First National Bank (South Africa)",
+    "color": "#4aa8ab",
+    "domain": "fnb.co.za"
+  },
+  {
+    "id": "virginmoney",
+    "country": "za",
+    "localTitle": "Virgin Money South Africa",
+    "engTitle": "Virgin Money South Africa",
+    "color": "#cb2c22",
+    "domain": "virginmoney.co.za"
+  },
+  {
+    "id": "mufg",
+    "country": "jp",
+    "localTitle": "三菱UFJ銀行",
+    "engTitle": "MUFG Bank",
+    "color": "#cc0033",
+    "domain": "bk.mufg.jp"
+  },
+  {
+    "id": "smbc",
+    "country": "jp",
+    "localTitle": "三井住友銀行",
+    "engTitle": "Sumitomo Mitsui Banking",
+    "color": "#4caf50",
+    "domain": "smbc.co.jp"
+  },
+  {
+    "id": "mizuho",
+    "country": "jp",
+    "localTitle": "みずほ銀行",
+    "engTitle": "Mizuho Bank",
+    "color": "#003399",
+    "domain": "mizuhobank.co.jp"
+  },
+  {
+    "id": "resona",
+    "country": "jp",
+    "localTitle": "りそな銀行",
+    "engTitle": "Resona Bank",
+    "color": "#009e60",
+    "domain": "resonabank.co.jp"
+  },
+  {
+    "id": "japan-post",
+    "country": "jp",
+    "localTitle": "ゆうちょ銀行",
+    "engTitle": "Japan Post Bank",
+    "color": "#ff6600",
+    "domain": "jp-bank.japanpost.jp"
+  },
+  {
+    "id": "rakuten-bank",
+    "country": "jp",
+    "localTitle": "楽天銀行",
+    "engTitle": "Rakuten Bank",
+    "color": "#bf0000",
+    "domain": "rakuten-bank.co.jp"
+  },
+  {
+    "id": "sbi-shinsei",
+    "country": "jp",
+    "localTitle": "SBI新生銀行",
+    "engTitle": "SBI Shinsei Bank",
+    "color": "#0066cc",
+    "domain": "sbishinseibank.co.jp"
+  },
+  {
+    "id": "aeon-bank",
+    "country": "jp",
+    "localTitle": "イオン銀行",
+    "engTitle": "AEON Bank",
+    "color": "#9c27b0",
+    "domain": "aeonbank.co.jp"
+  },
+  {
+    "id": "alipay",
+    "country": "cn",
+    "localTitle": "支付宝",
+    "engTitle": "Alipay",
+    "color": "#1677ff",
+    "domain": "alipay.com"
+  },
+  {
+    "id": "wechat-pay",
+    "country": "cn",
+    "localTitle": "微信支付",
+    "engTitle": "WeChat Pay",
+    "color": "#07c160",
+    "domain": "pay.weixin.qq.com"
+  },
+  {
+    "id": "paypal",
+    "country": "us",
+    "localTitle": "PayPal",
+    "engTitle": "PayPal",
+    "color": "#003087",
+    "domain": "paypal.com"
+  },
+  {
+    "id": "wise",
+    "country": "gb",
+    "localTitle": "Wise",
+    "engTitle": "Wise",
+    "color": "#9fe870",
+    "domain": "wise.com"
+  },
+  {
+    "id": "revolut",
+    "country": "gb",
+    "localTitle": "Revolut",
+    "engTitle": "Revolut",
+    "color": "#0075eb",
+    "domain": "revolut.com"
+  },
+  {
+    "id": "line-pay",
+    "country": "jp",
+    "localTitle": "LINE Pay",
+    "engTitle": "LINE Pay",
+    "color": "#06c755",
+    "domain": "pay.line.me"
+  },
+  {
+    "id": "paypay",
+    "country": "jp",
+    "localTitle": "PayPay",
+    "engTitle": "PayPay",
+    "color": "#ff0033",
+    "domain": "paypay.ne.jp"
+  }
+]

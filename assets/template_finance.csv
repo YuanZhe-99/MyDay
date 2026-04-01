@@ -1,0 +1,4 @@
+Date,Type,Category,Amount,Currency,Account,Note
+2025-01-15 10:30,expense,"Food & Dining",35.50,CNY,"Bank of China","Lunch"
+2025-01-15 14:00,income,"Salary",8000.00,CNY,"ICBC","Monthly salary"
+2025-01-16 09:00,expense,"Transport",5.00,CNY,"Alipay","Subway"
