@@ -361,6 +361,16 @@ FinanceMergeResult mergeFinanceData(String localJson, String remoteJson, String?
       autoResolve: autoResolve,
     );
 
+    final subResult = mergeRecords<Subscription>(
+      local: local.subscriptions,
+      remote: remote.subscriptions,
+      base: base?.subscriptions,
+      getId: (s) => s.id,
+      getModifiedAt: (s) => s.modifiedAt,
+      getDisplayName: (s) => '${s.emoji ?? ''} ${s.name}'.trim(),
+      autoResolve: autoResolve,
+    );
+
     final useLocalSettings =
         local.settingsModifiedAt.isAfter(remote.settingsModifiedAt) ||
         local.settingsModifiedAt == remote.settingsModifiedAt;
@@ -370,20 +380,24 @@ FinanceMergeResult mergeFinanceData(String localJson, String remoteJson, String?
       accountsMerged: accountResult.merged,
       categoriesMerged: categoryResult.merged,
       transactionsMerged: txResult.merged,
+      subscriptionsMerged: subResult.merged,
       settingsSource: settingsSource,
       accountConflicts: accountResult.conflicts,
       categoryConflicts: categoryResult.conflicts,
       transactionConflicts: txResult.conflicts,
+      subscriptionConflicts: subResult.conflicts,
     );
   } catch (_) {
     return FinanceMergeResult(
       accountsMerged: [],
       categoriesMerged: [],
       transactionsMerged: [],
+      subscriptionsMerged: [],
       settingsSource: FinanceData(accounts: [], categories: [], transactions: []),
       accountConflicts: [],
       categoryConflicts: [],
       transactionConflicts: [],
+      subscriptionConflicts: [],
     );
   }
 }
@@ -392,33 +406,43 @@ class FinanceMergeResult {
   final List<Account> accountsMerged;
   final List<Category> categoriesMerged;
   final List<Transaction> transactionsMerged;
+  final List<Subscription> subscriptionsMerged;
   final FinanceData settingsSource;
   final List<RecordConflict<Account>> accountConflicts;
   final List<RecordConflict<Category>> categoryConflicts;
   final List<RecordConflict<Transaction>> transactionConflicts;
+  final List<RecordConflict<Subscription>> subscriptionConflicts;
 
   const FinanceMergeResult({
     required this.accountsMerged,
     required this.categoriesMerged,
     required this.transactionsMerged,
+    required this.subscriptionsMerged,
     required this.settingsSource,
     required this.accountConflicts,
     required this.categoryConflicts,
     required this.transactionConflicts,
+    required this.subscriptionConflicts,
   });
 
   bool get hasConflicts =>
       accountConflicts.isNotEmpty ||
       categoryConflicts.isNotEmpty ||
-      transactionConflicts.isNotEmpty;
+      transactionConflicts.isNotEmpty ||
+      subscriptionConflicts.isNotEmpty;
 
   FinanceData buildResolved(Map<String, dynamic> resolutions) {
     return FinanceData(
       accounts: _resolveList(accountsMerged, accountConflicts, resolutions),
       categories: _resolveList(categoriesMerged, categoryConflicts, resolutions),
       transactions: _resolveList(transactionsMerged, transactionConflicts, resolutions),
+      subscriptions: _resolveList(subscriptionsMerged, subscriptionConflicts, resolutions),
       defaultCurrency: settingsSource.defaultCurrency,
       settingsModifiedAt: settingsSource.settingsModifiedAt,
+      subscriptionReminderHour: settingsSource.subscriptionReminderHour,
+      subscriptionReminderMinute: settingsSource.subscriptionReminderMinute,
+      subscriptionSortMode: settingsSource.subscriptionSortMode,
+      subscriptionCustomOrder: settingsSource.subscriptionCustomOrder,
     );
   }
 
@@ -566,9 +590,20 @@ String mergeExchangeRateJson(String localJson, String remoteJson) {
       currentId = local.currentSnapshotId;
     }
 
+    // lastFetchedAt: use the more recent value
+    final DateTime? mergedLastFetched;
+    if (local.lastFetchedAt != null && remote.lastFetchedAt != null) {
+      mergedLastFetched = local.lastFetchedAt!.isAfter(remote.lastFetchedAt!)
+          ? local.lastFetchedAt
+          : remote.lastFetchedAt;
+    } else {
+      mergedLastFetched = local.lastFetchedAt ?? remote.lastFetchedAt;
+    }
+
     final merged = ExchangeRateData(
       currentSnapshotId: currentId,
       snapshots: mergedSnapshots,
+      lastFetchedAt: mergedLastFetched,
     );
 
     return jsonEncode(merged.toJson());

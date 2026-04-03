@@ -87,6 +87,13 @@ class ReminderService {
   static const _mobileMorningReminderId = 9001;
   static const _mobileCompletionReminderId = 9002;
 
+  // Track per-task scheduled notification IDs so we can cancel stale ones.
+  final Set<int> _scheduledTaskNotificationIds = {};
+
+  /// Derive a stable notification ID from a task's string ID.
+  static int _taskNotificationId(String taskId) =>
+      taskId.hashCode.abs() % 100000 + 10000;
+
   /// Schedule subscription renewal notification on mobile.
   void _scheduleMobileSubscriptionReminder() {
     if (!MobileNotificationService.isMobile) return;
@@ -146,6 +153,46 @@ class ReminderService {
       );
     } else {
       mns.cancel(_mobileCompletionReminderId);
+    }
+    _scheduleMobilePerTaskReminders();
+  }
+
+  /// Schedule individual per-task reminders via OS-level notifications.
+  /// Daily templates get repeating daily notifications; one-time tasks
+  /// get a single scheduled notification at the exact date/time.
+  void _scheduleMobilePerTaskReminders() {
+    final mns = MobileNotificationService.instance;
+
+    // Cancel all previously scheduled per-task notifications.
+    for (final id in _scheduledTaskNotificationIds) {
+      mns.cancel(id);
+    }
+    _scheduledTaskNotificationIds.clear();
+
+    for (final task in _dailyTemplates) {
+      if (task.reminderTime == null || task.deletedDate != null) continue;
+      final nid = _taskNotificationId(task.id);
+      final label = task.emoji != null ? '${task.emoji} ${task.title}' : task.title;
+      mns.scheduleDaily(
+        id: nid,
+        title: 'MyDay!!!!!',
+        body: label,
+        time: TimeOfDay.fromDateTime(task.reminderTime!),
+      );
+      _scheduledTaskNotificationIds.add(nid);
+    }
+
+    for (final task in _oneTimeTasks) {
+      if (task.reminderTime == null || task.isCompleted) continue;
+      final nid = _taskNotificationId(task.id);
+      final label = task.emoji != null ? '${task.emoji} ${task.title}' : task.title;
+      mns.scheduleAt(
+        id: nid,
+        title: 'MyDay!!!!!',
+        body: label,
+        dateTime: task.reminderTime!,
+      );
+      _scheduledTaskNotificationIds.add(nid);
     }
   }
 

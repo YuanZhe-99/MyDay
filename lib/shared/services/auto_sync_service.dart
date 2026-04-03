@@ -19,6 +19,12 @@ class AutoSyncService with WidgetsBindingObserver {
 
   static const _debounceDuration = Duration(seconds: 30);
 
+  /// Callbacks invoked when sync writes merged data to local files.
+  /// UI pages should register to reload their data.
+  final List<void Function()> _onLocalDataChanged = [];
+  void addOnLocalDataChanged(void Function() cb) => _onLocalDataChanged.add(cb);
+  void removeOnLocalDataChanged(void Function() cb) => _onLocalDataChanged.remove(cb);
+
   /// Call once at app startup.
   void start() {
     if (_started) return;
@@ -55,6 +61,12 @@ class AutoSyncService with WidgetsBindingObserver {
       // Auto-resolve conflicts using LWW (newer modifiedAt wins) so that
       // one conflict doesn't block all other records from syncing.
       await WebDAVService.sync(config, autoResolve: true);
+      // Notify UI pages if sync wrote merged data to local files
+      if (WebDAVService.consumeLocalDataChanged()) {
+        for (final cb in List.of(_onLocalDataChanged)) {
+          cb();
+        }
+      }
     } catch (_) {
       // Auto-sync failures are silent — user can always sync manually.
     }

@@ -267,6 +267,8 @@ class TodoStorage {
     'finance_data.json',
     'exchange_rates.json',
     'intimacy_data.json',
+    'weight_data.json',
+    'webdav_config.json',
   ];
 
   /// Set a custom storage directory path.

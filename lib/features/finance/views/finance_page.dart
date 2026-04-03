@@ -46,11 +46,13 @@ class _FinancePageState extends State<FinancePage> {
     super.initState();
     ReminderService.instance.onRenewalsProcessed = _loadData;
     _loadData();
+    AutoSyncService.instance.addOnLocalDataChanged(_loadData);
   }
 
   @override
   void dispose() {
     ReminderService.instance.onRenewalsProcessed = null;
+    AutoSyncService.instance.removeOnLocalDataChanged(_loadData);
     super.dispose();
   }
 

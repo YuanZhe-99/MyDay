@@ -89,6 +89,7 @@ class PendingSync {
         ...?financeMerge?.accountConflicts,
         ...?financeMerge?.categoryConflicts,
         ...?financeMerge?.transactionConflicts,
+        ...?financeMerge?.subscriptionConflicts,
         ...?intimacyMerge?.partnerConflicts,
         ...?intimacyMerge?.toyConflicts,
         ...?intimacyMerge?.recordConflicts,
@@ -111,6 +112,14 @@ class WebDAVService {
 
   /// Global lock to prevent concurrent syncs (auto + manual).
   static bool _syncing = false;
+  /// Set to true when sync writes merged data to local files.
+  static bool _localDataChanged = false;
+  /// Whether the last sync wrote local data files (reset after read).
+  static bool consumeLocalDataChanged() {
+    final v = _localDataChanged;
+    _localDataChanged = false;
+    return v;
+  }
 
   // ── Config persistence ──
 
@@ -434,6 +443,7 @@ class WebDAVService {
           // Only on remote → download
           await localFile.writeAsString(remoteRaw);
           await _saveBase(name, _toJson(remoteRaw));
+          _localDataChanged = true;
           continue;
         }
 
@@ -464,13 +474,23 @@ class WebDAVService {
           await localFile.writeAsString(mergedRaw);
           await _upload(config, name, mergedRaw);
           await _saveBase(name, mergedJson);
+          _localDataChanged = true;
           continue;
         }
 
         // Structured data files — per-record merge
         switch (name) {
           case 'todo_data.json':
-            final result = mergeTodoData(localJson, remoteJson, baseJson, autoResolve: autoResolve);
+            var effectiveLocalJson = localJson;
+            var result = mergeTodoData(effectiveLocalJson, remoteJson, baseJson, autoResolve: autoResolve);
+            if (!result.hasConflicts) {
+              // Re-read local to detect concurrent saves during network I/O
+              final freshLocalRaw = await localFile.readAsString();
+              final freshLocalJson = _toJson(freshLocalRaw);
+              if (freshLocalJson != localJson) {
+                result = mergeTodoData(freshLocalJson, remoteJson, baseJson, autoResolve: autoResolve);
+              }
+            }
             if (result.hasConflicts) {
               pendingTodo = result;
             } else {
@@ -480,10 +500,19 @@ class WebDAVService {
               await localFile.writeAsString(mergedRaw);
               await _upload(config, name, mergedRaw);
               await _saveBase(name, mergedJson);
+              _localDataChanged = true;
             }
 
           case 'finance_data.json':
-            final result = mergeFinanceData(localJson, remoteJson, baseJson, autoResolve: autoResolve);
+            var effectiveLocalJson = localJson;
+            var result = mergeFinanceData(effectiveLocalJson, remoteJson, baseJson, autoResolve: autoResolve);
+            if (!result.hasConflicts) {
+              final freshLocalRaw = await localFile.readAsString();
+              final freshLocalJson = _toJson(freshLocalRaw);
+              if (freshLocalJson != localJson) {
+                result = mergeFinanceData(freshLocalJson, remoteJson, baseJson, autoResolve: autoResolve);
+              }
+            }
             if (result.hasConflicts) {
               pendingFinance = result;
             } else {
@@ -493,10 +522,19 @@ class WebDAVService {
               await localFile.writeAsString(mergedRaw);
               await _upload(config, name, mergedRaw);
               await _saveBase(name, mergedJson);
+              _localDataChanged = true;
             }
 
           case 'intimacy_data.json':
-            final result = mergeIntimacyData(localJson, remoteJson, baseJson, autoResolve: autoResolve);
+            var effectiveLocalJson = localJson;
+            var result = mergeIntimacyData(effectiveLocalJson, remoteJson, baseJson, autoResolve: autoResolve);
+            if (!result.hasConflicts) {
+              final freshLocalRaw = await localFile.readAsString();
+              final freshLocalJson = _toJson(freshLocalRaw);
+              if (freshLocalJson != localJson) {
+                result = mergeIntimacyData(freshLocalJson, remoteJson, baseJson, autoResolve: autoResolve);
+              }
+            }
             if (result.hasConflicts) {
               pendingIntimacy = result;
             } else {
@@ -506,10 +544,19 @@ class WebDAVService {
               await localFile.writeAsString(mergedRaw);
               await _upload(config, name, mergedRaw);
               await _saveBase(name, mergedJson);
+              _localDataChanged = true;
             }
 
           case 'weight_data.json':
-            final result = mergeWeightData(localJson, remoteJson, baseJson, autoResolve: autoResolve);
+            var effectiveLocalJson = localJson;
+            var result = mergeWeightData(effectiveLocalJson, remoteJson, baseJson, autoResolve: autoResolve);
+            if (!result.hasConflicts) {
+              final freshLocalRaw = await localFile.readAsString();
+              final freshLocalJson = _toJson(freshLocalRaw);
+              if (freshLocalJson != localJson) {
+                result = mergeWeightData(freshLocalJson, remoteJson, baseJson, autoResolve: autoResolve);
+              }
+            }
             if (result.hasConflicts) {
               pendingWeight = result;
             } else {
@@ -519,6 +566,7 @@ class WebDAVService {
               await localFile.writeAsString(mergedRaw);
               await _upload(config, name, mergedRaw);
               await _saveBase(name, mergedJson);
+              _localDataChanged = true;
             }
         }
       }

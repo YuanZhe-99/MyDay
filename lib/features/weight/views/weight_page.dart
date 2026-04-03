@@ -30,6 +30,13 @@ class _WeightPageState extends State<WeightPage> {
   void initState() {
     super.initState();
     _loadData();
+    AutoSyncService.instance.addOnLocalDataChanged(_loadData);
+  }
+
+  @override
+  void dispose() {
+    AutoSyncService.instance.removeOnLocalDataChanged(_loadData);
+    super.dispose();
   }
 
   Future<void> _loadData() async {

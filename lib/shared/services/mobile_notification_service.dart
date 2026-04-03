@@ -121,6 +121,41 @@ class MobileNotificationService {
     );
   }
 
+  /// Schedule a one-time notification at a specific date/time.
+  Future<void> scheduleAt({
+    required int id,
+    required String title,
+    required String body,
+    required DateTime dateTime,
+  }) async {
+    if (!_initialized) return;
+
+    await _plugin.cancel(id);
+
+    const details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        'myday_reminders',
+        'MyDay Reminders',
+        channelDescription: 'Reminders for tasks and subscriptions',
+        importance: Importance.high,
+        priority: Priority.high,
+      ),
+      iOS: DarwinNotificationDetails(),
+    );
+
+    final scheduledDate = tz.TZDateTime.from(dateTime, tz.local);
+    if (scheduledDate.isBefore(tz.TZDateTime.now(tz.local))) return;
+
+    await _plugin.zonedSchedule(
+      id,
+      title,
+      body,
+      scheduledDate,
+      details,
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+    );
+  }
+
   /// Cancel a scheduled notification by id.
   Future<void> cancel(int id) async {
     if (!_initialized) return;
