@@ -61,6 +61,8 @@ class Task {
   /// For daily tasks: the date this template becomes active.
   /// Defaults to the selected date at creation time.
   final DateTime? startDate;
+  /// For one-time tasks: optional due date for reminder purposes.
+  final DateTime? dueDate;
   final DateTime modifiedAt;
 
   Task({
@@ -76,6 +78,7 @@ class Task {
     this.scheduledDate,
     this.deletedDate,
     this.startDate,
+    this.dueDate,
     DateTime? modifiedAt,
   })  : id = id ?? const Uuid().v4(),
         createdDate = createdDate ?? DateTime.now(),
@@ -93,6 +96,8 @@ class Task {
     DateTime? deletedDate,
     bool clearDeletedDate = false,
     DateTime? startDate,
+    DateTime? dueDate,
+    bool clearDueDate = false,
     DateTime? modifiedAt,
   }) {
     return Task(
@@ -108,6 +113,7 @@ class Task {
       scheduledDate: scheduledDate ?? this.scheduledDate,
       deletedDate: clearDeletedDate ? null : (deletedDate ?? this.deletedDate),
       startDate: startDate ?? this.startDate,
+      dueDate: clearDueDate ? null : (dueDate ?? this.dueDate),
       modifiedAt: modifiedAt ?? DateTime.now(),
     );
   }
@@ -125,6 +131,7 @@ class Task {
         'scheduledDate': scheduledDate?.toIso8601String(),
         'deletedDate': deletedDate?.toIso8601String(),
         'startDate': startDate?.toIso8601String(),
+        'dueDate': dueDate?.toIso8601String(),
         'modifiedAt': modifiedAt.toIso8601String(),
       };
 
@@ -153,6 +160,9 @@ class Task {
             : null,
         startDate: json['startDate'] != null
             ? DateTime.parse(json['startDate'] as String)
+            : null,
+        dueDate: json['dueDate'] != null
+            ? DateTime.parse(json['dueDate'] as String)
             : null,
         modifiedAt: json['modifiedAt'] != null
             ? DateTime.parse(json['modifiedAt'] as String)

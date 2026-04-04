@@ -44,6 +44,9 @@
   "todoClearReminder": "清除",
   "todoReminderSet": "提醒已设置：{time}",
   "todoCompleted": "已完成",
+  "todoDueDate": "截止日期",
+  "todoSetDueDate": "设置截止日期（可选）",
+  "todoEditSubtask": "编辑子任务",
 
   "financeTitle": "财务",
   "financeMonthlyExpense": "月度支出",
@@ -389,5 +392,6 @@
   "weightExportCsvEmpty": "没有体重记录可导出",
   "csvImportWeight": "导入体重 CSV",
   "csvImportWeightDesc": "从 CSV 合并体重记录（日期、时间、体重）",
-  "csvTemplateWeight": "下载体重模板"
+  "csvTemplateWeight": "下载体重模板",
+  "financeSubscriptionPresets": "快速填入"
 }

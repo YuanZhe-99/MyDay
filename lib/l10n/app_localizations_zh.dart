@@ -113,6 +113,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get todoCompleted => '已完成';
 
   @override
+  String get todoDueDate => '截止日期';
+
+  @override
+  String get todoSetDueDate => '设置截止日期（可选）';
+
+  @override
+  String get todoEditSubtask => '编辑子任务';
+
+  @override
   String get financeTitle => '财务';
 
   @override
@@ -1071,6 +1080,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get csvTemplateWeight => '下载体重模板';
+
+  @override
+  String get financeSubscriptionPresets => '快速填入';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -1180,6 +1192,15 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get todoCompleted => '已完成';
+
+  @override
+  String get todoDueDate => '截止日期';
+
+  @override
+  String get todoSetDueDate => '設定截止日期（可選）';
+
+  @override
+  String get todoEditSubtask => '編輯子任務';
 
   @override
   String get financeTitle => '財務';
@@ -2140,4 +2161,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get csvTemplateWeight => '下載體重模板';
+
+  @override
+  String get financeSubscriptionPresets => '快速填入';
 }

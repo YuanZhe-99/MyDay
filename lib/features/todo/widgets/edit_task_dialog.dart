@@ -23,6 +23,7 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
   late DateTime? _scheduledDate;
   late DateTime? _completedDate;
   late DateTime? _startDate;
+  late DateTime? _dueDate;
 
   @override
   void initState() {
@@ -38,6 +39,7 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
     _scheduledDate = t.scheduledDate;
     _completedDate = t.completedDate;
     _startDate = t.startDate;
+    _dueDate = t.dueDate;
   }
 
   @override
@@ -186,6 +188,38 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
                 },
               ),
 
+            // Due date (for one-time tasks)
+            if (_selectedType != TaskType.daily)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(
+                  _dueDate != null ? Icons.flag : Icons.flag_outlined,
+                  color: _dueDate != null ? theme.colorScheme.error : null,
+                ),
+                title: Text(
+                  _dueDate != null
+                      ? '${l10n.todoDueDate}: ${_dueDate!.year}-${_dueDate!.month.toString().padLeft(2, '0')}-${_dueDate!.day.toString().padLeft(2, '0')}'
+                      : l10n.todoSetDueDate,
+                ),
+                trailing: _dueDate != null
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: () => setState(() => _dueDate = null),
+                      )
+                    : null,
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: _dueDate ?? DateTime.now(),
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime.now().add(const Duration(days: 3650)),
+                  );
+                  if (picked != null) {
+                    setState(() => _dueDate = picked);
+                  }
+                },
+              ),
+
             // Completed date
             if (_selectedType != TaskType.daily && widget.task.isCompleted)
               ListTile(
@@ -305,7 +339,12 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
                         size: 18,
                       ),
                       const SizedBox(width: 8),
-                      Expanded(child: Text(entry.value.title)),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => _editSubtask(entry.key),
+                          child: Text(entry.value.title),
+                        ),
+                      ),
                       IconButton(
                         icon: const Icon(Icons.close, size: 16),
                         onPressed: () {
@@ -367,6 +406,38 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
     setState(() {
       _subtasks.add(SubTask(title: text));
       _subtaskController.clear();
+    });
+  }
+
+  void _editSubtask(int index) {
+    final controller = TextEditingController(text: _subtasks[index].title);
+    showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(AppLocalizations.of(context)!.todoEditSubtask),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(AppLocalizations.of(context)!.commonCancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            child: Text(AppLocalizations.of(context)!.commonSave),
+          ),
+        ],
+      ),
+    ).then((newTitle) {
+      controller.dispose();
+      if (newTitle != null && newTitle.isNotEmpty) {
+        setState(() {
+          _subtasks[index] = _subtasks[index].copyWith(title: newTitle);
+        });
+      }
     });
   }
 
@@ -460,6 +531,7 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
           : null,
       deletedDate: widget.task.deletedDate,
       startDate: _selectedType == TaskType.daily ? _startDate : null,
+      dueDate: _selectedType != TaskType.daily ? _dueDate : null,
     );
     Navigator.pop(context, updated);
   }

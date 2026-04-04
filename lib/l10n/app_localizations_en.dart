@@ -114,6 +114,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get todoCompleted => 'Completed';
 
   @override
+  String get todoDueDate => 'Due';
+
+  @override
+  String get todoSetDueDate => 'Set due date (optional)';
+
+  @override
+  String get todoEditSubtask => 'Edit Subtask';
+
+  @override
   String get financeTitle => 'Finance';
 
   @override
@@ -1089,4 +1098,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get csvTemplateWeight => 'Download Weight Template';
+
+  @override
+  String get financeSubscriptionPresets => 'Quick Fill';
 }

@@ -111,6 +111,19 @@ class _TaskTileState extends State<_TaskTile> {
     final task = widget.task;
     final hasSubtasks = task.subtasks.isNotEmpty;
     final completedSubs = task.subtasks.where((s) => s.isCompleted).length;
+    final hasDueDate = task.dueDate != null && task.type != TaskType.daily;
+    final isOverdue = hasDueDate && !task.isCompleted &&
+        DateTime(task.dueDate!.year, task.dueDate!.month, task.dueDate!.day)
+            .isBefore(DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day));
+
+    // Build subtitle parts
+    final subtitleParts = <String>[];
+    if (hasSubtasks) subtitleParts.add('Subtasks: $completedSubs/${task.subtasks.length}');
+    if (hasDueDate) {
+      final dd = task.dueDate!;
+      final dateStr = '${dd.year}-${dd.month.toString().padLeft(2, '0')}-${dd.day.toString().padLeft(2, '0')}';
+      subtitleParts.add('Due: $dateStr');
+    }
 
     final tile = Column(
       children: [
@@ -129,10 +142,12 @@ class _TaskTileState extends State<_TaskTile> {
                   : theme.colorScheme.onSurface,
             ),
           ),
-          subtitle: hasSubtasks
+          subtitle: subtitleParts.isNotEmpty
               ? Text(
-                  'Subtasks: $completedSubs/${task.subtasks.length}',
-                  style: theme.textTheme.bodySmall,
+                  subtitleParts.join(' · '),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: isOverdue ? theme.colorScheme.error : null,
+                  ),
                 )
               : null,
           trailing: Row(

@@ -113,6 +113,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get todoCompleted => '完了';
 
   @override
+  String get todoDueDate => '期限';
+
+  @override
+  String get todoSetDueDate => '期限を設定（任意）';
+
+  @override
+  String get todoEditSubtask => 'サブタスクを編集';
+
+  @override
   String get financeTitle => '家計';
 
   @override
@@ -1073,4 +1082,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get csvTemplateWeight => '体重テンプレートをダウンロード';
+
+  @override
+  String get financeSubscriptionPresets => 'クイック入力';
 }

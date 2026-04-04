@@ -43,6 +43,29 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
     '📚', '🎧', '🔒', '📦', '🚗', '🏠', '💊', '🍔',
   ];
 
+  static const _presets = [
+    ('Spotify', '🎵'),
+    ('Netflix', '🎬'),
+    ('YouTube Premium', '▶️'),
+    ('Apple Music', '🍎'),
+    ('Apple iCloud+', '☁️'),
+    ('Disney+', '🏰'),
+    ('Amazon Prime', '📦'),
+    ('ChatGPT Plus', '🤖'),
+    ('Claude Pro', '🧠'),
+    ('GitHub Copilot', '💻'),
+    ('Google One', '☁️'),
+    ('Microsoft 365', '📝'),
+    ('Adobe CC', '🎨'),
+    ('Notion', '📓'),
+    ('Dropbox', '📁'),
+    ('Nintendo Online', '🎮'),
+    ('PlayStation Plus', '🎮'),
+    ('Xbox Game Pass', '🎮'),
+    ('Bilibili', '📺'),
+    ('iQIYI', '📺'),
+  ];
+
   bool get _isEditing => widget.subscription != null;
   bool get _isCancelled => widget.subscription != null && !widget.subscription!.isActive;
 
@@ -102,6 +125,30 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
               style: theme.textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
+
+            // Quick-fill presets (only when adding)
+            if (!_isEditing) ...[
+              Text(l10n.financeSubscriptionPresets, style: theme.textTheme.bodySmall),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: _presets.map((p) {
+                  final (name, emoji) = p;
+                  return ActionChip(
+                    avatar: Text(emoji, style: const TextStyle(fontSize: 14)),
+                    label: Text(name, style: const TextStyle(fontSize: 12)),
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () => setState(() {
+                      _nameController.text = name;
+                      _selectedEmoji = emoji;
+                      _imagePath = null;
+                    }),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 12),
+            ],
 
             // Name
             TextField(

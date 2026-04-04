@@ -47,6 +47,9 @@
     "placeholders": { "time": { "type": "String" } }
   },
   "todoCompleted": "Completed",
+  "todoDueDate": "Due",
+  "todoSetDueDate": "Set due date (optional)",
+  "todoEditSubtask": "Edit Subtask",
 
   "financeTitle": "Finance",
   "financeMonthlyExpense": "Monthly Expense",
@@ -410,5 +413,6 @@
   "weightExportCsvEmpty": "No weight records to export",
   "csvImportWeight": "Import Weight CSV",
   "csvImportWeightDesc": "Merge weight records from CSV (Date, Time, Weight)",
-  "csvTemplateWeight": "Download Weight Template"
+  "csvTemplateWeight": "Download Weight Template",
+  "financeSubscriptionPresets": "Quick Fill"
 }

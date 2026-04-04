@@ -227,9 +227,13 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
 
-      // Recalculate nextBillingDate when restoring a cancelled sub
+      // Recalculate nextBillingDate when restoring OR when billing parameters changed
       DateTime? nbd;
-      if (wasRestored) {
+      final billingChanged = sub.startDate != result.sub.startDate ||
+          sub.trialDays != result.sub.trialDays ||
+          sub.billingCycleType != result.sub.billingCycleType ||
+          sub.billingInterval != result.sub.billingInterval;
+      if (wasRestored || billingChanged) {
         final tempSub = Subscription(
           startDate: result.sub.startDate,
           trialDays: result.sub.trialDays,
@@ -239,7 +243,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
           name: result.sub.name,
           accountId: result.sub.accountId,
         );
-        nbd = result.importHistory
+        nbd = (wasRestored && result.importHistory)
             ? tempSub.calculateNextBillingDate(after: today)
             : tempSub.calculateNextBillingDate(
                 after: today.subtract(const Duration(days: 1)));

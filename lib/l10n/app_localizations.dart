@@ -293,6 +293,24 @@ abstract class AppLocalizations {
   /// **'Completed'**
   String get todoCompleted;
 
+  /// No description provided for @todoDueDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Due'**
+  String get todoDueDate;
+
+  /// No description provided for @todoSetDueDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Set due date (optional)'**
+  String get todoSetDueDate;
+
+  /// No description provided for @todoEditSubtask.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Subtask'**
+  String get todoEditSubtask;
+
   /// No description provided for @financeTitle.
   ///
   /// In en, this message translates to:
@@ -2164,6 +2182,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Download Weight Template'**
   String get csvTemplateWeight;
+
+  /// No description provided for @financeSubscriptionPresets.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick Fill'**
+  String get financeSubscriptionPresets;
 }
 
 class _AppLocalizationsDelegate

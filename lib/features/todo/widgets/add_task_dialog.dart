@@ -17,6 +17,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   TaskType _selectedType = TaskType.routineOnce;
   TimeOfDay? _reminderTime;
   String? _selectedEmoji;
+  DateTime? _dueDate;
   final List<String> _subtaskTitles = [];
 
   @override
@@ -146,6 +147,38 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
               },
             ),
             const SizedBox(height: 12),
+
+            // Due date (optional, for one-time tasks)
+            if (_selectedType != TaskType.daily)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(
+                  _dueDate != null ? Icons.flag : Icons.flag_outlined,
+                  color: _dueDate != null ? theme.colorScheme.error : null,
+                ),
+                title: Text(
+                  _dueDate != null
+                      ? '${l10n.todoDueDate}: ${_dueDate!.year}-${_dueDate!.month.toString().padLeft(2, '0')}-${_dueDate!.day.toString().padLeft(2, '0')}'
+                      : l10n.todoSetDueDate,
+                ),
+                trailing: _dueDate != null
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: () => setState(() => _dueDate = null),
+                      )
+                    : null,
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: _dueDate ?? DateTime.now(),
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime.now().add(const Duration(days: 3650)),
+                  );
+                  if (picked != null) {
+                    setState(() => _dueDate = picked);
+                  }
+                },
+              ),
 
             // Subtasks
             if (_subtaskTitles.isNotEmpty) ...[
@@ -307,6 +340,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
       startDate: _selectedType == TaskType.daily
           ? widget.defaultDate ?? DateTime.now()
           : null,
+      dueDate: _selectedType != TaskType.daily ? _dueDate : null,
     );
     Navigator.pop(context, task);
   }

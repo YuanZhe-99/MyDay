@@ -44,6 +44,9 @@
   "todoClearReminder": "クリア",
   "todoReminderSet": "リマインダー設定済み：{time}",
   "todoCompleted": "完了",
+  "todoDueDate": "期限",
+  "todoSetDueDate": "期限を設定（任意）",
+  "todoEditSubtask": "サブタスクを編集",
 
   "financeTitle": "家計",
   "financeMonthlyExpense": "月間支出",
@@ -389,5 +392,6 @@
   "weightExportCsvEmpty": "エクスポートする体重記録がありません",
   "csvImportWeight": "体重 CSV インポート",
   "csvImportWeightDesc": "CSVから体重記録を統合（日付、時刻、体重）",
-  "csvTemplateWeight": "体重テンプレートをダウンロード"
+  "csvTemplateWeight": "体重テンプレートをダウンロード",
+  "financeSubscriptionPresets": "クイック入力"
 }
