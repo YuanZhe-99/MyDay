@@ -58,7 +58,9 @@ RecordMergeResult<T> mergeRecords<T>({
 }) {
   final localMap = {for (final r in local) getId(r): r};
   final remoteMap = {for (final r in remote) getId(r): r};
-  final baseMap = base != null ? {for (final r in base) getId(r): r} : <String, T>{};
+  final baseMap = base != null
+      ? {for (final r in base) getId(r): r}
+      : <String, T>{};
 
   final allIds = {...localMap.keys, ...remoteMap.keys, ...baseMap.keys};
   final merged = <T>[];
@@ -82,12 +84,14 @@ RecordMergeResult<T> mergeRecords<T>({
             merged.add(getModifiedAt(l).isAfter(getModifiedAt(r)) ? l : r);
           } else {
             // Both changed → conflict for user resolution
-            conflicts.add(RecordConflict(
-              id: id,
-              localRecord: l,
-              remoteRecord: r,
-              displayName: getDisplayName(l),
-            ));
+            conflicts.add(
+              RecordConflict(
+                id: id,
+                localRecord: l,
+                remoteRecord: r,
+                displayName: getDisplayName(l),
+              ),
+            );
           }
         } else if (localChanged) {
           merged.add(l);
@@ -149,6 +153,7 @@ class SyncConflictInfo {
 class MergeResult {
   /// Merged JSON strings, ready to save. Key = file name.
   final Map<String, String> mergedJsons;
+
   /// Per-file conflict lists. Empty if no conflicts.
   final List<SyncConflictInfo> conflicts;
 
@@ -161,8 +166,12 @@ class MergeResult {
 
 String? mergeTodoJson(String localJson, String remoteJson, String? baseJson) {
   try {
-    final local = TodoData.fromJson(jsonDecode(localJson) as Map<String, dynamic>);
-    final remote = TodoData.fromJson(jsonDecode(remoteJson) as Map<String, dynamic>);
+    final local = TodoData.fromJson(
+      jsonDecode(localJson) as Map<String, dynamic>,
+    );
+    final remote = TodoData.fromJson(
+      jsonDecode(remoteJson) as Map<String, dynamic>,
+    );
     final base = baseJson != null
         ? TodoData.fromJson(jsonDecode(baseJson) as Map<String, dynamic>)
         : null;
@@ -217,60 +226,57 @@ String? mergeTodoJson(String localJson, String remoteJson, String? baseJson) {
 }
 
 /// Full merge returning conflicts for UI resolution.
-TodoMergeResult mergeTodoData(String localJson, String remoteJson, String? baseJson, {bool autoResolve = false}) {
-  try {
-    final local = TodoData.fromJson(jsonDecode(localJson) as Map<String, dynamic>);
-    final remote = TodoData.fromJson(jsonDecode(remoteJson) as Map<String, dynamic>);
-    final base = baseJson != null
-        ? TodoData.fromJson(jsonDecode(baseJson) as Map<String, dynamic>)
-        : null;
+TodoMergeResult mergeTodoData(
+  String localJson,
+  String remoteJson,
+  String? baseJson, {
+  bool autoResolve = false,
+}) {
+  final local = TodoData.fromJson(
+    jsonDecode(localJson) as Map<String, dynamic>,
+  );
+  final remote = TodoData.fromJson(
+    jsonDecode(remoteJson) as Map<String, dynamic>,
+  );
+  final base = baseJson != null
+      ? TodoData.fromJson(jsonDecode(baseJson) as Map<String, dynamic>)
+      : null;
 
-    final dailyResult = mergeRecords<Task>(
-      local: local.dailyTemplates,
-      remote: remote.dailyTemplates,
-      base: base?.dailyTemplates,
-      getId: (t) => t.id,
-      getModifiedAt: (t) => t.modifiedAt,
-      getDisplayName: (t) => '${t.emoji ?? ''} ${t.title}'.trim(),
-      autoResolve: autoResolve,
-    );
+  final dailyResult = mergeRecords<Task>(
+    local: local.dailyTemplates,
+    remote: remote.dailyTemplates,
+    base: base?.dailyTemplates,
+    getId: (t) => t.id,
+    getModifiedAt: (t) => t.modifiedAt,
+    getDisplayName: (t) => '${t.emoji ?? ''} ${t.title}'.trim(),
+    autoResolve: autoResolve,
+  );
 
-    final onceResult = mergeRecords<Task>(
-      local: local.oneTimeTasks,
-      remote: remote.oneTimeTasks,
-      base: base?.oneTimeTasks,
-      getId: (t) => t.id,
-      getModifiedAt: (t) => t.modifiedAt,
-      getDisplayName: (t) => '${t.emoji ?? ''} ${t.title}'.trim(),
-      autoResolve: autoResolve,
-    );
+  final onceResult = mergeRecords<Task>(
+    local: local.oneTimeTasks,
+    remote: remote.oneTimeTasks,
+    base: base?.oneTimeTasks,
+    getId: (t) => t.id,
+    getModifiedAt: (t) => t.modifiedAt,
+    getDisplayName: (t) => '${t.emoji ?? ''} ${t.title}'.trim(),
+    autoResolve: autoResolve,
+  );
 
-    final mergedLog = DailyCompletionLog.merge(local.dailyLog, remote.dailyLog);
+  final mergedLog = DailyCompletionLog.merge(local.dailyLog, remote.dailyLog);
 
-    final useLocalSettings =
-        local.settingsModifiedAt.isAfter(remote.settingsModifiedAt) ||
-        local.settingsModifiedAt == remote.settingsModifiedAt;
-    final settingsSource = useLocalSettings ? local : remote;
+  final useLocalSettings =
+      local.settingsModifiedAt.isAfter(remote.settingsModifiedAt) ||
+      local.settingsModifiedAt == remote.settingsModifiedAt;
+  final settingsSource = useLocalSettings ? local : remote;
 
-    return TodoMergeResult(
-      dailyMerged: dailyResult.merged,
-      onceMerged: onceResult.merged,
-      mergedLog: mergedLog,
-      settingsSource: settingsSource,
-      dailyConflicts: dailyResult.conflicts,
-      onceConflicts: onceResult.conflicts,
-    );
-  } catch (e) {
-    return TodoMergeResult(
-      dailyMerged: [],
-      onceMerged: [],
-      mergedLog: DailyCompletionLog(),
-      settingsSource: TodoData(
-        dailyTemplates: [], oneTimeTasks: [], dailyLog: DailyCompletionLog()),
-      dailyConflicts: [],
-      onceConflicts: [],
-    );
-  }
+  return TodoMergeResult(
+    dailyMerged: dailyResult.merged,
+    onceMerged: onceResult.merged,
+    mergedLog: mergedLog,
+    settingsSource: settingsSource,
+    dailyConflicts: dailyResult.conflicts,
+    onceConflicts: onceResult.conflicts,
+  );
 }
 
 class TodoMergeResult {
@@ -290,7 +296,8 @@ class TodoMergeResult {
     required this.onceConflicts,
   });
 
-  bool get hasConflicts => dailyConflicts.isNotEmpty || onceConflicts.isNotEmpty;
+  bool get hasConflicts =>
+      dailyConflicts.isNotEmpty || onceConflicts.isNotEmpty;
 
   TodoData buildResolved(Map<String, Task> resolutions) {
     final daily = _resolveList(dailyMerged, dailyConflicts, resolutions);
@@ -323,83 +330,79 @@ class TodoMergeResult {
 
 // ─── FinanceData merge ──────────────────────────────────────────────
 
-FinanceMergeResult mergeFinanceData(String localJson, String remoteJson, String? baseJson, {bool autoResolve = false}) {
-  try {
-    final local = FinanceData.fromJson(jsonDecode(localJson) as Map<String, dynamic>);
-    final remote = FinanceData.fromJson(jsonDecode(remoteJson) as Map<String, dynamic>);
-    final base = baseJson != null
-        ? FinanceData.fromJson(jsonDecode(baseJson) as Map<String, dynamic>)
-        : null;
+FinanceMergeResult mergeFinanceData(
+  String localJson,
+  String remoteJson,
+  String? baseJson, {
+  bool autoResolve = false,
+}) {
+  final local = FinanceData.fromJson(
+    jsonDecode(localJson) as Map<String, dynamic>,
+  );
+  final remote = FinanceData.fromJson(
+    jsonDecode(remoteJson) as Map<String, dynamic>,
+  );
+  final base = baseJson != null
+      ? FinanceData.fromJson(jsonDecode(baseJson) as Map<String, dynamic>)
+      : null;
 
-    final accountResult = mergeRecords<Account>(
-      local: local.accounts,
-      remote: remote.accounts,
-      base: base?.accounts,
-      getId: (a) => a.id,
-      getModifiedAt: (a) => a.modifiedAt,
-      getDisplayName: (a) => '${a.emoji ?? ''} ${a.name}'.trim(),
-      autoResolve: autoResolve,
-    );
+  final accountResult = mergeRecords<Account>(
+    local: local.accounts,
+    remote: remote.accounts,
+    base: base?.accounts,
+    getId: (a) => a.id,
+    getModifiedAt: (a) => a.modifiedAt,
+    getDisplayName: (a) => '${a.emoji ?? ''} ${a.name}'.trim(),
+    autoResolve: autoResolve,
+  );
 
-    final categoryResult = mergeRecords<Category>(
-      local: local.categories,
-      remote: remote.categories,
-      base: base?.categories,
-      getId: (c) => c.id,
-      getModifiedAt: (c) => c.modifiedAt,
-      getDisplayName: (c) => '${c.emoji ?? ''} ${c.name}'.trim(),
-      autoResolve: autoResolve,
-    );
+  final categoryResult = mergeRecords<Category>(
+    local: local.categories,
+    remote: remote.categories,
+    base: base?.categories,
+    getId: (c) => c.id,
+    getModifiedAt: (c) => c.modifiedAt,
+    getDisplayName: (c) => '${c.emoji ?? ''} ${c.name}'.trim(),
+    autoResolve: autoResolve,
+  );
 
-    final txResult = mergeRecords<Transaction>(
-      local: local.transactions,
-      remote: remote.transactions,
-      base: base?.transactions,
-      getId: (t) => t.id,
-      getModifiedAt: (t) => t.modifiedAt,
-      getDisplayName: (t) => '${t.note.isNotEmpty ? t.note : t.type.name} (${t.amount})',
-      autoResolve: autoResolve,
-    );
+  final txResult = mergeRecords<Transaction>(
+    local: local.transactions,
+    remote: remote.transactions,
+    base: base?.transactions,
+    getId: (t) => t.id,
+    getModifiedAt: (t) => t.modifiedAt,
+    getDisplayName: (t) =>
+        '${t.note.isNotEmpty ? t.note : t.type.name} (${t.amount})',
+    autoResolve: autoResolve,
+  );
 
-    final subResult = mergeRecords<Subscription>(
-      local: local.subscriptions,
-      remote: remote.subscriptions,
-      base: base?.subscriptions,
-      getId: (s) => s.id,
-      getModifiedAt: (s) => s.modifiedAt,
-      getDisplayName: (s) => '${s.emoji ?? ''} ${s.name}'.trim(),
-      autoResolve: autoResolve,
-    );
+  final subResult = mergeRecords<Subscription>(
+    local: local.subscriptions,
+    remote: remote.subscriptions,
+    base: base?.subscriptions,
+    getId: (s) => s.id,
+    getModifiedAt: (s) => s.modifiedAt,
+    getDisplayName: (s) => '${s.emoji ?? ''} ${s.name}'.trim(),
+    autoResolve: autoResolve,
+  );
 
-    final useLocalSettings =
-        local.settingsModifiedAt.isAfter(remote.settingsModifiedAt) ||
-        local.settingsModifiedAt == remote.settingsModifiedAt;
-    final settingsSource = useLocalSettings ? local : remote;
+  final useLocalSettings =
+      local.settingsModifiedAt.isAfter(remote.settingsModifiedAt) ||
+      local.settingsModifiedAt == remote.settingsModifiedAt;
+  final settingsSource = useLocalSettings ? local : remote;
 
-    return FinanceMergeResult(
-      accountsMerged: accountResult.merged,
-      categoriesMerged: categoryResult.merged,
-      transactionsMerged: txResult.merged,
-      subscriptionsMerged: subResult.merged,
-      settingsSource: settingsSource,
-      accountConflicts: accountResult.conflicts,
-      categoryConflicts: categoryResult.conflicts,
-      transactionConflicts: txResult.conflicts,
-      subscriptionConflicts: subResult.conflicts,
-    );
-  } catch (_) {
-    return FinanceMergeResult(
-      accountsMerged: [],
-      categoriesMerged: [],
-      transactionsMerged: [],
-      subscriptionsMerged: [],
-      settingsSource: FinanceData(accounts: [], categories: [], transactions: []),
-      accountConflicts: [],
-      categoryConflicts: [],
-      transactionConflicts: [],
-      subscriptionConflicts: [],
-    );
-  }
+  return FinanceMergeResult(
+    accountsMerged: accountResult.merged,
+    categoriesMerged: categoryResult.merged,
+    transactionsMerged: txResult.merged,
+    subscriptionsMerged: subResult.merged,
+    settingsSource: settingsSource,
+    accountConflicts: accountResult.conflicts,
+    categoryConflicts: categoryResult.conflicts,
+    transactionConflicts: txResult.conflicts,
+    subscriptionConflicts: subResult.conflicts,
+  );
 }
 
 class FinanceMergeResult {
@@ -434,9 +437,21 @@ class FinanceMergeResult {
   FinanceData buildResolved(Map<String, dynamic> resolutions) {
     return FinanceData(
       accounts: _resolveList(accountsMerged, accountConflicts, resolutions),
-      categories: _resolveList(categoriesMerged, categoryConflicts, resolutions),
-      transactions: _resolveList(transactionsMerged, transactionConflicts, resolutions),
-      subscriptions: _resolveList(subscriptionsMerged, subscriptionConflicts, resolutions),
+      categories: _resolveList(
+        categoriesMerged,
+        categoryConflicts,
+        resolutions,
+      ),
+      transactions: _resolveList(
+        transactionsMerged,
+        transactionConflicts,
+        resolutions,
+      ),
+      subscriptions: _resolveList(
+        subscriptionsMerged,
+        subscriptionConflicts,
+        resolutions,
+      ),
       defaultCurrency: settingsSource.defaultCurrency,
       settingsModifiedAt: settingsSource.settingsModifiedAt,
       subscriptionReminderHour: settingsSource.subscriptionReminderHour,
@@ -462,62 +477,61 @@ class FinanceMergeResult {
 
 // ─── IntimacyData merge ─────────────────────────────────────────────
 
-IntimacyMergeResult mergeIntimacyData(String localJson, String remoteJson, String? baseJson, {bool autoResolve = false}) {
-  try {
-    final local = IntimacyData.fromJson(jsonDecode(localJson) as Map<String, dynamic>);
-    final remote = IntimacyData.fromJson(jsonDecode(remoteJson) as Map<String, dynamic>);
-    final base = baseJson != null
-        ? IntimacyData.fromJson(jsonDecode(baseJson) as Map<String, dynamic>)
-        : null;
+IntimacyMergeResult mergeIntimacyData(
+  String localJson,
+  String remoteJson,
+  String? baseJson, {
+  bool autoResolve = false,
+}) {
+  final local = IntimacyData.fromJson(
+    jsonDecode(localJson) as Map<String, dynamic>,
+  );
+  final remote = IntimacyData.fromJson(
+    jsonDecode(remoteJson) as Map<String, dynamic>,
+  );
+  final base = baseJson != null
+      ? IntimacyData.fromJson(jsonDecode(baseJson) as Map<String, dynamic>)
+      : null;
 
-    final partnerResult = mergeRecords<Partner>(
-      local: local.partners,
-      remote: remote.partners,
-      base: base?.partners,
-      getId: (p) => p.id,
-      getModifiedAt: (p) => p.modifiedAt,
-      getDisplayName: (p) => '${p.emoji ?? ''} ${p.name}'.trim(),
-      autoResolve: autoResolve,
-    );
+  final partnerResult = mergeRecords<Partner>(
+    local: local.partners,
+    remote: remote.partners,
+    base: base?.partners,
+    getId: (p) => p.id,
+    getModifiedAt: (p) => p.modifiedAt,
+    getDisplayName: (p) => '${p.emoji ?? ''} ${p.name}'.trim(),
+    autoResolve: autoResolve,
+  );
 
-    final toyResult = mergeRecords<Toy>(
-      local: local.toys,
-      remote: remote.toys,
-      base: base?.toys,
-      getId: (t) => t.id,
-      getModifiedAt: (t) => t.modifiedAt,
-      getDisplayName: (t) => '${t.emoji ?? ''} ${t.name}'.trim(),
-      autoResolve: autoResolve,
-    );
+  final toyResult = mergeRecords<Toy>(
+    local: local.toys,
+    remote: remote.toys,
+    base: base?.toys,
+    getId: (t) => t.id,
+    getModifiedAt: (t) => t.modifiedAt,
+    getDisplayName: (t) => '${t.emoji ?? ''} ${t.name}'.trim(),
+    autoResolve: autoResolve,
+  );
 
-    final recordResult = mergeRecords<IntimacyRecord>(
-      local: local.records,
-      remote: remote.records,
-      base: base?.records,
-      getId: (r) => r.id,
-      getModifiedAt: (r) => r.modifiedAt,
-      getDisplayName: (r) => '${r.type} (${r.datetime.toIso8601String().substring(0, 10)})',
-      autoResolve: autoResolve,
-    );
+  final recordResult = mergeRecords<IntimacyRecord>(
+    local: local.records,
+    remote: remote.records,
+    base: base?.records,
+    getId: (r) => r.id,
+    getModifiedAt: (r) => r.modifiedAt,
+    getDisplayName: (r) =>
+        '${r.type} (${r.datetime.toIso8601String().substring(0, 10)})',
+    autoResolve: autoResolve,
+  );
 
-    return IntimacyMergeResult(
-      partnersMerged: partnerResult.merged,
-      toysMerged: toyResult.merged,
-      recordsMerged: recordResult.merged,
-      partnerConflicts: partnerResult.conflicts,
-      toyConflicts: toyResult.conflicts,
-      recordConflicts: recordResult.conflicts,
-    );
-  } catch (_) {
-    return IntimacyMergeResult(
-      partnersMerged: [],
-      toysMerged: [],
-      recordsMerged: [],
-      partnerConflicts: [],
-      toyConflicts: [],
-      recordConflicts: [],
-    );
-  }
+  return IntimacyMergeResult(
+    partnersMerged: partnerResult.merged,
+    toysMerged: toyResult.merged,
+    recordsMerged: recordResult.merged,
+    partnerConflicts: partnerResult.conflicts,
+    toyConflicts: toyResult.conflicts,
+    recordConflicts: recordResult.conflicts,
+  );
 }
 
 class IntimacyMergeResult {
@@ -568,85 +582,85 @@ class IntimacyMergeResult {
 
 /// Exchange rates: union of all snapshots, newest snapshot becomes current.
 String mergeExchangeRateJson(String localJson, String remoteJson) {
-  try {
-    final local = ExchangeRateData.fromJson(
-        jsonDecode(localJson) as Map<String, dynamic>);
-    final remote = ExchangeRateData.fromJson(
-        jsonDecode(remoteJson) as Map<String, dynamic>);
+  final local = ExchangeRateData.fromJson(
+    jsonDecode(localJson) as Map<String, dynamic>,
+  );
+  final remote = ExchangeRateData.fromJson(
+    jsonDecode(remoteJson) as Map<String, dynamic>,
+  );
 
-    // Union of all snapshots
-    final mergedSnapshots = {...local.snapshots, ...remote.snapshots};
+  // Union of all snapshots
+  final mergedSnapshots = {...local.snapshots, ...remote.snapshots};
 
-    // Current = whichever current snapshot was created later
-    final localCurrent = local.snapshots[local.currentSnapshotId];
-    final remoteCurrent = remote.snapshots[remote.currentSnapshotId];
+  // Current = whichever current snapshot was created later
+  final localCurrent = local.snapshots[local.currentSnapshotId];
+  final remoteCurrent = remote.snapshots[remote.currentSnapshotId];
 
-    String currentId;
-    if (localCurrent != null && remoteCurrent != null) {
-      currentId = localCurrent.createdAt.isAfter(remoteCurrent.createdAt)
-          ? local.currentSnapshotId
-          : remote.currentSnapshotId;
-    } else {
-      currentId = local.currentSnapshotId;
-    }
-
-    // lastFetchedAt: use the more recent value
-    final DateTime? mergedLastFetched;
-    if (local.lastFetchedAt != null && remote.lastFetchedAt != null) {
-      mergedLastFetched = local.lastFetchedAt!.isAfter(remote.lastFetchedAt!)
-          ? local.lastFetchedAt
-          : remote.lastFetchedAt;
-    } else {
-      mergedLastFetched = local.lastFetchedAt ?? remote.lastFetchedAt;
-    }
-
-    final merged = ExchangeRateData(
-      currentSnapshotId: currentId,
-      snapshots: mergedSnapshots,
-      lastFetchedAt: mergedLastFetched,
-    );
-
-    return jsonEncode(merged.toJson());
-  } catch (_) {
-    return localJson; // fallback to local on error
+  String currentId;
+  if (localCurrent != null && remoteCurrent != null) {
+    currentId = localCurrent.createdAt.isAfter(remoteCurrent.createdAt)
+        ? local.currentSnapshotId
+        : remote.currentSnapshotId;
+  } else {
+    currentId = local.currentSnapshotId;
   }
+
+  // lastFetchedAt: use the more recent value
+  final DateTime? mergedLastFetched;
+  if (local.lastFetchedAt != null && remote.lastFetchedAt != null) {
+    mergedLastFetched = local.lastFetchedAt!.isAfter(remote.lastFetchedAt!)
+        ? local.lastFetchedAt
+        : remote.lastFetchedAt;
+  } else {
+    mergedLastFetched = local.lastFetchedAt ?? remote.lastFetchedAt;
+  }
+
+  final merged = ExchangeRateData(
+    currentSnapshotId: currentId,
+    snapshots: mergedSnapshots,
+    lastFetchedAt: mergedLastFetched,
+  );
+
+  return jsonEncode(merged.toJson());
 }
 
 // ─── WeightData merge ───────────────────────────────────────────────
 
-WeightMergeResult mergeWeightData(String localJson, String remoteJson, String? baseJson, {bool autoResolve = false}) {
-  try {
-    final local = WeightData.fromJson(jsonDecode(localJson) as Map<String, dynamic>);
-    final remote = WeightData.fromJson(jsonDecode(remoteJson) as Map<String, dynamic>);
-    final base = baseJson != null
-        ? WeightData.fromJson(jsonDecode(baseJson) as Map<String, dynamic>)
-        : null;
+WeightMergeResult mergeWeightData(
+  String localJson,
+  String remoteJson,
+  String? baseJson, {
+  bool autoResolve = false,
+}) {
+  final local = WeightData.fromJson(
+    jsonDecode(localJson) as Map<String, dynamic>,
+  );
+  final remote = WeightData.fromJson(
+    jsonDecode(remoteJson) as Map<String, dynamic>,
+  );
+  final base = baseJson != null
+      ? WeightData.fromJson(jsonDecode(baseJson) as Map<String, dynamic>)
+      : null;
 
-    final recordResult = mergeRecords<WeightRecord>(
-      local: local.records,
-      remote: remote.records,
-      base: base?.records,
-      getId: (r) => r.id,
-      getModifiedAt: (r) => r.modifiedAt,
-      getDisplayName: (r) => '${r.weight} kg (${r.datetime.toIso8601String().substring(0, 10)})',
-      autoResolve: autoResolve,
-    );
+  final recordResult = mergeRecords<WeightRecord>(
+    local: local.records,
+    remote: remote.records,
+    base: base?.records,
+    getId: (r) => r.id,
+    getModifiedAt: (r) => r.modifiedAt,
+    getDisplayName: (r) =>
+        '${r.weight} kg (${r.datetime.toIso8601String().substring(0, 10)})',
+    autoResolve: autoResolve,
+  );
 
-    // Height: prefer the non-null / most recently changed value
-    final height = local.height ?? remote.height;
+  // Height: prefer the non-null / most recently changed value
+  final height = local.height ?? remote.height;
 
-    return WeightMergeResult(
-      height: height,
-      recordsMerged: recordResult.merged,
-      recordConflicts: recordResult.conflicts,
-    );
-  } catch (_) {
-    return WeightMergeResult(
-      height: null,
-      recordsMerged: [],
-      recordConflicts: [],
-    );
-  }
+  return WeightMergeResult(
+    height: height,
+    recordsMerged: recordResult.merged,
+    recordConflicts: recordResult.conflicts,
+  );
 }
 
 class WeightMergeResult {

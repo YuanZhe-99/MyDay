@@ -28,36 +28,39 @@ class WebDAVConfig {
       serverUrl.isNotEmpty && username.isNotEmpty && password.isNotEmpty;
 
   WebDAVConfig copyWith({bool? autoSync}) => WebDAVConfig(
-        serverUrl: serverUrl,
-        username: username,
-        password: password,
-        remotePath: remotePath,
-        autoSync: autoSync ?? this.autoSync,
-      );
+    serverUrl: serverUrl,
+    username: username,
+    password: password,
+    remotePath: remotePath,
+    autoSync: autoSync ?? this.autoSync,
+  );
 
   Map<String, dynamic> toJson() => {
-        'serverUrl': serverUrl,
-        'username': username,
-        'password': password,
-        'remotePath': remotePath,
-        'autoSync': autoSync,
-      };
+    'serverUrl': serverUrl,
+    'username': username,
+    'password': password,
+    'remotePath': remotePath,
+    'autoSync': autoSync,
+  };
 
   factory WebDAVConfig.fromJson(Map<String, dynamic> json) => WebDAVConfig(
-        serverUrl: json['serverUrl'] as String? ?? '',
-        username: json['username'] as String? ?? '',
-        password: json['password'] as String? ?? '',
-        remotePath: json['remotePath'] as String? ?? '/MyDay',
-        autoSync: json['autoSync'] as bool? ?? false,
-      );
+    serverUrl: json['serverUrl'] as String? ?? '',
+    username: json['username'] as String? ?? '',
+    password: json['password'] as String? ?? '',
+    remotePath: json['remotePath'] as String? ?? '/MyDay',
+    autoSync: json['autoSync'] as bool? ?? false,
+  );
 
   /// Nextcloud preset fills server URL pattern.
-  factory WebDAVConfig.nextcloud(String host, String username, String password) =>
-      WebDAVConfig(
-        serverUrl: 'https://$host/remote.php/dav/files/$username',
-        username: username,
-        password: password,
-      );
+  factory WebDAVConfig.nextcloud(
+    String host,
+    String username,
+    String password,
+  ) => WebDAVConfig(
+    serverUrl: 'https://$host/remote.php/dav/files/$username',
+    username: username,
+    password: password,
+  );
 }
 
 // ─── Sync result types ──────────────────────────────────────────────
@@ -66,6 +69,7 @@ class WebDAVConfig {
 class SyncResult {
   final bool success;
   final String? error;
+
   /// Non-null when there are per-record conflicts needing user resolution.
   final PendingSync? pending;
 
@@ -81,20 +85,25 @@ class PendingSync {
   final IntimacyMergeResult? intimacyMerge;
   final WeightMergeResult? weightMerge;
 
-  const PendingSync({this.todoMerge, this.financeMerge, this.intimacyMerge, this.weightMerge});
+  const PendingSync({
+    this.todoMerge,
+    this.financeMerge,
+    this.intimacyMerge,
+    this.weightMerge,
+  });
 
   List<RecordConflict> get allConflicts => [
-        ...?todoMerge?.dailyConflicts,
-        ...?todoMerge?.onceConflicts,
-        ...?financeMerge?.accountConflicts,
-        ...?financeMerge?.categoryConflicts,
-        ...?financeMerge?.transactionConflicts,
-        ...?financeMerge?.subscriptionConflicts,
-        ...?intimacyMerge?.partnerConflicts,
-        ...?intimacyMerge?.toyConflicts,
-        ...?intimacyMerge?.recordConflicts,
-        ...?weightMerge?.recordConflicts,
-      ];
+    ...?todoMerge?.dailyConflicts,
+    ...?todoMerge?.onceConflicts,
+    ...?financeMerge?.accountConflicts,
+    ...?financeMerge?.categoryConflicts,
+    ...?financeMerge?.transactionConflicts,
+    ...?financeMerge?.subscriptionConflicts,
+    ...?intimacyMerge?.partnerConflicts,
+    ...?intimacyMerge?.toyConflicts,
+    ...?intimacyMerge?.recordConflicts,
+    ...?weightMerge?.recordConflicts,
+  ];
 }
 
 // ─── WebDAV Service ─────────────────────────────────────────────────
@@ -112,8 +121,10 @@ class WebDAVService {
 
   /// Global lock to prevent concurrent syncs (auto + manual).
   static bool _syncing = false;
+
   /// Set to true when sync writes merged data to local files.
   static bool _localDataChanged = false;
+
   /// Whether the last sync wrote local data files (reset after read).
   static bool consumeLocalDataChanged() {
     final v = _localDataChanged;
@@ -171,7 +182,17 @@ class WebDAVService {
   static Future<void> _saveBase(String fileName, String jsonContent) async {
     final dir = await _getBaseDir();
     final file = File('${dir.path}/$fileName');
-    await file.writeAsString(jsonContent);
+    await _atomicWrite(file, jsonContent);
+  }
+
+  // ── Atomic file write ──
+
+  /// Write content to a temp file then atomically rename over the target.
+  /// Prevents data corruption if the app is killed during write.
+  static Future<void> _atomicWrite(File file, String content) async {
+    final tmp = File('${file.path}.tmp');
+    await tmp.writeAsString(content);
+    await tmp.rename(file.path);
   }
 
   // ── Encoding helpers ──
@@ -190,7 +211,8 @@ class WebDAVService {
 
   static Map<String, String> _authHeaders(WebDAVConfig config) {
     final creds = base64Encode(
-        utf8.encode('${config.username}:${config.password}'));
+      utf8.encode('${config.username}:${config.password}'),
+    );
     return {'Authorization': 'Basic $creds'};
   }
 
@@ -217,8 +239,9 @@ class WebDAVService {
       request.body =
           '<?xml version="1.0"?><d:propfind xmlns:d="DAV:"><d:prop><d:resourcetype/></d:prop></d:propfind>';
 
-      final streamed =
-          await http.Client().send(request).timeout(const Duration(seconds: 10));
+      final streamed = await http.Client()
+          .send(request)
+          .timeout(const Duration(seconds: 10));
       return streamed.statusCode == 207 || streamed.statusCode == 404;
     } catch (_) {
       return false;
@@ -238,17 +261,22 @@ class WebDAVService {
   }
 
   static Future<bool> _upload(
-      WebDAVConfig config, String fileName, String content) async {
+    WebDAVConfig config,
+    String fileName,
+    String content,
+  ) async {
     try {
       final url = Uri.parse(_remoteFileUrl(config, fileName));
-      final response = await http.put(
-        url,
-        headers: {
-          ..._authHeaders(config),
-          'Content-Type': 'application/octet-stream',
-        },
-        body: utf8.encode(content),
-      ).timeout(const Duration(seconds: 30));
+      final response = await http
+          .put(
+            url,
+            headers: {
+              ..._authHeaders(config),
+              'Content-Type': 'application/octet-stream',
+            },
+            body: utf8.encode(content),
+          )
+          .timeout(const Duration(seconds: 30));
       return response.statusCode >= 200 && response.statusCode < 300;
     } catch (_) {
       return false;
@@ -256,31 +284,34 @@ class WebDAVService {
   }
 
   static Future<bool> _uploadBytes(
-      WebDAVConfig config, String fileName, Uint8List bytes) async {
+    WebDAVConfig config,
+    String fileName,
+    Uint8List bytes,
+  ) async {
     try {
       final url = Uri.parse(_remoteFileUrl(config, fileName));
-      final response = await http.put(
-        url,
-        headers: {
-          ..._authHeaders(config),
-          'Content-Type': 'application/octet-stream',
-        },
-        body: bytes,
-      ).timeout(const Duration(seconds: 60));
+      final response = await http
+          .put(
+            url,
+            headers: {
+              ..._authHeaders(config),
+              'Content-Type': 'application/octet-stream',
+            },
+            body: bytes,
+          )
+          .timeout(const Duration(seconds: 60));
       return response.statusCode >= 200 && response.statusCode < 300;
     } catch (_) {
       return false;
     }
   }
 
-  static Future<String?> _download(
-      WebDAVConfig config, String fileName) async {
+  static Future<String?> _download(WebDAVConfig config, String fileName) async {
     try {
       final url = Uri.parse(_remoteFileUrl(config, fileName));
-      final response = await http.get(
-        url,
-        headers: _authHeaders(config),
-      ).timeout(const Duration(seconds: 30));
+      final response = await http
+          .get(url, headers: _authHeaders(config))
+          .timeout(const Duration(seconds: 30));
       if (response.statusCode == 200) return response.body;
       return null;
     } catch (_) {
@@ -291,7 +322,9 @@ class WebDAVService {
   // ── Image sync ──
 
   static Future<void> _ensureRemoteSubDir(
-      WebDAVConfig config, String subPath) async {
+    WebDAVConfig config,
+    String subPath,
+  ) async {
     try {
       final base = config.serverUrl.endsWith('/')
           ? config.serverUrl.substring(0, config.serverUrl.length - 1)
@@ -308,7 +341,9 @@ class WebDAVService {
 
   /// List file names in a remote sub-directory via PROPFIND.
   static Future<Set<String>> _listRemoteDir(
-      WebDAVConfig config, String subPath) async {
+    WebDAVConfig config,
+    String subPath,
+  ) async {
     try {
       final base = config.serverUrl.endsWith('/')
           ? config.serverUrl.substring(0, config.serverUrl.length - 1)
@@ -325,8 +360,9 @@ class WebDAVService {
       request.body =
           '<?xml version="1.0"?><d:propfind xmlns:d="DAV:"><d:prop><d:resourcetype/></d:prop></d:propfind>';
 
-      final streamed =
-          await http.Client().send(request).timeout(const Duration(seconds: 30));
+      final streamed = await http.Client()
+          .send(request)
+          .timeout(const Duration(seconds: 30));
       if (streamed.statusCode != 207) return {};
       final body = await streamed.stream.bytesToString();
 
@@ -348,13 +384,14 @@ class WebDAVService {
   }
 
   static Future<Uint8List?> _downloadBytes(
-      WebDAVConfig config, String fileName) async {
+    WebDAVConfig config,
+    String fileName,
+  ) async {
     try {
       final url = Uri.parse(_remoteFileUrl(config, fileName));
-      final response = await http.get(
-        url,
-        headers: _authHeaders(config),
-      ).timeout(const Duration(seconds: 60));
+      final response = await http
+          .get(url, headers: _authHeaders(config))
+          .timeout(const Duration(seconds: 60));
       if (response.statusCode == 200) return response.bodyBytes;
       return null;
     } catch (_) {
@@ -362,8 +399,7 @@ class WebDAVService {
     }
   }
 
-  static Future<void> _syncImages(
-      WebDAVConfig config, Directory appDir) async {
+  static Future<void> _syncImages(WebDAVConfig config, Directory appDir) async {
     final imgDir = Directory(p.join(appDir.path, 'images'));
 
     await _ensureRemoteSubDir(config, 'images');
@@ -417,9 +453,15 @@ class WebDAVService {
   ///
   /// Returns [SyncResult]. If `hasConflicts` is true, call
   /// [finalizePendingSync] after user resolves each conflict.
-  static Future<SyncResult> sync(WebDAVConfig config, {bool autoResolve = false}) async {
+  static Future<SyncResult> sync(
+    WebDAVConfig config, {
+    bool autoResolve = false,
+  }) async {
     if (_syncing) {
-      return const SyncResult(success: false, error: 'Sync already in progress');
+      return const SyncResult(
+        success: false,
+        error: 'Sync already in progress',
+      );
     }
     _syncing = true;
     try {
@@ -430,6 +472,7 @@ class WebDAVService {
       FinanceMergeResult? pendingFinance;
       IntimacyMergeResult? pendingIntimacy;
       WeightMergeResult? pendingWeight;
+      final perFileErrors = <String>[];
 
       for (final name in _dataFileNames) {
         final localFile = File('${appDir.path}/$name');
@@ -441,7 +484,7 @@ class WebDAVService {
 
         if (!localExists && remoteRaw != null) {
           // Only on remote → download
-          await localFile.writeAsString(remoteRaw);
+          await _atomicWrite(localFile, remoteRaw);
           await _saveBase(name, _toJson(remoteRaw));
           _localDataChanged = true;
           continue;
@@ -451,8 +494,8 @@ class WebDAVService {
 
         if (localExists && remoteRaw == null) {
           // Only on local → upload
-          await _upload(config, name, localRaw);
-          await _saveBase(name, _toJson(localRaw));
+          final uploaded = await _upload(config, name, localRaw);
+          if (uploaded) await _saveBase(name, _toJson(localRaw));
           continue;
         }
 
@@ -467,121 +510,167 @@ class WebDAVService {
           continue;
         }
 
-        if (isRates) {
-          // Exchange rates: union merge, no per-record conflicts
-          final mergedJson = mergeExchangeRateJson(localJson, remoteJson);
-          final mergedRaw = mergedJson; // exchange_rates never encrypted
-          await localFile.writeAsString(mergedRaw);
-          await _upload(config, name, mergedRaw);
-          await _saveBase(name, mergedJson);
-          _localDataChanged = true;
-          continue;
-        }
+        // Per-file try-catch: if one file fails to merge, others still sync.
+        // Exceptions propagate from merge functions (no silent empty fallback).
+        try {
+          if (isRates) {
+            // Exchange rates: union merge, no per-record conflicts
+            final mergedJson = mergeExchangeRateJson(localJson, remoteJson);
+            final mergedRaw = mergedJson;
+            await _atomicWrite(localFile, mergedRaw);
+            final uploaded = await _upload(config, name, mergedRaw);
+            if (uploaded) await _saveBase(name, mergedJson);
+            _localDataChanged = true;
+            continue;
+          }
 
-        // Structured data files — per-record merge
-        switch (name) {
-          case 'todo_data.json':
-            var effectiveLocalJson = localJson;
-            var result = mergeTodoData(effectiveLocalJson, remoteJson, baseJson, autoResolve: autoResolve);
-            if (!result.hasConflicts) {
-              // Re-read local to detect concurrent saves during network I/O
-              final freshLocalRaw = await localFile.readAsString();
-              final freshLocalJson = _toJson(freshLocalRaw);
-              if (freshLocalJson != localJson) {
-                result = mergeTodoData(freshLocalJson, remoteJson, baseJson, autoResolve: autoResolve);
+          // Structured data files — per-record merge
+          switch (name) {
+            case 'todo_data.json':
+              var result = mergeTodoData(
+                localJson,
+                remoteJson,
+                baseJson,
+                autoResolve: autoResolve,
+              );
+              if (!result.hasConflicts) {
+                // Re-read local to detect concurrent saves during network I/O
+                final freshLocalRaw = await localFile.readAsString();
+                final freshLocalJson = _toJson(freshLocalRaw);
+                if (freshLocalJson != localJson) {
+                  result = mergeTodoData(
+                    freshLocalJson,
+                    remoteJson,
+                    baseJson,
+                    autoResolve: autoResolve,
+                  );
+                }
               }
-            }
-            if (result.hasConflicts) {
-              pendingTodo = result;
-            } else {
-              final mergedData = result.buildResolved({});
-              final mergedJson = jsonEncode(mergedData.toJson());
-              final mergedRaw = _toRaw(mergedJson);
-              await localFile.writeAsString(mergedRaw);
-              await _upload(config, name, mergedRaw);
-              await _saveBase(name, mergedJson);
-              _localDataChanged = true;
-            }
+              if (result.hasConflicts) {
+                pendingTodo = result;
+              } else {
+                final mergedData = result.buildResolved({});
+                final mergedJson = jsonEncode(mergedData.toJson());
+                final mergedRaw = _toRaw(mergedJson);
+                await _atomicWrite(localFile, mergedRaw);
+                final uploaded = await _upload(config, name, mergedRaw);
+                if (uploaded) await _saveBase(name, mergedJson);
+                _localDataChanged = true;
+              }
 
-          case 'finance_data.json':
-            var effectiveLocalJson = localJson;
-            var result = mergeFinanceData(effectiveLocalJson, remoteJson, baseJson, autoResolve: autoResolve);
-            if (!result.hasConflicts) {
-              final freshLocalRaw = await localFile.readAsString();
-              final freshLocalJson = _toJson(freshLocalRaw);
-              if (freshLocalJson != localJson) {
-                result = mergeFinanceData(freshLocalJson, remoteJson, baseJson, autoResolve: autoResolve);
+            case 'finance_data.json':
+              var result = mergeFinanceData(
+                localJson,
+                remoteJson,
+                baseJson,
+                autoResolve: autoResolve,
+              );
+              if (!result.hasConflicts) {
+                final freshLocalRaw = await localFile.readAsString();
+                final freshLocalJson = _toJson(freshLocalRaw);
+                if (freshLocalJson != localJson) {
+                  result = mergeFinanceData(
+                    freshLocalJson,
+                    remoteJson,
+                    baseJson,
+                    autoResolve: autoResolve,
+                  );
+                }
               }
-            }
-            if (result.hasConflicts) {
-              pendingFinance = result;
-            } else {
-              final mergedData = result.buildResolved({});
-              final mergedJson = jsonEncode(mergedData.toJson());
-              final mergedRaw = _toRaw(mergedJson);
-              await localFile.writeAsString(mergedRaw);
-              await _upload(config, name, mergedRaw);
-              await _saveBase(name, mergedJson);
-              _localDataChanged = true;
-            }
+              if (result.hasConflicts) {
+                pendingFinance = result;
+              } else {
+                final mergedData = result.buildResolved({});
+                final mergedJson = jsonEncode(mergedData.toJson());
+                final mergedRaw = _toRaw(mergedJson);
+                await _atomicWrite(localFile, mergedRaw);
+                final uploaded = await _upload(config, name, mergedRaw);
+                if (uploaded) await _saveBase(name, mergedJson);
+                _localDataChanged = true;
+              }
 
-          case 'intimacy_data.json':
-            var effectiveLocalJson = localJson;
-            var result = mergeIntimacyData(effectiveLocalJson, remoteJson, baseJson, autoResolve: autoResolve);
-            if (!result.hasConflicts) {
-              final freshLocalRaw = await localFile.readAsString();
-              final freshLocalJson = _toJson(freshLocalRaw);
-              if (freshLocalJson != localJson) {
-                result = mergeIntimacyData(freshLocalJson, remoteJson, baseJson, autoResolve: autoResolve);
+            case 'intimacy_data.json':
+              var result = mergeIntimacyData(
+                localJson,
+                remoteJson,
+                baseJson,
+                autoResolve: autoResolve,
+              );
+              if (!result.hasConflicts) {
+                final freshLocalRaw = await localFile.readAsString();
+                final freshLocalJson = _toJson(freshLocalRaw);
+                if (freshLocalJson != localJson) {
+                  result = mergeIntimacyData(
+                    freshLocalJson,
+                    remoteJson,
+                    baseJson,
+                    autoResolve: autoResolve,
+                  );
+                }
               }
-            }
-            if (result.hasConflicts) {
-              pendingIntimacy = result;
-            } else {
-              final mergedData = result.buildResolved({});
-              final mergedJson = jsonEncode(mergedData.toJson());
-              final mergedRaw = _toRaw(mergedJson);
-              await localFile.writeAsString(mergedRaw);
-              await _upload(config, name, mergedRaw);
-              await _saveBase(name, mergedJson);
-              _localDataChanged = true;
-            }
+              if (result.hasConflicts) {
+                pendingIntimacy = result;
+              } else {
+                final mergedData = result.buildResolved({});
+                final mergedJson = jsonEncode(mergedData.toJson());
+                final mergedRaw = _toRaw(mergedJson);
+                await _atomicWrite(localFile, mergedRaw);
+                final uploaded = await _upload(config, name, mergedRaw);
+                if (uploaded) await _saveBase(name, mergedJson);
+                _localDataChanged = true;
+              }
 
-          case 'weight_data.json':
-            var effectiveLocalJson = localJson;
-            var result = mergeWeightData(effectiveLocalJson, remoteJson, baseJson, autoResolve: autoResolve);
-            if (!result.hasConflicts) {
-              final freshLocalRaw = await localFile.readAsString();
-              final freshLocalJson = _toJson(freshLocalRaw);
-              if (freshLocalJson != localJson) {
-                result = mergeWeightData(freshLocalJson, remoteJson, baseJson, autoResolve: autoResolve);
+            case 'weight_data.json':
+              var result = mergeWeightData(
+                localJson,
+                remoteJson,
+                baseJson,
+                autoResolve: autoResolve,
+              );
+              if (!result.hasConflicts) {
+                final freshLocalRaw = await localFile.readAsString();
+                final freshLocalJson = _toJson(freshLocalRaw);
+                if (freshLocalJson != localJson) {
+                  result = mergeWeightData(
+                    freshLocalJson,
+                    remoteJson,
+                    baseJson,
+                    autoResolve: autoResolve,
+                  );
+                }
               }
-            }
-            if (result.hasConflicts) {
-              pendingWeight = result;
-            } else {
-              final mergedData = result.buildResolved({});
-              final mergedJson = jsonEncode(mergedData.toJson());
-              final mergedRaw = _toRaw(mergedJson);
-              await localFile.writeAsString(mergedRaw);
-              await _upload(config, name, mergedRaw);
-              await _saveBase(name, mergedJson);
-              _localDataChanged = true;
-            }
+              if (result.hasConflicts) {
+                pendingWeight = result;
+              } else {
+                final mergedData = result.buildResolved({});
+                final mergedJson = jsonEncode(mergedData.toJson());
+                final mergedRaw = _toRaw(mergedJson);
+                await _atomicWrite(localFile, mergedRaw);
+                final uploaded = await _upload(config, name, mergedRaw);
+                if (uploaded) await _saveBase(name, mergedJson);
+                _localDataChanged = true;
+              }
+          }
+        } catch (e) {
+          // Per-file merge error: skip this file, continue syncing others.
+          // Local file is unchanged (merge exception fires before write).
+          perFileErrors.add('$name: $e');
         }
       }
 
       // Sync images (additive, no conflict)
       await _syncImages(config, appDir);
 
-      final hasConflicts = pendingTodo != null ||
+      final hasConflicts =
+          pendingTodo != null ||
           pendingFinance != null ||
           pendingIntimacy != null ||
           pendingWeight != null;
 
       if (hasConflicts) {
         return SyncResult(
-          success: true,
+          success: perFileErrors.isEmpty,
+          error: perFileErrors.isNotEmpty ? perFileErrors.join('; ') : null,
           pending: PendingSync(
             todoMerge: pendingTodo,
             financeMerge: pendingFinance,
@@ -591,7 +680,10 @@ class WebDAVService {
         );
       }
 
-      return const SyncResult(success: true);
+      return SyncResult(
+        success: perFileErrors.isEmpty,
+        error: perFileErrors.isNotEmpty ? perFileErrors.join('; ') : null,
+      );
     } catch (e) {
       return SyncResult(success: false, error: e.toString());
     } finally {
@@ -616,36 +708,39 @@ class WebDAVService {
         );
         final mergedJson = jsonEncode(mergedData.toJson());
         final mergedRaw = _toRaw(mergedJson);
-        await File('${appDir.path}/todo_data.json').writeAsString(mergedRaw);
-        await _upload(config, 'todo_data.json', mergedRaw);
-        await _saveBase('todo_data.json', mergedJson);
+        await _atomicWrite(File('${appDir.path}/todo_data.json'), mergedRaw);
+        final uploaded = await _upload(config, 'todo_data.json', mergedRaw);
+        if (uploaded) await _saveBase('todo_data.json', mergedJson);
       }
 
       if (pending.financeMerge != null) {
         final mergedData = pending.financeMerge!.buildResolved(resolutions);
         final mergedJson = jsonEncode(mergedData.toJson());
         final mergedRaw = _toRaw(mergedJson);
-        await File('${appDir.path}/finance_data.json').writeAsString(mergedRaw);
-        await _upload(config, 'finance_data.json', mergedRaw);
-        await _saveBase('finance_data.json', mergedJson);
+        await _atomicWrite(File('${appDir.path}/finance_data.json'), mergedRaw);
+        final uploaded = await _upload(config, 'finance_data.json', mergedRaw);
+        if (uploaded) await _saveBase('finance_data.json', mergedJson);
       }
 
       if (pending.intimacyMerge != null) {
         final mergedData = pending.intimacyMerge!.buildResolved(resolutions);
         final mergedJson = jsonEncode(mergedData.toJson());
         final mergedRaw = _toRaw(mergedJson);
-        await File('${appDir.path}/intimacy_data.json').writeAsString(mergedRaw);
-        await _upload(config, 'intimacy_data.json', mergedRaw);
-        await _saveBase('intimacy_data.json', mergedJson);
+        await _atomicWrite(
+          File('${appDir.path}/intimacy_data.json'),
+          mergedRaw,
+        );
+        final uploaded = await _upload(config, 'intimacy_data.json', mergedRaw);
+        if (uploaded) await _saveBase('intimacy_data.json', mergedJson);
       }
 
       if (pending.weightMerge != null) {
         final mergedData = pending.weightMerge!.buildResolved(resolutions);
         final mergedJson = jsonEncode(mergedData.toJson());
         final mergedRaw = _toRaw(mergedJson);
-        await File('${appDir.path}/weight_data.json').writeAsString(mergedRaw);
-        await _upload(config, 'weight_data.json', mergedRaw);
-        await _saveBase('weight_data.json', mergedJson);
+        await _atomicWrite(File('${appDir.path}/weight_data.json'), mergedRaw);
+        final uploaded = await _upload(config, 'weight_data.json', mergedRaw);
+        if (uploaded) await _saveBase('weight_data.json', mergedJson);
       }
 
       return true;
