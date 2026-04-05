@@ -779,76 +779,110 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
     final nameCtrl = TextEditingController(text: existing?.name ?? '');
     String? selectedEmoji = existing?.emoji;
     String? imagePath = existing?.imagePath;
+    DateTime? startDate = existing?.startDate;
+    DateTime? endDate = existing?.endDate;
+    final l10n = AppLocalizations.of(context)!;
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: Text(existing == null ? AppLocalizations.of(context)!.intimacyAddPartner : AppLocalizations.of(context)!.intimacyEditPartner),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextField(
-                controller: nameCtrl,
-                decoration: InputDecoration(labelText: AppLocalizations.of(context)!.commonName),
-                autofocus: true,
-              ),
-              const SizedBox(height: 12),
-              Text(AppLocalizations.of(context)!.commonEmojiOptional,
-                  style: Theme.of(context).textTheme.bodySmall),
-              const SizedBox(height: 8),
-              _buildImageRow(imagePath, Theme.of(context), (path) {
-                setDialogState(() {
-                  imagePath = path;
-                  if (path != null) selectedEmoji = null;
-                });
-              }),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.maxFinite,
-                child: Wrap(
-                  spacing: 4,
-                  runSpacing: 4,
-                  children: _commonEmojis.map((emoji) {
-                    final isSelected = emoji == selectedEmoji;
-                    return InkWell(
-                      borderRadius: BorderRadius.circular(8),
-                      onTap: () => setDialogState(() {
-                        selectedEmoji = isSelected ? null : emoji;
-                        if (!isSelected) imagePath = null;
-                      }),
-                      child: Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          color: isSelected
-                              ? Theme.of(context).colorScheme.primaryContainer
-                              : null,
-                          border: isSelected
-                              ? Border.all(
-                                  color: Theme.of(context).colorScheme.primary,
-                                  width: 2)
-                              : null,
-                        ),
-                        child: Center(
-                          child: Text(emoji,
-                              style: const TextStyle(fontSize: 20)),
-                        ),
-                      ),
-                    );
-                  }).toList(),
+          title: Text(existing == null ? l10n.intimacyAddPartner : l10n.intimacyEditPartner),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextField(
+                  controller: nameCtrl,
+                  decoration: InputDecoration(labelText: l10n.commonName),
+                  autofocus: true,
                 ),
-              ),
-            ],
+                const SizedBox(height: 12),
+                Text(l10n.commonEmojiOptional,
+                    style: Theme.of(context).textTheme.bodySmall),
+                const SizedBox(height: 8),
+                _buildImageRow(imagePath, Theme.of(context), (path) {
+                  setDialogState(() {
+                    imagePath = path;
+                    if (path != null) selectedEmoji = null;
+                  });
+                }),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.maxFinite,
+                  child: Wrap(
+                    spacing: 4,
+                    runSpacing: 4,
+                    children: _commonEmojis.map((emoji) {
+                      final isSelected = emoji == selectedEmoji;
+                      return InkWell(
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: () => setDialogState(() {
+                          selectedEmoji = isSelected ? null : emoji;
+                          if (!isSelected) imagePath = null;
+                        }),
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            color: isSelected
+                                ? Theme.of(context).colorScheme.primaryContainer
+                                : null,
+                            border: isSelected
+                                ? Border.all(
+                                    color: Theme.of(context).colorScheme.primary,
+                                    width: 2)
+                                : null,
+                          ),
+                          child: Center(
+                            child: Text(emoji,
+                                style: const TextStyle(fontSize: 20)),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _DatePickerTile(
+                  label: l10n.intimacyStartDate,
+                  date: startDate,
+                  onPick: () async {
+                    final picked = await showDatePicker(
+                      context: ctx,
+                      initialDate: startDate ?? DateTime.now(),
+                      firstDate: DateTime(1990),
+                      lastDate: DateTime.now().add(const Duration(days: 365)),
+                    );
+                    if (picked != null) setDialogState(() => startDate = picked);
+                  },
+                  onClear: () => setDialogState(() => startDate = null),
+                ),
+                _DatePickerTile(
+                  label: l10n.intimacyEndDate,
+                  date: endDate,
+                  onPick: () async {
+                    final picked = await showDatePicker(
+                      context: ctx,
+                      initialDate: endDate ?? DateTime.now(),
+                      firstDate: DateTime(1990),
+                      lastDate: DateTime.now().add(const Duration(days: 365)),
+                    );
+                    if (picked != null) setDialogState(() => endDate = picked);
+                  },
+                  onClear: () => setDialogState(() => endDate = null),
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: Text(AppLocalizations.of(context)!.commonCancel)),
+                child: Text(l10n.commonCancel)),
             FilledButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: Text(AppLocalizations.of(context)!.commonSave)),
+                child: Text(l10n.commonSave)),
           ],
         ),
       ),
@@ -863,6 +897,8 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
               name: nameCtrl.text.trim(),
               emoji: selectedEmoji,
               imagePath: imagePath,
+              startDate: startDate,
+              endDate: endDate,
             );
           }
         } else {
@@ -870,6 +906,8 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
             name: nameCtrl.text.trim(),
             emoji: selectedEmoji,
             imagePath: imagePath,
+            startDate: startDate,
+            endDate: endDate,
           ));
         }
       });
@@ -923,6 +961,20 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
     );
   }
 
+  String _partnerSubtitle(Partner p, int recordCount) {
+    final parts = <String>[
+      AppLocalizations.of(context)!.intimacyRecordCount(recordCount),
+    ];
+    if (p.startDate != null || p.endDate != null) {
+      String fmt(DateTime d) =>
+          '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+      final start = p.startDate != null ? fmt(p.startDate!) : '?';
+      final end = p.endDate != null ? fmt(p.endDate!) : '';
+      parts.add(end.isEmpty ? '$start ~' : '$start ~ $end');
+    }
+    return parts.join(' · ');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -967,8 +1019,7 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
                   child: ListTile(
                     leading: _buildPartnerAvatar(p),
                     title: Text(p.name),
-                    subtitle: Text(AppLocalizations.of(context)!
-                        .intimacyRecordCount(recordCount)),
+                    subtitle: Text(_partnerSubtitle(p, recordCount)),
                     onTap: () => _showPartnerRecords(p),
                   ),
                 );
@@ -1059,76 +1110,110 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
     final nameCtrl = TextEditingController(text: existing?.name ?? '');
     String? selectedEmoji = existing?.emoji;
     String? imagePath = existing?.imagePath;
+    DateTime? purchaseDate = existing?.purchaseDate;
+    DateTime? retiredDate = existing?.retiredDate;
+    final l10n = AppLocalizations.of(context)!;
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: Text(existing == null ? AppLocalizations.of(context)!.intimacyAddToy : AppLocalizations.of(context)!.intimacyEditToy),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextField(
-                controller: nameCtrl,
-                decoration: InputDecoration(labelText: AppLocalizations.of(context)!.commonName),
-                autofocus: true,
-              ),
-              const SizedBox(height: 12),
-              Text(AppLocalizations.of(context)!.commonEmojiOptional,
-                  style: Theme.of(context).textTheme.bodySmall),
-              const SizedBox(height: 8),
-              _buildImageRow(imagePath, Theme.of(context), (path) {
-                setDialogState(() {
-                  imagePath = path;
-                  if (path != null) selectedEmoji = null;
-                });
-              }),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.maxFinite,
-                child: Wrap(
-                  spacing: 4,
-                  runSpacing: 4,
-                  children: _commonEmojis.map((emoji) {
-                    final isSelected = emoji == selectedEmoji;
-                    return InkWell(
-                      borderRadius: BorderRadius.circular(8),
-                      onTap: () => setDialogState(() {
-                        selectedEmoji = isSelected ? null : emoji;
-                        if (!isSelected) imagePath = null;
-                      }),
-                      child: Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          color: isSelected
-                              ? Theme.of(context).colorScheme.primaryContainer
-                              : null,
-                          border: isSelected
-                              ? Border.all(
-                                  color: Theme.of(context).colorScheme.primary,
-                                  width: 2)
-                              : null,
-                        ),
-                        child: Center(
-                          child: Text(emoji,
-                              style: const TextStyle(fontSize: 20)),
-                        ),
-                      ),
-                    );
-                  }).toList(),
+          title: Text(existing == null ? l10n.intimacyAddToy : l10n.intimacyEditToy),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextField(
+                  controller: nameCtrl,
+                  decoration: InputDecoration(labelText: l10n.commonName),
+                  autofocus: true,
                 ),
-              ),
-            ],
+                const SizedBox(height: 12),
+                Text(l10n.commonEmojiOptional,
+                    style: Theme.of(context).textTheme.bodySmall),
+                const SizedBox(height: 8),
+                _buildImageRow(imagePath, Theme.of(context), (path) {
+                  setDialogState(() {
+                    imagePath = path;
+                    if (path != null) selectedEmoji = null;
+                  });
+                }),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.maxFinite,
+                  child: Wrap(
+                    spacing: 4,
+                    runSpacing: 4,
+                    children: _commonEmojis.map((emoji) {
+                      final isSelected = emoji == selectedEmoji;
+                      return InkWell(
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: () => setDialogState(() {
+                          selectedEmoji = isSelected ? null : emoji;
+                          if (!isSelected) imagePath = null;
+                        }),
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            color: isSelected
+                                ? Theme.of(context).colorScheme.primaryContainer
+                                : null,
+                            border: isSelected
+                                ? Border.all(
+                                    color: Theme.of(context).colorScheme.primary,
+                                    width: 2)
+                                : null,
+                          ),
+                          child: Center(
+                            child: Text(emoji,
+                                style: const TextStyle(fontSize: 20)),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _DatePickerTile(
+                  label: l10n.intimacyPurchaseDate,
+                  date: purchaseDate,
+                  onPick: () async {
+                    final picked = await showDatePicker(
+                      context: ctx,
+                      initialDate: purchaseDate ?? DateTime.now(),
+                      firstDate: DateTime(1990),
+                      lastDate: DateTime.now().add(const Duration(days: 365)),
+                    );
+                    if (picked != null) setDialogState(() => purchaseDate = picked);
+                  },
+                  onClear: () => setDialogState(() => purchaseDate = null),
+                ),
+                _DatePickerTile(
+                  label: l10n.intimacyRetiredDate,
+                  date: retiredDate,
+                  onPick: () async {
+                    final picked = await showDatePicker(
+                      context: ctx,
+                      initialDate: retiredDate ?? DateTime.now(),
+                      firstDate: DateTime(1990),
+                      lastDate: DateTime.now().add(const Duration(days: 365)),
+                    );
+                    if (picked != null) setDialogState(() => retiredDate = picked);
+                  },
+                  onClear: () => setDialogState(() => retiredDate = null),
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: Text(AppLocalizations.of(context)!.commonCancel)),
+                child: Text(l10n.commonCancel)),
             FilledButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: Text(AppLocalizations.of(context)!.commonSave)),
+                child: Text(l10n.commonSave)),
           ],
         ),
       ),
@@ -1143,6 +1228,8 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
               name: nameCtrl.text.trim(),
               emoji: selectedEmoji,
               imagePath: imagePath,
+              purchaseDate: purchaseDate,
+              retiredDate: retiredDate,
             );
           }
         } else {
@@ -1150,6 +1237,8 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
             name: nameCtrl.text.trim(),
             emoji: selectedEmoji,
             imagePath: imagePath,
+            purchaseDate: purchaseDate,
+            retiredDate: retiredDate,
           ));
         }
       });
@@ -1203,6 +1292,23 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
     );
   }
 
+  String _toySubtitle(Toy t, int recordCount) {
+    final parts = <String>[
+      AppLocalizations.of(context)!.intimacyRecordCount(recordCount),
+    ];
+    if (t.purchaseDate != null) {
+      String fmt(DateTime d) =>
+          '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+      parts.add(fmt(t.purchaseDate!));
+    }
+    if (t.retiredDate != null) {
+      String fmt(DateTime d) =>
+          '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+      parts.add('⊘ ${fmt(t.retiredDate!)}');
+    }
+    return parts.join(' · ');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1247,8 +1353,7 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
                   child: ListTile(
                     leading: _buildToyAvatar(t),
                     title: Text(t.name),
-                    subtitle: Text(AppLocalizations.of(context)!
-                        .intimacyRecordCount(recordCount)),
+                    subtitle: Text(_toySubtitle(t, recordCount)),
                     onTap: () => _showToyRecords(t),
                   ),
                 );
@@ -1321,6 +1426,50 @@ class _FilteredRecordsPage extends StatelessWidget {
                 );
               },
             ),
+    );
+  }
+}
+
+// ─── Shared date picker tile ────────────────────────────────────────
+class _DatePickerTile extends StatelessWidget {
+  final String label;
+  final DateTime? date;
+  final VoidCallback onPick;
+  final VoidCallback onClear;
+
+  const _DatePickerTile({
+    required this.label,
+    required this.date,
+    required this.onPick,
+    required this.onClear,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      dense: true,
+      leading: Icon(
+        date != null ? Icons.event_available : Icons.event_outlined,
+        size: 20,
+        color: date != null ? theme.colorScheme.primary : null,
+      ),
+      title: Text(
+        date != null
+            ? '$label: ${date!.year}-${date!.month.toString().padLeft(2, '0')}-${date!.day.toString().padLeft(2, '0')}'
+            : '$label (${AppLocalizations.of(context)!.commonOptional})',
+        style: theme.textTheme.bodyMedium,
+      ),
+      trailing: date != null
+          ? IconButton(
+              icon: const Icon(Icons.clear, size: 18),
+              onPressed: onClear,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            )
+          : null,
+      onTap: onPick,
     );
   }
 }

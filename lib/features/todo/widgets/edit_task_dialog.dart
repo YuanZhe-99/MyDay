@@ -468,17 +468,31 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
                   mainAxisSpacing: 4,
                   crossAxisSpacing: 4,
                 ),
-                itemCount: _commonEmojis.length,
+                itemCount: _commonEmojis.length + 1,
                 itemBuilder: (context, index) {
-                  final emoji = _commonEmojis[index];
+                  if (index < _commonEmojis.length) {
+                    final emoji = _commonEmojis[index];
+                    return InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: () {
+                        setState(() => _selectedEmoji = emoji);
+                        Navigator.pop(context);
+                      },
+                      child: Center(
+                        child: Text(emoji, style: const TextStyle(fontSize: 24)),
+                      ),
+                    );
+                  }
                   return InkWell(
                     borderRadius: BorderRadius.circular(8),
                     onTap: () {
-                      setState(() => _selectedEmoji = emoji);
                       Navigator.pop(context);
+                      _showCustomEmojiInput(context);
                     },
                     child: Center(
-                      child: Text(emoji, style: const TextStyle(fontSize: 24)),
+                      child: Icon(Icons.edit_outlined,
+                          size: 24,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                   );
                 },
@@ -496,6 +510,46 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _showCustomEmojiInput(BuildContext outerContext) {
+    final controller = TextEditingController();
+    showDialog(
+      context: outerContext,
+      builder: (ctx) => AlertDialog(
+        title: Text(AppLocalizations.of(outerContext)!.todoCustomEmoji),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: InputDecoration(
+            hintText: AppLocalizations.of(outerContext)!.todoCustomEmojiHint,
+          ),
+          onSubmitted: (value) {
+            final text = value.trim();
+            if (text.isNotEmpty) {
+              setState(() => _selectedEmoji = text.characters.first);
+            }
+            Navigator.pop(ctx);
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(AppLocalizations.of(outerContext)!.commonCancel),
+          ),
+          FilledButton(
+            onPressed: () {
+              final text = controller.text.trim();
+              if (text.isNotEmpty) {
+                setState(() => _selectedEmoji = text.characters.first);
+              }
+              Navigator.pop(ctx);
+            },
+            child: Text(AppLocalizations.of(outerContext)!.commonSave),
+          ),
+        ],
       ),
     );
   }

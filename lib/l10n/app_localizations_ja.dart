@@ -119,6 +119,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get todoSetDueDate => '期限を設定（任意）';
 
   @override
+  String get todoCustomEmoji => 'カスタム絵文字';
+
+  @override
+  String get todoCustomEmojiHint => '絵文字を入力';
+
+  @override
   String get todoEditSubtask => 'サブタスクを編集';
 
   @override
@@ -451,6 +457,18 @@ class AppLocalizationsJa extends AppLocalizations {
   String get intimacyExportCsvEmpty => 'エクスポートする記録がありません';
 
   @override
+  String get intimacyStartDate => '交際開始';
+
+  @override
+  String get intimacyEndDate => '交際終了';
+
+  @override
+  String get intimacyPurchaseDate => '購入日';
+
+  @override
+  String get intimacyRetiredDate => '引退日';
+
+  @override
   String get settingsTitle => '設定';
 
   @override
@@ -663,6 +681,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get commonEmojiOptional => '絵文字（任意）';
+
+  @override
+  String get commonOptional => '任意';
 
   @override
   String commonDeleteConfirm(String item) {

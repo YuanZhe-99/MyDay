@@ -5,6 +5,8 @@ class Partner {
   final String name;
   final String? emoji;
   final String? imagePath;
+  final DateTime? startDate;
+  final DateTime? endDate;
   final DateTime modifiedAt;
 
   Partner({
@@ -12,6 +14,8 @@ class Partner {
     required this.name,
     this.emoji,
     this.imagePath,
+    this.startDate,
+    this.endDate,
     DateTime? modifiedAt,
   }) : id = id ?? const Uuid().v4(),
        modifiedAt = modifiedAt ?? DateTime.now();
@@ -21,6 +25,8 @@ class Partner {
         'name': name,
         if (emoji != null) 'emoji': emoji,
         if (imagePath != null) 'imagePath': imagePath,
+        if (startDate != null) 'startDate': startDate!.toIso8601String(),
+        if (endDate != null) 'endDate': endDate!.toIso8601String(),
         'modifiedAt': modifiedAt.toIso8601String(),
       };
 
@@ -29,6 +35,12 @@ class Partner {
         name: json['name'] as String,
         emoji: json['emoji'] as String?,
         imagePath: json['imagePath'] as String?,
+        startDate: json['startDate'] != null
+            ? DateTime.parse(json['startDate'] as String)
+            : null,
+        endDate: json['endDate'] != null
+            ? DateTime.parse(json['endDate'] as String)
+            : null,
         modifiedAt: json['modifiedAt'] != null
             ? DateTime.parse(json['modifiedAt'] as String)
             : DateTime.fromMillisecondsSinceEpoch(0),
@@ -40,6 +52,8 @@ class Toy {
   final String name;
   final String? emoji;
   final String? imagePath;
+  final DateTime? purchaseDate;
+  final DateTime? retiredDate;
   final DateTime modifiedAt;
 
   Toy({
@@ -47,6 +61,8 @@ class Toy {
     required this.name,
     this.emoji,
     this.imagePath,
+    this.purchaseDate,
+    this.retiredDate,
     DateTime? modifiedAt,
   }) : id = id ?? const Uuid().v4(),
        modifiedAt = modifiedAt ?? DateTime.now();
@@ -56,6 +72,8 @@ class Toy {
         'name': name,
         if (emoji != null) 'emoji': emoji,
         if (imagePath != null) 'imagePath': imagePath,
+        if (purchaseDate != null) 'purchaseDate': purchaseDate!.toIso8601String(),
+        if (retiredDate != null) 'retiredDate': retiredDate!.toIso8601String(),
         'modifiedAt': modifiedAt.toIso8601String(),
       };
 
@@ -64,6 +82,12 @@ class Toy {
         name: json['name'] as String,
         emoji: json['emoji'] as String?,
         imagePath: json['imagePath'] as String?,
+        purchaseDate: json['purchaseDate'] != null
+            ? DateTime.parse(json['purchaseDate'] as String)
+            : null,
+        retiredDate: json['retiredDate'] != null
+            ? DateTime.parse(json['retiredDate'] as String)
+            : null,
         modifiedAt: json['modifiedAt'] != null
             ? DateTime.parse(json['modifiedAt'] as String)
             : DateTime.fromMillisecondsSinceEpoch(0),

@@ -305,6 +305,18 @@ abstract class AppLocalizations {
   /// **'Set due date (optional)'**
   String get todoSetDueDate;
 
+  /// No description provided for @todoCustomEmoji.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Emoji'**
+  String get todoCustomEmoji;
+
+  /// No description provided for @todoCustomEmojiHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter an emoji'**
+  String get todoCustomEmojiHint;
+
   /// No description provided for @todoEditSubtask.
   ///
   /// In en, this message translates to:
@@ -965,6 +977,30 @@ abstract class AppLocalizations {
   /// **'No records to export'**
   String get intimacyExportCsvEmpty;
 
+  /// No description provided for @intimacyStartDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Start Date'**
+  String get intimacyStartDate;
+
+  /// No description provided for @intimacyEndDate.
+  ///
+  /// In en, this message translates to:
+  /// **'End Date'**
+  String get intimacyEndDate;
+
+  /// No description provided for @intimacyPurchaseDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase Date'**
+  String get intimacyPurchaseDate;
+
+  /// No description provided for @intimacyRetiredDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Retired Date'**
+  String get intimacyRetiredDate;
+
   /// No description provided for @settingsTitle.
   ///
   /// In en, this message translates to:
@@ -1390,6 +1426,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Emoji (optional)'**
   String get commonEmojiOptional;
+
+  /// No description provided for @commonOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'optional'**
+  String get commonOptional;
 
   /// No description provided for @commonDeleteConfirm.
   ///

@@ -46,6 +46,8 @@
   "todoCompleted": "已完成",
   "todoDueDate": "截止日期",
   "todoSetDueDate": "设置截止日期（可选）",
+  "todoCustomEmoji": "自定义图标",
+  "todoCustomEmojiHint": "输入一个 emoji",
   "todoEditSubtask": "编辑子任务",
 
   "financeTitle": "财务",
@@ -158,6 +160,10 @@
   "intimacyExportCsv": "导出CSV",
   "intimacyExportCsvSuccess": "CSV导出成功",
   "intimacyExportCsvEmpty": "没有记录可导出",
+  "intimacyStartDate": "交往开始",
+  "intimacyEndDate": "交往结束",
+  "intimacyPurchaseDate": "购买日期",
+  "intimacyRetiredDate": "退役日期",
 
   "settingsTitle": "设置",
   "settingsGeneral": "通用",
@@ -230,6 +236,7 @@
   "commonClose": "关闭",
   "commonName": "名称",
   "commonEmojiOptional": "图标（可选）",
+  "commonOptional": "可选",
   "commonDeleteConfirm": "删除{item}？",
   "commonMinutes": "{count}分钟",
 

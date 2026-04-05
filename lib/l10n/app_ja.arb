@@ -46,6 +46,8 @@
   "todoCompleted": "完了",
   "todoDueDate": "期限",
   "todoSetDueDate": "期限を設定（任意）",
+  "todoCustomEmoji": "カスタム絵文字",
+  "todoCustomEmojiHint": "絵文字を入力",
   "todoEditSubtask": "サブタスクを編集",
 
   "financeTitle": "家計",
@@ -158,6 +160,10 @@
   "intimacyExportCsv": "CSVエクスポート",
   "intimacyExportCsvSuccess": "CSVエクスポート完了",
   "intimacyExportCsvEmpty": "エクスポートする記録がありません",
+  "intimacyStartDate": "交際開始",
+  "intimacyEndDate": "交際終了",
+  "intimacyPurchaseDate": "購入日",
+  "intimacyRetiredDate": "引退日",
 
   "settingsTitle": "設定",
   "settingsGeneral": "一般",
@@ -230,6 +236,7 @@
   "commonClose": "閉じる",
   "commonName": "名前",
   "commonEmojiOptional": "絵文字（任意）",
+  "commonOptional": "任意",
   "commonDeleteConfirm": "{item}を削除しますか？",
   "commonMinutes": "{count}分",
 

@@ -120,6 +120,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get todoSetDueDate => 'Set due date (optional)';
 
   @override
+  String get todoCustomEmoji => 'Custom Emoji';
+
+  @override
+  String get todoCustomEmojiHint => 'Enter an emoji';
+
+  @override
   String get todoEditSubtask => 'Edit Subtask';
 
   @override
@@ -452,6 +458,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get intimacyExportCsvEmpty => 'No records to export';
 
   @override
+  String get intimacyStartDate => 'Start Date';
+
+  @override
+  String get intimacyEndDate => 'End Date';
+
+  @override
+  String get intimacyPurchaseDate => 'Purchase Date';
+
+  @override
+  String get intimacyRetiredDate => 'Retired Date';
+
+  @override
   String get settingsTitle => 'Settings';
 
   @override
@@ -669,6 +687,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get commonEmojiOptional => 'Emoji (optional)';
+
+  @override
+  String get commonOptional => 'optional';
 
   @override
   String commonDeleteConfirm(String item) {

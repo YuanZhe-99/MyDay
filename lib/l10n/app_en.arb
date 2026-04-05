@@ -49,6 +49,8 @@
   "todoCompleted": "Completed",
   "todoDueDate": "Due",
   "todoSetDueDate": "Set due date (optional)",
+  "todoCustomEmoji": "Custom Emoji",
+  "todoCustomEmojiHint": "Enter an emoji",
   "todoEditSubtask": "Edit Subtask",
 
   "financeTitle": "Finance",
@@ -164,6 +166,10 @@
   "intimacyExportCsv": "Export CSV",
   "intimacyExportCsvSuccess": "CSV exported successfully",
   "intimacyExportCsvEmpty": "No records to export",
+  "intimacyStartDate": "Start Date",
+  "intimacyEndDate": "End Date",
+  "intimacyPurchaseDate": "Purchase Date",
+  "intimacyRetiredDate": "Retired Date",
 
   "settingsTitle": "Settings",
   "settingsGeneral": "General",
@@ -236,6 +242,7 @@
   "commonClose": "Close",
   "commonName": "Name",
   "commonEmojiOptional": "Emoji (optional)",
+  "commonOptional": "optional",
   "commonDeleteConfirm": "Delete {item}?",
   "@commonDeleteConfirm": {
     "placeholders": { "item": { "type": "String" } }

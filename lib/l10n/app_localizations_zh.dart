@@ -119,6 +119,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get todoSetDueDate => '设置截止日期（可选）';
 
   @override
+  String get todoCustomEmoji => '自定义图标';
+
+  @override
+  String get todoCustomEmojiHint => '输入一个 emoji';
+
+  @override
   String get todoEditSubtask => '编辑子任务';
 
   @override
@@ -451,6 +457,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get intimacyExportCsvEmpty => '没有记录可导出';
 
   @override
+  String get intimacyStartDate => '交往开始';
+
+  @override
+  String get intimacyEndDate => '交往结束';
+
+  @override
+  String get intimacyPurchaseDate => '购买日期';
+
+  @override
+  String get intimacyRetiredDate => '退役日期';
+
+  @override
   String get settingsTitle => '设置';
 
   @override
@@ -662,6 +680,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get commonEmojiOptional => '图标（可选）';
+
+  @override
+  String get commonOptional => '可选';
 
   @override
   String commonDeleteConfirm(String item) {
@@ -1200,6 +1221,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get todoSetDueDate => '設定截止日期（可選）';
 
   @override
+  String get todoCustomEmoji => '自訂圖示';
+
+  @override
+  String get todoCustomEmojiHint => '輸入一個 emoji';
+
+  @override
   String get todoEditSubtask => '編輯子任務';
 
   @override
@@ -1532,6 +1559,18 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get intimacyExportCsvEmpty => '沒有記錄可匯出';
 
   @override
+  String get intimacyStartDate => '交往開始';
+
+  @override
+  String get intimacyEndDate => '交往結束';
+
+  @override
+  String get intimacyPurchaseDate => '購買日期';
+
+  @override
+  String get intimacyRetiredDate => '退役日期';
+
+  @override
   String get settingsTitle => '設定';
 
   @override
@@ -1743,6 +1782,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get commonEmojiOptional => '圖示（可選）';
+
+  @override
+  String get commonOptional => '可選';
 
   @override
   String commonDeleteConfirm(String item) {
