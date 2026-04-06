@@ -270,6 +270,7 @@
   "commonDontAskMinutes": "5分钟内不再询问",
 
   "intimacyHideConfirm": "关闭亲密模块不会删除数据，随时可以重新开启。",
+  "settingsLicense": "许可证 (GPLv3)",
   "settingsLicenses": "开源许可证",
   "settingsPrivacyPolicy": "隐私政策",
 
@@ -400,5 +401,7 @@
   "csvImportWeight": "导入体重 CSV",
   "csvImportWeightDesc": "从 CSV 合并体重记录（日期、时间、体重）",
   "csvTemplateWeight": "下载体重模板",
-  "financeSubscriptionPresets": "快速填入"
+  "financeSubscriptionPresets": "快速填入",
+  "intimacyPurchaseLink": "购买链接",
+  "intimacyPrice": "价格"
 }

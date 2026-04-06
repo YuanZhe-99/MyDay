@@ -282,6 +282,7 @@
   "commonDontAskMinutes": "Don't ask for 5 minutes",
 
   "intimacyHideConfirm": "Hiding the module will not delete your data. You can re-enable it anytime.",
+  "settingsLicense": "License (GPLv3)",
   "settingsLicenses": "Open Source Licenses",
   "settingsPrivacyPolicy": "Privacy Policy",
 
@@ -421,5 +422,7 @@
   "csvImportWeight": "Import Weight CSV",
   "csvImportWeightDesc": "Merge weight records from CSV (Date, Time, Weight)",
   "csvTemplateWeight": "Download Weight Template",
-  "financeSubscriptionPresets": "Quick Fill"
+  "financeSubscriptionPresets": "Quick Fill",
+  "intimacyPurchaseLink": "Purchase Link",
+  "intimacyPrice": "Price"
 }

@@ -270,6 +270,7 @@
   "commonDontAskMinutes": "5分間確認しない",
 
   "intimacyHideConfirm": "モジュールを非表示にしてもデータは削除されません。いつでも再度有効にできます。",
+  "settingsLicense": "ライセンス (GPLv3)",
   "settingsLicenses": "オープンソースライセンス",
   "settingsPrivacyPolicy": "プライバシーポリシー",
 
@@ -400,5 +401,7 @@
   "csvImportWeight": "体重 CSV インポート",
   "csvImportWeightDesc": "CSVから体重記録を統合（日付、時刻、体重）",
   "csvTemplateWeight": "体重テンプレートをダウンロード",
-  "financeSubscriptionPresets": "クイック入力"
+  "financeSubscriptionPresets": "クイック入力",
+  "intimacyPurchaseLink": "購入リンク",
+  "intimacyPrice": "価格"
 }

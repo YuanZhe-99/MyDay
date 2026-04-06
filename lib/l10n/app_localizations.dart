@@ -1589,6 +1589,12 @@ abstract class AppLocalizations {
   /// **'Hiding the module will not delete your data. You can re-enable it anytime.'**
   String get intimacyHideConfirm;
 
+  /// No description provided for @settingsLicense.
+  ///
+  /// In en, this message translates to:
+  /// **'License (GPLv3)'**
+  String get settingsLicense;
+
   /// No description provided for @settingsLicenses.
   ///
   /// In en, this message translates to:
@@ -2230,6 +2236,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Quick Fill'**
   String get financeSubscriptionPresets;
+
+  /// No description provided for @intimacyPurchaseLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase Link'**
+  String get intimacyPurchaseLink;
+
+  /// No description provided for @intimacyPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Price'**
+  String get intimacyPrice;
 }
 
 class _AppLocalizationsDelegate

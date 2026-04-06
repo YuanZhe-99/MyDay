@@ -781,6 +781,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Hiding the module will not delete your data. You can re-enable it anytime.';
 
   @override
+  String get settingsLicense => 'License (GPLv3)';
+
+  @override
   String get settingsLicenses => 'Open Source Licenses';
 
   @override
@@ -1122,4 +1125,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get financeSubscriptionPresets => 'Quick Fill';
+
+  @override
+  String get intimacyPurchaseLink => 'Purchase Link';
+
+  @override
+  String get intimacyPrice => 'Price';
 }

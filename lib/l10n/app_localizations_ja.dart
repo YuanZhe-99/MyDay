@@ -770,6 +770,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get intimacyHideConfirm => 'モジュールを非表示にしてもデータは削除されません。いつでも再度有効にできます。';
 
   @override
+  String get settingsLicense => 'ライセンス (GPLv3)';
+
+  @override
   String get settingsLicenses => 'オープンソースライセンス';
 
   @override
@@ -1106,4 +1109,10 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get financeSubscriptionPresets => 'クイック入力';
+
+  @override
+  String get intimacyPurchaseLink => '購入リンク';
+
+  @override
+  String get intimacyPrice => '価格';
 }

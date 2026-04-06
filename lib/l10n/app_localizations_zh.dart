@@ -769,6 +769,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get intimacyHideConfirm => '关闭亲密模块不会删除数据，随时可以重新开启。';
 
   @override
+  String get settingsLicense => '许可证 (GPLv3)';
+
+  @override
   String get settingsLicenses => '开源许可证';
 
   @override
@@ -1104,6 +1107,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get financeSubscriptionPresets => '快速填入';
+
+  @override
+  String get intimacyPurchaseLink => '购买链接';
+
+  @override
+  String get intimacyPrice => '价格';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -1871,6 +1880,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get intimacyHideConfirm => '關閉親密模組不會刪除資料，隨時可以重新開啟。';
 
   @override
+  String get settingsLicense => '授權條款 (GPLv3)';
+
+  @override
   String get settingsLicenses => '開源授權條款';
 
   @override
@@ -2206,4 +2218,10 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get financeSubscriptionPresets => '快速填入';
+
+  @override
+  String get intimacyPurchaseLink => '購買連結';
+
+  @override
+  String get intimacyPrice => '價格';
 }

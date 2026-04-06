@@ -54,6 +54,8 @@ class Toy {
   final String? imagePath;
   final DateTime? purchaseDate;
   final DateTime? retiredDate;
+  final String? purchaseLink;
+  final double? price;
   final DateTime modifiedAt;
 
   Toy({
@@ -63,6 +65,8 @@ class Toy {
     this.imagePath,
     this.purchaseDate,
     this.retiredDate,
+    this.purchaseLink,
+    this.price,
     DateTime? modifiedAt,
   }) : id = id ?? const Uuid().v4(),
        modifiedAt = modifiedAt ?? DateTime.now();
@@ -74,6 +78,8 @@ class Toy {
         if (imagePath != null) 'imagePath': imagePath,
         if (purchaseDate != null) 'purchaseDate': purchaseDate!.toIso8601String(),
         if (retiredDate != null) 'retiredDate': retiredDate!.toIso8601String(),
+        if (purchaseLink != null) 'purchaseLink': purchaseLink,
+        if (price != null) 'price': price,
         'modifiedAt': modifiedAt.toIso8601String(),
       };
 
@@ -88,6 +94,8 @@ class Toy {
         retiredDate: json['retiredDate'] != null
             ? DateTime.parse(json['retiredDate'] as String)
             : null,
+        purchaseLink: json['purchaseLink'] as String?,
+        price: (json['price'] as num?)?.toDouble(),
         modifiedAt: json['modifiedAt'] != null
             ? DateTime.parse(json['modifiedAt'] as String)
             : DateTime.fromMillisecondsSinceEpoch(0),

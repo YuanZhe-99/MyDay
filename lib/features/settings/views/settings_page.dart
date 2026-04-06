@@ -16,6 +16,7 @@ import '../../../shared/views/import_export_page.dart';
 import '../../../shared/views/webdav_config_page.dart';
 import '../../finance/services/subscription_processor.dart';
 import '../../todo/services/todo_storage.dart';
+import 'license_page.dart' as app_license;
 import 'privacy_policy_page.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
@@ -250,12 +251,22 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
             ),
             ListTile(
+              leading: const Icon(Icons.gavel_outlined),
+              title: Text(l10n.settingsLicense),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const app_license.LicensePage()),
+              ),
+            ),
+            ListTile(
               leading: const Icon(Icons.description_outlined),
               title: Text(l10n.settingsLicenses),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => showLicensePage(
                 context: context,
-                applicationName: 'MyDay!!!!!',
+                applicationName: 'MyDay',
                 applicationVersion: _appVersion,
               ),
             ),

@@ -1108,6 +1108,10 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
 
   Future<void> _showEditDialog(Toy? existing) async {
     final nameCtrl = TextEditingController(text: existing?.name ?? '');
+    final linkCtrl = TextEditingController(text: existing?.purchaseLink ?? '');
+    final priceCtrl = TextEditingController(
+      text: existing?.price != null ? existing!.price!.toString() : '',
+    );
     String? selectedEmoji = existing?.emoji;
     String? imagePath = existing?.imagePath;
     DateTime? purchaseDate = existing?.purchaseDate;
@@ -1204,6 +1208,24 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
                   },
                   onClear: () => setDialogState(() => retiredDate = null),
                 ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: linkCtrl,
+                  decoration: InputDecoration(
+                    labelText: l10n.intimacyPurchaseLink,
+                    prefixIcon: const Icon(Icons.link, size: 20),
+                  ),
+                  keyboardType: TextInputType.url,
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: priceCtrl,
+                  decoration: InputDecoration(
+                    labelText: l10n.intimacyPrice,
+                    prefixIcon: const Icon(Icons.attach_money, size: 20),
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                ),
               ],
             ),
           ),
@@ -1219,6 +1241,8 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
       ),
     );
     if (result == true && nameCtrl.text.trim().isNotEmpty) {
+      final link = linkCtrl.text.trim().isEmpty ? null : linkCtrl.text.trim();
+      final price = double.tryParse(priceCtrl.text.trim());
       setState(() {
         if (existing != null) {
           final idx = _toys.indexWhere((t) => t.id == existing.id);
@@ -1230,6 +1254,8 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
               imagePath: imagePath,
               purchaseDate: purchaseDate,
               retiredDate: retiredDate,
+              purchaseLink: link,
+              price: price,
             );
           }
         } else {
@@ -1239,6 +1265,8 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
             imagePath: imagePath,
             purchaseDate: purchaseDate,
             retiredDate: retiredDate,
+            purchaseLink: link,
+            price: price,
           ));
         }
       });
@@ -1305,6 +1333,9 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
       String fmt(DateTime d) =>
           '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
       parts.add('⊘ ${fmt(t.retiredDate!)}');
+    }
+    if (t.price != null) {
+      parts.add('\$${t.price!.toStringAsFixed(2)}');
     }
     return parts.join(' · ');
   }
@@ -1458,7 +1489,7 @@ class _DatePickerTile extends StatelessWidget {
       title: Text(
         date != null
             ? '$label: ${date!.year}-${date!.month.toString().padLeft(2, '0')}-${date!.day.toString().padLeft(2, '0')}'
-            : '$label (${AppLocalizations.of(context)!.commonOptional})',
+            : label,
         style: theme.textTheme.bodyMedium,
       ),
       trailing: date != null

@@ -270,6 +270,7 @@
   "commonDontAskMinutes": "5分鐘內不再詢問",
 
   "intimacyHideConfirm": "關閉親密模組不會刪除資料，隨時可以重新開啟。",
+  "settingsLicense": "授權條款 (GPLv3)",
   "settingsLicenses": "開源授權條款",
   "settingsPrivacyPolicy": "隱私政策",
 
@@ -400,5 +401,7 @@
   "csvImportWeight": "匯入體重 CSV",
   "csvImportWeightDesc": "從 CSV 合併體重記錄（日期、時間、體重）",
   "csvTemplateWeight": "下載體重模板",
-  "financeSubscriptionPresets": "快速填入"
+  "financeSubscriptionPresets": "快速填入",
+  "intimacyPurchaseLink": "購買連結",
+  "intimacyPrice": "價格"
 }
