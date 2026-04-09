@@ -29,6 +29,9 @@ class _IntimacyPageState extends State<IntimacyPage> {
   List<Partner> _partners = [];
   List<Toy> _toys = [];
   List<IntimacyRecord> _records = [];
+  List<TimerHistoryEntry> _timerHistory = [];
+  int? _timerHistoryRetentionDays;
+  DateTime _settingsModifiedAt = DateTime.fromMillisecondsSinceEpoch(0);
   bool _loaded = false;
 
   _SortMode _sortMode = _SortMode.dateDesc;
@@ -54,6 +57,9 @@ class _IntimacyPageState extends State<IntimacyPage> {
         _partners = data.partners;
         _toys = data.toys;
         _records = data.records;
+        _timerHistory = data.timerHistory;
+        _timerHistoryRetentionDays = data.timerHistoryRetentionDays;
+        _settingsModifiedAt = data.settingsModifiedAt;
       }
       _loaded = true;
     });
@@ -64,6 +70,9 @@ class _IntimacyPageState extends State<IntimacyPage> {
       partners: _partners,
       toys: _toys,
       records: _records,
+      timerHistory: _timerHistory,
+      timerHistoryRetentionDays: _timerHistoryRetentionDays,
+      settingsModifiedAt: _settingsModifiedAt,
     ));
     AutoSyncService.instance.notifySaved();
   }
@@ -160,15 +169,37 @@ class _IntimacyPageState extends State<IntimacyPage> {
             icon: const Icon(Icons.timer_outlined),
             tooltip: 'Timer',
             onPressed: () async {
-              final record = await Navigator.push<IntimacyRecord>(
+              final result = await Navigator.push<TimerPageResult>(
                 context,
                 MaterialPageRoute(
-                    builder: (_) =>
-                        TimerPage(partners: _partners, toys: _toys)),
+                    builder: (_) => TimerPage(
+                          partners: _partners,
+                          toys: _toys,
+                          timerHistory: _timerHistory,
+                          timerHistoryRetentionDays:
+                              _timerHistoryRetentionDays,
+                        )),
               );
-              if (record != null) {
-                setState(() => _records.insert(0, record));
-                await _saveData();
+              if (result != null) {
+                bool needSave = false;
+                if (result.record != null) {
+                  setState(() => _records.insert(0, result.record!));
+                  needSave = true;
+                }
+                if (result.updatedHistory != null) {
+                  setState(
+                      () => _timerHistory = result.updatedHistory!);
+                  needSave = true;
+                }
+                if (result.retentionChanged) {
+                  setState(() {
+                    _timerHistoryRetentionDays =
+                        result.updatedRetentionDays;
+                    _settingsModifiedAt = DateTime.now().toUtc();
+                  });
+                  needSave = true;
+                }
+                if (needSave) await _saveData();
               }
             },
           ),

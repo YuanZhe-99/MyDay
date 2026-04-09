@@ -177,21 +177,57 @@ class IntimacyRecord {
   }
 }
 
+/// A single timer history entry (independent of IntimacyRecord).
+class TimerHistoryEntry {
+  final DateTime start;
+  final Duration duration;
+  const TimerHistoryEntry({required this.start, required this.duration});
+
+  Map<String, dynamic> toJson() => {
+        'start': start.toIso8601String(),
+        'durationMs': duration.inMilliseconds,
+      };
+
+  factory TimerHistoryEntry.fromJson(Map<String, dynamic> json) {
+    // Support legacy entries that stored 'end' instead of 'durationMs'
+    if (json.containsKey('durationMs')) {
+      return TimerHistoryEntry(
+        start: DateTime.parse(json['start'] as String),
+        duration: Duration(milliseconds: json['durationMs'] as int),
+      );
+    }
+    final start = DateTime.parse(json['start'] as String);
+    final end = DateTime.parse(json['end'] as String);
+    return TimerHistoryEntry(start: start, duration: end.difference(start));
+  }
+}
+
 class IntimacyData {
   final List<Partner> partners;
   final List<Toy> toys;
   final List<IntimacyRecord> records;
+  final List<TimerHistoryEntry> timerHistory;
+  /// null = permanent, otherwise days (3, 7, 14)
+  final int? timerHistoryRetentionDays;
+  final DateTime settingsModifiedAt;
 
   IntimacyData({
     required this.partners,
     required this.toys,
     required this.records,
-  });
+    this.timerHistory = const [],
+    this.timerHistoryRetentionDays,
+    DateTime? settingsModifiedAt,
+  }) : settingsModifiedAt = settingsModifiedAt ?? DateTime.now().toUtc();
 
   Map<String, dynamic> toJson() => {
         'partners': partners.map((p) => p.toJson()).toList(),
         'toys': toys.map((t) => t.toJson()).toList(),
         'records': records.map((r) => r.toJson()).toList(),
+        'timerHistory': timerHistory.map((e) => e.toJson()).toList(),
+        if (timerHistoryRetentionDays != null)
+          'timerHistoryRetentionDays': timerHistoryRetentionDays,
+        'settingsModifiedAt': settingsModifiedAt.toIso8601String(),
       };
 
   factory IntimacyData.fromJson(Map<String, dynamic> json) => IntimacyData(
@@ -207,5 +243,15 @@ class IntimacyData {
                 ?.map((r) => IntimacyRecord.fromJson(r as Map<String, dynamic>))
                 .toList() ??
             [],
+        timerHistory: (json['timerHistory'] as List<dynamic>?)
+                ?.map((e) =>
+                    TimerHistoryEntry.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            [],
+        timerHistoryRetentionDays:
+            json['timerHistoryRetentionDays'] as int?,
+        settingsModifiedAt: json['settingsModifiedAt'] != null
+            ? DateTime.parse(json['settingsModifiedAt'] as String)
+            : DateTime.fromMillisecondsSinceEpoch(0),
       );
 }

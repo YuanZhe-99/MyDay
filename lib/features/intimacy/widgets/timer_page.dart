@@ -1,77 +1,41 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../l10n/app_localizations.dart';
-import '../../todo/services/todo_storage.dart';
 import '../models/intimacy_record.dart';
 import 'add_record_dialog.dart';
 
-/// A single timer history entry (independent of IntimacyRecord).
-class TimerHistoryEntry {
-  final DateTime start;
-  final Duration duration;
-  const TimerHistoryEntry({required this.start, required this.duration});
+/// Result returned from TimerPage: either a new record, or updated timer
+/// history / retention, or both.
+class TimerPageResult {
+  final IntimacyRecord? record;
+  final List<TimerHistoryEntry>? updatedHistory;
+  final int? updatedRetentionDays;
+  /// true if retention was explicitly set (even if null = permanent)
+  final bool retentionChanged;
 
-  Map<String, dynamic> toJson() => {
-        'start': start.toIso8601String(),
-        'durationMs': duration.inMilliseconds,
-      };
-
-  factory TimerHistoryEntry.fromJson(Map<String, dynamic> json) {
-    // Support legacy entries that stored 'end' instead of 'durationMs'
-    if (json.containsKey('durationMs')) {
-      return TimerHistoryEntry(
-        start: DateTime.parse(json['start'] as String),
-        duration: Duration(milliseconds: json['durationMs'] as int),
-      );
-    }
-    final start = DateTime.parse(json['start'] as String);
-    final end = DateTime.parse(json['end'] as String);
-    return TimerHistoryEntry(start: start, duration: end.difference(start));
-  }
-}
-
-/// Simple file persistence for timer history (max 3 entries).
-class _TimerHistoryStorage {
-  static const _fileName = 'timer_history.json';
-
-  static Future<File> _getFile() async {
-    final appDir = await TodoStorage.getAppDir();
-    return File('${appDir.path}/$_fileName');
-  }
-
-  static Future<List<TimerHistoryEntry>> load() async {
-    try {
-      final file = await _getFile();
-      if (!await file.exists()) return [];
-      final raw = await file.readAsString();
-      final list = jsonDecode(raw) as List;
-      return list
-          .map((e) => TimerHistoryEntry.fromJson(e as Map<String, dynamic>))
-          .toList();
-    } catch (_) {
-      return [];
-    }
-  }
-
-  static Future<void> save(List<TimerHistoryEntry> entries) async {
-    final file = await _getFile();
-    await file.writeAsString(jsonEncode(entries.map((e) => e.toJson()).toList()));
-  }
+  const TimerPageResult({
+    this.record,
+    this.updatedHistory,
+    this.updatedRetentionDays,
+    this.retentionChanged = false,
+  });
 }
 
 class TimerPage extends StatefulWidget {
   final List<Partner> partners;
   final List<Toy> toys;
+  final List<TimerHistoryEntry> timerHistory;
+  final int? timerHistoryRetentionDays;
 
   const TimerPage({
     super.key,
     required this.partners,
     required this.toys,
+    required this.timerHistory,
+    this.timerHistoryRetentionDays,
   });
 
   @override
@@ -86,8 +50,10 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
   Timer? _ticker;
   bool _running = false;
 
-  // History — max 3, persisted, not linked to saved records, clearable.
-  final List<TimerHistoryEntry> _history = [];
+  late List<TimerHistoryEntry> _history;
+  late int? _retentionDays;
+  bool _retentionChanged = false;
+  bool _historyChanged = false;
 
   Duration get _elapsed =>
       _accumulated +
@@ -101,7 +67,11 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _loadHistory();
+    _retentionDays = widget.timerHistoryRetentionDays;
+    _history = _applyRetention(List.of(widget.timerHistory));
+    if (_history.length != widget.timerHistory.length) {
+      _historyChanged = true;
+    }
   }
 
   @override
@@ -113,24 +83,21 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // When the app resumes from background / screen-on, restart the UI ticker
-    // so the display catches up with wall-clock elapsed time immediately.
     if (state == AppLifecycleState.resumed && _running) {
       _ensureTicker();
-      setState(() {}); // force redraw with correct elapsed
+      setState(() {});
     }
   }
 
+  // ── retention ──────────────────────────────────────────────────────
+
+  List<TimerHistoryEntry> _applyRetention(List<TimerHistoryEntry> entries) {
+    if (_retentionDays == null) return entries;  // permanent
+    final cutoff = DateTime.now().subtract(Duration(days: _retentionDays!));
+    return entries.where((e) => e.start.isAfter(cutoff)).toList();
+  }
+
   // ── timer controls ─────────────────────────────────────────────────
-
-  Future<void> _loadHistory() async {
-    final entries = await _TimerHistoryStorage.load();
-    if (mounted) setState(() => _history..clear()..addAll(entries));
-  }
-
-  Future<void> _persistHistory() async {
-    await _TimerHistoryStorage.save(_history);
-  }
 
   void _start() {
     _firstStartedAt ??= DateTime.now();
@@ -166,26 +133,46 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
     });
   }
 
-  /// The wall-clock time when the user first pressed Start this session.
   DateTime? get _sessionStartTime => _firstStartedAt;
+
+  // ── pop helpers ─────────────────────────────────────────────────────
+
+  void _popWithHistoryIfChanged() {
+    if (_historyChanged || _retentionChanged) {
+      Navigator.pop(
+        context,
+        TimerPageResult(
+          updatedHistory: _history,
+          updatedRetentionDays: _retentionDays,
+          retentionChanged: _retentionChanged,
+        ),
+      );
+    } else {
+      Navigator.pop(context);
+    }
+  }
 
   // ── save ────────────────────────────────────────────────────────────
 
-  Future<void> _saveRecord() async {
-    final elapsed = _elapsed;
-    final sessionStart = _sessionStartTime ?? DateTime.now().subtract(elapsed);
-    _pause();
+  Future<void> _saveRecord({Duration? prefillDuration}) async {
+    final elapsed = prefillDuration ?? _elapsed;
+    final sessionStart = prefillDuration != null
+        ? DateTime.now().subtract(elapsed)
+        : (_sessionStartTime ?? DateTime.now().subtract(elapsed));
+    if (prefillDuration == null) _pause();
 
-    // Add to history and persist
-    final entry = TimerHistoryEntry(
-      start: sessionStart,
-      duration: elapsed,
-    );
-    setState(() {
-      _history.insert(0, entry);
-      if (_history.length > 3) _history.removeLast();
-    });
-    _persistHistory();
+    // Add to history
+    if (prefillDuration == null) {
+      final entry = TimerHistoryEntry(
+        start: sessionStart,
+        duration: elapsed,
+      );
+      setState(() {
+        _history.insert(0, entry);
+        _history = _applyRetention(_history);
+        _historyChanged = true;
+      });
+    }
 
     final record = await showDialog<IntimacyRecord>(
       context: context,
@@ -197,7 +184,15 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
     );
 
     if (record != null && mounted) {
-      Navigator.pop(context, record);
+      Navigator.pop(
+        context,
+        TimerPageResult(
+          record: record,
+          updatedHistory: _history,
+          updatedRetentionDays: _retentionDays,
+          retentionChanged: _retentionChanged,
+        ),
+      );
     }
   }
 
@@ -222,157 +217,200 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
     final hasElapsed = _elapsed > Duration.zero;
     final sessionStart = _sessionStartTime;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.intimacyTimer),
-        centerTitle: true,
-      ),
-      body: Column(
-        children: [
-          // ── main timer area ──
-          Expanded(
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Current session start time
-                  if (sessionStart != null)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Text(
-                        '${l10n.intimacyTimerStartedAt} ${_formatDateTime(sessionStart)}',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.outline,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        _popWithHistoryIfChanged();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(l10n.intimacyTimer),
+          centerTitle: true,
+        ),
+        body: Column(
+          children: [
+            // ── main timer area ──
+            Expanded(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (sessionStart != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Text(
+                          '${l10n.intimacyTimerStartedAt} ${_formatDateTime(sessionStart)}',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.outline,
+                          ),
                         ),
                       ),
-                    ),
 
-                  // Timer display
-                  Text(
-                    _formatDuration(_elapsed),
-                    style: theme.textTheme.displayLarge?.copyWith(
-                      fontWeight: FontWeight.w300,
+                    Text(
+                      _formatDuration(_elapsed),
+                      style: theme.textTheme.displayLarge?.copyWith(
+                        fontWeight: FontWeight.w300,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                    const SizedBox(height: 48),
+
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        if (!isRunning && !hasElapsed)
+                          FilledButton.icon(
+                            onPressed: _start,
+                            icon: const Icon(Icons.play_arrow),
+                            label: Text(l10n.intimacyStart),
+                            style: FilledButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 32, vertical: 16),
+                            ),
+                          ),
+
+                        if (isRunning) ...[
+                          OutlinedButton.icon(
+                            onPressed: _pause,
+                            icon: const Icon(Icons.pause),
+                            label: Text(l10n.intimacyPause),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 24, vertical: 16),
+                            ),
+                          ),
+                          FilledButton.icon(
+                            onPressed: _saveRecord,
+                            icon: const Icon(Icons.stop),
+                            label: Text(l10n.intimacyStopSave),
+                            style: FilledButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 24, vertical: 16),
+                            ),
+                          ),
+                        ],
+
+                        if (!isRunning && hasElapsed) ...[
+                          OutlinedButton.icon(
+                            onPressed: _start,
+                            icon: const Icon(Icons.play_arrow),
+                            label: Text(l10n.intimacyResume),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 24, vertical: 16),
+                            ),
+                          ),
+                          FilledButton.icon(
+                            onPressed: _saveRecord,
+                            icon: const Icon(Icons.save),
+                            label: Text(l10n.commonSave),
+                            style: FilledButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 24, vertical: 16),
+                            ),
+                          ),
+                          TextButton.icon(
+                            onPressed: _reset,
+                            icon: const Icon(Icons.refresh),
+                            label: Text(l10n.intimacyReset),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // ── history section ──
+            if (_history.isNotEmpty) ...[
+              const Divider(height: 1),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 8, 4),
+                child: Row(
+                  children: [
+                    Icon(Icons.history, size: 18, color: theme.colorScheme.outline),
+                    const SizedBox(width: 6),
+                    Text(
+                      l10n.intimacyTimerHistory,
+                      style: theme.textTheme.titleSmall,
+                    ),
+                    const Spacer(),
+                    // Retention picker
+                    _buildRetentionChip(theme, l10n),
+                    const SizedBox(width: 4),
+                    TextButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _history.clear();
+                          _historyChanged = true;
+                        });
+                      },
+                      icon: const Icon(Icons.delete_outline, size: 18),
+                      label: Text(l10n.intimacyTimerClearHistory),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              for (final entry in _history)
+                ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.timer_outlined, size: 20),
+                  title: Text(
+                    _formatDuration(entry.duration),
+                    style: theme.textTheme.bodyMedium?.copyWith(
                       fontFeatures: const [FontFeature.tabularFigures()],
                     ),
                   ),
-                  const SizedBox(height: 48),
-
-                  // Control buttons
-                  Wrap(
-                    alignment: WrapAlignment.center,
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: [
-                      if (!isRunning && !hasElapsed)
-                        FilledButton.icon(
-                          onPressed: _start,
-                          icon: const Icon(Icons.play_arrow),
-                          label: Text(l10n.intimacyStart),
-                          style: FilledButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 32, vertical: 16),
-                          ),
-                        ),
-
-                      if (isRunning) ...[
-                        OutlinedButton.icon(
-                          onPressed: _pause,
-                          icon: const Icon(Icons.pause),
-                          label: Text(l10n.intimacyPause),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 24, vertical: 16),
-                          ),
-                        ),
-                        FilledButton.icon(
-                          onPressed: _saveRecord,
-                          icon: const Icon(Icons.stop),
-                          label: Text(l10n.intimacyStopSave),
-                          style: FilledButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 24, vertical: 16),
-                          ),
-                        ),
-                      ],
-
-                      if (!isRunning && hasElapsed) ...[
-                        OutlinedButton.icon(
-                          onPressed: _start,
-                          icon: const Icon(Icons.play_arrow),
-                          label: Text(l10n.intimacyResume),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 24, vertical: 16),
-                          ),
-                        ),
-                        FilledButton.icon(
-                          onPressed: _saveRecord,
-                          icon: const Icon(Icons.save),
-                          label: Text(l10n.commonSave),
-                          style: FilledButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 24, vertical: 16),
-                          ),
-                        ),
-                        TextButton.icon(
-                          onPressed: _reset,
-                          icon: const Icon(Icons.refresh),
-                          label: Text(l10n.intimacyReset),
-                        ),
-                      ],
-                    ],
+                  subtitle: Text(
+                    _formatDateTime(entry.start),
+                    style: theme.textTheme.bodySmall,
                   ),
-                ],
-              ),
-            ),
-          ),
-
-          // ── history section ──
-          if (_history.isNotEmpty) ...[
-            const Divider(height: 1),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 8, 4),
-              child: Row(
-                children: [
-                  Icon(Icons.history, size: 18, color: theme.colorScheme.outline),
-                  const SizedBox(width: 6),
-                  Text(
-                    l10n.intimacyTimerHistory,
-                    style: theme.textTheme.titleSmall,
-                  ),
-                  const Spacer(),
-                  TextButton.icon(
-                    onPressed: () {
-                      setState(() => _history.clear());
-                      _persistHistory();
-                    },
-                    icon: const Icon(Icons.delete_outline, size: 18),
-                    label: Text(l10n.intimacyTimerClearHistory),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            for (final entry in _history)
-              ListTile(
-                dense: true,
-                leading: const Icon(Icons.timer_outlined, size: 20),
-                title: Text(
-                  _formatDuration(entry.duration),
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
+                  onTap: () => _saveRecord(prefillDuration: entry.duration),
                 ),
-                subtitle: Text(
-                  _formatDateTime(entry.start),
-                  style: theme.textTheme.bodySmall,
-                ),
-              ),
-            const SizedBox(height: 8),
+              const SizedBox(height: 8),
+            ],
           ],
-        ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRetentionChip(ThemeData theme, AppLocalizations l10n) {
+    final labels = {
+      3: l10n.intimacyTimerRetention3d,
+      7: l10n.intimacyTimerRetention7d,
+      14: l10n.intimacyTimerRetention14d,
+      -1: l10n.intimacyTimerRetentionForever,
+    };
+
+    final currentKey = _retentionDays ?? -1;
+
+    return PopupMenuButton<int>(
+      initialValue: currentKey,
+      onSelected: (value) {
+        setState(() {
+          _retentionDays = value == -1 ? null : value;
+          _retentionChanged = true;
+          _history = _applyRetention(_history);
+          _historyChanged = true;
+        });
+      },
+      itemBuilder: (_) => labels.entries
+          .map((e) => PopupMenuItem(value: e.key, child: Text(e.value)))
+          .toList(),
+      child: Chip(
+        avatar: const Icon(Icons.schedule, size: 16),
+        label: Text(labels[currentKey]!, style: const TextStyle(fontSize: 11)),
+        visualDensity: VisualDensity.compact,
+        padding: EdgeInsets.zero,
+        labelPadding: const EdgeInsets.symmetric(horizontal: 4),
       ),
     );
   }

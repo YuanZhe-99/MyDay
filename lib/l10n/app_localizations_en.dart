@@ -413,6 +413,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get intimacyTimerClearHistory => 'Clear';
 
   @override
+  String get intimacyTimerRetention3d => '3 days';
+
+  @override
+  String get intimacyTimerRetention7d => '7 days';
+
+  @override
+  String get intimacyTimerRetention14d => '14 days';
+
+  @override
+  String get intimacyTimerRetentionForever => 'Forever';
+
+  @override
   String get intimacyManage => 'Manage';
 
   @override

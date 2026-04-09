@@ -71,19 +71,17 @@ class _WeightPageState extends State<WeightPage> {
     return WeightData.calculateBMI(_height, latest.weight);
   }
 
-  /// Weight change over the tracking period.
+  /// Weight change over the selected chart range.
   double? get _weightChange {
-    if (_records.length < 2) return null;
-    final sorted = List<WeightRecord>.from(_records)
-      ..sort((a, b) => a.datetime.compareTo(b.datetime));
-    return sorted.last.weight - sorted.first.weight;
+    final data = _chartRecords;
+    if (data.length < 2) return null;
+    return data.last.weight - data.first.weight;
   }
 
   int? get _trackingDays {
-    if (_records.length < 2) return null;
-    final sorted = List<WeightRecord>.from(_records)
-      ..sort((a, b) => a.datetime.compareTo(b.datetime));
-    return sorted.last.datetime.difference(sorted.first.datetime).inDays;
+    final data = _chartRecords;
+    if (data.length < 2) return null;
+    return data.last.datetime.difference(data.first.datetime).inDays;
   }
 
   /// Recent weight range.
@@ -552,11 +550,19 @@ class _WeightPageState extends State<WeightPage> {
 
   double _dateInterval(List<WeightRecord> data) {
     if (data.length < 2) return 1;
-    final span = data.last.datetime
+    final spanMs = data.last.datetime
         .difference(data.first.datetime)
         .inMilliseconds
         .toDouble();
-    return math.max(span / 4, 1);
+    final spanDays = spanMs / (86400 * 1000);
+    // Choose a clean interval in milliseconds based on total span
+    const day = 86400 * 1000.0;
+    if (spanDays <= 7) return day; // daily labels
+    if (spanDays <= 30) return 7 * day; // weekly labels
+    if (spanDays <= 90) return 14 * day; // biweekly labels
+    if (spanDays <= 180) return 30 * day; // monthly labels
+    if (spanDays <= 365) return 60 * day; // bimonthly labels
+    return 90 * day; // quarterly labels
   }
 
   // ── Records list ──

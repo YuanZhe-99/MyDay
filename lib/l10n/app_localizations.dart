@@ -887,6 +887,30 @@ abstract class AppLocalizations {
   /// **'Clear'**
   String get intimacyTimerClearHistory;
 
+  /// No description provided for @intimacyTimerRetention3d.
+  ///
+  /// In en, this message translates to:
+  /// **'3 days'**
+  String get intimacyTimerRetention3d;
+
+  /// No description provided for @intimacyTimerRetention7d.
+  ///
+  /// In en, this message translates to:
+  /// **'7 days'**
+  String get intimacyTimerRetention7d;
+
+  /// No description provided for @intimacyTimerRetention14d.
+  ///
+  /// In en, this message translates to:
+  /// **'14 days'**
+  String get intimacyTimerRetention14d;
+
+  /// No description provided for @intimacyTimerRetentionForever.
+  ///
+  /// In en, this message translates to:
+  /// **'Forever'**
+  String get intimacyTimerRetentionForever;
+
   /// No description provided for @intimacyManage.
   ///
   /// In en, this message translates to:

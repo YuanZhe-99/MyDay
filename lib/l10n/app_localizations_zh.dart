@@ -412,6 +412,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get intimacyTimerClearHistory => '清除';
 
   @override
+  String get intimacyTimerRetention3d => '3 天';
+
+  @override
+  String get intimacyTimerRetention7d => '7 天';
+
+  @override
+  String get intimacyTimerRetention14d => '14 天';
+
+  @override
+  String get intimacyTimerRetentionForever => '永久';
+
+  @override
   String get intimacyManage => '管理';
 
   @override
@@ -1521,6 +1533,18 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get intimacyTimerClearHistory => '清除';
+
+  @override
+  String get intimacyTimerRetention3d => '3 天';
+
+  @override
+  String get intimacyTimerRetention7d => '7 天';
+
+  @override
+  String get intimacyTimerRetention14d => '14 天';
+
+  @override
+  String get intimacyTimerRetentionForever => '永久';
 
   @override
   String get intimacyManage => '管理';

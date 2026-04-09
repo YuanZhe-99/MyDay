@@ -524,10 +524,31 @@ IntimacyMergeResult mergeIntimacyData(
     autoResolve: autoResolve,
   );
 
+  // Timer history: union by start time (simple dedup, no conflicts)
+  final localStarts =
+      local.timerHistory.map((e) => e.start.toIso8601String()).toSet();
+  final mergedTimerHistory = [
+    ...local.timerHistory,
+    ...remote.timerHistory
+        .where((e) => !localStarts.contains(e.start.toIso8601String())),
+  ];
+
+  // Settings: use the side with newer settingsModifiedAt
+  final useLocalSettings =
+      local.settingsModifiedAt.isAfter(remote.settingsModifiedAt) ||
+          local.settingsModifiedAt == remote.settingsModifiedAt;
+
   return IntimacyMergeResult(
     partnersMerged: partnerResult.merged,
     toysMerged: toyResult.merged,
     recordsMerged: recordResult.merged,
+    timerHistoryMerged: mergedTimerHistory,
+    timerHistoryRetentionDays: useLocalSettings
+        ? local.timerHistoryRetentionDays
+        : remote.timerHistoryRetentionDays,
+    settingsModifiedAt: useLocalSettings
+        ? local.settingsModifiedAt
+        : remote.settingsModifiedAt,
     partnerConflicts: partnerResult.conflicts,
     toyConflicts: toyResult.conflicts,
     recordConflicts: recordResult.conflicts,
@@ -538,6 +559,9 @@ class IntimacyMergeResult {
   final List<Partner> partnersMerged;
   final List<Toy> toysMerged;
   final List<IntimacyRecord> recordsMerged;
+  final List<TimerHistoryEntry> timerHistoryMerged;
+  final int? timerHistoryRetentionDays;
+  final DateTime settingsModifiedAt;
   final List<RecordConflict<Partner>> partnerConflicts;
   final List<RecordConflict<Toy>> toyConflicts;
   final List<RecordConflict<IntimacyRecord>> recordConflicts;
@@ -546,6 +570,9 @@ class IntimacyMergeResult {
     required this.partnersMerged,
     required this.toysMerged,
     required this.recordsMerged,
+    required this.timerHistoryMerged,
+    required this.timerHistoryRetentionDays,
+    required this.settingsModifiedAt,
     required this.partnerConflicts,
     required this.toyConflicts,
     required this.recordConflicts,
@@ -561,6 +588,9 @@ class IntimacyMergeResult {
       partners: _resolveList(partnersMerged, partnerConflicts, resolutions),
       toys: _resolveList(toysMerged, toyConflicts, resolutions),
       records: _resolveList(recordsMerged, recordConflicts, resolutions),
+      timerHistory: timerHistoryMerged,
+      timerHistoryRetentionDays: timerHistoryRetentionDays,
+      settingsModifiedAt: settingsModifiedAt,
     );
   }
 
