@@ -9,6 +9,7 @@ class AddRecordDialog extends StatefulWidget {
   final IntimacyRecord? record;
   final List<Partner> partners;
   final List<Toy> toys;
+  final List<Position> positions;
 
   const AddRecordDialog({
     super.key,
@@ -16,6 +17,7 @@ class AddRecordDialog extends StatefulWidget {
     this.record,
     required this.partners,
     required this.toys,
+    this.positions = const [],
   });
 
   @override
@@ -26,6 +28,7 @@ class _AddRecordDialogState extends State<AddRecordDialog> {
   late bool _isSolo;
   late String? _selectedPartnerId;
   late Set<String> _selectedToyIds;
+  late Set<String> _selectedPositionIds;
   late final TextEditingController _locationController;
   late final TextEditingController _notesController;
   late final TextEditingController _hoursController;
@@ -41,9 +44,10 @@ class _AddRecordDialogState extends State<AddRecordDialog> {
   void initState() {
     super.initState();
     final r = widget.record;
-    _isSolo = r?.isSolo ?? false;
+    _isSolo = r?.isSolo ?? (widget.partners.isEmpty);
     _selectedPartnerId = r?.partnerId;
     _selectedToyIds = Set.of(r?.toyIds ?? []);
+    _selectedPositionIds = Set.of(r?.positionIds ?? []);
     _locationController = TextEditingController(text: r?.location ?? '');
     _notesController = TextEditingController(text: r?.notes ?? '');
     _pleasureLevel = r?.pleasureLevel ?? 3;
@@ -156,6 +160,35 @@ class _AddRecordDialogState extends State<AddRecordDialog> {
                           _selectedToyIds.add(toy.id);
                         } else {
                           _selectedToyIds.remove(toy.id);
+                        }
+                      });
+                    },
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 12),
+            ],
+
+            // Position multi-select
+            if (widget.positions.isNotEmpty) ...[
+              Text('${l10n.intimacyPositions}:', style: theme.textTheme.bodyMedium),
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: widget.positions.map((pos) {
+                  final selected = _selectedPositionIds.contains(pos.id);
+                  return FilterChip(
+                    label: Text(
+                      pos.emoji != null ? '${pos.emoji} ${pos.name}' : pos.name,
+                    ),
+                    selected: selected,
+                    onSelected: (v) {
+                      setState(() {
+                        if (v) {
+                          _selectedPositionIds.add(pos.id);
+                        } else {
+                          _selectedPositionIds.remove(pos.id);
                         }
                       });
                     },
@@ -337,6 +370,7 @@ class _AddRecordDialogState extends State<AddRecordDialog> {
       duration: Duration(minutes: totalMinutes),
       datetime: _datetime,
       toyIds: _selectedToyIds.toList(),
+      positionIds: _selectedPositionIds.toList(),
       hadOrgasm: _hadOrgasm,
       watchedPorn: _watchedPorn,
       location: _locationController.text.trim().isEmpty

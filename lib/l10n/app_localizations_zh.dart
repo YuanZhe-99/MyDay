@@ -370,7 +370,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get intimacyTimer => '计时器';
 
   @override
-  String get intimacyNoRecords => '暂无记录';
+  String get intimacyNoRecords => '数据不足';
 
   @override
   String get intimacyNoPartners => '暂无伴侣';
@@ -1125,6 +1125,33 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get intimacyPrice => '价格';
+
+  @override
+  String get intimacyPositions => '体位';
+
+  @override
+  String get intimacyAddPosition => '添加体位';
+
+  @override
+  String get intimacyEditPosition => '编辑体位';
+
+  @override
+  String get intimacyNoPositions => '暂无体位';
+
+  @override
+  String get intimacyImportDefaults => '导入默认';
+
+  @override
+  String get intimacyTrend => '趋势';
+
+  @override
+  String get intimacyFrequency => '频率';
+
+  @override
+  String get weightTrend => '趋势';
+
+  @override
+  String get weightRaw => '实际';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -1493,7 +1520,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get intimacyTimer => '計時器';
 
   @override
-  String get intimacyNoRecords => '暫無記錄';
+  String get intimacyNoRecords => '資料不足';
 
   @override
   String get intimacyNoPartners => '暫無伴侶';
@@ -2248,4 +2275,31 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get intimacyPrice => '價格';
+
+  @override
+  String get intimacyPositions => '體位';
+
+  @override
+  String get intimacyAddPosition => '新增體位';
+
+  @override
+  String get intimacyEditPosition => '編輯體位';
+
+  @override
+  String get intimacyNoPositions => '尚無體位';
+
+  @override
+  String get intimacyImportDefaults => '匯入預設';
+
+  @override
+  String get intimacyTrend => '趨勢';
+
+  @override
+  String get intimacyFrequency => '頻率';
+
+  @override
+  String get weightTrend => '趨勢';
+
+  @override
+  String get weightRaw => '實際';
 }

@@ -513,6 +513,16 @@ IntimacyMergeResult mergeIntimacyData(
     autoResolve: autoResolve,
   );
 
+  final positionResult = mergeRecords<Position>(
+    local: local.positions,
+    remote: remote.positions,
+    base: base?.positions,
+    getId: (p) => p.id,
+    getModifiedAt: (p) => p.modifiedAt,
+    getDisplayName: (p) => '${p.emoji ?? ''} ${p.name}'.trim(),
+    autoResolve: autoResolve,
+  );
+
   final recordResult = mergeRecords<IntimacyRecord>(
     local: local.records,
     remote: remote.records,
@@ -541,6 +551,7 @@ IntimacyMergeResult mergeIntimacyData(
   return IntimacyMergeResult(
     partnersMerged: partnerResult.merged,
     toysMerged: toyResult.merged,
+    positionsMerged: positionResult.merged,
     recordsMerged: recordResult.merged,
     timerHistoryMerged: mergedTimerHistory,
     timerHistoryRetentionDays: useLocalSettings
@@ -551,6 +562,7 @@ IntimacyMergeResult mergeIntimacyData(
         : remote.settingsModifiedAt,
     partnerConflicts: partnerResult.conflicts,
     toyConflicts: toyResult.conflicts,
+    positionConflicts: positionResult.conflicts,
     recordConflicts: recordResult.conflicts,
   );
 }
@@ -558,35 +570,41 @@ IntimacyMergeResult mergeIntimacyData(
 class IntimacyMergeResult {
   final List<Partner> partnersMerged;
   final List<Toy> toysMerged;
+  final List<Position> positionsMerged;
   final List<IntimacyRecord> recordsMerged;
   final List<TimerHistoryEntry> timerHistoryMerged;
   final int? timerHistoryRetentionDays;
   final DateTime settingsModifiedAt;
   final List<RecordConflict<Partner>> partnerConflicts;
   final List<RecordConflict<Toy>> toyConflicts;
+  final List<RecordConflict<Position>> positionConflicts;
   final List<RecordConflict<IntimacyRecord>> recordConflicts;
 
   const IntimacyMergeResult({
     required this.partnersMerged,
     required this.toysMerged,
+    required this.positionsMerged,
     required this.recordsMerged,
     required this.timerHistoryMerged,
     required this.timerHistoryRetentionDays,
     required this.settingsModifiedAt,
     required this.partnerConflicts,
     required this.toyConflicts,
+    required this.positionConflicts,
     required this.recordConflicts,
   });
 
   bool get hasConflicts =>
       partnerConflicts.isNotEmpty ||
       toyConflicts.isNotEmpty ||
+      positionConflicts.isNotEmpty ||
       recordConflicts.isNotEmpty;
 
   IntimacyData buildResolved(Map<String, dynamic> resolutions) {
     return IntimacyData(
       partners: _resolveList(partnersMerged, partnerConflicts, resolutions),
       toys: _resolveList(toysMerged, toyConflicts, resolutions),
+      positions: _resolveList(positionsMerged, positionConflicts, resolutions),
       records: _resolveList(recordsMerged, recordConflicts, resolutions),
       timerHistory: timerHistoryMerged,
       timerHistoryRetentionDays: timerHistoryRetentionDays,

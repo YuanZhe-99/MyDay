@@ -407,5 +407,16 @@
   "csvTemplateWeight": "下載體重模板",
   "financeSubscriptionPresets": "快速填入",
   "intimacyPurchaseLink": "購買連結",
-  "intimacyPrice": "價格"
+  "intimacyPrice": "價格",
+  "intimacyPositions": "體位",
+  "intimacyAddPosition": "新增體位",
+  "intimacyEditPosition": "編輯體位",
+  "intimacyNoPositions": "尚無體位",
+  "intimacyImportDefaults": "匯入預設",
+  "intimacyTrend": "趨勢",
+  "intimacyPleasure": "愉悅度",
+  "intimacyFrequency": "頻率",
+  "intimacyNoRecords": "資料不足",
+  "weightTrend": "趨勢",
+  "weightRaw": "實際"
 }

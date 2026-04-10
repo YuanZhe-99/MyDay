@@ -407,5 +407,16 @@
   "csvTemplateWeight": "下载体重模板",
   "financeSubscriptionPresets": "快速填入",
   "intimacyPurchaseLink": "购买链接",
-  "intimacyPrice": "价格"
+  "intimacyPrice": "价格",
+  "intimacyPositions": "体位",
+  "intimacyAddPosition": "添加体位",
+  "intimacyEditPosition": "编辑体位",
+  "intimacyNoPositions": "暂无体位",
+  "intimacyImportDefaults": "导入默认",
+  "intimacyTrend": "趋势",
+  "intimacyPleasure": "愉悦度",
+  "intimacyFrequency": "频率",
+  "intimacyNoRecords": "数据不足",
+  "weightTrend": "趋势",
+  "weightRaw": "实际"
 }

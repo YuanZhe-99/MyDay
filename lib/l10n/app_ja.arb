@@ -407,5 +407,16 @@
   "csvTemplateWeight": "体重テンプレートをダウンロード",
   "financeSubscriptionPresets": "クイック入力",
   "intimacyPurchaseLink": "購入リンク",
-  "intimacyPrice": "価格"
+  "intimacyPrice": "価格",
+  "intimacyPositions": "体位",
+  "intimacyAddPosition": "体位を追加",
+  "intimacyEditPosition": "体位を編集",
+  "intimacyNoPositions": "体位がありません",
+  "intimacyImportDefaults": "デフォルトをインポート",
+  "intimacyTrend": "トレンド",
+  "intimacyPleasure": "快感",
+  "intimacyFrequency": "頻度",
+  "intimacyNoRecords": "データ不足",
+  "weightTrend": "トレンド",
+  "weightRaw": "実測"
 }

@@ -349,7 +349,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get intimacyEditToy => 'トイを編集';
 
   @override
-  String get intimacyPleasure => '満足度';
+  String get intimacyPleasure => '快感';
 
   @override
   String get intimacyDuration => '時間';
@@ -370,7 +370,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get intimacyTimer => 'タイマー';
 
   @override
-  String get intimacyNoRecords => '記録なし';
+  String get intimacyNoRecords => 'データ不足';
 
   @override
   String get intimacyNoPartners => 'パートナーなし';
@@ -1127,4 +1127,31 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get intimacyPrice => '価格';
+
+  @override
+  String get intimacyPositions => '体位';
+
+  @override
+  String get intimacyAddPosition => '体位を追加';
+
+  @override
+  String get intimacyEditPosition => '体位を編集';
+
+  @override
+  String get intimacyNoPositions => '体位がありません';
+
+  @override
+  String get intimacyImportDefaults => 'デフォルトをインポート';
+
+  @override
+  String get intimacyTrend => 'トレンド';
+
+  @override
+  String get intimacyFrequency => '頻度';
+
+  @override
+  String get weightTrend => 'トレンド';
+
+  @override
+  String get weightRaw => '実測';
 }

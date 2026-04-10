@@ -396,7 +396,28 @@ class _WeightPageState extends State<WeightPage> {
                   )),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Container(width: 16, height: 2, color: theme.colorScheme.primary),
+              const SizedBox(width: 4),
+              Text(l10n.weightRaw, style: theme.textTheme.labelSmall),
+              const SizedBox(width: 16),
+              Container(
+                width: 16, height: 2,
+                decoration: BoxDecoration(
+                  border: Border(bottom: BorderSide(
+                    color: theme.colorScheme.tertiary,
+                    width: 2,
+                    strokeAlign: BorderSide.strokeAlignCenter,
+                  )),
+                ),
+              ),
+              const SizedBox(width: 4),
+              Text(l10n.weightTrend, style: theme.textTheme.labelSmall),
+            ],
+          ),
+          const SizedBox(height: 8),
           SizedBox(
             height: 220,
             child: _buildChart(theme),
@@ -437,6 +458,8 @@ class _WeightPageState extends State<WeightPage> {
         e.value.weight,
       );
     }).toList();
+
+    final ewmaSpots = _buildWeightEwmaSpots(data);
 
     final minW = data.map((r) => r.weight).reduce(math.min);
     final maxW = data.map((r) => r.weight).reduce(math.max);
@@ -501,6 +524,7 @@ class _WeightPageState extends State<WeightPage> {
         minY: minW - yPad,
         maxY: maxW + yPad,
         lineBarsData: [
+          // Raw weight data line
           LineChartBarData(
             spots: spots,
             isCurved: false,
@@ -520,25 +544,62 @@ class _WeightPageState extends State<WeightPage> {
               color: theme.colorScheme.primary.withValues(alpha: 0.1),
             ),
           ),
+          // EWMA trend line (dashed)
+          LineChartBarData(
+            spots: ewmaSpots,
+            isCurved: true,
+            curveSmoothness: 0.3,
+            color: theme.colorScheme.tertiary,
+            barWidth: 2,
+            dashArray: [6, 4],
+            dotData: const FlDotData(show: false),
+          ),
         ],
         lineTouchData: LineTouchData(
           touchTooltipData: LineTouchTooltipData(
-            getTooltipItems: (spots) => spots.map((s) {
-              final date = DateTime.fromMillisecondsSinceEpoch(
-                  s.x.toInt());
-              return LineTooltipItem(
-                '${s.y.toStringAsFixed(1)} kg\n${DateFormat('MMM d').format(date)}',
-                TextStyle(
-                  color: theme.colorScheme.onPrimary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              );
+            getTooltipItems: (spots) => spots.asMap().entries.map((entry) {
+              final s = entry.value;
+              final date = DateTime.fromMillisecondsSinceEpoch(s.x.toInt());
+              if (entry.key == 0) {
+                return LineTooltipItem(
+                  '${s.y.toStringAsFixed(1)} kg\n${DateFormat('MMM d').format(date)}',
+                  TextStyle(
+                    color: theme.colorScheme.onPrimary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                );
+              } else {
+                return LineTooltipItem(
+                  '${AppLocalizations.of(context)!.weightTrend}: ${s.y.toStringAsFixed(1)} kg',
+                  TextStyle(
+                    color: theme.colorScheme.onPrimary,
+                    fontSize: 11,
+                  ),
+                );
+              }
             }).toList(),
           ),
         ),
       ),
     );
+  }
+
+  /// EWMA smoothed weight trend. τ = 7 days half-life.
+  List<FlSpot> _buildWeightEwmaSpots(List<WeightRecord> data, {double halfLifeDays = 7}) {
+    if (data.isEmpty) return [];
+    final tau = halfLifeDays * 86400 * 1000; // in ms
+    double ewma = data.first.weight;
+    DateTime prevTime = data.first.datetime;
+    final spots = <FlSpot>[];
+    for (final r in data) {
+      final dtMs = r.datetime.difference(prevTime).inMilliseconds.toDouble();
+      final alpha = 1.0 - math.exp(-dtMs / tau);
+      ewma = alpha * r.weight + (1 - alpha) * ewma;
+      spots.add(FlSpot(r.datetime.millisecondsSinceEpoch.toDouble(), ewma));
+      prevTime = r.datetime;
+    }
+    return spots;
   }
 
   double _weightInterval(double range) {

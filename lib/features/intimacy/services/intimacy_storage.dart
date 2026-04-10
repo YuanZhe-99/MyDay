@@ -64,6 +64,7 @@ class IntimacyStorage {
           data = IntimacyData(
             partners: data.partners,
             toys: data.toys,
+            positions: data.positions,
             records: data.records,
             timerHistory: [...data.timerHistory, ...newEntries],
             timerHistoryRetentionDays: data.timerHistoryRetentionDays,

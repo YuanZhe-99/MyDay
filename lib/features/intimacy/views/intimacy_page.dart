@@ -1,5 +1,7 @@
 import 'dart:io';
+import 'dart:math' as math;
 
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -14,6 +16,7 @@ import '../widgets/timer_page.dart';
 
 enum _SortMode { dateDesc, dateAsc, pleasureDesc, durationDesc }
 enum _FilterMode { all, solo, partnered, orgasm, noOrgasm }
+enum _IntimacyChartRange { oneWeek, oneMonth, threeMonths, sixMonths, oneYear, all }
 
 class IntimacyPage extends StatefulWidget {
   const IntimacyPage({super.key});
@@ -28,6 +31,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
 
   List<Partner> _partners = [];
   List<Toy> _toys = [];
+  List<Position> _positions = [];
   List<IntimacyRecord> _records = [];
   List<TimerHistoryEntry> _timerHistory = [];
   int? _timerHistoryRetentionDays;
@@ -36,6 +40,8 @@ class _IntimacyPageState extends State<IntimacyPage> {
 
   _SortMode _sortMode = _SortMode.dateDesc;
   _FilterMode _filterMode = _FilterMode.all;
+  _IntimacyChartRange _chartRange = _IntimacyChartRange.threeMonths;
+  final bool _showChart = true;
 
   @override
   void initState() {
@@ -56,6 +62,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
       if (data != null) {
         _partners = data.partners;
         _toys = data.toys;
+        _positions = data.positions;
         _records = data.records;
         _timerHistory = data.timerHistory;
         _timerHistoryRetentionDays = data.timerHistoryRetentionDays;
@@ -69,6 +76,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
     await IntimacyStorage.save(IntimacyData(
       partners: _partners,
       toys: _toys,
+      positions: _positions,
       records: _records,
       timerHistory: _timerHistory,
       timerHistoryRetentionDays: _timerHistoryRetentionDays,
@@ -128,7 +136,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
   Future<void> _addRecord() async {
     final record = await showDialog<IntimacyRecord>(
       context: context,
-      builder: (_) => AddRecordDialog(partners: _partners, toys: _toys),
+      builder: (_) => AddRecordDialog(partners: _partners, toys: _toys, positions: _positions),
     );
     if (record != null) {
       setState(() => _records.insert(0, record));
@@ -145,7 +153,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
     final updated = await showDialog<IntimacyRecord>(
       context: context,
       builder: (_) =>
-          AddRecordDialog(record: record, partners: _partners, toys: _toys),
+          AddRecordDialog(record: record, partners: _partners, toys: _toys, positions: _positions),
     );
     if (updated != null) {
       setState(() {
@@ -175,6 +183,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
                     builder: (_) => TimerPage(
                           partners: _partners,
                           toys: _toys,
+                          positions: _positions,
                           timerHistory: _timerHistory,
                           timerHistoryRetentionDays:
                               _timerHistoryRetentionDays,
@@ -230,6 +239,10 @@ class _IntimacyPageState extends State<IntimacyPage> {
                   },
                 ),
                 const Divider(height: 1),
+
+                // Trend chart section
+                if (_records.length >= 2 && _showChart)
+                  _buildChartSection(theme),
 
                 // Records header
                 Padding(
@@ -319,6 +332,10 @@ class _IntimacyPageState extends State<IntimacyPage> {
                                     .map((id) => _toys.where((t) => t.id == id).firstOrNull)
                                     .whereType<Toy>()
                                     .toList(),
+                                positions: record.positionIds
+                                    .map((id) => _positions.where((p) => p.id == id).firstOrNull)
+                                    .whereType<Position>()
+                                    .toList(),
                               ),
                             );
                           },
@@ -378,6 +395,295 @@ class _IntimacyPageState extends State<IntimacyPage> {
     );
   }
 
+  // ── Trend chart ──
+
+  List<IntimacyRecord> get _chartRecords {
+    final now = DateTime.now();
+    final cutoff = switch (_chartRange) {
+      _IntimacyChartRange.oneWeek => now.subtract(const Duration(days: 7)),
+      _IntimacyChartRange.oneMonth => DateTime(now.year, now.month - 1, now.day),
+      _IntimacyChartRange.threeMonths => DateTime(now.year, now.month - 3, now.day),
+      _IntimacyChartRange.sixMonths => DateTime(now.year, now.month - 6, now.day),
+      _IntimacyChartRange.oneYear => DateTime(now.year - 1, now.month, now.day),
+      _IntimacyChartRange.all => DateTime(2000),
+    };
+    return _records
+        .where((r) => r.datetime.isAfter(cutoff))
+        .toList()
+      ..sort((a, b) => a.datetime.compareTo(b.datetime));
+  }
+
+  /// Build EWMA smoothed curve for pleasure level.
+  /// Uses adaptive alpha based on time gap with half-life of [halfLifeDays].
+  List<FlSpot> _buildEwmaPleasureSpots(List<IntimacyRecord> data, {double halfLifeDays = 7}) {
+    if (data.isEmpty) return [];
+    final tau = halfLifeDays * 86400 * 1000; // half-life in ms
+    final spots = <FlSpot>[];
+    double ewma = data.first.pleasureLevel.toDouble();
+    DateTime prevTime = data.first.datetime;
+
+    for (final r in data) {
+      final dtMs = r.datetime.difference(prevTime).inMilliseconds.toDouble();
+      final alpha = 1.0 - math.exp(-dtMs / tau);
+      ewma = alpha * r.pleasureLevel + (1 - alpha) * ewma;
+      spots.add(FlSpot(
+        r.datetime.millisecondsSinceEpoch.toDouble(),
+        ewma,
+      ));
+      prevTime = r.datetime;
+    }
+    return spots;
+  }
+
+  /// Build EWMA smoothed curve for frequency (records per week).
+  List<FlSpot> _buildEwmaFrequencySpots(List<IntimacyRecord> data, {double halfLifeDays = 14}) {
+    if (data.isEmpty) return [];
+    final tau = halfLifeDays * 86400 * 1000;
+    final spots = <FlSpot>[];
+    double ewma = 1.0; // initial estimate: 1 per period
+    DateTime prevTime = data.first.datetime;
+
+    for (int i = 0; i < data.length; i++) {
+      final r = data[i];
+      final dtMs = r.datetime.difference(prevTime).inMilliseconds.toDouble();
+      if (dtMs > 0) {
+        // Instantaneous rate: 7 days / gap = records per week
+        final rate = 7.0 * 86400 * 1000 / dtMs;
+        final alpha = 1.0 - math.exp(-dtMs / tau);
+        ewma = alpha * rate + (1 - alpha) * ewma;
+      }
+      spots.add(FlSpot(
+        r.datetime.millisecondsSinceEpoch.toDouble(),
+        ewma,
+      ));
+      prevTime = r.datetime;
+    }
+    return spots;
+  }
+
+  Widget _buildChartSection(ThemeData theme) {
+    final l10n = AppLocalizations.of(context)!;
+    final labels = {
+      _IntimacyChartRange.oneWeek: '1W',
+      _IntimacyChartRange.oneMonth: '1M',
+      _IntimacyChartRange.threeMonths: '3M',
+      _IntimacyChartRange.sixMonths: '6M',
+      _IntimacyChartRange.oneYear: '1Y',
+      _IntimacyChartRange.all: l10n.weightAll,
+    };
+
+    final data = _chartRecords;
+    final pleasureSpots = _buildEwmaPleasureSpots(data);
+    final frequencySpots = _buildEwmaFrequencySpots(data);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(l10n.intimacyTrend,
+                  style: theme.textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w600)),
+              const Spacer(),
+              ...labels.entries.map((e) => Padding(
+                    padding: const EdgeInsets.only(left: 4),
+                    child: ChoiceChip(
+                      label: Text(e.value,
+                          style: const TextStyle(fontSize: 11)),
+                      selected: _chartRange == e.key,
+                      onSelected: (_) =>
+                          setState(() => _chartRange = e.key),
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      labelPadding:
+                          const EdgeInsets.symmetric(horizontal: 6),
+                    ),
+                  )),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Legend
+          Row(
+            children: [
+              Container(width: 16, height: 2, color: theme.colorScheme.primary),
+              const SizedBox(width: 4),
+              Text(l10n.intimacyPleasure, style: theme.textTheme.labelSmall),
+              const SizedBox(width: 16),
+              Container(
+                width: 16, height: 2,
+                decoration: BoxDecoration(
+                  border: Border(bottom: BorderSide(
+                    color: theme.colorScheme.tertiary,
+                    width: 2,
+                    strokeAlign: BorderSide.strokeAlignCenter,
+                  )),
+                ),
+              ),
+              const SizedBox(width: 4),
+              Text(l10n.intimacyFrequency, style: theme.textTheme.labelSmall),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 180,
+            child: data.length < 2
+                ? Center(child: Text(l10n.intimacyNoRecords,
+                    style: TextStyle(color: theme.colorScheme.onSurfaceVariant)))
+                : _buildChart(theme, pleasureSpots, frequencySpots, data),
+          ),
+          const Divider(height: 16),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChart(
+    ThemeData theme,
+    List<FlSpot> pleasureSpots,
+    List<FlSpot> frequencySpots,
+    List<IntimacyRecord> data,
+  ) {
+    final maxFreq = frequencySpots.isEmpty
+        ? 5.0
+        : frequencySpots.map((s) => s.y).reduce(math.max);
+    final freqMax = math.max(maxFreq * 1.3, 2.0);
+
+    return LineChart(
+      LineChartData(
+        gridData: FlGridData(
+          show: true,
+          horizontalInterval: 1,
+          getDrawingHorizontalLine: (value) => FlLine(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+            strokeWidth: 0.5,
+          ),
+          getDrawingVerticalLine: (value) => FlLine(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
+            strokeWidth: 0.5,
+            dashArray: [4, 4],
+          ),
+        ),
+        titlesData: FlTitlesData(
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 28,
+              interval: _chartDateInterval(data),
+              getTitlesWidget: (value, meta) {
+                final date = DateTime.fromMillisecondsSinceEpoch(value.toInt());
+                return SideTitleWidget(
+                  meta: meta,
+                  child: Text(
+                    DateFormat('MMM d').format(date),
+                    style: theme.textTheme.labelSmall?.copyWith(fontSize: 9),
+                  ),
+                );
+              },
+            ),
+          ),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 24,
+              interval: 1,
+              getTitlesWidget: (value, meta) {
+                if (value != value.roundToDouble()) return const SizedBox.shrink();
+                return SideTitleWidget(
+                  meta: meta,
+                  child: Text('${value.toInt()}',
+                      style: theme.textTheme.labelSmall?.copyWith(fontSize: 10)),
+                );
+              },
+            ),
+          ),
+          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        ),
+        borderData: FlBorderData(
+          show: true,
+          border: Border.all(
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
+        ),
+        minY: 0,
+        maxY: 5.5,
+        lineBarsData: [
+          // Pleasure EWMA line (solid, primary color)
+          LineChartBarData(
+            spots: pleasureSpots,
+            isCurved: true,
+            curveSmoothness: 0.3,
+            color: theme.colorScheme.primary,
+            barWidth: 2.5,
+            dotData: const FlDotData(show: false),
+            belowBarData: BarAreaData(
+              show: true,
+              color: theme.colorScheme.primary.withValues(alpha: 0.08),
+            ),
+          ),
+          // Frequency EWMA line (dashed, tertiary color, scaled to fit 0-5)
+          LineChartBarData(
+            spots: frequencySpots
+                .map((s) => FlSpot(s.x, (s.y / freqMax) * 5))
+                .toList(),
+            isCurved: true,
+            curveSmoothness: 0.3,
+            color: theme.colorScheme.tertiary,
+            barWidth: 2,
+            dashArray: [6, 4],
+            dotData: const FlDotData(show: false),
+          ),
+        ],
+        lineTouchData: LineTouchData(
+          touchTooltipData: LineTouchTooltipData(
+            getTooltipItems: (spots) {
+              return spots.asMap().entries.map((entry) {
+                final s = entry.value;
+                final date = DateTime.fromMillisecondsSinceEpoch(s.x.toInt());
+                if (entry.key == 0) {
+                  return LineTooltipItem(
+                    '${AppLocalizations.of(context)!.intimacyPleasure}: ${s.y.toStringAsFixed(1)}\n${DateFormat('MMM d').format(date)}',
+                    TextStyle(
+                      color: theme.colorScheme.onPrimary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  );
+                } else {
+                  final actualFreq = s.y / 5 * freqMax;
+                  return LineTooltipItem(
+                    '${AppLocalizations.of(context)!.intimacyFrequency}: ${actualFreq.toStringAsFixed(1)}/wk',
+                    TextStyle(
+                      color: theme.colorScheme.onPrimary,
+                      fontSize: 11,
+                    ),
+                  );
+                }
+              }).toList();
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  double _chartDateInterval(List<IntimacyRecord> data) {
+    if (data.length < 2) return 1;
+    final spanMs = data.last.datetime
+        .difference(data.first.datetime)
+        .inMilliseconds
+        .toDouble();
+    final spanDays = spanMs / (86400 * 1000);
+    const day = 86400 * 1000.0;
+    if (spanDays <= 7) return day;
+    if (spanDays <= 30) return 7 * day;
+    if (spanDays <= 90) return 14 * day;
+    if (spanDays <= 180) return 30 * day;
+    if (spanDays <= 365) return 60 * day;
+    return 90 * day;
+  }
+
   void _showManageMenu(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -401,6 +707,15 @@ class _IntimacyPageState extends State<IntimacyPage> {
               onTap: () {
                 Navigator.pop(context);
                 _openToyManagement();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.accessibility_new),
+              title: Text(AppLocalizations.of(context)!.intimacyPositions),
+              trailing: Text('${_positions.length}'),
+              onTap: () {
+                Navigator.pop(context);
+                _openPositionManagement();
               },
             ),
           ],
@@ -436,6 +751,22 @@ class _IntimacyPageState extends State<IntimacyPage> {
           partners: _partners,
           onChanged: (updated) {
             setState(() => _toys = updated);
+            _saveData();
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openPositionManagement() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => _PositionManagementPage(
+          positions: _positions,
+          records: _records,
+          onChanged: (updated) {
+            setState(() => _positions = updated);
             _saveData();
           },
         ),
@@ -595,11 +926,13 @@ class _RecordTile extends StatelessWidget {
   final IntimacyRecord record;
   final Partner? partner;
   final List<Toy> toys;
+  final List<Position> positions;
 
   const _RecordTile({
     required this.record,
     this.partner,
     this.toys = const [],
+    this.positions = const [],
   });
 
   @override
@@ -721,6 +1054,22 @@ class _RecordTile extends StatelessWidget {
                       },
                     );
                   }
+                  return Chip(
+                    label: Text(label),
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    labelPadding: const EdgeInsets.symmetric(horizontal: 6),
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  );
+                }).toList(),
+              ),
+            ],
+            if (positions.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 6,
+                children: positions.map((p) {
+                  final label = p.emoji != null ? '${p.emoji} ${p.name}' : p.name;
                   return Chip(
                     label: Text(label),
                     visualDensity: VisualDensity.compact,
@@ -1441,6 +1790,266 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
       );
     }
     return CircleAvatar(child: Text(t.emoji ?? t.name[0]));
+  }
+}
+
+// ─── Position Management ────────────────────────────────────────────
+class _PositionManagementPage extends StatefulWidget {
+  final List<Position> positions;
+  final List<IntimacyRecord> records;
+  final ValueChanged<List<Position>> onChanged;
+
+  const _PositionManagementPage({
+    required this.positions,
+    required this.records,
+    required this.onChanged,
+  });
+
+  @override
+  State<_PositionManagementPage> createState() =>
+      _PositionManagementPageState();
+}
+
+class _PositionManagementPageState extends State<_PositionManagementPage> {
+  late List<Position> _positions;
+
+  static const _commonEmojis = [
+    '🔝', '🔄', '🐕', '🪑', '🦋', '🌙', '🌟', '💫',
+    '🔀', '🎯', '🧘', '🤸', '🏋️', '🧗', '💃', '✨',
+  ];
+
+  static const _defaultPositions = [
+    {'name': 'Missionary', 'emoji': '🔝'},
+    {'name': 'Cowgirl', 'emoji': '🤠'},
+    {'name': 'Doggy Style', 'emoji': '🐕'},
+    {'name': 'Reverse Cowgirl', 'emoji': '🔄'},
+    {'name': 'Spooning', 'emoji': '🌙'},
+    {'name': 'Standing', 'emoji': '🧗'},
+    {'name': '69', 'emoji': '🔀'},
+    {'name': 'Lotus', 'emoji': '🧘'},
+    {'name': 'Prone Bone', 'emoji': '🦋'},
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _positions = List.of(widget.positions);
+  }
+
+  void _addPosition() => _showEditDialog(null);
+
+  void _editPosition(Position p) => _showEditDialog(p);
+
+  void _deletePosition(Position p) {
+    setState(() => _positions.removeWhere((x) => x.id == p.id));
+    widget.onChanged(_positions);
+  }
+
+  void _importDefaults() {
+    final existingNames = _positions.map((p) => p.name.toLowerCase()).toSet();
+    var added = 0;
+    for (final preset in _defaultPositions) {
+      if (!existingNames.contains((preset['name'] as String).toLowerCase())) {
+        _positions.add(Position(
+          name: preset['name'] as String,
+          emoji: preset['emoji'] as String,
+        ));
+        added++;
+      }
+    }
+    if (added > 0) {
+      setState(() {});
+      widget.onChanged(_positions);
+    }
+  }
+
+  Future<void> _showEditDialog(Position? existing) async {
+    final nameCtrl = TextEditingController(text: existing?.name ?? '');
+    String? selectedEmoji = existing?.emoji;
+    final l10n = AppLocalizations.of(context)!;
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Text(existing == null
+              ? l10n.intimacyAddPosition
+              : l10n.intimacyEditPosition),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextField(
+                  controller: nameCtrl,
+                  decoration: InputDecoration(labelText: l10n.commonName),
+                  autofocus: true,
+                ),
+                const SizedBox(height: 12),
+                Text(l10n.commonEmojiOptional,
+                    style: Theme.of(context).textTheme.bodySmall),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.maxFinite,
+                  child: Wrap(
+                    spacing: 4,
+                    runSpacing: 4,
+                    children: _commonEmojis.map((emoji) {
+                      final isSelected = emoji == selectedEmoji;
+                      return InkWell(
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: () => setDialogState(() {
+                          selectedEmoji = isSelected ? null : emoji;
+                        }),
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            color: isSelected
+                                ? Theme.of(context)
+                                    .colorScheme
+                                    .primaryContainer
+                                : null,
+                            border: isSelected
+                                ? Border.all(
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                    width: 2)
+                                : null,
+                          ),
+                          child: Center(
+                            child: Text(emoji,
+                                style: const TextStyle(fontSize: 20)),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(l10n.commonCancel)),
+            FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text(l10n.commonSave)),
+          ],
+        ),
+      ),
+    );
+    if (result == true && nameCtrl.text.trim().isNotEmpty) {
+      setState(() {
+        if (existing != null) {
+          final idx = _positions.indexWhere((p) => p.id == existing.id);
+          if (idx != -1) {
+            _positions[idx] = Position(
+              id: existing.id,
+              name: nameCtrl.text.trim(),
+              emoji: selectedEmoji,
+            );
+          }
+        } else {
+          _positions.add(Position(
+            name: nameCtrl.text.trim(),
+            emoji: selectedEmoji,
+          ));
+        }
+      });
+      widget.onChanged(_positions);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(l10n.intimacyPositions),
+        centerTitle: true,
+        actions: [
+          if (_positions.isEmpty)
+            TextButton(
+              onPressed: _importDefaults,
+              child: Text(l10n.intimacyImportDefaults),
+            )
+          else
+            PopupMenuButton<String>(
+              onSelected: (v) {
+                if (v == 'import') _importDefaults();
+              },
+              itemBuilder: (_) => [
+                PopupMenuItem(
+                  value: 'import',
+                  child: Text(l10n.intimacyImportDefaults),
+                ),
+              ],
+            ),
+        ],
+      ),
+      body: _positions.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(l10n.intimacyNoPositions),
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
+                    onPressed: _importDefaults,
+                    icon: const Icon(Icons.download),
+                    label: Text(l10n.intimacyImportDefaults),
+                  ),
+                ],
+              ),
+            )
+          : ListView.builder(
+              itemCount: _positions.length,
+              itemBuilder: (context, index) {
+                final p = _positions[index];
+                final recordCount = widget.records
+                    .where((r) => r.positionIds.contains(p.id))
+                    .length;
+                return Dismissible(
+                  key: ValueKey(p.id),
+                  direction: DismissDirection.horizontal,
+                  background: Container(
+                    alignment: Alignment.centerLeft,
+                    padding: const EdgeInsets.only(left: 20),
+                    color: Theme.of(context).colorScheme.primary,
+                    child: Icon(Icons.edit_outlined,
+                        color: Theme.of(context).colorScheme.onPrimary),
+                  ),
+                  secondaryBackground: Container(
+                    alignment: Alignment.centerRight,
+                    padding: const EdgeInsets.only(right: 20),
+                    color: Theme.of(context).colorScheme.error,
+                    child: Icon(Icons.delete_outline,
+                        color: Theme.of(context).colorScheme.onError),
+                  ),
+                  confirmDismiss: (direction) async {
+                    if (direction == DismissDirection.startToEnd) {
+                      _editPosition(p);
+                      return false;
+                    }
+                    return confirmDelete(context, p.name);
+                  },
+                  onDismissed: (_) => _deletePosition(p),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                        child: Text(p.emoji ?? p.name[0])),
+                    title: Text(p.name),
+                    subtitle: Text(l10n.intimacyRecordCount(recordCount)),
+                  ),
+                );
+              },
+            ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _addPosition,
+        child: const Icon(Icons.add),
+      ),
+    );
   }
 }
 

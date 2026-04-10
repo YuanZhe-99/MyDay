@@ -101,6 +101,7 @@ class PendingSync {
     ...?financeMerge?.subscriptionConflicts,
     ...?intimacyMerge?.partnerConflicts,
     ...?intimacyMerge?.toyConflicts,
+    ...?intimacyMerge?.positionConflicts,
     ...?intimacyMerge?.recordConflicts,
     ...?weightMerge?.recordConflicts,
   ];

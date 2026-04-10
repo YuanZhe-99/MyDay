@@ -806,7 +806,7 @@ abstract class AppLocalizations {
   /// No description provided for @intimacyNoRecords.
   ///
   /// In en, this message translates to:
-  /// **'No records'**
+  /// **'Not enough data'**
   String get intimacyNoRecords;
 
   /// No description provided for @intimacyNoPartners.
@@ -2272,6 +2272,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Price'**
   String get intimacyPrice;
+
+  /// No description provided for @intimacyPositions.
+  ///
+  /// In en, this message translates to:
+  /// **'Positions'**
+  String get intimacyPositions;
+
+  /// No description provided for @intimacyAddPosition.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Position'**
+  String get intimacyAddPosition;
+
+  /// No description provided for @intimacyEditPosition.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Position'**
+  String get intimacyEditPosition;
+
+  /// No description provided for @intimacyNoPositions.
+  ///
+  /// In en, this message translates to:
+  /// **'No positions yet'**
+  String get intimacyNoPositions;
+
+  /// No description provided for @intimacyImportDefaults.
+  ///
+  /// In en, this message translates to:
+  /// **'Import Defaults'**
+  String get intimacyImportDefaults;
+
+  /// No description provided for @intimacyTrend.
+  ///
+  /// In en, this message translates to:
+  /// **'Trend'**
+  String get intimacyTrend;
+
+  /// No description provided for @intimacyFrequency.
+  ///
+  /// In en, this message translates to:
+  /// **'Frequency'**
+  String get intimacyFrequency;
+
+  /// No description provided for @weightTrend.
+  ///
+  /// In en, this message translates to:
+  /// **'Trend'**
+  String get weightTrend;
+
+  /// No description provided for @weightRaw.
+  ///
+  /// In en, this message translates to:
+  /// **'Actual'**
+  String get weightRaw;
 }
 
 class _AppLocalizationsDelegate

@@ -428,5 +428,16 @@
   "csvTemplateWeight": "Download Weight Template",
   "financeSubscriptionPresets": "Quick Fill",
   "intimacyPurchaseLink": "Purchase Link",
-  "intimacyPrice": "Price"
+  "intimacyPrice": "Price",
+  "intimacyPositions": "Positions",
+  "intimacyAddPosition": "Add Position",
+  "intimacyEditPosition": "Edit Position",
+  "intimacyNoPositions": "No positions yet",
+  "intimacyImportDefaults": "Import Defaults",
+  "intimacyTrend": "Trend",
+  "intimacyPleasure": "Pleasure",
+  "intimacyFrequency": "Frequency",
+  "intimacyNoRecords": "Not enough data",
+  "weightTrend": "Trend",
+  "weightRaw": "Actual"
 }

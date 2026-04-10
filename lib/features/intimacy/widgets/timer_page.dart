@@ -27,6 +27,7 @@ class TimerPageResult {
 class TimerPage extends StatefulWidget {
   final List<Partner> partners;
   final List<Toy> toys;
+  final List<Position> positions;
   final List<TimerHistoryEntry> timerHistory;
   final int? timerHistoryRetentionDays;
 
@@ -34,6 +35,7 @@ class TimerPage extends StatefulWidget {
     super.key,
     required this.partners,
     required this.toys,
+    this.positions = const [],
     required this.timerHistory,
     this.timerHistoryRetentionDays,
   });
@@ -180,6 +182,7 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
         prefillDuration: elapsed,
         partners: widget.partners,
         toys: widget.toys,
+        positions: widget.positions,
       ),
     );
 

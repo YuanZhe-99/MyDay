@@ -371,7 +371,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get intimacyTimer => 'Timer';
 
   @override
-  String get intimacyNoRecords => 'No records';
+  String get intimacyNoRecords => 'Not enough data';
 
   @override
   String get intimacyNoPartners => 'No partners yet';
@@ -1143,4 +1143,31 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get intimacyPrice => 'Price';
+
+  @override
+  String get intimacyPositions => 'Positions';
+
+  @override
+  String get intimacyAddPosition => 'Add Position';
+
+  @override
+  String get intimacyEditPosition => 'Edit Position';
+
+  @override
+  String get intimacyNoPositions => 'No positions yet';
+
+  @override
+  String get intimacyImportDefaults => 'Import Defaults';
+
+  @override
+  String get intimacyTrend => 'Trend';
+
+  @override
+  String get intimacyFrequency => 'Frequency';
+
+  @override
+  String get weightTrend => 'Trend';
+
+  @override
+  String get weightRaw => 'Actual';
 }

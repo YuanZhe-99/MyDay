@@ -102,6 +102,37 @@ class Toy {
       );
 }
 
+class Position {
+  final String id;
+  final String name;
+  final String? emoji;
+  final DateTime modifiedAt;
+
+  Position({
+    String? id,
+    required this.name,
+    this.emoji,
+    DateTime? modifiedAt,
+  }) : id = id ?? const Uuid().v4(),
+       modifiedAt = modifiedAt ?? DateTime.now();
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        if (emoji != null) 'emoji': emoji,
+        'modifiedAt': modifiedAt.toIso8601String(),
+      };
+
+  factory Position.fromJson(Map<String, dynamic> json) => Position(
+        id: json['id'] as String,
+        name: json['name'] as String,
+        emoji: json['emoji'] as String?,
+        modifiedAt: json['modifiedAt'] != null
+            ? DateTime.parse(json['modifiedAt'] as String)
+            : DateTime.fromMillisecondsSinceEpoch(0),
+      );
+}
+
 class IntimacyRecord {
   final String id;
   final String type; // 'Regular', 'Solo'
@@ -109,6 +140,7 @@ class IntimacyRecord {
   final bool isSolo;
   final String? partnerId;
   final List<String> toyIds;
+  final List<String> positionIds;
   final int pleasureLevel; // 1-5
   final Duration duration;
   final DateTime datetime;
@@ -124,6 +156,7 @@ class IntimacyRecord {
     this.isSolo = false,
     this.partnerId,
     this.toyIds = const [],
+    this.positionIds = const [],
     required this.pleasureLevel,
     required this.duration,
     DateTime? datetime,
@@ -142,6 +175,7 @@ class IntimacyRecord {
         'isSolo': isSolo,
         if (partnerId != null) 'partnerId': partnerId,
         if (toyIds.isNotEmpty) 'toyIds': toyIds,
+        if (positionIds.isNotEmpty) 'positionIds': positionIds,
         'pleasureLevel': pleasureLevel,
         'duration': duration.inSeconds,
         'datetime': datetime.toIso8601String(),
@@ -161,6 +195,10 @@ class IntimacyRecord {
       isSolo: isSolo,
       partnerId: json['partnerId'] as String?,
       toyIds: (json['toyIds'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
+      positionIds: (json['positionIds'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toList() ??
           const [],
@@ -205,6 +243,7 @@ class TimerHistoryEntry {
 class IntimacyData {
   final List<Partner> partners;
   final List<Toy> toys;
+  final List<Position> positions;
   final List<IntimacyRecord> records;
   final List<TimerHistoryEntry> timerHistory;
   /// null = permanent, otherwise days (3, 7, 14)
@@ -214,6 +253,7 @@ class IntimacyData {
   IntimacyData({
     required this.partners,
     required this.toys,
+    this.positions = const [],
     required this.records,
     this.timerHistory = const [],
     this.timerHistoryRetentionDays,
@@ -223,6 +263,7 @@ class IntimacyData {
   Map<String, dynamic> toJson() => {
         'partners': partners.map((p) => p.toJson()).toList(),
         'toys': toys.map((t) => t.toJson()).toList(),
+        'positions': positions.map((p) => p.toJson()).toList(),
         'records': records.map((r) => r.toJson()).toList(),
         'timerHistory': timerHistory.map((e) => e.toJson()).toList(),
         if (timerHistoryRetentionDays != null)
@@ -237,6 +278,10 @@ class IntimacyData {
             [],
         toys: (json['toys'] as List<dynamic>?)
                 ?.map((t) => Toy.fromJson(t as Map<String, dynamic>))
+                .toList() ??
+            [],
+        positions: (json['positions'] as List<dynamic>?)
+                ?.map((p) => Position.fromJson(p as Map<String, dynamic>))
                 .toList() ??
             [],
         records: (json['records'] as List<dynamic>?)
