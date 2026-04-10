@@ -565,7 +565,15 @@ class _IntimacyPageState extends State<IntimacyPage> {
     final maxFreq = frequencySpots.isEmpty
         ? 5.0
         : frequencySpots.map((s) => s.y).reduce(math.max);
-    final freqMax = math.max(maxFreq * 1.3, 2.0);
+    // Snap freqMax to a clean ceiling so right-axis labels land on round numbers
+    double freqCeil(double v) {
+      const steps = [1.0, 2.0, 3.0, 5.0, 7.0, 10.0, 14.0, 20.0];
+      for (final s in steps) {
+        if (s >= v) return s;
+      }
+      return (v / 5).ceil() * 5.0;
+    }
+    final freqMax = freqCeil(math.max(maxFreq * 1.1, 1.0));
 
     return LineChart(
       LineChartData(
@@ -617,7 +625,30 @@ class _IntimacyPageState extends State<IntimacyPage> {
               },
             ),
           ),
-          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 28,
+              interval: 1,
+              getTitlesWidget: (value, meta) {
+                if (value != value.roundToDouble()) return const SizedBox.shrink();
+                final actualFreq = value / 5 * freqMax;
+                final label = freqMax <= 3
+                    ? actualFreq.toStringAsFixed(1)
+                    : actualFreq.toStringAsFixed(0);
+                return SideTitleWidget(
+                  meta: meta,
+                  child: Text(
+                    label,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      fontSize: 9,
+                      color: theme.colorScheme.tertiary,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
           topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
         ),
         borderData: FlBorderData(

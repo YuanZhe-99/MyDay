@@ -493,7 +493,13 @@ class _WeightPageState extends State<WeightPage> {
                 final date =
                     DateTime.fromMillisecondsSinceEpoch(value.toInt());
                 final spanDays = data.last.datetime.difference(data.first.datetime).inDays;
-                final fmt = spanDays > 30 ? DateFormat('M/d') : DateFormat('MMM d');
+                final fmt = spanDays > 730
+                    ? DateFormat('yyyy')
+                    : spanDays > 365
+                        ? DateFormat('M/yy')
+                        : spanDays > 30
+                            ? DateFormat('M/d')
+                            : DateFormat('MMM d');
                 return SideTitleWidget(
                   meta: meta,
                   child: Text(
@@ -626,12 +632,14 @@ class _WeightPageState extends State<WeightPage> {
     final spanDays = spanMs / (86400 * 1000);
     // Choose a clean interval in milliseconds based on total span
     const day = 86400 * 1000.0;
-    if (spanDays <= 7) return day; // daily labels
-    if (spanDays <= 30) return 7 * day; // weekly labels
-    if (spanDays <= 90) return 21 * day; // tri-weekly labels
-    if (spanDays <= 180) return 45 * day; // ~6-week labels
-    if (spanDays <= 365) return 90 * day; // quarterly labels
-    return 120 * day; // 4-month labels
+    if (spanDays <= 7) return day;          // daily labels
+    if (spanDays <= 30) return 7 * day;     // weekly labels
+    if (spanDays <= 90) return 21 * day;    // tri-weekly labels
+    if (spanDays <= 180) return 45 * day;   // ~6-week labels
+    if (spanDays <= 365) return 90 * day;   // quarterly labels
+    if (spanDays <= 730) return 180 * day;  // semi-annual labels
+    if (spanDays <= 1825) return 365 * day; // annual labels
+    return 730 * day;                       // 2-year labels
   }
 
   // ── Records list ──
