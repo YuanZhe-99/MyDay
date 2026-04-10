@@ -109,6 +109,7 @@ class _TaskTileState extends State<_TaskTile> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final task = widget.task;
+    final l10n = AppLocalizations.of(context)!;
     final hasSubtasks = task.subtasks.isNotEmpty;
     final completedSubs = task.subtasks.where((s) => s.isCompleted).length;
     final hasDueDate = task.dueDate != null && task.type != TaskType.daily;
@@ -118,11 +119,11 @@ class _TaskTileState extends State<_TaskTile> {
 
     // Build subtitle parts
     final subtitleParts = <String>[];
-    if (hasSubtasks) subtitleParts.add('Subtasks: $completedSubs/${task.subtasks.length}');
+    if (hasSubtasks) subtitleParts.add(l10n.todoSubtasksProgress(completedSubs, task.subtasks.length));
     if (hasDueDate) {
       final dd = task.dueDate!;
       final dateStr = '${dd.year}-${dd.month.toString().padLeft(2, '0')}-${dd.day.toString().padLeft(2, '0')}';
-      subtitleParts.add('Due: $dateStr');
+      subtitleParts.add(l10n.todoTaskDue(dateStr));
     }
 
     final tile = Column(
@@ -243,7 +244,7 @@ class _TaskTileState extends State<_TaskTile> {
           widget.onEdit?.call();
           return false; // don't dismiss, just trigger edit
         }
-        return confirmDelete(context, 'this task');
+          return confirmDelete(context, AppLocalizations.of(context)!.todoThisTask);
       },
       onDismissed: (_) => widget.onDelete?.call(),
       child: tile,

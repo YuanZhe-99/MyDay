@@ -2,7 +2,7 @@ name: my_day
 description: "MyDay!!!!! — Your daily life companion"
 publish_to: 'none'
 
-version: 0.2.2+9
+version: 0.2.3+10
 
 environment:
   sdk: ^3.11.3

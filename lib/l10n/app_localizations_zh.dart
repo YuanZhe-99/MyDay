@@ -128,6 +128,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get todoEditSubtask => '编辑子任务';
 
   @override
+  String todoSubtasksProgress(int done, int total) {
+    return '子任务：$done/$total';
+  }
+
+  @override
+  String todoTaskDue(String date) {
+    return '截止：$date';
+  }
+
+  @override
+  String get todoThisTask => '此任务';
+
+  @override
   String get financeTitle => '财务';
 
   @override
@@ -1541,6 +1554,19 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get todoEditSubtask => '編輯子任務';
 
   @override
+  String todoSubtasksProgress(int done, int total) {
+    return '子任务：$done/$total';
+  }
+
+  @override
+  String todoTaskDue(String date) {
+    return '截止：$date';
+  }
+
+  @override
+  String get todoThisTask => '此任务';
+
+  @override
   String get financeTitle => '財務';
 
   @override
@@ -2637,7 +2663,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String todoReminderAt(String time) {
-    return '提醒: $time';
+    return '提醒：$time';
   }
 
   @override
@@ -2645,7 +2671,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String todoScheduledAt(String date) {
-    return '排程: $date';
+    return '排程：$date';
   }
 
   @override
@@ -2653,7 +2679,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String todoCompletedAt(String date) {
-    return '完成: $date';
+    return '完成：$date';
   }
 
   @override
@@ -2707,7 +2733,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String notifUpcomingRenewals(String list) {
-    return '即將續費: $list';
+    return '即將續費：$list';
   }
 
   @override

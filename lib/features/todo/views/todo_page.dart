@@ -483,8 +483,8 @@ class _TodoPageState extends State<TodoPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final dateFormat = DateFormat('yyyy-MM-dd (EEE)');
     final l10n = AppLocalizations.of(context)!;
+    final dateFormat = DateFormat('yyyy-MM-dd (EEE)', l10n.localeName);
 
     return Scaffold(
       appBar: AppBar(
@@ -675,7 +675,7 @@ class _CalendarDialogState extends State<_CalendarDialog> {
                   onPressed: _prevMonth,
                 ),
                 Text(
-                  DateFormat('MMMM yyyy').format(_viewMonth),
+                  DateFormat('MMMM yyyy', l10n.localeName).format(_viewMonth),
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),

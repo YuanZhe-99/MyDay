@@ -323,6 +323,24 @@ abstract class AppLocalizations {
   /// **'Edit Subtask'**
   String get todoEditSubtask;
 
+  /// No description provided for @todoSubtasksProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Subtasks: {done}/{total}'**
+  String todoSubtasksProgress(int done, int total);
+
+  /// No description provided for @todoTaskDue.
+  ///
+  /// In en, this message translates to:
+  /// **'Due: {date}'**
+  String todoTaskDue(String date);
+
+  /// No description provided for @todoThisTask.
+  ///
+  /// In en, this message translates to:
+  /// **'this task'**
+  String get todoThisTask;
+
   /// No description provided for @financeTitle.
   ///
   /// In en, this message translates to:

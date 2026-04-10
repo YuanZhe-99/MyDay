@@ -49,6 +49,15 @@
   "todoCustomEmoji": "カスタム絵文字",
   "todoCustomEmojiHint": "絵文字を入力",
   "todoEditSubtask": "サブタスクを編集",
+  "todoSubtasksProgress": "サブタスク：{done}/{total}",
+  "@todoSubtasksProgress": {
+    "placeholders": { "done": { "type": "int" }, "total": { "type": "int" } }
+  },
+  "todoTaskDue": "締切：{date}",
+  "@todoTaskDue": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "todoThisTask": "このタスク",
 
   "financeTitle": "家計",
   "financeMonthlyExpense": "月間支出",
@@ -442,13 +451,13 @@
   "todoCalendarAllDaily": "日課全完了",
   "todoCalendarAllDone": "全完了",
   "todoWhatNeedsDone": "何をする必要がありますか？",
-  "todoReminderAt": "リマインダー: {time}",
+  "todoReminderAt": "リマインダー：{time}",
   "@todoReminderAt": { "placeholders": { "time": { "type": "String" } } },
   "todoAddReminder": "リマインダーを追加（任意）",
-  "todoScheduledAt": "予定: {date}",
+  "todoScheduledAt": "予定：{date}",
   "@todoScheduledAt": { "placeholders": { "date": { "type": "String" } } },
   "todoSetScheduledDate": "予定日を設定",
-  "todoCompletedAt": "完了: {date}",
+  "todoCompletedAt": "完了：{date}",
   "@todoCompletedAt": { "placeholders": { "date": { "type": "String" } } },
   "todoSetCompletedDate": "完了日を設定",
 
@@ -470,7 +479,7 @@
   "notifTodoCompletion": "今日の残りのタスクを完了しましょう！",
   "notifTodoUncompleted": "今日はまだ {count} 件のタスクが未完了です！",
   "@notifTodoUncompleted": { "placeholders": { "count": { "type": "int" } } },
-  "notifUpcomingRenewals": "更新予定: {list}",
+  "notifUpcomingRenewals": "更新予定：{list}",
   "@notifUpcomingRenewals": { "placeholders": { "list": { "type": "String" } } },
   "notifSubscriptionToday": "{name}（今日）",
   "@notifSubscriptionToday": { "placeholders": { "name": { "type": "String" } } },
@@ -494,7 +503,7 @@
   "financeAccountTypeFinancial": "投資",
   "financeAccountName": "口座名",
   "financeBankApp": "銀行 / アプリ",
-  "financeBankAppHint": "例: 三菱UFJ、PayPay",
+  "financeBankAppHint": "例：三菱UFJ、PayPay",
   "financeCardNumber": "カード番号（任意）",
   "financeCardNumberHint": "下4桁",
   "financeIcon": "アイコン",

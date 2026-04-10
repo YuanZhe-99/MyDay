@@ -52,6 +52,15 @@
   "todoCustomEmoji": "Custom Emoji",
   "todoCustomEmojiHint": "Enter an emoji",
   "todoEditSubtask": "Edit Subtask",
+  "todoSubtasksProgress": "Subtasks: {done}/{total}",
+  "@todoSubtasksProgress": {
+    "placeholders": { "done": { "type": "int" }, "total": { "type": "int" } }
+  },
+  "todoTaskDue": "Due: {date}",
+  "@todoTaskDue": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "todoThisTask": "this task",
 
   "financeTitle": "Finance",
   "financeMonthlyExpense": "Monthly Expense",

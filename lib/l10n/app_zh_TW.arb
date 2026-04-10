@@ -48,8 +48,15 @@
   "todoSetDueDate": "設定截止日期（可選）",
   "todoCustomEmoji": "自訂圖示",
   "todoCustomEmojiHint": "輸入一個 emoji",
-  "todoEditSubtask": "編輯子任務",
-
+  "todoEditSubtask": "編輯子任務",  "todoSubtasksProgress": "子任务：{done}/{total}",
+  "@todoSubtasksProgress": {
+    "placeholders": { "done": { "type": "int" }, "total": { "type": "int" } }
+  },
+  "todoTaskDue": "截止：{date}",
+  "@todoTaskDue": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "todoThisTask": "此任务",
   "financeTitle": "財務",
   "financeMonthlyExpense": "月度支出",
   "financeTotalAssets": "總資產",
@@ -442,13 +449,13 @@
   "todoCalendarAllDaily": "日常全完成",
   "todoCalendarAllDone": "全部完成",
   "todoWhatNeedsDone": "需要做什麼？",
-  "todoReminderAt": "提醒: {time}",
+  "todoReminderAt": "提醒：{time}",
   "@todoReminderAt": { "placeholders": { "time": { "type": "String" } } },
   "todoAddReminder": "新增提醒（選填）",
-  "todoScheduledAt": "排程: {date}",
+  "todoScheduledAt": "排程：{date}",
   "@todoScheduledAt": { "placeholders": { "date": { "type": "String" } } },
   "todoSetScheduledDate": "設定排程日期",
-  "todoCompletedAt": "完成: {date}",
+  "todoCompletedAt": "完成：{date}",
   "@todoCompletedAt": { "placeholders": { "date": { "type": "String" } } },
   "todoSetCompletedDate": "設定完成日期",
 
@@ -470,7 +477,7 @@
   "notifTodoCompletion": "別忘了完成今天剩餘的任務！",
   "notifTodoUncompleted": "今天還有 {count} 個任務未完成！",
   "@notifTodoUncompleted": { "placeholders": { "count": { "type": "int" } } },
-  "notifUpcomingRenewals": "即將續費: {list}",
+  "notifUpcomingRenewals": "即將續費：{list}",
   "@notifUpcomingRenewals": { "placeholders": { "list": { "type": "String" } } },
   "notifSubscriptionToday": "{name}（今天）",
   "@notifSubscriptionToday": { "placeholders": { "name": { "type": "String" } } },

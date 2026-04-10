@@ -128,6 +128,19 @@ class AppLocalizationsJa extends AppLocalizations {
   String get todoEditSubtask => 'サブタスクを編集';
 
   @override
+  String todoSubtasksProgress(int done, int total) {
+    return 'サブタスク：$done/$total';
+  }
+
+  @override
+  String todoTaskDue(String date) {
+    return '締切：$date';
+  }
+
+  @override
+  String get todoThisTask => 'このタスク';
+
+  @override
   String get financeTitle => '家計';
 
   @override
@@ -1226,7 +1239,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String todoReminderAt(String time) {
-    return 'リマインダー: $time';
+    return 'リマインダー：$time';
   }
 
   @override
@@ -1234,7 +1247,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String todoScheduledAt(String date) {
-    return '予定: $date';
+    return '予定：$date';
   }
 
   @override
@@ -1242,7 +1255,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String todoCompletedAt(String date) {
-    return '完了: $date';
+    return '完了：$date';
   }
 
   @override
@@ -1296,7 +1309,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String notifUpcomingRenewals(String list) {
-    return '更新予定: $list';
+    return '更新予定：$list';
   }
 
   @override
@@ -1349,7 +1362,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get financeAccountName => '口座名';
 
   @override
-  String get financeBankAppHint => '例: 三菱UFJ、PayPay';
+  String get financeBankAppHint => '例：三菱UFJ、PayPay';
 
   @override
   String get financeCardNumberHint => '下4桁';

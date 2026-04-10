@@ -129,6 +129,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get todoEditSubtask => 'Edit Subtask';
 
   @override
+  String todoSubtasksProgress(int done, int total) {
+    return 'Subtasks: $done/$total';
+  }
+
+  @override
+  String todoTaskDue(String date) {
+    return 'Due: $date';
+  }
+
+  @override
+  String get todoThisTask => 'this task';
+
+  @override
   String get financeTitle => 'Finance';
 
   @override

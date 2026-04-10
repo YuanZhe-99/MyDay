@@ -459,7 +459,9 @@ class _WeightPageState extends State<WeightPage> {
       );
     }).toList();
 
-    final ewmaSpots = _buildWeightEwmaSpots(data);
+    final allSorted = List<WeightRecord>.from(_records)
+      ..sort((a, b) => a.datetime.compareTo(b.datetime));
+    final ewmaSpots = _buildWeightEwmaSpots(allSorted, data.first.datetime);
 
     final minW = data.map((r) => r.weight).reduce(math.min);
     final maxW = data.map((r) => r.weight).reduce(math.max);
@@ -588,17 +590,21 @@ class _WeightPageState extends State<WeightPage> {
   }
 
   /// EWMA smoothed weight trend. τ = 7 days half-life.
-  List<FlSpot> _buildWeightEwmaSpots(List<WeightRecord> data, {double halfLifeDays = 7}) {
-    if (data.isEmpty) return [];
+  /// [allData] must include all records sorted oldest→newest for warm-up accuracy.
+  /// Only emits spots for records on or after [visibleFrom].
+  List<FlSpot> _buildWeightEwmaSpots(List<WeightRecord> allData, DateTime visibleFrom, {double halfLifeDays = 7}) {
+    if (allData.isEmpty) return [];
     final tau = halfLifeDays * 86400 * 1000; // in ms
-    double ewma = data.first.weight;
-    DateTime prevTime = data.first.datetime;
+    double ewma = allData.first.weight;
+    DateTime prevTime = allData.first.datetime;
     final spots = <FlSpot>[];
-    for (final r in data) {
+    for (final r in allData) {
       final dtMs = r.datetime.difference(prevTime).inMilliseconds.toDouble();
       final alpha = 1.0 - math.exp(-dtMs / tau);
       ewma = alpha * r.weight + (1 - alpha) * ewma;
-      spots.add(FlSpot(r.datetime.millisecondsSinceEpoch.toDouble(), ewma));
+      if (!r.datetime.isBefore(visibleFrom)) {
+        spots.add(FlSpot(r.datetime.millisecondsSinceEpoch.toDouble(), ewma));
+      }
       prevTime = r.datetime;
     }
     return spots;

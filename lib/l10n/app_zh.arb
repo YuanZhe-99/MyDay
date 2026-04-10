@@ -49,6 +49,15 @@
   "todoCustomEmoji": "自定义图标",
   "todoCustomEmojiHint": "输入一个 emoji",
   "todoEditSubtask": "编辑子任务",
+  "todoSubtasksProgress": "子任务：{done}/{total}",
+  "@todoSubtasksProgress": {
+    "placeholders": { "done": { "type": "int" }, "total": { "type": "int" } }
+  },
+  "todoTaskDue": "截止：{date}",
+  "@todoTaskDue": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "todoThisTask": "此任务",
 
   "financeTitle": "财务",
   "financeMonthlyExpense": "月度支出",
