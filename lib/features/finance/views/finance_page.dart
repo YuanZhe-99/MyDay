@@ -217,7 +217,7 @@ class _FinancePageState extends State<FinancePage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined),
-            tooltip: 'Accounts & Categories',
+            tooltip: l10n.financeAccountsCategories,
             onPressed: () {
               _showFinanceMenu(context);
             },

@@ -353,6 +353,12 @@ abstract class AppLocalizations {
   /// **'Categories'**
   String get financeCategories;
 
+  /// No description provided for @financeTrends.
+  ///
+  /// In en, this message translates to:
+  /// **'Trends'**
+  String get financeTrends;
+
   /// No description provided for @financeAnalysis.
   ///
   /// In en, this message translates to:
@@ -506,7 +512,7 @@ abstract class AppLocalizations {
   /// No description provided for @financeCardNumber.
   ///
   /// In en, this message translates to:
-  /// **'Card Number'**
+  /// **'Card Number (optional)'**
   String get financeCardNumber;
 
   /// No description provided for @financeExpiry.
@@ -806,7 +812,7 @@ abstract class AppLocalizations {
   /// No description provided for @intimacyNoRecords.
   ///
   /// In en, this message translates to:
-  /// **'Not enough data'**
+  /// **'No records'**
   String get intimacyNoRecords;
 
   /// No description provided for @intimacyNoPartners.
@@ -2315,6 +2321,12 @@ abstract class AppLocalizations {
   /// **'Frequency'**
   String get intimacyFrequency;
 
+  /// No description provided for @intimacyChartNoData.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough data'**
+  String get intimacyChartNoData;
+
   /// No description provided for @weightTrend.
   ///
   /// In en, this message translates to:
@@ -2326,6 +2338,480 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Actual'**
   String get weightRaw;
+
+  /// No description provided for @commonChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Change'**
+  String get commonChange;
+
+  /// No description provided for @commonPickImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick Image'**
+  String get commonPickImage;
+
+  /// No description provided for @commonRemoveIcon.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove icon'**
+  String get commonRemoveIcon;
+
+  /// No description provided for @commonPickIcon.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick an icon'**
+  String get commonPickIcon;
+
+  /// No description provided for @commonNoData.
+  ///
+  /// In en, this message translates to:
+  /// **'No data'**
+  String get commonNoData;
+
+  /// No description provided for @todoDailyReminders.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily Reminders'**
+  String get todoDailyReminders;
+
+  /// No description provided for @todoRemindReviewHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Remind to review today\'s Todo list'**
+  String get todoRemindReviewHint;
+
+  /// No description provided for @todoRemindUndoneHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Remind if tasks are still undone'**
+  String get todoRemindUndoneHint;
+
+  /// No description provided for @todoTapReturnToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to return to today'**
+  String get todoTapReturnToday;
+
+  /// No description provided for @todoCalendar.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar'**
+  String get todoCalendar;
+
+  /// No description provided for @todoWeekMon.
+  ///
+  /// In en, this message translates to:
+  /// **'Mon'**
+  String get todoWeekMon;
+
+  /// No description provided for @todoWeekTue.
+  ///
+  /// In en, this message translates to:
+  /// **'Tue'**
+  String get todoWeekTue;
+
+  /// No description provided for @todoWeekWed.
+  ///
+  /// In en, this message translates to:
+  /// **'Wed'**
+  String get todoWeekWed;
+
+  /// No description provided for @todoWeekThu.
+  ///
+  /// In en, this message translates to:
+  /// **'Thu'**
+  String get todoWeekThu;
+
+  /// No description provided for @todoWeekFri.
+  ///
+  /// In en, this message translates to:
+  /// **'Fri'**
+  String get todoWeekFri;
+
+  /// No description provided for @todoWeekSat.
+  ///
+  /// In en, this message translates to:
+  /// **'Sat'**
+  String get todoWeekSat;
+
+  /// No description provided for @todoWeekSun.
+  ///
+  /// In en, this message translates to:
+  /// **'Sun'**
+  String get todoWeekSun;
+
+  /// No description provided for @todoCalendarSomeDaily.
+  ///
+  /// In en, this message translates to:
+  /// **'Some daily'**
+  String get todoCalendarSomeDaily;
+
+  /// No description provided for @todoCalendarAllDaily.
+  ///
+  /// In en, this message translates to:
+  /// **'All daily'**
+  String get todoCalendarAllDaily;
+
+  /// No description provided for @todoCalendarAllDone.
+  ///
+  /// In en, this message translates to:
+  /// **'All done'**
+  String get todoCalendarAllDone;
+
+  /// No description provided for @todoWhatNeedsDone.
+  ///
+  /// In en, this message translates to:
+  /// **'What needs to be done?'**
+  String get todoWhatNeedsDone;
+
+  /// No description provided for @todoReminderAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminder: {time}'**
+  String todoReminderAt(String time);
+
+  /// No description provided for @todoAddReminder.
+  ///
+  /// In en, this message translates to:
+  /// **'Add reminder (optional)'**
+  String get todoAddReminder;
+
+  /// No description provided for @todoScheduledAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Scheduled: {date}'**
+  String todoScheduledAt(String date);
+
+  /// No description provided for @todoSetScheduledDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Set scheduled date'**
+  String get todoSetScheduledDate;
+
+  /// No description provided for @todoCompletedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed: {date}'**
+  String todoCompletedAt(String date);
+
+  /// No description provided for @todoSetCompletedDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Set completed date'**
+  String get todoSetCompletedDate;
+
+  /// No description provided for @weightUnitKg.
+  ///
+  /// In en, this message translates to:
+  /// **'kg'**
+  String get weightUnitKg;
+
+  /// No description provided for @weightValueKg.
+  ///
+  /// In en, this message translates to:
+  /// **'{value} kg'**
+  String weightValueKg(String value);
+
+  /// No description provided for @positionMissionary.
+  ///
+  /// In en, this message translates to:
+  /// **'Missionary'**
+  String get positionMissionary;
+
+  /// No description provided for @positionCowgirl.
+  ///
+  /// In en, this message translates to:
+  /// **'Cowgirl'**
+  String get positionCowgirl;
+
+  /// No description provided for @positionDoggyStyle.
+  ///
+  /// In en, this message translates to:
+  /// **'Doggy Style'**
+  String get positionDoggyStyle;
+
+  /// No description provided for @positionReverseCowgirl.
+  ///
+  /// In en, this message translates to:
+  /// **'Reverse Cowgirl'**
+  String get positionReverseCowgirl;
+
+  /// No description provided for @positionSpooning.
+  ///
+  /// In en, this message translates to:
+  /// **'Spooning'**
+  String get positionSpooning;
+
+  /// No description provided for @positionStanding.
+  ///
+  /// In en, this message translates to:
+  /// **'Standing'**
+  String get positionStanding;
+
+  /// No description provided for @position69.
+  ///
+  /// In en, this message translates to:
+  /// **'69'**
+  String get position69;
+
+  /// No description provided for @positionLotus.
+  ///
+  /// In en, this message translates to:
+  /// **'Lotus'**
+  String get positionLotus;
+
+  /// No description provided for @positionProneBone.
+  ///
+  /// In en, this message translates to:
+  /// **'Prone Bone'**
+  String get positionProneBone;
+
+  /// No description provided for @notifTodoMorning.
+  ///
+  /// In en, this message translates to:
+  /// **'Good morning! Time to review and update your Todo list 📝'**
+  String get notifTodoMorning;
+
+  /// No description provided for @notifTodoCompletion.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t forget to complete your remaining tasks today!'**
+  String get notifTodoCompletion;
+
+  /// No description provided for @notifTodoUncompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'You still have {count} uncompleted tasks today!'**
+  String notifTodoUncompleted(int count);
+
+  /// No description provided for @notifUpcomingRenewals.
+  ///
+  /// In en, this message translates to:
+  /// **'Upcoming renewals: {list}'**
+  String notifUpcomingRenewals(String list);
+
+  /// No description provided for @notifSubscriptionToday.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}(today)'**
+  String notifSubscriptionToday(String name);
+
+  /// No description provided for @notifSubscriptionDays.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}({days}d)'**
+  String notifSubscriptionDays(String name, int days);
+
+  /// No description provided for @trayShow.
+  ///
+  /// In en, this message translates to:
+  /// **'Show'**
+  String get trayShow;
+
+  /// No description provided for @trayQuit.
+  ///
+  /// In en, this message translates to:
+  /// **'Quit'**
+  String get trayQuit;
+
+  /// No description provided for @filePickerExportLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose export location'**
+  String get filePickerExportLocation;
+
+  /// No description provided for @filePickerBackupFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose backup file'**
+  String get filePickerBackupFile;
+
+  /// No description provided for @filePickerCsvFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose CSV file'**
+  String get filePickerCsvFile;
+
+  /// No description provided for @filePickerSaveTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Save template to'**
+  String get filePickerSaveTemplate;
+
+  /// No description provided for @financeBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance'**
+  String get financeBalance;
+
+  /// No description provided for @financeNewAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'New Account'**
+  String get financeNewAccount;
+
+  /// No description provided for @financeAccountTypeFund.
+  ///
+  /// In en, this message translates to:
+  /// **'Fund'**
+  String get financeAccountTypeFund;
+
+  /// No description provided for @financeAccountTypeCredit.
+  ///
+  /// In en, this message translates to:
+  /// **'Credit'**
+  String get financeAccountTypeCredit;
+
+  /// No description provided for @financeAccountTypeRecharge.
+  ///
+  /// In en, this message translates to:
+  /// **'Recharge'**
+  String get financeAccountTypeRecharge;
+
+  /// No description provided for @financeAccountTypeFinancial.
+  ///
+  /// In en, this message translates to:
+  /// **'Financial'**
+  String get financeAccountTypeFinancial;
+
+  /// No description provided for @financeAccountName.
+  ///
+  /// In en, this message translates to:
+  /// **'Account Name'**
+  String get financeAccountName;
+
+  /// No description provided for @financeBankAppHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. ICBC, Alipay'**
+  String get financeBankAppHint;
+
+  /// No description provided for @financeCardNumberHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 4 digits'**
+  String get financeCardNumberHint;
+
+  /// No description provided for @financeCurrentBalanceHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave empty to calculate from transactions'**
+  String get financeCurrentBalanceHint;
+
+  /// No description provided for @financeAsOfToday.
+  ///
+  /// In en, this message translates to:
+  /// **'As of today'**
+  String get financeAsOfToday;
+
+  /// No description provided for @financeBalanceEffectiveDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance effective date'**
+  String get financeBalanceEffectiveDate;
+
+  /// No description provided for @financeFetchIcon.
+  ///
+  /// In en, this message translates to:
+  /// **'Fetch Icon'**
+  String get financeFetchIcon;
+
+  /// No description provided for @financeAccountsCategories.
+  ///
+  /// In en, this message translates to:
+  /// **'Accounts & Categories'**
+  String get financeAccountsCategories;
+
+  /// No description provided for @financeEditRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Rate'**
+  String get financeEditRate;
+
+  /// No description provided for @financeNewRate.
+  ///
+  /// In en, this message translates to:
+  /// **'New Exchange Rate'**
+  String get financeNewRate;
+
+  /// No description provided for @financeFrom.
+  ///
+  /// In en, this message translates to:
+  /// **'From'**
+  String get financeFrom;
+
+  /// No description provided for @financeTo.
+  ///
+  /// In en, this message translates to:
+  /// **'To'**
+  String get financeTo;
+
+  /// No description provided for @financeRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Rate'**
+  String get financeRate;
+
+  /// No description provided for @financeRateHint.
+  ///
+  /// In en, this message translates to:
+  /// **'1 {from} = ? {to}'**
+  String financeRateHint(String from, String to);
+
+  /// No description provided for @financeNoRates.
+  ///
+  /// In en, this message translates to:
+  /// **'No exchange rates configured'**
+  String get financeNoRates;
+
+  /// No description provided for @financeNoExpenseData.
+  ///
+  /// In en, this message translates to:
+  /// **'No expense data for this period'**
+  String get financeNoExpenseData;
+
+  /// No description provided for @financeUncategorized.
+  ///
+  /// In en, this message translates to:
+  /// **'Uncategorized'**
+  String get financeUncategorized;
+
+  /// No description provided for @financeTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Total'**
+  String get financeTotal;
+
+  /// No description provided for @financeSelectDateRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a date range'**
+  String get financeSelectDateRange;
+
+  /// No description provided for @financeNoTransactionData.
+  ///
+  /// In en, this message translates to:
+  /// **'No transaction data for this period'**
+  String get financeNoTransactionData;
+
+  /// No description provided for @financeReceivedAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Received Amount ({currency})'**
+  String financeReceivedAmount(String currency);
+
+  /// No description provided for @financeReceivedAmountHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount received in target account currency'**
+  String get financeReceivedAmountHelper;
+
+  /// No description provided for @financeNoteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'What was this for?'**
+  String get financeNoteHint;
 }
 
 class _AppLocalizationsDelegate

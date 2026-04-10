@@ -142,7 +142,7 @@ class _AddRecordDialogState extends State<AddRecordDialog> {
 
             // Toy multi-select
             if (widget.toys.isNotEmpty) ...[
-              Text('Toys:', style: theme.textTheme.bodyMedium),
+              Text('${AppLocalizations.of(context)!.intimacyToys}:', style: theme.textTheme.bodyMedium),
               const SizedBox(height: 4),
               Wrap(
                 spacing: 8,

@@ -100,7 +100,7 @@ class ImportExportPage extends StatelessWidget {
 
   Future<void> _exportJSON(BuildContext context) async {
     final dir = await FilePicker.platform.getDirectoryPath(
-      dialogTitle: 'Choose export location',
+      dialogTitle: AppLocalizations.of(context)!.filePickerExportLocation,
     );
     if (dir == null) return;
     final path = await ImportExportService.exportZIP(dir);
@@ -140,7 +140,7 @@ class ImportExportPage extends StatelessWidget {
     if (confirm != true) return;
 
     final dir = await FilePicker.platform.getDirectoryPath(
-      dialogTitle: 'Choose export location',
+      dialogTitle: AppLocalizations.of(context)!.filePickerExportLocation,
     );
     if (dir == null) return;
     final path = switch (type) {
@@ -180,7 +180,7 @@ class ImportExportPage extends StatelessWidget {
     if (confirm != true) return;
 
     final result = await FilePicker.platform.pickFiles(
-      dialogTitle: 'Choose backup file',
+      dialogTitle: AppLocalizations.of(context)!.filePickerBackupFile,
       type: FileType.custom,
       allowedExtensions: ['zip'],
     );
@@ -222,7 +222,7 @@ class ImportExportPage extends StatelessWidget {
     if (confirm != true) return;
 
     final result = await FilePicker.platform.pickFiles(
-      dialogTitle: 'Choose CSV file',
+      dialogTitle: AppLocalizations.of(context)!.filePickerCsvFile,
       type: FileType.custom,
       allowedExtensions: ['csv'],
     );
@@ -257,7 +257,7 @@ class ImportExportPage extends StatelessWidget {
 
   Future<void> _saveTemplate(BuildContext context, String assetName) async {
     final dir = await FilePicker.platform.getDirectoryPath(
-      dialogTitle: 'Save template to',
+      dialogTitle: AppLocalizations.of(context)!.filePickerSaveTemplate,
     );
     if (dir == null) return;
 

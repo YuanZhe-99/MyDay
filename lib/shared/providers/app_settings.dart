@@ -1,7 +1,11 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/todo/services/todo_storage.dart';
+import '../services/reminder_service.dart';
+import '../services/tray_service.dart';
 
 class AppSettingsNotifier extends StateNotifier<AppSettings> {
   AppSettingsNotifier() : super(const AppSettings()) {
@@ -25,6 +29,9 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
     }
 
     state = AppSettings(themeMode: themeMode, locale: locale);
+    final resolvedLocale = locale ?? PlatformDispatcher.instance.locale;
+    TrayService.instance.updateLocale(resolvedLocale);
+    ReminderService.instance.updateLocale(resolvedLocale);
   }
 
   void setThemeMode(ThemeMode mode) {
@@ -39,6 +46,9 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
 
   void setLocale(Locale? locale) {
     state = state.copyWith(locale: locale, clearLocale: locale == null);
+    final resolvedLocale = locale ?? PlatformDispatcher.instance.locale;
+    TrayService.instance.updateLocale(resolvedLocale);
+    ReminderService.instance.updateLocale(resolvedLocale);
     if (locale == null) {
       TodoStorage.setLocaleTag(null);
     } else {

@@ -144,6 +144,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get financeCategories => 'Categories';
 
   @override
+  String get financeTrends => 'Trends';
+
+  @override
   String get financeAnalysis => 'Analysis';
 
   @override
@@ -219,7 +222,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get financeBankApp => 'Bank / App';
 
   @override
-  String get financeCardNumber => 'Card Number';
+  String get financeCardNumber => 'Card Number (optional)';
 
   @override
   String get financeExpiry => 'Expiry';
@@ -371,7 +374,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get intimacyTimer => 'Timer';
 
   @override
-  String get intimacyNoRecords => 'Not enough data';
+  String get intimacyNoRecords => 'No records';
 
   @override
   String get intimacyNoPartners => 'No partners yet';
@@ -1166,8 +1169,272 @@ class AppLocalizationsEn extends AppLocalizations {
   String get intimacyFrequency => 'Frequency';
 
   @override
+  String get intimacyChartNoData => 'Not enough data';
+
+  @override
   String get weightTrend => 'Trend';
 
   @override
   String get weightRaw => 'Actual';
+
+  @override
+  String get commonChange => 'Change';
+
+  @override
+  String get commonPickImage => 'Pick Image';
+
+  @override
+  String get commonRemoveIcon => 'Remove icon';
+
+  @override
+  String get commonPickIcon => 'Pick an icon';
+
+  @override
+  String get commonNoData => 'No data';
+
+  @override
+  String get todoDailyReminders => 'Daily Reminders';
+
+  @override
+  String get todoRemindReviewHint => 'Remind to review today\'s Todo list';
+
+  @override
+  String get todoRemindUndoneHint => 'Remind if tasks are still undone';
+
+  @override
+  String get todoTapReturnToday => 'Tap to return to today';
+
+  @override
+  String get todoCalendar => 'Calendar';
+
+  @override
+  String get todoWeekMon => 'Mon';
+
+  @override
+  String get todoWeekTue => 'Tue';
+
+  @override
+  String get todoWeekWed => 'Wed';
+
+  @override
+  String get todoWeekThu => 'Thu';
+
+  @override
+  String get todoWeekFri => 'Fri';
+
+  @override
+  String get todoWeekSat => 'Sat';
+
+  @override
+  String get todoWeekSun => 'Sun';
+
+  @override
+  String get todoCalendarSomeDaily => 'Some daily';
+
+  @override
+  String get todoCalendarAllDaily => 'All daily';
+
+  @override
+  String get todoCalendarAllDone => 'All done';
+
+  @override
+  String get todoWhatNeedsDone => 'What needs to be done?';
+
+  @override
+  String todoReminderAt(String time) {
+    return 'Reminder: $time';
+  }
+
+  @override
+  String get todoAddReminder => 'Add reminder (optional)';
+
+  @override
+  String todoScheduledAt(String date) {
+    return 'Scheduled: $date';
+  }
+
+  @override
+  String get todoSetScheduledDate => 'Set scheduled date';
+
+  @override
+  String todoCompletedAt(String date) {
+    return 'Completed: $date';
+  }
+
+  @override
+  String get todoSetCompletedDate => 'Set completed date';
+
+  @override
+  String get weightUnitKg => 'kg';
+
+  @override
+  String weightValueKg(String value) {
+    return '$value kg';
+  }
+
+  @override
+  String get positionMissionary => 'Missionary';
+
+  @override
+  String get positionCowgirl => 'Cowgirl';
+
+  @override
+  String get positionDoggyStyle => 'Doggy Style';
+
+  @override
+  String get positionReverseCowgirl => 'Reverse Cowgirl';
+
+  @override
+  String get positionSpooning => 'Spooning';
+
+  @override
+  String get positionStanding => 'Standing';
+
+  @override
+  String get position69 => '69';
+
+  @override
+  String get positionLotus => 'Lotus';
+
+  @override
+  String get positionProneBone => 'Prone Bone';
+
+  @override
+  String get notifTodoMorning =>
+      'Good morning! Time to review and update your Todo list 📝';
+
+  @override
+  String get notifTodoCompletion =>
+      'Don\'t forget to complete your remaining tasks today!';
+
+  @override
+  String notifTodoUncompleted(int count) {
+    return 'You still have $count uncompleted tasks today!';
+  }
+
+  @override
+  String notifUpcomingRenewals(String list) {
+    return 'Upcoming renewals: $list';
+  }
+
+  @override
+  String notifSubscriptionToday(String name) {
+    return '$name(today)';
+  }
+
+  @override
+  String notifSubscriptionDays(String name, int days) {
+    return '$name(${days}d)';
+  }
+
+  @override
+  String get trayShow => 'Show';
+
+  @override
+  String get trayQuit => 'Quit';
+
+  @override
+  String get filePickerExportLocation => 'Choose export location';
+
+  @override
+  String get filePickerBackupFile => 'Choose backup file';
+
+  @override
+  String get filePickerCsvFile => 'Choose CSV file';
+
+  @override
+  String get filePickerSaveTemplate => 'Save template to';
+
+  @override
+  String get financeBalance => 'Balance';
+
+  @override
+  String get financeNewAccount => 'New Account';
+
+  @override
+  String get financeAccountTypeFund => 'Fund';
+
+  @override
+  String get financeAccountTypeCredit => 'Credit';
+
+  @override
+  String get financeAccountTypeRecharge => 'Recharge';
+
+  @override
+  String get financeAccountTypeFinancial => 'Financial';
+
+  @override
+  String get financeAccountName => 'Account Name';
+
+  @override
+  String get financeBankAppHint => 'e.g. ICBC, Alipay';
+
+  @override
+  String get financeCardNumberHint => 'Last 4 digits';
+
+  @override
+  String get financeCurrentBalanceHint =>
+      'Leave empty to calculate from transactions';
+
+  @override
+  String get financeAsOfToday => 'As of today';
+
+  @override
+  String get financeBalanceEffectiveDate => 'Balance effective date';
+
+  @override
+  String get financeFetchIcon => 'Fetch Icon';
+
+  @override
+  String get financeAccountsCategories => 'Accounts & Categories';
+
+  @override
+  String get financeEditRate => 'Edit Rate';
+
+  @override
+  String get financeNewRate => 'New Exchange Rate';
+
+  @override
+  String get financeFrom => 'From';
+
+  @override
+  String get financeTo => 'To';
+
+  @override
+  String get financeRate => 'Rate';
+
+  @override
+  String financeRateHint(String from, String to) {
+    return '1 $from = ? $to';
+  }
+
+  @override
+  String get financeNoRates => 'No exchange rates configured';
+
+  @override
+  String get financeNoExpenseData => 'No expense data for this period';
+
+  @override
+  String get financeUncategorized => 'Uncategorized';
+
+  @override
+  String get financeTotal => 'Total';
+
+  @override
+  String get financeSelectDateRange => 'Select a date range';
+
+  @override
+  String get financeNoTransactionData => 'No transaction data for this period';
+
+  @override
+  String financeReceivedAmount(String currency) {
+    return 'Received Amount ($currency)';
+  }
+
+  @override
+  String get financeReceivedAmountHelper =>
+      'Amount received in target account currency';
+
+  @override
+  String get financeNoteHint => 'What was this for?';
 }

@@ -217,12 +217,15 @@ class _AccountsPageState extends State<AccountsPage> {
     );
   }
 
-  String _accountTypeLabel(AccountType type) => switch (type) {
-        AccountType.fund => 'Fund (储蓄)',
-        AccountType.credit => 'Credit (信用)',
-        AccountType.recharge => 'Recharge (充值)',
-        AccountType.financial => 'Financial (理财)',
-      };
+  String _accountTypeLabel(AccountType type) {
+    final l10n = AppLocalizations.of(context)!;
+    return switch (type) {
+      AccountType.fund => l10n.financeAccountTypeFund,
+      AccountType.credit => l10n.financeAccountTypeCredit,
+      AccountType.recharge => l10n.financeAccountTypeRecharge,
+      AccountType.financial => l10n.financeAccountTypeFinancial,
+    };
+  }
 
   IconData _accountTypeIcon(AccountType type) => switch (type) {
         AccountType.fund => Icons.savings,
@@ -352,7 +355,7 @@ class _AccountTransactionsPageState extends State<_AccountTransactionsPage> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Balance', style: theme.textTheme.titleSmall),
+                    Text(l10n.financeBalance, style: theme.textTheme.titleSmall),
                     Text(
                       '${currencySymbol(widget.account.currency)}${NumberFormat('#,##0.00').format(balance)}',
                       style: theme.textTheme.titleLarge?.copyWith(
@@ -538,6 +541,7 @@ class _AccountDialogState extends State<_AccountDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final isEditing = widget.account != null;
 
     return Dialog(
@@ -548,37 +552,37 @@ class _AccountDialogState extends State<_AccountDialog> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              isEditing ? 'Edit Account' : 'New Account',
+              isEditing ? l10n.financeEditAccount : l10n.financeNewAccount,
               style: theme.textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
 
             // Type selector
             SegmentedButton<AccountType>(
-              segments: const [
+              segments: [
                 ButtonSegment(
                     value: AccountType.fund,
-                    label: Text('Fund'),
-                    icon: Icon(Icons.savings, size: 16)),
+                    label: Text(l10n.financeAccountTypeFund),
+                    icon: const Icon(Icons.savings, size: 16)),
                 ButtonSegment(
                     value: AccountType.credit,
-                    label: Text('Credit'),
-                    icon: Icon(Icons.credit_card, size: 16)),
+                    label: Text(l10n.financeAccountTypeCredit),
+                    icon: const Icon(Icons.credit_card, size: 16)),
               ],
               selected: {_type},
               onSelectionChanged: (s) => setState(() => _type = s.first),
             ),
             const SizedBox(height: 4),
             SegmentedButton<AccountType>(
-              segments: const [
+              segments: [
                 ButtonSegment(
                     value: AccountType.recharge,
-                    label: Text('Recharge'),
-                    icon: Icon(Icons.phone_android, size: 16)),
+                    label: Text(l10n.financeAccountTypeRecharge),
+                    icon: const Icon(Icons.phone_android, size: 16)),
                 ButtonSegment(
                     value: AccountType.financial,
-                    label: Text('Financial'),
-                    icon: Icon(Icons.trending_up, size: 16)),
+                    label: Text(l10n.financeAccountTypeFinancial),
+                    icon: const Icon(Icons.trending_up, size: 16)),
               ],
               selected: {_type},
               onSelectionChanged: (s) => setState(() => _type = s.first),
@@ -588,15 +592,15 @@ class _AccountDialogState extends State<_AccountDialog> {
             TextField(
               controller: _nameController,
               autofocus: true,
-              decoration: const InputDecoration(labelText: 'Account Name'),
+              decoration: InputDecoration(labelText: l10n.financeAccountName),
             ),
             const SizedBox(height: 12),
 
             TextField(
               controller: _bankController,
-              decoration: const InputDecoration(
-                labelText: 'Bank / App',
-                hintText: 'e.g. ICBC, Alipay',
+              decoration: InputDecoration(
+                labelText: l10n.financeBankApp,
+                hintText: l10n.financeBankAppHint,
               ),
             ),
             const SizedBox(height: 12),
@@ -604,7 +608,7 @@ class _AccountDialogState extends State<_AccountDialog> {
             // Currency dropdown
             DropdownButtonFormField<String>(
               initialValue: _currency,
-              decoration: const InputDecoration(labelText: 'Currency'),
+              decoration: InputDecoration(labelText: l10n.financeCurrency),
               items: _currencies
                   .map((c) => DropdownMenuItem(value: c, child: Text(c)))
                   .toList(),
@@ -616,17 +620,17 @@ class _AccountDialogState extends State<_AccountDialog> {
 
             TextField(
               controller: _cardController,
-              decoration: const InputDecoration(
-                labelText: 'Card Number (optional)',
-                hintText: 'Last 4 digits',
+              decoration: InputDecoration(
+                labelText: l10n.financeCardNumber,
+                hintText: l10n.financeCardNumberHint,
               ),
             ),
             const SizedBox(height: 16),
 
             // Emoji picker
-            Text('Icon', style: theme.textTheme.bodySmall),
+            Text(l10n.financeIcon, style: theme.textTheme.bodySmall),
             const SizedBox(height: 8),
-            _buildImagePreview(theme),
+            _buildImagePreview(theme, l10n),
             if (_downloadingLogo)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 4),
@@ -668,7 +672,7 @@ class _AccountDialogState extends State<_AccountDialog> {
             const SizedBox(height: 16),
 
             // Forced balance override
-            Text('Force Balance', style: theme.textTheme.bodySmall?.copyWith(
+            Text(l10n.financeForceBalance, style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.primary,
             )),
             const SizedBox(height: 8),
@@ -677,8 +681,8 @@ class _AccountDialogState extends State<_AccountDialog> {
               keyboardType: const TextInputType.numberWithOptions(
                   decimal: true, signed: true),
               decoration: InputDecoration(
-                labelText: 'Current Balance',
-                hintText: 'Leave empty to calculate from transactions',
+                labelText: l10n.financeCurrentBalance,
+                hintText: l10n.financeCurrentBalanceHint,
                 prefixText: '$_currency ',
                 prefixStyle: TextStyle(color: theme.colorScheme.onSurface),
               ),
@@ -698,10 +702,10 @@ class _AccountDialogState extends State<_AccountDialog> {
                 title: Text(
                   _forcedBalanceDate != null
                       ? '${_forcedBalanceDate!.year}-${_forcedBalanceDate!.month.toString().padLeft(2, '0')}-${_forcedBalanceDate!.day.toString().padLeft(2, '0')}'
-                      : 'As of today',
+                      : l10n.financeAsOfToday,
                   style: theme.textTheme.bodySmall,
                 ),
-                subtitle: const Text('Balance effective date'),
+                subtitle: Text(l10n.financeBalanceEffectiveDate),
                 onTap: () async {
                   final picked = await showDatePicker(
                     context: context,
@@ -722,12 +726,12 @@ class _AccountDialogState extends State<_AccountDialog> {
               children: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
+                  child: Text(l10n.commonCancel),
                 ),
                 const SizedBox(width: 8),
                 FilledButton(
                   onPressed: _submit,
-                  child: Text(isEditing ? 'Save' : 'Add'),
+                  child: Text(isEditing ? l10n.commonSave : l10n.commonAdd),
                 ),
               ],
             ),
@@ -737,7 +741,7 @@ class _AccountDialogState extends State<_AccountDialog> {
     );
   }
 
-  Widget _buildImagePreview(ThemeData theme) {
+  Widget _buildImagePreview(ThemeData theme, AppLocalizations l10n) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -781,18 +785,18 @@ class _AccountDialogState extends State<_AccountDialog> {
           children: [
             OutlinedButton.icon(
               icon: const Icon(Icons.account_balance, size: 16),
-              label: const Text('Bank Presets'),
+              label: Text(l10n.financeBankPresets),
               onPressed: _pickBankPreset,
             ),
             if (_selectedBank != null && _selectedBank!.domain.isNotEmpty && _imagePath == null && !_downloadingLogo)
               OutlinedButton.icon(
                 icon: const Icon(Icons.refresh, size: 16),
-                label: const Text('Fetch Icon'),
+                label: Text(l10n.financeFetchIcon),
                 onPressed: _fetchBankIcon,
               ),
             OutlinedButton.icon(
               icon: const Icon(Icons.image_outlined, size: 16),
-              label: Text(_imagePath != null ? 'Change' : 'Pick Image'),
+              label: Text(_imagePath != null ? l10n.commonChange : l10n.commonPickImage),
               onPressed: () async {
                 final path = await ImageService.pickAndSaveImage();
                 if (path != null) {

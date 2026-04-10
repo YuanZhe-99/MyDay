@@ -79,7 +79,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                     autofocus: true,
                     decoration: InputDecoration(
                       labelText: l10n.todoTitle,
-                      hintText: 'What needs to be done?',
+                      hintText: l10n.todoWhatNeedsDone,
                     ),
                     textInputAction: TextInputAction.done,
                     onSubmitted: (_) => _submit(),
@@ -126,8 +126,8 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
               ),
               title: Text(
                 _reminderTime != null
-                    ? 'Reminder: ${_reminderTime!.format(context)}'
-                    : 'Add reminder (optional)',
+                    ? l10n.todoReminderAt(_reminderTime!.format(context))
+                    : l10n.todoAddReminder,
               ),
               trailing: _reminderTime != null
                   ? IconButton(
@@ -234,7 +234,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                 const SizedBox(width: 8),
                 FilledButton(
                   onPressed: _submit,
-                  child: const Text('Add'),
+                  child: Text(l10n.commonAdd),
                 ),
               ],
             ),
@@ -270,7 +270,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Pick an icon',
+              Text(AppLocalizations.of(context)!.commonPickIcon,
                   style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 12),
               GridView.builder(
@@ -316,7 +316,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                     setState(() => _selectedEmoji = null);
                     Navigator.pop(context);
                   },
-                  child: const Text('Remove icon'),
+                  child: Text(AppLocalizations.of(context)!.commonRemoveIcon),
                 ),
               ),
             ],

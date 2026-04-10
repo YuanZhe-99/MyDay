@@ -110,9 +110,9 @@ class _TodoPageState extends State<TodoPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const ListTile(
-                    leading: Icon(Icons.notifications_active),
-                    title: Text('Daily Reminders'),
+                  ListTile(
+                    leading: const Icon(Icons.notifications_active),
+                    title: Text(AppLocalizations.of(ctx)?.todoDailyReminders ?? 'Daily Reminders'),
                   ),
                   const Divider(height: 1),
 
@@ -122,7 +122,7 @@ class _TodoPageState extends State<TodoPage> {
                     title: Text(AppLocalizations.of(ctx)?.todoMorningReminder ?? 'Morning Plan'),
                     subtitle: Text(_morningReminderTime != null
                         ? _morningReminderTime!.format(ctx)
-                        : 'Remind to review today\'s Todo list'),
+                        : AppLocalizations.of(ctx)?.todoRemindReviewHint ?? 'Remind to review today\'s Todo list'),
                     trailing: _morningReminderTime != null
                         ? IconButton(
                             icon: Icon(Icons.close,
@@ -155,7 +155,7 @@ class _TodoPageState extends State<TodoPage> {
                     title: Text(AppLocalizations.of(ctx)?.todoCompletionReminder ?? 'Completion Check'),
                     subtitle: Text(_completionReminderTime != null
                         ? _completionReminderTime!.format(ctx)
-                        : 'Remind if tasks are still undone'),
+                        : AppLocalizations.of(ctx)?.todoRemindUndoneHint ?? 'Remind if tasks are still undone'),
                     trailing: _completionReminderTime != null
                         ? IconButton(
                             icon: Icon(Icons.close,
@@ -499,7 +499,7 @@ class _TodoPageState extends State<TodoPage> {
                   ? Theme.of(context).colorScheme.primary
                   : null,
             ),
-            tooltip: 'Daily Reminders',
+            tooltip: l10n.todoDailyReminders,
             onPressed: _showDailyReminderSettings,
           ),
         ],
@@ -534,7 +534,7 @@ class _TodoPageState extends State<TodoPage> {
                         ),
                         if (!_isToday)
                           Text(
-                            'Tap to return to today',
+                            l10n.todoTapReturnToday,
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: theme.colorScheme.primary,
                               fontSize: 11,
@@ -547,7 +547,7 @@ class _TodoPageState extends State<TodoPage> {
                 IconButton(
                   icon: const Icon(Icons.calendar_month),
                   onPressed: _showCalendar,
-                  tooltip: 'Calendar',
+                  tooltip: l10n.todoCalendar,
                 ),
                 IconButton(
                   icon: const Icon(Icons.chevron_right),
@@ -652,6 +652,7 @@ class _CalendarDialogState extends State<_CalendarDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final today = DateTime.now();
     final firstDayOfMonth = DateTime(_viewMonth.year, _viewMonth.month, 1);
     final daysInMonth =
@@ -689,7 +690,7 @@ class _CalendarDialogState extends State<_CalendarDialog> {
 
             // Weekday headers
             Row(
-              children: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+              children: [l10n.todoWeekMon, l10n.todoWeekTue, l10n.todoWeekWed, l10n.todoWeekThu, l10n.todoWeekFri, l10n.todoWeekSat, l10n.todoWeekSun]
                   .map((d) => Expanded(
                         child: Center(
                           child: Text(
@@ -792,17 +793,17 @@ class _CalendarDialogState extends State<_CalendarDialog> {
                 Icon(Icons.circle,
                     size: 6, color: theme.colorScheme.outline),
                 const SizedBox(width: 4),
-                Text('Some daily', style: theme.textTheme.bodySmall),
+                Text(l10n.todoCalendarSomeDaily, style: theme.textTheme.bodySmall),
                 const SizedBox(width: 12),
                 Icon(Icons.circle,
                     size: 6, color: theme.colorScheme.tertiary),
                 const SizedBox(width: 4),
-                Text('All daily', style: theme.textTheme.bodySmall),
+                Text(l10n.todoCalendarAllDaily, style: theme.textTheme.bodySmall),
                 const SizedBox(width: 12),
                 Icon(Icons.check_circle,
                     size: 8, color: theme.colorScheme.primary),
                 const SizedBox(width: 4),
-                Text('All done', style: theme.textTheme.bodySmall),
+                Text(l10n.todoCalendarAllDone, style: theme.textTheme.bodySmall),
               ],
             ),
           ],

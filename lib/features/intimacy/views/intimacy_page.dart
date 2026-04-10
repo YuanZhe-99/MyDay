@@ -175,7 +175,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.timer_outlined),
-            tooltip: 'Timer',
+            tooltip: AppLocalizations.of(context)!.intimacyTimer,
             onPressed: () async {
               final result = await Navigator.push<TimerPageResult>(
                 context,
@@ -214,7 +214,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
           ),
           IconButton(
             icon: const Icon(Icons.settings_outlined),
-            tooltip: 'Manage',
+            tooltip: AppLocalizations.of(context)!.intimacyManage,
             onPressed: () => _showManageMenu(context),
           ),
         ],
@@ -415,36 +415,48 @@ class _IntimacyPageState extends State<IntimacyPage> {
 
   /// Build EWMA smoothed curve for pleasure level.
   /// Uses adaptive alpha based on time gap with half-life of [halfLifeDays].
-  List<FlSpot> _buildEwmaPleasureSpots(List<IntimacyRecord> data, {double halfLifeDays = 7}) {
-    if (data.isEmpty) return [];
+  /// Processes [allData] for warm-up but only emits spots at/after [visibleFrom].
+  List<FlSpot> _buildEwmaPleasureSpots(
+    List<IntimacyRecord> allData,
+    DateTime visibleFrom, {
+    double halfLifeDays = 7,
+  }) {
+    if (allData.isEmpty) return [];
     final tau = halfLifeDays * 86400 * 1000; // half-life in ms
     final spots = <FlSpot>[];
-    double ewma = data.first.pleasureLevel.toDouble();
-    DateTime prevTime = data.first.datetime;
+    double ewma = allData.first.pleasureLevel.toDouble();
+    DateTime prevTime = allData.first.datetime;
 
-    for (final r in data) {
+    for (final r in allData) {
       final dtMs = r.datetime.difference(prevTime).inMilliseconds.toDouble();
       final alpha = 1.0 - math.exp(-dtMs / tau);
       ewma = alpha * r.pleasureLevel + (1 - alpha) * ewma;
-      spots.add(FlSpot(
-        r.datetime.millisecondsSinceEpoch.toDouble(),
-        ewma,
-      ));
+      if (!r.datetime.isBefore(visibleFrom)) {
+        spots.add(FlSpot(
+          r.datetime.millisecondsSinceEpoch.toDouble(),
+          ewma,
+        ));
+      }
       prevTime = r.datetime;
     }
     return spots;
   }
 
   /// Build EWMA smoothed curve for frequency (records per week).
-  List<FlSpot> _buildEwmaFrequencySpots(List<IntimacyRecord> data, {double halfLifeDays = 14}) {
-    if (data.isEmpty) return [];
+  /// Processes [allData] for warm-up but only emits spots at/after [visibleFrom].
+  List<FlSpot> _buildEwmaFrequencySpots(
+    List<IntimacyRecord> allData,
+    DateTime visibleFrom, {
+    double halfLifeDays = 14,
+  }) {
+    if (allData.isEmpty) return [];
     final tau = halfLifeDays * 86400 * 1000;
     final spots = <FlSpot>[];
-    double ewma = 1.0; // initial estimate: 1 per period
-    DateTime prevTime = data.first.datetime;
+    double ewma = 1.0; // initial estimate: 1 per week
+    DateTime prevTime = allData.first.datetime;
 
-    for (int i = 0; i < data.length; i++) {
-      final r = data[i];
+    for (int i = 0; i < allData.length; i++) {
+      final r = allData[i];
       final dtMs = r.datetime.difference(prevTime).inMilliseconds.toDouble();
       if (dtMs > 0) {
         // Instantaneous rate: 7 days / gap = records per week
@@ -452,10 +464,12 @@ class _IntimacyPageState extends State<IntimacyPage> {
         final alpha = 1.0 - math.exp(-dtMs / tau);
         ewma = alpha * rate + (1 - alpha) * ewma;
       }
-      spots.add(FlSpot(
-        r.datetime.millisecondsSinceEpoch.toDouble(),
-        ewma,
-      ));
+      if (!r.datetime.isBefore(visibleFrom)) {
+        spots.add(FlSpot(
+          r.datetime.millisecondsSinceEpoch.toDouble(),
+          ewma,
+        ));
+      }
       prevTime = r.datetime;
     }
     return spots;
@@ -473,8 +487,11 @@ class _IntimacyPageState extends State<IntimacyPage> {
     };
 
     final data = _chartRecords;
-    final pleasureSpots = _buildEwmaPleasureSpots(data);
-    final frequencySpots = _buildEwmaFrequencySpots(data);
+    final allSorted = List<IntimacyRecord>.from(_records)
+      ..sort((a, b) => a.datetime.compareTo(b.datetime));
+    final cutoff = data.isNotEmpty ? data.first.datetime : DateTime.now();
+    final pleasureSpots = _buildEwmaPleasureSpots(allSorted, cutoff);
+    final frequencySpots = _buildEwmaFrequencySpots(allSorted, cutoff);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -529,7 +546,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
           SizedBox(
             height: 180,
             child: data.length < 2
-                ? Center(child: Text(l10n.intimacyNoRecords,
+                ? Center(child: Text(l10n.intimacyChartNoData,
                     style: TextStyle(color: theme.colorScheme.onSurfaceVariant)))
                 : _buildChart(theme, pleasureSpots, frequencySpots, data),
           ),
@@ -573,10 +590,12 @@ class _IntimacyPageState extends State<IntimacyPage> {
               interval: _chartDateInterval(data),
               getTitlesWidget: (value, meta) {
                 final date = DateTime.fromMillisecondsSinceEpoch(value.toInt());
+                final spanDays = data.last.datetime.difference(data.first.datetime).inDays;
+                final fmt = spanDays > 30 ? DateFormat('M/d') : DateFormat('MMM d');
                 return SideTitleWidget(
                   meta: meta,
                   child: Text(
-                    DateFormat('MMM d').format(date),
+                    fmt.format(date),
                     style: theme.textTheme.labelSmall?.copyWith(fontSize: 9),
                   ),
                 );
@@ -678,10 +697,10 @@ class _IntimacyPageState extends State<IntimacyPage> {
     const day = 86400 * 1000.0;
     if (spanDays <= 7) return day;
     if (spanDays <= 30) return 7 * day;
-    if (spanDays <= 90) return 14 * day;
-    if (spanDays <= 180) return 30 * day;
-    if (spanDays <= 365) return 60 * day;
-    return 90 * day;
+    if (spanDays <= 90) return 21 * day;
+    if (spanDays <= 180) return 45 * day;
+    if (spanDays <= 365) return 90 * day;
+    return 120 * day;
   }
 
   void _showManageMenu(BuildContext context) {
@@ -1331,7 +1350,7 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
         if (imagePath != null) const SizedBox(width: 8),
         OutlinedButton.icon(
           icon: const Icon(Icons.image_outlined, size: 16),
-          label: Text(imagePath != null ? 'Change' : 'Pick Image'),
+          label: Text(imagePath != null ? AppLocalizations.of(context)!.commonChange : AppLocalizations.of(context)!.commonPickImage),
           onPressed: () async {
             final path = await ImageService.pickAndSaveImage();
             if (path != null) onChanged(path);
@@ -1690,7 +1709,7 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
         if (imagePath != null) const SizedBox(width: 8),
         OutlinedButton.icon(
           icon: const Icon(Icons.image_outlined, size: 16),
-          label: Text(imagePath != null ? 'Change' : 'Pick Image'),
+          label: Text(imagePath != null ? AppLocalizations.of(context)!.commonChange : AppLocalizations.of(context)!.commonPickImage),
           onPressed: () async {
             final path = await ImageService.pickAndSaveImage();
             if (path != null) onChanged(path);
@@ -1818,18 +1837,6 @@ class _PositionManagementPageState extends State<_PositionManagementPage> {
     '🔀', '🎯', '🧘', '🤸', '🏋️', '🧗', '💃', '✨',
   ];
 
-  static const _defaultPositions = [
-    {'name': 'Missionary', 'emoji': '🔝'},
-    {'name': 'Cowgirl', 'emoji': '🤠'},
-    {'name': 'Doggy Style', 'emoji': '🐕'},
-    {'name': 'Reverse Cowgirl', 'emoji': '🔄'},
-    {'name': 'Spooning', 'emoji': '🌙'},
-    {'name': 'Standing', 'emoji': '🧗'},
-    {'name': '69', 'emoji': '🔀'},
-    {'name': 'Lotus', 'emoji': '🧘'},
-    {'name': 'Prone Bone', 'emoji': '🦋'},
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -1846,9 +1853,21 @@ class _PositionManagementPageState extends State<_PositionManagementPage> {
   }
 
   void _importDefaults() {
+    final l10n = AppLocalizations.of(context)!;
+    final defaultPositions = [
+      {'name': l10n.positionMissionary, 'emoji': '🔝'},
+      {'name': l10n.positionCowgirl, 'emoji': '🤠'},
+      {'name': l10n.positionDoggyStyle, 'emoji': '🐕'},
+      {'name': l10n.positionReverseCowgirl, 'emoji': '🔄'},
+      {'name': l10n.positionSpooning, 'emoji': '🌙'},
+      {'name': l10n.positionStanding, 'emoji': '🧗'},
+      {'name': l10n.position69, 'emoji': '🔀'},
+      {'name': l10n.positionLotus, 'emoji': '🧘'},
+      {'name': l10n.positionProneBone, 'emoji': '🦋'},
+    ];
     final existingNames = _positions.map((p) => p.name.toLowerCase()).toSet();
     var added = 0;
-    for (final preset in _defaultPositions) {
+    for (final preset in defaultPositions) {
       if (!existingNames.contains((preset['name'] as String).toLowerCase())) {
         _positions.add(Position(
           name: preset['name'] as String,

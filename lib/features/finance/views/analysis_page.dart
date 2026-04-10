@@ -151,9 +151,9 @@ class _AnalysisPageState extends State<AnalysisPage>
         centerTitle: true,
         bottom: TabBar(
           controller: _tabController,
-          tabs: const [
-            Tab(text: 'Categories'),
-            Tab(text: 'Trends'),
+          tabs: [
+            Tab(text: AppLocalizations.of(context)!.financeCategories),
+            Tab(text: AppLocalizations.of(context)!.financeTrends),
           ],
         ),
       ),
@@ -232,7 +232,7 @@ class _AnalysisPageState extends State<AnalysisPage>
 
     if (expenses.isEmpty) {
       return Center(
-        child: Text('No expense data for this period',
+        child: Text(AppLocalizations.of(context)!.financeNoExpenseData,
             style: theme.textTheme.bodyLarge?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             )),
@@ -284,6 +284,8 @@ class _AnalysisPageState extends State<AnalysisPage>
           catName = cat.name;
           catEmoji = cat.emoji;
         }
+      } else {
+        catName = AppLocalizations.of(context)!.financeUncategorized;
       }
 
       return MapEntry(catName, (color: color, amount: amount, emoji: catEmoji));
@@ -311,7 +313,7 @@ class _AnalysisPageState extends State<AnalysisPage>
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Total', style: theme.textTheme.titleSmall),
+              Text(AppLocalizations.of(context)!.financeTotal, style: theme.textTheme.titleSmall),
               Text(
                 '$sym${nf.format(total)}',
                 style: theme.textTheme.titleMedium?.copyWith(
@@ -387,7 +389,7 @@ class _AnalysisPageState extends State<AnalysisPage>
       case _TimeRange.custom:
         if (_customRange == null) {
           return Center(
-            child: Text('Select a date range',
+            child: Text(AppLocalizations.of(context)!.financeSelectDateRange,
                 style: theme.textTheme.bodyLarge?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant)),
           );
@@ -437,7 +439,7 @@ class _AnalysisPageState extends State<AnalysisPage>
 
     if (maxY == 0) {
       return Center(
-        child: Text('No transaction data for this period',
+        child: Text(AppLocalizations.of(context)!.financeNoTransactionData,
             style: theme.textTheme.bodyLarge?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             )),
@@ -459,9 +461,9 @@ class _AnalysisPageState extends State<AnalysisPage>
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _legendDot(Colors.redAccent, 'Expense'),
+              _legendDot(Colors.redAccent, AppLocalizations.of(context)!.financeExpense),
               const SizedBox(width: 24),
-              _legendDot(Colors.green, 'Income'),
+              _legendDot(Colors.green, AppLocalizations.of(context)!.financeIncome),
             ],
           ),
           const SizedBox(height: 16),
@@ -536,7 +538,7 @@ class _AnalysisPageState extends State<AnalysisPage>
                   touchTooltipData: LineTouchTooltipData(
                     getTooltipItems: (spots) => spots.map((s) {
                       final label =
-                          s.barIndex == 0 ? 'Expense' : 'Income';
+                          s.barIndex == 0 ? AppLocalizations.of(context)!.financeExpense : AppLocalizations.of(context)!.financeIncome;
                       return LineTooltipItem(
                         '$label: ${currencySymbol(widget.defaultCurrency)}${s.y.toStringAsFixed(0)}',
                         TextStyle(

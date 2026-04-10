@@ -96,7 +96,7 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
                     autofocus: true,
                     decoration: InputDecoration(
                       labelText: l10n.todoTitle,
-                      hintText: 'What needs to be done?',
+                      hintText: l10n.todoWhatNeedsDone,
                     ),
                     textInputAction: TextInputAction.done,
                     onSubmitted: (_) => _submit(),
@@ -143,8 +143,8 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
               ),
               title: Text(
                 _reminderTime != null
-                    ? 'Reminder: ${_reminderTime!.format(context)}'
-                    : 'Add reminder (optional)',
+                    ? l10n.todoReminderAt(_reminderTime!.format(context))
+                    : l10n.todoAddReminder,
               ),
               trailing: _reminderTime != null
                   ? IconButton(
@@ -172,8 +172,8 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
                 leading: const Icon(Icons.event),
                 title: Text(
                   _scheduledDate != null
-                      ? 'Scheduled: ${_scheduledDate!.year}-${_scheduledDate!.month.toString().padLeft(2, '0')}-${_scheduledDate!.day.toString().padLeft(2, '0')}'
-                      : 'Set scheduled date',
+                      ? l10n.todoScheduledAt('${_scheduledDate!.year}-${_scheduledDate!.month.toString().padLeft(2, '0')}-${_scheduledDate!.day.toString().padLeft(2, '0')}')
+                      : l10n.todoSetScheduledDate,
                 ),
                 onTap: () async {
                   final picked = await showDatePicker(
@@ -228,8 +228,8 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
                     color: theme.colorScheme.primary),
                 title: Text(
                   _completedDate != null
-                      ? 'Completed: ${_completedDate!.year}-${_completedDate!.month.toString().padLeft(2, '0')}-${_completedDate!.day.toString().padLeft(2, '0')}'
-                      : 'Set completed date',
+                      ? l10n.todoCompletedAt('${_completedDate!.year}-${_completedDate!.month.toString().padLeft(2, '0')}-${_completedDate!.day.toString().padLeft(2, '0')}')
+                      : l10n.todoSetCompletedDate,
                 ),
                 onTap: () async {
                   final picked = await showDatePicker(
@@ -458,7 +458,7 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Pick an icon',
+              Text(AppLocalizations.of(context)!.commonPickIcon,
                   style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 12),
               GridView.builder(
@@ -504,7 +504,7 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
                     setState(() => _selectedEmoji = null);
                     Navigator.pop(context);
                   },
-                  child: const Text('Remove icon'),
+                  child: Text(AppLocalizations.of(context)!.commonRemoveIcon),
                 ),
               ),
             ],

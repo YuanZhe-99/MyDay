@@ -143,6 +143,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get financeCategories => '分类';
 
   @override
+  String get financeTrends => '趋势';
+
+  @override
   String get financeAnalysis => '分析';
 
   @override
@@ -215,10 +218,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get financeName => '名称';
 
   @override
-  String get financeBankApp => '银行/应用';
+  String get financeBankApp => '银行 / 应用';
 
   @override
-  String get financeCardNumber => '卡号';
+  String get financeCardNumber => '卡号（可选）';
 
   @override
   String get financeExpiry => '有效期';
@@ -370,7 +373,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get intimacyTimer => '计时器';
 
   @override
-  String get intimacyNoRecords => '数据不足';
+  String get intimacyNoRecords => '暂无记录';
 
   @override
   String get intimacyNoPartners => '暂无伴侣';
@@ -1148,10 +1151,270 @@ class AppLocalizationsZh extends AppLocalizations {
   String get intimacyFrequency => '频率';
 
   @override
+  String get intimacyChartNoData => '数据不足';
+
+  @override
   String get weightTrend => '趋势';
 
   @override
   String get weightRaw => '实际';
+
+  @override
+  String get commonChange => '更换';
+
+  @override
+  String get commonPickImage => '选择图片';
+
+  @override
+  String get commonRemoveIcon => '移除图标';
+
+  @override
+  String get commonPickIcon => '选择图标';
+
+  @override
+  String get commonNoData => '暂无数据';
+
+  @override
+  String get todoDailyReminders => '每日提醒';
+
+  @override
+  String get todoRemindReviewHint => '提醒查看今天的待办事项';
+
+  @override
+  String get todoRemindUndoneHint => '提醒未完成的任务';
+
+  @override
+  String get todoTapReturnToday => '点击返回今天';
+
+  @override
+  String get todoCalendar => '日历';
+
+  @override
+  String get todoWeekMon => '周一';
+
+  @override
+  String get todoWeekTue => '周二';
+
+  @override
+  String get todoWeekWed => '周三';
+
+  @override
+  String get todoWeekThu => '周四';
+
+  @override
+  String get todoWeekFri => '周五';
+
+  @override
+  String get todoWeekSat => '周六';
+
+  @override
+  String get todoWeekSun => '周日';
+
+  @override
+  String get todoCalendarSomeDaily => '部分完成';
+
+  @override
+  String get todoCalendarAllDaily => '日常全完成';
+
+  @override
+  String get todoCalendarAllDone => '全部完成';
+
+  @override
+  String get todoWhatNeedsDone => '需要做什么？';
+
+  @override
+  String todoReminderAt(String time) {
+    return '提醒：$time';
+  }
+
+  @override
+  String get todoAddReminder => '添加提醒（可选）';
+
+  @override
+  String todoScheduledAt(String date) {
+    return '计划：$date';
+  }
+
+  @override
+  String get todoSetScheduledDate => '设定计划日期';
+
+  @override
+  String todoCompletedAt(String date) {
+    return '完成：$date';
+  }
+
+  @override
+  String get todoSetCompletedDate => '设定完成日期';
+
+  @override
+  String get weightUnitKg => 'kg';
+
+  @override
+  String weightValueKg(String value) {
+    return '$value kg';
+  }
+
+  @override
+  String get positionMissionary => '传教士式';
+
+  @override
+  String get positionCowgirl => '骑乘式';
+
+  @override
+  String get positionDoggyStyle => '后入式';
+
+  @override
+  String get positionReverseCowgirl => '反骑乘式';
+
+  @override
+  String get positionSpooning => '侧入式';
+
+  @override
+  String get positionStanding => '站立式';
+
+  @override
+  String get position69 => '69式';
+
+  @override
+  String get positionLotus => '莲花式';
+
+  @override
+  String get positionProneBone => '趴伏式';
+
+  @override
+  String get notifTodoMorning => '早上好！是时候查看和更新您的待办事项了 📝';
+
+  @override
+  String get notifTodoCompletion => '别忘了完成今天剩余的任务！';
+
+  @override
+  String notifTodoUncompleted(int count) {
+    return '今天还有 $count 项任务未完成！';
+  }
+
+  @override
+  String notifUpcomingRenewals(String list) {
+    return '即将续费：$list';
+  }
+
+  @override
+  String notifSubscriptionToday(String name) {
+    return '$name（今天）';
+  }
+
+  @override
+  String notifSubscriptionDays(String name, int days) {
+    return '$name（$days天后）';
+  }
+
+  @override
+  String get trayShow => '显示';
+
+  @override
+  String get trayQuit => '退出';
+
+  @override
+  String get filePickerExportLocation => '选择导出位置';
+
+  @override
+  String get filePickerBackupFile => '选择备份文件';
+
+  @override
+  String get filePickerCsvFile => '选择 CSV 文件';
+
+  @override
+  String get filePickerSaveTemplate => '保存模板到';
+
+  @override
+  String get financeBalance => '余额';
+
+  @override
+  String get financeNewAccount => '新建账户';
+
+  @override
+  String get financeAccountTypeFund => '储蓄';
+
+  @override
+  String get financeAccountTypeCredit => '信用';
+
+  @override
+  String get financeAccountTypeRecharge => '充值';
+
+  @override
+  String get financeAccountTypeFinancial => '理财';
+
+  @override
+  String get financeAccountName => '账户名称';
+
+  @override
+  String get financeBankAppHint => '例如工行、支付宝';
+
+  @override
+  String get financeCardNumberHint => '后四位';
+
+  @override
+  String get financeCurrentBalanceHint => '留空则根据交易计算';
+
+  @override
+  String get financeAsOfToday => '截止今天';
+
+  @override
+  String get financeBalanceEffectiveDate => '余额生效日期';
+
+  @override
+  String get financeFetchIcon => '获取图标';
+
+  @override
+  String get financeAccountsCategories => '账户与分类';
+
+  @override
+  String get financeEditRate => '编辑汇率';
+
+  @override
+  String get financeNewRate => '新建汇率';
+
+  @override
+  String get financeFrom => '从';
+
+  @override
+  String get financeTo => '到';
+
+  @override
+  String get financeRate => '汇率';
+
+  @override
+  String financeRateHint(String from, String to) {
+    return '1 $from = ? $to';
+  }
+
+  @override
+  String get financeNoRates => '未配置汇率';
+
+  @override
+  String get financeNoExpenseData => '该时段无支出数据';
+
+  @override
+  String get financeUncategorized => '未分类';
+
+  @override
+  String get financeTotal => '合计';
+
+  @override
+  String get financeSelectDateRange => '选择日期范围';
+
+  @override
+  String get financeNoTransactionData => '该时段无交易数据';
+
+  @override
+  String financeReceivedAmount(String currency) {
+    return '到账金额 ($currency)';
+  }
+
+  @override
+  String get financeReceivedAmountHelper => '目标账户币种的到账金额';
+
+  @override
+  String get financeNoteHint => '这笔钱用于？';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -1293,6 +1556,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get financeCategories => '分類';
 
   @override
+  String get financeTrends => '趨勢';
+
+  @override
   String get financeAnalysis => '分析';
 
   @override
@@ -1365,10 +1631,10 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get financeName => '名稱';
 
   @override
-  String get financeBankApp => '銀行/應用';
+  String get financeBankApp => '銀行 / App';
 
   @override
-  String get financeCardNumber => '卡號';
+  String get financeCardNumber => '卡號（選填）';
 
   @override
   String get financeExpiry => '有效期';
@@ -1520,7 +1786,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get intimacyTimer => '計時器';
 
   @override
-  String get intimacyNoRecords => '資料不足';
+  String get intimacyNoRecords => '暫無記錄';
 
   @override
   String get intimacyNoPartners => '暫無伴侶';
@@ -2298,8 +2564,268 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get intimacyFrequency => '頻率';
 
   @override
+  String get intimacyChartNoData => '資料不足';
+
+  @override
   String get weightTrend => '趨勢';
 
   @override
   String get weightRaw => '實際';
+
+  @override
+  String get commonChange => '更換';
+
+  @override
+  String get commonPickImage => '選擇圖片';
+
+  @override
+  String get commonRemoveIcon => '移除圖示';
+
+  @override
+  String get commonPickIcon => '選擇圖示';
+
+  @override
+  String get commonNoData => '無資料';
+
+  @override
+  String get todoDailyReminders => '每日提醒';
+
+  @override
+  String get todoRemindReviewHint => '提醒查看今日待辦事項';
+
+  @override
+  String get todoRemindUndoneHint => '提醒未完成的任務';
+
+  @override
+  String get todoTapReturnToday => '點擊返回今天';
+
+  @override
+  String get todoCalendar => '日曆';
+
+  @override
+  String get todoWeekMon => '一';
+
+  @override
+  String get todoWeekTue => '二';
+
+  @override
+  String get todoWeekWed => '三';
+
+  @override
+  String get todoWeekThu => '四';
+
+  @override
+  String get todoWeekFri => '五';
+
+  @override
+  String get todoWeekSat => '六';
+
+  @override
+  String get todoWeekSun => '日';
+
+  @override
+  String get todoCalendarSomeDaily => '部分完成';
+
+  @override
+  String get todoCalendarAllDaily => '日常全完成';
+
+  @override
+  String get todoCalendarAllDone => '全部完成';
+
+  @override
+  String get todoWhatNeedsDone => '需要做什麼？';
+
+  @override
+  String todoReminderAt(String time) {
+    return '提醒: $time';
+  }
+
+  @override
+  String get todoAddReminder => '新增提醒（選填）';
+
+  @override
+  String todoScheduledAt(String date) {
+    return '排程: $date';
+  }
+
+  @override
+  String get todoSetScheduledDate => '設定排程日期';
+
+  @override
+  String todoCompletedAt(String date) {
+    return '完成: $date';
+  }
+
+  @override
+  String get todoSetCompletedDate => '設定完成日期';
+
+  @override
+  String get weightUnitKg => 'kg';
+
+  @override
+  String weightValueKg(String value) {
+    return '$value kg';
+  }
+
+  @override
+  String get positionMissionary => '傳教士式';
+
+  @override
+  String get positionCowgirl => '騎乘式';
+
+  @override
+  String get positionDoggyStyle => '後入式';
+
+  @override
+  String get positionReverseCowgirl => '反騎乘式';
+
+  @override
+  String get positionSpooning => '側入式';
+
+  @override
+  String get positionStanding => '站立式';
+
+  @override
+  String get position69 => '69式';
+
+  @override
+  String get positionLotus => '蓮花式';
+
+  @override
+  String get positionProneBone => '趴伏式';
+
+  @override
+  String get notifTodoMorning => '早安！是時候查看和更新您的待辦事項了 📝';
+
+  @override
+  String get notifTodoCompletion => '別忘了完成今天剩餘的任務！';
+
+  @override
+  String notifTodoUncompleted(int count) {
+    return '今天還有 $count 個任務未完成！';
+  }
+
+  @override
+  String notifUpcomingRenewals(String list) {
+    return '即將續費: $list';
+  }
+
+  @override
+  String notifSubscriptionToday(String name) {
+    return '$name（今天）';
+  }
+
+  @override
+  String notifSubscriptionDays(String name, int days) {
+    return '$name（$days天後）';
+  }
+
+  @override
+  String get trayShow => '顯示';
+
+  @override
+  String get trayQuit => '退出';
+
+  @override
+  String get filePickerExportLocation => '選擇匯出位置';
+
+  @override
+  String get filePickerBackupFile => '選擇備份檔案';
+
+  @override
+  String get filePickerCsvFile => '選擇CSV檔案';
+
+  @override
+  String get filePickerSaveTemplate => '儲存範本到';
+
+  @override
+  String get financeBalance => '餘額';
+
+  @override
+  String get financeNewAccount => '新增帳戶';
+
+  @override
+  String get financeAccountTypeFund => '活存';
+
+  @override
+  String get financeAccountTypeCredit => '信用卡';
+
+  @override
+  String get financeAccountTypeRecharge => '儲值';
+
+  @override
+  String get financeAccountTypeFinancial => '理財';
+
+  @override
+  String get financeAccountName => '帳戶名稱';
+
+  @override
+  String get financeBankAppHint => '例如：玉山銀行、街口支付';
+
+  @override
+  String get financeCardNumberHint => '末4碼';
+
+  @override
+  String get financeCurrentBalanceHint => '留空則從交易記錄計算';
+
+  @override
+  String get financeAsOfToday => '截至今日';
+
+  @override
+  String get financeBalanceEffectiveDate => '餘額生效日期';
+
+  @override
+  String get financeFetchIcon => '取得圖示';
+
+  @override
+  String get financeAccountsCategories => '帳戶與分類';
+
+  @override
+  String get financeEditRate => '編輯匯率';
+
+  @override
+  String get financeNewRate => '新增匯率';
+
+  @override
+  String get financeFrom => '從';
+
+  @override
+  String get financeTo => '到';
+
+  @override
+  String get financeRate => '匯率';
+
+  @override
+  String financeRateHint(String from, String to) {
+    return '1 $from = ? $to';
+  }
+
+  @override
+  String get financeNoRates => '尚未設定匯率';
+
+  @override
+  String get financeNoExpenseData => '此期間無支出資料';
+
+  @override
+  String get financeUncategorized => '未分類';
+
+  @override
+  String get financeTotal => '合計';
+
+  @override
+  String get financeSelectDateRange => '選擇日期範圍';
+
+  @override
+  String get financeNoTransactionData => '此期間無交易資料';
+
+  @override
+  String financeReceivedAmount(String currency) {
+    return '入帳金額 ($currency)';
+  }
+
+  @override
+  String get financeReceivedAmountHelper => '對方帳戶幣別的入帳金額';
+
+  @override
+  String get financeNoteHint => '這筆是為了什麼？';
 }

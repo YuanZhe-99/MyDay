@@ -143,6 +143,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get financeCategories => 'カテゴリ';
 
   @override
+  String get financeTrends => 'トレンド';
+
+  @override
   String get financeAnalysis => '分析';
 
   @override
@@ -194,7 +197,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get financeNoTransactions => '取引なし';
 
   @override
-  String get financeForceBalance => '残高を強制設定';
+  String get financeForceBalance => '残高を固定';
 
   @override
   String get financeCurrentBalance => '現在の残高';
@@ -215,10 +218,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get financeName => '名前';
 
   @override
-  String get financeBankApp => '銀行/アプリ';
+  String get financeBankApp => '銀行 / アプリ';
 
   @override
-  String get financeCardNumber => 'カード番号';
+  String get financeCardNumber => 'カード番号（任意）';
 
   @override
   String get financeExpiry => '有効期限';
@@ -349,7 +352,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get intimacyEditToy => 'トイを編集';
 
   @override
-  String get intimacyPleasure => '快感';
+  String get intimacyPleasure => '満足度';
 
   @override
   String get intimacyDuration => '時間';
@@ -370,7 +373,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get intimacyTimer => 'タイマー';
 
   @override
-  String get intimacyNoRecords => 'データ不足';
+  String get intimacyNoRecords => '記録なし';
 
   @override
   String get intimacyNoPartners => 'パートナーなし';
@@ -1150,8 +1153,268 @@ class AppLocalizationsJa extends AppLocalizations {
   String get intimacyFrequency => '頻度';
 
   @override
+  String get intimacyChartNoData => 'データ不足';
+
+  @override
   String get weightTrend => 'トレンド';
 
   @override
   String get weightRaw => '実測';
+
+  @override
+  String get commonChange => '変更';
+
+  @override
+  String get commonPickImage => '画像を選択';
+
+  @override
+  String get commonRemoveIcon => 'アイコンを削除';
+
+  @override
+  String get commonPickIcon => 'アイコンを選択';
+
+  @override
+  String get commonNoData => 'データなし';
+
+  @override
+  String get todoDailyReminders => '毎日リマインダー';
+
+  @override
+  String get todoRemindReviewHint => 'Todoリストを確認するリマインダー';
+
+  @override
+  String get todoRemindUndoneHint => '未完了タスクのリマインダー';
+
+  @override
+  String get todoTapReturnToday => 'タップで今日に戻る';
+
+  @override
+  String get todoCalendar => 'カレンダー';
+
+  @override
+  String get todoWeekMon => '月';
+
+  @override
+  String get todoWeekTue => '火';
+
+  @override
+  String get todoWeekWed => '水';
+
+  @override
+  String get todoWeekThu => '木';
+
+  @override
+  String get todoWeekFri => '金';
+
+  @override
+  String get todoWeekSat => '土';
+
+  @override
+  String get todoWeekSun => '日';
+
+  @override
+  String get todoCalendarSomeDaily => '一部完了';
+
+  @override
+  String get todoCalendarAllDaily => '日課全完了';
+
+  @override
+  String get todoCalendarAllDone => '全完了';
+
+  @override
+  String get todoWhatNeedsDone => '何をする必要がありますか？';
+
+  @override
+  String todoReminderAt(String time) {
+    return 'リマインダー: $time';
+  }
+
+  @override
+  String get todoAddReminder => 'リマインダーを追加（任意）';
+
+  @override
+  String todoScheduledAt(String date) {
+    return '予定: $date';
+  }
+
+  @override
+  String get todoSetScheduledDate => '予定日を設定';
+
+  @override
+  String todoCompletedAt(String date) {
+    return '完了: $date';
+  }
+
+  @override
+  String get todoSetCompletedDate => '完了日を設定';
+
+  @override
+  String get weightUnitKg => 'kg';
+
+  @override
+  String weightValueKg(String value) {
+    return '$value kg';
+  }
+
+  @override
+  String get positionMissionary => '正常位';
+
+  @override
+  String get positionCowgirl => '騎乗位';
+
+  @override
+  String get positionDoggyStyle => 'バック';
+
+  @override
+  String get positionReverseCowgirl => '背面騎乗位';
+
+  @override
+  String get positionSpooning => '横向き';
+
+  @override
+  String get positionStanding => '立位';
+
+  @override
+  String get position69 => '69';
+
+  @override
+  String get positionLotus => '蓮華座';
+
+  @override
+  String get positionProneBone => 'うつ伏せ';
+
+  @override
+  String get notifTodoMorning => 'おはようございます！Todoリストを確認しましょう 📝';
+
+  @override
+  String get notifTodoCompletion => '今日の残りのタスクを完了しましょう！';
+
+  @override
+  String notifTodoUncompleted(int count) {
+    return '今日はまだ $count 件のタスクが未完了です！';
+  }
+
+  @override
+  String notifUpcomingRenewals(String list) {
+    return '更新予定: $list';
+  }
+
+  @override
+  String notifSubscriptionToday(String name) {
+    return '$name（今日）';
+  }
+
+  @override
+  String notifSubscriptionDays(String name, int days) {
+    return '$name（$days日後）';
+  }
+
+  @override
+  String get trayShow => '表示';
+
+  @override
+  String get trayQuit => '終了';
+
+  @override
+  String get filePickerExportLocation => 'エクスポート先を選択';
+
+  @override
+  String get filePickerBackupFile => 'バックアップファイルを選択';
+
+  @override
+  String get filePickerCsvFile => 'CSVファイルを選択';
+
+  @override
+  String get filePickerSaveTemplate => 'テンプレートの保存先';
+
+  @override
+  String get financeBalance => '残高';
+
+  @override
+  String get financeNewAccount => '新規口座';
+
+  @override
+  String get financeAccountTypeFund => '普通';
+
+  @override
+  String get financeAccountTypeCredit => 'クレジット';
+
+  @override
+  String get financeAccountTypeRecharge => 'チャージ';
+
+  @override
+  String get financeAccountTypeFinancial => '投資';
+
+  @override
+  String get financeAccountName => '口座名';
+
+  @override
+  String get financeBankAppHint => '例: 三菱UFJ、PayPay';
+
+  @override
+  String get financeCardNumberHint => '下4桁';
+
+  @override
+  String get financeCurrentBalanceHint => '空欄の場合取引から計算';
+
+  @override
+  String get financeAsOfToday => '今日時点';
+
+  @override
+  String get financeBalanceEffectiveDate => '残高基準日';
+
+  @override
+  String get financeFetchIcon => 'アイコンを取得';
+
+  @override
+  String get financeAccountsCategories => '口座とカテゴリ';
+
+  @override
+  String get financeEditRate => '為替レートを編集';
+
+  @override
+  String get financeNewRate => '新規為替レート';
+
+  @override
+  String get financeFrom => '変換元';
+
+  @override
+  String get financeTo => '変換先';
+
+  @override
+  String get financeRate => 'レート';
+
+  @override
+  String financeRateHint(String from, String to) {
+    return '1 $from = ? $to';
+  }
+
+  @override
+  String get financeNoRates => '為替レート未設定';
+
+  @override
+  String get financeNoExpenseData => 'この期間の支出データなし';
+
+  @override
+  String get financeUncategorized => '未分類';
+
+  @override
+  String get financeTotal => '合計';
+
+  @override
+  String get financeSelectDateRange => '日付範囲を選択';
+
+  @override
+  String get financeNoTransactionData => 'この期間の取引データなし';
+
+  @override
+  String financeReceivedAmount(String currency) {
+    return '入金額 ($currency)';
+  }
+
+  @override
+  String get financeReceivedAmountHelper => '先方口座の通貨での入金額';
+
+  @override
+  String get financeNoteHint => '何のため？';
 }

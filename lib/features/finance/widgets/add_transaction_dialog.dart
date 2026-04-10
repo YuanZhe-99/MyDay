@@ -163,8 +163,8 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
             // Currency picker
             DropdownButtonFormField<String>(
               initialValue: _currency,
-              decoration: const InputDecoration(
-                labelText: 'Currency',
+              decoration: InputDecoration(
+                labelText: l10n.financeCurrency,
                 isDense: true,
                 contentPadding:
                     EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -178,7 +178,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
 
             // Account picker
             if (widget.accounts.isNotEmpty) ...[
-              _buildAccountPicker(theme),
+              _buildAccountPicker(theme, l10n),
               const SizedBox(height: 12),
             ],
 
@@ -192,10 +192,10 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
                   FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
                 ],
                 decoration: InputDecoration(
-                  labelText: 'Received Amount (${_selectedToAccount!.currency})',
+                  labelText: l10n.financeReceivedAmount(_selectedToAccount!.currency),
                   prefixText: '${currencySymbol(_selectedToAccount!.currency)} ',
                   prefixStyle: TextStyle(color: theme.colorScheme.onSurface),
-                  helperText: 'Amount received in target account currency',
+                  helperText: l10n.financeReceivedAmountHelper,
                 ),
               ),
               const SizedBox(height: 12),
@@ -204,9 +204,9 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
             // Note
             TextField(
               controller: _noteController,
-              decoration: const InputDecoration(
-                labelText: 'Note',
-                hintText: 'What was this for?',
+              decoration: InputDecoration(
+                labelText: l10n.financeNote,
+                hintText: l10n.financeNoteHint,
               ),
               textInputAction: TextInputAction.done,
               onSubmitted: (_) => _submit(),
@@ -214,7 +214,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
             const SizedBox(height: 12),
 
             // Category picker
-            _buildCategoryPicker(theme),
+            _buildCategoryPicker(theme, l10n),
             const SizedBox(height: 12),
 
             // Date & time picker
@@ -336,7 +336,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
       .where((c) => c.type == _type || _type == TransactionType.transfer)
       .toList();
 
-  Widget _buildCategoryPicker(ThemeData theme) {
+  Widget _buildCategoryPicker(ThemeData theme, AppLocalizations l10n) {
     final cats = _filteredCategories;
     if (cats.isEmpty) {
       return const SizedBox.shrink();
@@ -344,8 +344,8 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
 
     return DropdownButtonFormField<String>(
       initialValue: _selectedCategory?.id,
-      decoration: const InputDecoration(
-        labelText: 'Category',
+      decoration: InputDecoration(
+        labelText: l10n.financeCategory,
         isDense: true,
         contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       ),
@@ -361,12 +361,12 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
     );
   }
 
-  Widget _buildAccountPicker(ThemeData theme) {
+  Widget _buildAccountPicker(ThemeData theme, AppLocalizations l10n) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          _type == TransactionType.transfer ? 'From Account' : 'Account',
+          _type == TransactionType.transfer ? l10n.financeFromAccount : l10n.financeAccount,
           style: theme.textTheme.bodySmall,
         ),
         const SizedBox(height: 8),
@@ -395,7 +395,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
         ),
         if (_type == TransactionType.transfer) ...[
           const SizedBox(height: 12),
-          Text('To Account', style: theme.textTheme.bodySmall),
+          Text(l10n.financeToAccount, style: theme.textTheme.bodySmall),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
             initialValue: _selectedToAccount?.id,

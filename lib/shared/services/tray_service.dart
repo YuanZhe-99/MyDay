@@ -1,9 +1,11 @@
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../../features/todo/services/todo_storage.dart';
+import '../../l10n/app_localizations.dart';
 
 /// Manages system tray icon and window hide/show behaviour on desktop.
 class TrayService with TrayListener, WindowListener {
@@ -13,6 +15,7 @@ class TrayService with TrayListener, WindowListener {
   bool _minimizeToTray = false;
   bool _closeToTray = false;
   bool _initialized = false;
+  Locale _locale = const Locale('en');
 
   bool get minimizeToTray => _minimizeToTray;
   bool get closeToTray => _closeToTray;
@@ -44,10 +47,11 @@ class TrayService with TrayListener, WindowListener {
   }
 
   Future<void> _rebuildMenu() async {
+    final l10n = lookupAppLocalizations(_locale);
     final menu = Menu(items: [
-      MenuItem(key: 'show', label: 'Show'),
+      MenuItem(key: 'show', label: l10n.trayShow),
       MenuItem.separator(),
-      MenuItem(key: 'quit', label: 'Quit'),
+      MenuItem(key: 'quit', label: l10n.trayQuit),
     ]);
     await trayManager.setContextMenu(menu);
   }
@@ -63,6 +67,12 @@ class TrayService with TrayListener, WindowListener {
     _closeToTray = value;
     await TodoStorage.setCloseToTray(value);
     await windowManager.setPreventClose(value);
+  }
+
+  /// Update locale and rebuild tray menu labels.
+  Future<void> updateLocale(Locale locale) async {
+    _locale = locale;
+    if (_initialized) await _rebuildMenu();
   }
 
   // ─── TrayListener ─────────────────────────────────────────────

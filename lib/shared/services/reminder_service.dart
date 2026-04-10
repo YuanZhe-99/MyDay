@@ -10,6 +10,7 @@ import '../../features/finance/services/finance_storage.dart';
 import '../../features/finance/services/subscription_processor.dart';
 import '../../features/todo/models/task.dart';
 import '../../features/todo/services/todo_storage.dart';
+import '../../l10n/app_localizations.dart';
 import 'backup_service.dart';
 import 'mobile_notification_service.dart';
 
@@ -21,6 +22,9 @@ class ReminderService {
 
   Timer? _timer;
   final Set<String> _notifiedIds = {};
+  Locale _locale = const Locale('en');
+
+  AppLocalizations get _l10n => lookupAppLocalizations(_locale);
 
   // Cached data – refreshed on each tick
   List<Task> _dailyTemplates = [];
@@ -35,6 +39,11 @@ class ReminderService {
 
   /// Optional callback to show an in-app snackbar. Set by the shell scaffold.
   void Function(String message)? onShowSnackbar;
+
+  /// Update locale for notification strings.
+  void updateLocale(Locale locale) {
+    _locale = locale;
+  }
 
   /// Called when background renewal processing generates new transactions.
   /// If set, the finance page is open and should update its in-memory state.
@@ -114,7 +123,7 @@ class ReminderService {
         final nextDay = DateTime(next.year, next.month, next.day);
         if (!nextDay.isAfter(limit)) {
           final days = nextDay.difference(todayDate).inDays;
-          upcoming.add(days == 0 ? '${sub.name}(today)' : '${sub.name}(${days}d)');
+          upcoming.add(days == 0 ? _l10n.notifSubscriptionToday(sub.name) : _l10n.notifSubscriptionDays(sub.name, days));
         }
       }
     }
@@ -122,7 +131,7 @@ class ReminderService {
       mns.scheduleDaily(
         id: _mobileSubReminderId,
         title: 'MyDay!!!!!',
-        body: 'Upcoming renewals: ${upcoming.join(', ')}',
+        body: _l10n.notifUpcomingRenewals(upcoming.join(', ')),
         time: _subscriptionReminderTime!,
       );
     } else {
@@ -138,7 +147,7 @@ class ReminderService {
       mns.scheduleDaily(
         id: _mobileMorningReminderId,
         title: 'MyDay!!!!!',
-        body: 'Good morning! Time to review and update your Todo list 📝',
+        body: _l10n.notifTodoMorning,
         time: _morningReminderTime!,
       );
     } else {
@@ -148,7 +157,7 @@ class ReminderService {
       mns.scheduleDaily(
         id: _mobileCompletionReminderId,
         title: 'MyDay!!!!!',
-        body: 'Don\'t forget to complete your remaining tasks today!',
+        body: _l10n.notifTodoCompletion,
         time: _completionReminderTime!,
       );
     } else {
@@ -248,7 +257,7 @@ class ReminderService {
       final key = 'morning_$todayKey';
       if (!_notifiedIds.contains(key)) {
         _notifiedIds.add(key);
-        _notify('Good morning! Time to review and update your Todo list 📝');
+        _notify(_l10n.notifTodoMorning);
       }
     }
 
@@ -264,7 +273,7 @@ class ReminderService {
                 .length +
             _oneTimeTasks.where((t) => !t.isCompleted).length;
         if (uncompleted > 0) {
-          _notify('You still have $uncompleted uncompleted tasks today!');
+          _notify(_l10n.notifTodoUncompleted(uncompleted));
         }
       }
     }
@@ -293,12 +302,12 @@ class ReminderService {
             final nextDay = DateTime(next.year, next.month, next.day);
             if (!nextDay.isAfter(limit)) {
               final days = nextDay.difference(todayDate).inDays;
-              upcoming.add(days == 0 ? '${sub.name}(today)' : '${sub.name}(${days}d)');
+              upcoming.add(days == 0 ? _l10n.notifSubscriptionToday(sub.name) : _l10n.notifSubscriptionDays(sub.name, days));
             }
           }
         }
         if (upcoming.isNotEmpty) {
-          _notify('Upcoming renewals: ${upcoming.join(', ')}');
+          _notify(_l10n.notifUpcomingRenewals(upcoming.join(', ')));
         }
       }
     }

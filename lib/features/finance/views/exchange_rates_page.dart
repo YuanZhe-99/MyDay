@@ -126,7 +126,7 @@ class _ExchangeRatesPageState extends State<ExchangeRatesPage> {
           : entries.isEmpty
               ? Center(
                   child: Text(
-                    'No exchange rates configured',
+                    AppLocalizations.of(context)!.financeNoRates,
                     style: theme.textTheme.bodyLarge?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -226,6 +226,7 @@ class _RateDialogState extends State<_RateDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final isEditing = widget.rate != null;
 
     return Dialog(
@@ -236,7 +237,7 @@ class _RateDialogState extends State<_RateDialog> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              isEditing ? 'Edit Rate' : 'New Exchange Rate',
+              isEditing ? l10n.financeEditRate : l10n.financeNewRate,
               style: theme.textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
@@ -246,8 +247,8 @@ class _RateDialogState extends State<_RateDialog> {
                 Expanded(
                   child: DropdownButtonFormField<String>(
                     initialValue: _from,
-                    decoration: const InputDecoration(
-                      labelText: 'From',
+                    decoration: InputDecoration(
+                      labelText: l10n.financeFrom,
                       isDense: true,
                     ),
                     items: _currencies
@@ -265,8 +266,8 @@ class _RateDialogState extends State<_RateDialog> {
                 Expanded(
                   child: DropdownButtonFormField<String>(
                     initialValue: _to,
-                    decoration: const InputDecoration(
-                      labelText: 'To',
+                    decoration: InputDecoration(
+                      labelText: l10n.financeTo,
                       isDense: true,
                     ),
                     items: _currencies
@@ -290,8 +291,8 @@ class _RateDialogState extends State<_RateDialog> {
                 FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,6}')),
               ],
               decoration: InputDecoration(
-                labelText: 'Rate',
-                hintText: '1 $_from = ? $_to',
+                labelText: l10n.financeRate,
+                hintText: l10n.financeRateHint(_from, _to),
               ),
               onSubmitted: (_) => _submit(),
             ),
@@ -302,12 +303,12 @@ class _RateDialogState extends State<_RateDialog> {
               children: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
+                  child: Text(l10n.commonCancel),
                 ),
                 const SizedBox(width: 8),
                 FilledButton(
                   onPressed: _submit,
-                  child: Text(isEditing ? 'Save' : 'Add'),
+                  child: Text(isEditing ? l10n.commonSave : l10n.commonAdd),
                 ),
               ],
             ),

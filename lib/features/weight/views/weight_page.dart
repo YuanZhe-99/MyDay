@@ -207,7 +207,7 @@ class _WeightPageState extends State<WeightPage> {
                               style: theme.textTheme.displaySmall?.copyWith(
                                   fontWeight: FontWeight.bold)),
                           const SizedBox(width: 4),
-                          Text('kg',
+                          Text(l10n.weightUnitKg,
                               style: theme.textTheme.titleMedium?.copyWith(
                                   color: theme.colorScheme.onSurfaceVariant)),
                         ],
@@ -241,7 +241,7 @@ class _WeightPageState extends State<WeightPage> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            '${change.abs().toStringAsFixed(1)} kg',
+                            '${change.abs().toStringAsFixed(1)} ${l10n.weightUnitKg}',
                             style: theme.textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.bold,
                               color: change < 0
@@ -420,7 +420,7 @@ class _WeightPageState extends State<WeightPage> {
           const SizedBox(height: 8),
           SizedBox(
             height: 220,
-            child: _buildChart(theme),
+            child: _buildChart(theme, l10n),
           ),
         ],
       ),
@@ -444,11 +444,11 @@ class _WeightPageState extends State<WeightPage> {
     return filtered;
   }
 
-  Widget _buildChart(ThemeData theme) {
+  Widget _buildChart(ThemeData theme, AppLocalizations l10n) {
     final data = _chartRecords;
     if (data.isEmpty) {
       return Center(
-          child: Text('No data',
+          child: Text(l10n.commonNoData,
               style: TextStyle(color: theme.colorScheme.onSurfaceVariant)));
     }
 
@@ -490,10 +490,12 @@ class _WeightPageState extends State<WeightPage> {
               getTitlesWidget: (value, meta) {
                 final date =
                     DateTime.fromMillisecondsSinceEpoch(value.toInt());
+                final spanDays = data.last.datetime.difference(data.first.datetime).inDays;
+                final fmt = spanDays > 30 ? DateFormat('M/d') : DateFormat('MMM d');
                 return SideTitleWidget(
                   meta: meta,
                   child: Text(
-                    DateFormat('MMM d').format(date),
+                    fmt.format(date),
                     style: theme.textTheme.labelSmall?.copyWith(fontSize: 9),
                   ),
                 );
@@ -562,7 +564,7 @@ class _WeightPageState extends State<WeightPage> {
               final date = DateTime.fromMillisecondsSinceEpoch(s.x.toInt());
               if (entry.key == 0) {
                 return LineTooltipItem(
-                  '${s.y.toStringAsFixed(1)} kg\n${DateFormat('MMM d').format(date)}',
+                  '${s.y.toStringAsFixed(1)} ${l10n.weightUnitKg}\n${DateFormat('MMM d').format(date)}',
                   TextStyle(
                     color: theme.colorScheme.onPrimary,
                     fontSize: 12,
@@ -571,7 +573,7 @@ class _WeightPageState extends State<WeightPage> {
                 );
               } else {
                 return LineTooltipItem(
-                  '${AppLocalizations.of(context)!.weightTrend}: ${s.y.toStringAsFixed(1)} kg',
+                  '${AppLocalizations.of(context)!.weightTrend}: ${s.y.toStringAsFixed(1)} ${AppLocalizations.of(context)!.weightUnitKg}',
                   TextStyle(
                     color: theme.colorScheme.onPrimary,
                     fontSize: 11,
@@ -620,10 +622,10 @@ class _WeightPageState extends State<WeightPage> {
     const day = 86400 * 1000.0;
     if (spanDays <= 7) return day; // daily labels
     if (spanDays <= 30) return 7 * day; // weekly labels
-    if (spanDays <= 90) return 14 * day; // biweekly labels
-    if (spanDays <= 180) return 30 * day; // monthly labels
-    if (spanDays <= 365) return 60 * day; // bimonthly labels
-    return 90 * day; // quarterly labels
+    if (spanDays <= 90) return 21 * day; // tri-weekly labels
+    if (spanDays <= 180) return 45 * day; // ~6-week labels
+    if (spanDays <= 365) return 90 * day; // quarterly labels
+    return 120 * day; // 4-month labels
   }
 
   // ── Records list ──
@@ -641,7 +643,7 @@ class _WeightPageState extends State<WeightPage> {
               style: theme.textTheme.titleMedium
                   ?.copyWith(fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
-          ...sorted.take(20).map((r) => _buildRecordTile(theme, r)),
+          ...sorted.take(20).map((r) => _buildRecordTile(theme, l10n, r)),
           if (sorted.length > 20)
             Center(
               child: TextButton(
@@ -654,7 +656,7 @@ class _WeightPageState extends State<WeightPage> {
     );
   }
 
-  Widget _buildRecordTile(ThemeData theme, WeightRecord record) {
+  Widget _buildRecordTile(ThemeData theme, AppLocalizations l10n, WeightRecord record) {
     final bmi = WeightData.calculateBMI(_height, record.weight);
     return Dismissible(
       key: ValueKey(record.id),
@@ -678,7 +680,7 @@ class _WeightPageState extends State<WeightPage> {
           child: Icon(Icons.monitor_weight_outlined,
               color: theme.colorScheme.onPrimaryContainer, size: 20),
         ),
-        title: Text('${record.weight.toStringAsFixed(1)} kg',
+        title: Text('${record.weight.toStringAsFixed(1)} ${l10n.weightUnitKg}',
             style: const TextStyle(fontWeight: FontWeight.w600)),
         subtitle: Text(
           [
@@ -696,6 +698,7 @@ class _WeightPageState extends State<WeightPage> {
 
   void _showAllRecords(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final sorted = List<WeightRecord>.from(_records)
       ..sort((a, b) => b.datetime.compareTo(a.datetime));
     showModalBottomSheet(
@@ -709,7 +712,7 @@ class _WeightPageState extends State<WeightPage> {
           controller: controller,
           itemCount: sorted.length,
           itemBuilder: (context, i) =>
-              _buildRecordTile(theme, sorted[i]),
+              _buildRecordTile(theme, l10n, sorted[i]),
         ),
       ),
     );
@@ -853,7 +856,7 @@ class _AddWeightDialogState extends State<_AddWeightDialog> {
               ],
               decoration: InputDecoration(
                 labelText: l10n.weightKg,
-                suffixText: 'kg',
+                suffixText: l10n.weightUnitKg,
                 helperText:
                     bmi != null ? 'BMI: ${bmi.toStringAsFixed(1)}' : null,
               ),
