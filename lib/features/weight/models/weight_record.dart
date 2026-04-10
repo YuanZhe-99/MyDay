@@ -58,15 +58,35 @@ class WeightRecord {
 class WeightData {
   final double? height; // cm
   final List<WeightRecord> records;
+  /// 'none' | 'once' | 'twice'
+  final String reminderMode;
+  final int? morningHour;
+  final int? morningMinute;
+  final int? eveningHour;
+  final int? eveningMinute;
+  final DateTime settingsModifiedAt;
 
   WeightData({
     this.height,
     required this.records,
-  });
+    this.reminderMode = 'none',
+    this.morningHour,
+    this.morningMinute,
+    this.eveningHour,
+    this.eveningMinute,
+    DateTime? settingsModifiedAt,
+  }) : settingsModifiedAt =
+            settingsModifiedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
 
   Map<String, dynamic> toJson() => {
         if (height != null) 'height': height,
         'records': records.map((r) => r.toJson()).toList(),
+        'reminderMode': reminderMode,
+        if (morningHour != null) 'morningHour': morningHour,
+        if (morningMinute != null) 'morningMinute': morningMinute,
+        if (eveningHour != null) 'eveningHour': eveningHour,
+        if (eveningMinute != null) 'eveningMinute': eveningMinute,
+        'settingsModifiedAt': settingsModifiedAt.toIso8601String(),
       };
 
   factory WeightData.fromJson(Map<String, dynamic> json) => WeightData(
@@ -74,6 +94,14 @@ class WeightData {
         records: (json['records'] as List? ?? [])
             .map((e) => WeightRecord.fromJson(e as Map<String, dynamic>))
             .toList(),
+        reminderMode: json['reminderMode'] as String? ?? 'none',
+        morningHour: json['morningHour'] as int?,
+        morningMinute: json['morningMinute'] as int?,
+        eveningHour: json['eveningHour'] as int?,
+        eveningMinute: json['eveningMinute'] as int?,
+        settingsModifiedAt: json['settingsModifiedAt'] != null
+            ? DateTime.parse(json['settingsModifiedAt'] as String)
+            : DateTime.fromMillisecondsSinceEpoch(0),
       );
 
   /// Calculate BMI from height (cm) and weight (kg).

@@ -37,6 +37,10 @@ class ReminderService {
   List<Subscription> _subscriptions = [];
   TimeOfDay? _subscriptionReminderTime;
 
+  // Weight reminder data
+  TimeOfDay? _weightMorningReminder;
+  TimeOfDay? _weightEveningReminder;
+
   /// Optional callback to show an in-app snackbar. Set by the shell scaffold.
   void Function(String message)? onShowSnackbar;
 
@@ -91,10 +95,28 @@ class ReminderService {
     _scheduleMobileSubscriptionReminder();
   }
 
+  /// Call this whenever weight reminder settings change.
+  void updateWeightData({
+    int? morningHour,
+    int? morningMinute,
+    int? eveningHour,
+    int? eveningMinute,
+  }) {
+    _weightMorningReminder = morningHour != null && morningMinute != null
+        ? TimeOfDay(hour: morningHour, minute: morningMinute)
+        : null;
+    _weightEveningReminder = eveningHour != null && eveningMinute != null
+        ? TimeOfDay(hour: eveningHour, minute: eveningMinute)
+        : null;
+    _scheduleMobileWeightReminders();
+  }
+
   // Notification IDs for scheduled mobile notifications
   static const _mobileSubReminderId = 9000;
   static const _mobileMorningReminderId = 9001;
   static const _mobileCompletionReminderId = 9002;
+  static const _mobileWeightMorningId = 9003;
+  static const _mobileWeightEveningId = 9004;
 
   // Track per-task scheduled notification IDs so we can cancel stale ones.
   final Set<int> _scheduledTaskNotificationIds = {};
@@ -136,6 +158,32 @@ class ReminderService {
       );
     } else {
       mns.cancel(_mobileSubReminderId);
+    }
+  }
+
+  /// Schedule weight reminder notifications on mobile.
+  void _scheduleMobileWeightReminders() {
+    if (!MobileNotificationService.isMobile) return;
+    final mns = MobileNotificationService.instance;
+    if (_weightMorningReminder != null) {
+      mns.scheduleDaily(
+        id: _mobileWeightMorningId,
+        title: 'MyDay!!!!!',
+        body: _l10n.notifWeightReminder,
+        time: _weightMorningReminder!,
+      );
+    } else {
+      mns.cancel(_mobileWeightMorningId);
+    }
+    if (_weightEveningReminder != null) {
+      mns.scheduleDaily(
+        id: _mobileWeightEveningId,
+        title: 'MyDay!!!!!',
+        body: _l10n.notifWeightReminder,
+        time: _weightEveningReminder!,
+      );
+    } else {
+      mns.cancel(_mobileWeightEveningId);
     }
   }
 
@@ -283,6 +331,28 @@ class ReminderService {
 
     // Auto-backup (once per day)
     await BackupService.runAutoBackupIfNeeded();
+
+    // Weight morning reminder
+    if (_weightMorningReminder != null &&
+        _weightMorningReminder!.hour == now.hour &&
+        _weightMorningReminder!.minute == now.minute) {
+      final key = 'weight_morning_$todayKey';
+      if (!_notifiedIds.contains(key)) {
+        _notifiedIds.add(key);
+        _notify(_l10n.notifWeightReminder);
+      }
+    }
+
+    // Weight evening reminder
+    if (_weightEveningReminder != null &&
+        _weightEveningReminder!.hour == now.hour &&
+        _weightEveningReminder!.minute == now.minute) {
+      final key = 'weight_evening_$todayKey';
+      if (!_notifiedIds.contains(key)) {
+        _notifiedIds.add(key);
+        _notify(_l10n.notifWeightReminder);
+      }
+    }
 
     // Subscription renewal reminder
     if (_subscriptionReminderTime != null &&

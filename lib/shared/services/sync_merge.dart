@@ -704,10 +704,21 @@ WeightMergeResult mergeWeightData(
   // Height: prefer the non-null / most recently changed value
   final height = local.height ?? remote.height;
 
+  // Settings: LWW via settingsModifiedAt
+  final WeightData settingsSrc = local.settingsModifiedAt.isAfter(remote.settingsModifiedAt)
+      ? local
+      : remote;
+
   return WeightMergeResult(
     height: height,
     recordsMerged: recordResult.merged,
     recordConflicts: recordResult.conflicts,
+    reminderMode: settingsSrc.reminderMode,
+    morningHour: settingsSrc.morningHour,
+    morningMinute: settingsSrc.morningMinute,
+    eveningHour: settingsSrc.eveningHour,
+    eveningMinute: settingsSrc.eveningMinute,
+    settingsModifiedAt: settingsSrc.settingsModifiedAt,
   );
 }
 
@@ -715,12 +726,25 @@ class WeightMergeResult {
   final double? height;
   final List<WeightRecord> recordsMerged;
   final List<RecordConflict<WeightRecord>> recordConflicts;
+  final String reminderMode;
+  final int? morningHour;
+  final int? morningMinute;
+  final int? eveningHour;
+  final int? eveningMinute;
+  final DateTime settingsModifiedAt;
 
-  const WeightMergeResult({
+  WeightMergeResult({
     required this.height,
     required this.recordsMerged,
     required this.recordConflicts,
-  });
+    this.reminderMode = 'none',
+    this.morningHour,
+    this.morningMinute,
+    this.eveningHour,
+    this.eveningMinute,
+    DateTime? settingsModifiedAt,
+  }) : settingsModifiedAt =
+            settingsModifiedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
 
   bool get hasConflicts => recordConflicts.isNotEmpty;
 
@@ -730,6 +754,15 @@ class WeightMergeResult {
       final resolved = resolutions[c.id];
       if (resolved != null) result.add(resolved as WeightRecord);
     }
-    return WeightData(height: height, records: result);
+    return WeightData(
+      height: height,
+      records: result,
+      reminderMode: reminderMode,
+      morningHour: morningHour,
+      morningMinute: morningMinute,
+      eveningHour: eveningHour,
+      eveningMinute: eveningMinute,
+      settingsModifiedAt: settingsModifiedAt,
+    );
   }
 }

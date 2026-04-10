@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/services/auto_sync_service.dart';
+import '../../../shared/services/reminder_service.dart';
 import '../../../shared/widgets/delete_confirm.dart';
 import '../models/weight_record.dart';
 import '../services/weight_storage.dart';
@@ -25,6 +26,11 @@ class _WeightPageState extends State<WeightPage> {
   List<WeightRecord> _records = [];
   bool _loaded = false;
   _ChartRange _chartRange = _ChartRange.oneMonth;
+
+  // Reminder settings
+  String _reminderMode = 'none'; // 'none' | 'once' | 'twice'
+  TimeOfDay? _weightMorningReminder;
+  TimeOfDay? _weightEveningReminder;
 
   @override
   void initState() {
@@ -45,16 +51,41 @@ class _WeightPageState extends State<WeightPage> {
       if (data != null) {
         _height = data.height;
         _records = data.records;
+        _reminderMode = data.reminderMode;
+        _weightMorningReminder = data.morningHour != null && data.morningMinute != null
+            ? TimeOfDay(hour: data.morningHour!, minute: data.morningMinute!)
+            : null;
+        _weightEveningReminder = data.eveningHour != null && data.eveningMinute != null
+            ? TimeOfDay(hour: data.eveningHour!, minute: data.eveningMinute!)
+            : null;
       }
       _loaded = true;
     });
+    ReminderService.instance.updateWeightData(
+      morningHour: _weightMorningReminder?.hour,
+      morningMinute: _weightMorningReminder?.minute,
+      eveningHour: _weightEveningReminder?.hour,
+      eveningMinute: _weightEveningReminder?.minute,
+    );
   }
 
   Future<void> _saveData() async {
     await WeightStorage.save(WeightData(
       height: _height,
       records: _records,
+      reminderMode: _reminderMode,
+      morningHour: _weightMorningReminder?.hour,
+      morningMinute: _weightMorningReminder?.minute,
+      eveningHour: _weightEveningReminder?.hour,
+      eveningMinute: _weightEveningReminder?.minute,
+      settingsModifiedAt: DateTime.now().toUtc(),
     ));
+    ReminderService.instance.updateWeightData(
+      morningHour: _weightMorningReminder?.hour,
+      morningMinute: _weightMorningReminder?.minute,
+      eveningHour: _weightEveningReminder?.hour,
+      eveningMinute: _weightEveningReminder?.minute,
+    );
     AutoSyncService.instance.notifySaved();
   }
 
@@ -105,6 +136,15 @@ class _WeightPageState extends State<WeightPage> {
         title: Text(l10n.weightTitle),
         centerTitle: true,
         actions: [
+          IconButton(
+            icon: Icon(
+              _reminderMode != 'none'
+                  ? Icons.notifications_active
+                  : Icons.notifications_none,
+            ),
+            tooltip: l10n.weightReminder,
+            onPressed: _showReminderSettings,
+          ),
           IconButton(
             icon: const Icon(Icons.height),
             tooltip: l10n.weightSetHeight,
@@ -497,9 +537,7 @@ class _WeightPageState extends State<WeightPage> {
                     ? DateFormat('yyyy')
                     : spanDays > 365
                         ? DateFormat('M/yy')
-                        : spanDays > 30
-                            ? DateFormat('M/d')
-                            : DateFormat('MMM d');
+                        : DateFormat('M/d');
                 return SideTitleWidget(
                   meta: meta,
                   child: Text(
@@ -632,14 +670,14 @@ class _WeightPageState extends State<WeightPage> {
     final spanDays = spanMs / (86400 * 1000);
     // Choose a clean interval in milliseconds based on total span
     const day = 86400 * 1000.0;
-    if (spanDays <= 7) return day;          // daily labels
-    if (spanDays <= 30) return 7 * day;     // weekly labels
-    if (spanDays <= 90) return 21 * day;    // tri-weekly labels
-    if (spanDays <= 180) return 45 * day;   // ~6-week labels
-    if (spanDays <= 365) return 90 * day;   // quarterly labels
-    if (spanDays <= 730) return 180 * day;  // semi-annual labels
-    if (spanDays <= 1825) return 365 * day; // annual labels
-    return 730 * day;                       // 2-year labels
+    if (spanDays <= 7) return 2 * day;       // every-other-day labels
+    if (spanDays <= 30) return 7 * day;      // weekly labels
+    if (spanDays <= 90) return 21 * day;     // tri-weekly labels
+    if (spanDays <= 180) return 45 * day;    // ~6-week labels
+    if (spanDays <= 365) return 90 * day;    // quarterly labels
+    if (spanDays <= 730) return 180 * day;   // semi-annual labels
+    if (spanDays <= 1825) return 365 * day;  // annual labels
+    return 730 * day;                        // 2-year labels
   }
 
   // ── Records list ──
@@ -733,6 +771,122 @@ class _WeightPageState extends State<WeightPage> {
   }
 
   // ── Actions ──
+
+  Future<void> _showReminderSettings() async {
+    final l10n = AppLocalizations.of(context)!;
+    await showModalBottomSheet(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            return SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.notifications_active),
+                    title: Text(l10n.weightReminder),
+                  ),
+                  const Divider(height: 1),
+
+                  // Off
+                  RadioListTile<String>(
+                    value: 'none',
+                    groupValue: _reminderMode,
+                    title: Text(l10n.weightReminderNone),
+                    onChanged: (v) {
+                      setState(() {
+                        _reminderMode = v!;
+                        _weightMorningReminder = null;
+                        _weightEveningReminder = null;
+                      });
+                      setSheetState(() {});
+                      _saveData();
+                    },
+                  ),
+
+                  // Once daily
+                  RadioListTile<String>(
+                    value: 'once',
+                    groupValue: _reminderMode,
+                    title: Text(l10n.weightReminderOnce),
+                    onChanged: (v) {
+                      setState(() {
+                        _reminderMode = v!;
+                        _weightMorningReminder ??= const TimeOfDay(hour: 8, minute: 0);
+                        _weightEveningReminder = null;
+                      });
+                      setSheetState(() {});
+                      _saveData();
+                    },
+                  ),
+
+                  // Twice daily
+                  RadioListTile<String>(
+                    value: 'twice',
+                    groupValue: _reminderMode,
+                    title: Text(l10n.weightReminderTwice),
+                    onChanged: (v) {
+                      setState(() {
+                        _reminderMode = v!;
+                        _weightMorningReminder ??= const TimeOfDay(hour: 8, minute: 0);
+                        _weightEveningReminder ??= const TimeOfDay(hour: 21, minute: 0);
+                      });
+                      setSheetState(() {});
+                      _saveData();
+                    },
+                  ),
+
+                  if (_reminderMode != 'none') ...[
+                    const Divider(height: 1),
+
+                    // Morning time picker
+                    ListTile(
+                      leading: const Icon(Icons.wb_sunny_outlined),
+                      title: Text(l10n.weightReminderMorning),
+                      subtitle: Text(_weightMorningReminder?.format(ctx) ?? ''),
+                      onTap: () async {
+                        final picked = await showTimePicker(
+                          context: ctx,
+                          initialTime: _weightMorningReminder ??
+                              const TimeOfDay(hour: 8, minute: 0),
+                        );
+                        if (picked != null) {
+                          setState(() => _weightMorningReminder = picked);
+                          setSheetState(() {});
+                          _saveData();
+                        }
+                      },
+                    ),
+
+                    if (_reminderMode == 'twice')
+                      ListTile(
+                        leading: const Icon(Icons.nightlight_outlined),
+                        title: Text(l10n.weightReminderEvening),
+                        subtitle: Text(_weightEveningReminder?.format(ctx) ?? ''),
+                        onTap: () async {
+                          final picked = await showTimePicker(
+                            context: ctx,
+                            initialTime: _weightEveningReminder ??
+                                const TimeOfDay(hour: 21, minute: 0),
+                          );
+                          if (picked != null) {
+                            setState(() => _weightEveningReminder = picked);
+                            setSheetState(() {});
+                            _saveData();
+                          }
+                        },
+                      ),
+                  ],
+                  const SizedBox(height: 8),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 
   Future<void> _addRecord() async {
     final result = await showDialog<WeightRecord>(

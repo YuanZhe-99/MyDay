@@ -221,7 +221,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
       ),
       body: !_loaded
           ? const Center(child: CircularProgressIndicator())
-          : Column(
+          : ListView(
               children: [
                 // Calendar
                 _CalendarWidget(
@@ -282,65 +282,63 @@ class _IntimacyPageState extends State<IntimacyPage> {
                   ),
                 ),
 
-                Expanded(
-                  child: _filteredRecords.isEmpty
-                      ? Center(
-                          child: Text(
-                            AppLocalizations.of(context)!.intimacyNoRecords,
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        )
-                      : ListView.builder(
-                          itemCount: _filteredRecords.length,
-                          itemBuilder: (context, index) {
-                            final record = _filteredRecords[index];
-                            return Dismissible(
-                              key: ValueKey(record.id),
-                              direction: DismissDirection.horizontal,
-                              background: Container(
-                                alignment: Alignment.centerLeft,
-                                padding: const EdgeInsets.only(left: 20),
-                                color: theme.colorScheme.primary,
-                                child: Icon(Icons.edit_outlined,
-                                    color: theme.colorScheme.onPrimary),
-                              ),
-                              secondaryBackground: Container(
-                                alignment: Alignment.centerRight,
-                                padding: const EdgeInsets.only(right: 20),
-                                color: theme.colorScheme.error,
-                                child: Icon(Icons.delete_outline,
-                                    color: theme.colorScheme.onError),
-                              ),
-                              confirmDismiss: (direction) async {
-                                if (direction ==
-                                    DismissDirection.startToEnd) {
-                                  _editRecord(record);
-                                  return false;
-                                }
-                                return confirmDelete(
-                                    context, 'this record');
-                              },
-                              onDismissed: (_) => _deleteRecord(record),
-                              child: _RecordTile(
-                                record: record,
-                                partner: record.partnerId != null
-                                    ? _partners.where((p) => p.id == record.partnerId).firstOrNull
-                                    : null,
-                                toys: record.toyIds
-                                    .map((id) => _toys.where((t) => t.id == id).firstOrNull)
-                                    .whereType<Toy>()
-                                    .toList(),
-                                positions: record.positionIds
-                                    .map((id) => _positions.where((p) => p.id == id).firstOrNull)
-                                    .whereType<Position>()
-                                    .toList(),
-                              ),
-                            );
-                          },
+                // Records list (inline, no nested ListView)
+                if (_filteredRecords.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 48),
+                    child: Center(
+                      child: Text(
+                        AppLocalizations.of(context)!.intimacyNoRecords,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
                         ),
-                ),
+                      ),
+                    ),
+                  )
+                else
+                  ..._filteredRecords.map((record) => Dismissible(
+                    key: ValueKey(record.id),
+                    direction: DismissDirection.horizontal,
+                    background: Container(
+                      alignment: Alignment.centerLeft,
+                      padding: const EdgeInsets.only(left: 20),
+                      color: theme.colorScheme.primary,
+                      child: Icon(Icons.edit_outlined,
+                          color: theme.colorScheme.onPrimary),
+                    ),
+                    secondaryBackground: Container(
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.only(right: 20),
+                      color: theme.colorScheme.error,
+                      child: Icon(Icons.delete_outline,
+                          color: theme.colorScheme.onError),
+                    ),
+                    confirmDismiss: (direction) async {
+                      if (direction == DismissDirection.startToEnd) {
+                        _editRecord(record);
+                        return false;
+                      }
+                      return confirmDelete(context, 'this record');
+                    },
+                    onDismissed: (_) => _deleteRecord(record),
+                    child: _RecordTile(
+                      record: record,
+                      partner: record.partnerId != null
+                          ? _partners.where((p) => p.id == record.partnerId).firstOrNull
+                          : null,
+                      toys: record.toyIds
+                          .map((id) => _toys.where((t) => t.id == id).firstOrNull)
+                          .whereType<Toy>()
+                          .toList(),
+                      positions: record.positionIds
+                          .map((id) => _positions.where((p) => p.id == id).firstOrNull)
+                          .whereType<Position>()
+                          .toList(),
+                    ),
+                  )),
+
+                // FAB clearance
+                const SizedBox(height: 80),
               ],
             ),
       floatingActionButton: FloatingActionButton(
@@ -599,7 +597,11 @@ class _IntimacyPageState extends State<IntimacyPage> {
               getTitlesWidget: (value, meta) {
                 final date = DateTime.fromMillisecondsSinceEpoch(value.toInt());
                 final spanDays = data.last.datetime.difference(data.first.datetime).inDays;
-                final fmt = spanDays > 30 ? DateFormat('M/d') : DateFormat('MMM d');
+                final fmt = spanDays > 730
+                    ? DateFormat('yyyy')
+                    : spanDays > 365
+                        ? DateFormat('M/yy')
+                        : DateFormat('M/d');
                 return SideTitleWidget(
                   meta: meta,
                   child: Text(
@@ -726,12 +728,13 @@ class _IntimacyPageState extends State<IntimacyPage> {
         .toDouble();
     final spanDays = spanMs / (86400 * 1000);
     const day = 86400 * 1000.0;
-    if (spanDays <= 7) return day;
-    if (spanDays <= 30) return 7 * day;
-    if (spanDays <= 90) return 21 * day;
-    if (spanDays <= 180) return 45 * day;
-    if (spanDays <= 365) return 90 * day;
-    return 120 * day;
+    if (spanDays <= 7) return 2 * day;      // every-other-day labels
+    if (spanDays <= 30) return 7 * day;     // weekly labels
+    if (spanDays <= 90) return 21 * day;    // tri-weekly labels
+    if (spanDays <= 180) return 45 * day;   // ~6-week labels
+    if (spanDays <= 365) return 90 * day;   // quarterly labels
+    if (spanDays <= 730) return 180 * day;  // semi-annual labels
+    return 365 * day;                       // annual labels
   }
 
   void _showManageMenu(BuildContext context) {
