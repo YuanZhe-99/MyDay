@@ -1175,6 +1175,24 @@ class AppLocalizationsJa extends AppLocalizations {
   String get weightRaw => '実測';
 
   @override
+  String get weightReminder => '体重リマインダー';
+
+  @override
+  String get weightReminderNone => 'リマインダーなし';
+
+  @override
+  String get weightReminderOnce => '1日１回';
+
+  @override
+  String get weightReminderTwice => '1日２回（朝・夜）';
+
+  @override
+  String get weightReminderMorning => '朝';
+
+  @override
+  String get weightReminderEvening => '夜';
+
+  @override
   String get commonChange => '変更';
 
   @override
@@ -1308,6 +1326,9 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get notifWeightReminder => '体重を記録しましょう！⚖️';
+
+  @override
   String notifUpcomingRenewals(String list) {
     return '更新予定：$list';
   }
@@ -1430,4 +1451,31 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get financeNoteHint => '何のため？';
+
+  @override
+  String get financeThisAccount => 'この口座';
+
+  @override
+  String get commonThisRecord => 'この記録';
+
+  @override
+  String get financeBalanceAdjustment => '残高調整';
+
+  @override
+  String get financeCatCreditCardPayment => 'クレジットカード決済';
+
+  @override
+  String get financeCatFixedDeposit => '定期預金満期';
+
+  @override
+  String get financeCatInternalTransfer => '内部振替';
+
+  @override
+  String get financeCatLoanRepayment => 'ローン返済';
+
+  @override
+  String get financeCatInvestmentTransfer => '投資振替';
+
+  @override
+  String get financeCatReimburse => '立替精算';
 }

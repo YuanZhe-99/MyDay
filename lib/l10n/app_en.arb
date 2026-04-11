@@ -560,5 +560,16 @@
   "financeReceivedAmountHelper": "Amount received in target account currency",
   "financeNoteHint": "What was this for?",
   "financeFromAccount": "From Account",
-  "financeToAccount": "To Account"
+  "financeToAccount": "To Account",
+
+  "financeThisAccount": "this account",
+  "commonThisRecord": "this record",
+  "financeBalanceAdjustment": "Balance Adjustment",
+
+  "financeCatCreditCardPayment": "Credit Card Payment",
+  "financeCatFixedDeposit": "Fixed Deposit Maturity",
+  "financeCatInternalTransfer": "Internal Transfer",
+  "financeCatLoanRepayment": "Loan Repayment",
+  "financeCatInvestmentTransfer": "Investment Transfer",
+  "financeCatReimburse": "Reimbursement"
 }

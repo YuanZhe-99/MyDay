@@ -489,7 +489,6 @@ class _TodoPageState extends State<TodoPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.navTodo),
-        centerTitle: true,
         actions: [
           IconButton(
             icon: Icon(

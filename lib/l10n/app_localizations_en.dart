@@ -1191,6 +1191,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get weightRaw => 'Actual';
 
   @override
+  String get weightReminder => 'Weight Reminder';
+
+  @override
+  String get weightReminderNone => 'No Reminder';
+
+  @override
+  String get weightReminderOnce => 'Once Daily';
+
+  @override
+  String get weightReminderTwice => 'Twice Daily (Morning & Evening)';
+
+  @override
+  String get weightReminderMorning => 'Morning';
+
+  @override
+  String get weightReminderEvening => 'Evening';
+
+  @override
   String get commonChange => 'Change';
 
   @override
@@ -1326,6 +1344,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get notifWeightReminder => 'Time to log your weight! ⚖️';
+
+  @override
   String notifUpcomingRenewals(String list) {
     return 'Upcoming renewals: $list';
   }
@@ -1450,4 +1471,31 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get financeNoteHint => 'What was this for?';
+
+  @override
+  String get financeThisAccount => 'this account';
+
+  @override
+  String get commonThisRecord => 'this record';
+
+  @override
+  String get financeBalanceAdjustment => 'Balance Adjustment';
+
+  @override
+  String get financeCatCreditCardPayment => 'Credit Card Payment';
+
+  @override
+  String get financeCatFixedDeposit => 'Fixed Deposit Maturity';
+
+  @override
+  String get financeCatInternalTransfer => 'Internal Transfer';
+
+  @override
+  String get financeCatLoanRepayment => 'Loan Repayment';
+
+  @override
+  String get financeCatInvestmentTransfer => 'Investment Transfer';
+
+  @override
+  String get financeCatReimburse => 'Reimbursement';
 }

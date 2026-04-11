@@ -24,6 +24,15 @@ final _defaultIncomeCategories = <Map<String, dynamic>>[
   {'key': 'financeCatFreelance', 'emoji': '💻', 'icon': Icons.computer},
 ];
 
+final _defaultTransferCategories = <Map<String, dynamic>>[
+  {'key': 'financeCatCreditCardPayment', 'emoji': '💳', 'icon': Icons.credit_card},
+  {'key': 'financeCatFixedDeposit', 'emoji': '🏦', 'icon': Icons.account_balance},
+  {'key': 'financeCatInternalTransfer', 'emoji': '🔄', 'icon': Icons.swap_horiz},
+  {'key': 'financeCatLoanRepayment', 'emoji': '📝', 'icon': Icons.receipt_long},
+  {'key': 'financeCatInvestmentTransfer', 'emoji': '📈', 'icon': Icons.trending_up},
+  {'key': 'financeCatReimburse', 'emoji': '🧱', 'icon': Icons.receipt},
+];
+
 class CategoriesPage extends StatefulWidget {
   final List<Category> categories;
   final void Function(List<Category>) onChanged;
@@ -59,7 +68,7 @@ class _CategoriesPageState extends State<CategoriesPage>
     super.initState();
     _categories = List.of(widget.categories);
     _transactions = List.of(widget.transactions);
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
   }
 
   @override
@@ -127,9 +136,11 @@ class _CategoriesPageState extends State<CategoriesPage>
 
   void _importDefaults(TransactionType type) {
     final l10n = AppLocalizations.of(context)!;
-    final defaults = type == TransactionType.expense
-        ? _defaultExpenseCategories
-        : _defaultIncomeCategories;
+    final defaults = switch (type) {
+      TransactionType.expense => _defaultExpenseCategories,
+      TransactionType.income => _defaultIncomeCategories,
+      TransactionType.transfer => _defaultTransferCategories,
+    };
     final toAdd = defaults.map((d) => Category(
           name: _resolveKey(l10n, d['key'] as String),
           type: type,
@@ -153,6 +164,12 @@ class _CategoriesPageState extends State<CategoriesPage>
         'financeCatBonus' => l10n.financeCatBonus,
         'financeCatInvestment' => l10n.financeCatInvestment,
         'financeCatFreelance' => l10n.financeCatFreelance,
+        'financeCatCreditCardPayment' => l10n.financeCatCreditCardPayment,
+        'financeCatFixedDeposit' => l10n.financeCatFixedDeposit,
+        'financeCatInternalTransfer' => l10n.financeCatInternalTransfer,
+        'financeCatLoanRepayment' => l10n.financeCatLoanRepayment,
+        'financeCatInvestmentTransfer' => l10n.financeCatInvestmentTransfer,
+        'financeCatReimburse' => l10n.financeCatReimburse,
         _ => key,
       };
 
@@ -167,6 +184,7 @@ class _CategoriesPageState extends State<CategoriesPage>
           tabs: [
             Tab(text: AppLocalizations.of(context)!.financeExpense),
             Tab(text: AppLocalizations.of(context)!.financeIncome),
+            Tab(text: AppLocalizations.of(context)!.financeTransfer),
           ],
         ),
       ),
@@ -177,13 +195,17 @@ class _CategoriesPageState extends State<CategoriesPage>
               context, _ofType(TransactionType.expense), TransactionType.expense),
           _buildCategoryList(
               context, _ofType(TransactionType.income), TransactionType.income),
+          _buildCategoryList(
+              context, _ofType(TransactionType.transfer), TransactionType.transfer),
         ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          final type = _tabController.index == 0
-              ? TransactionType.expense
-              : TransactionType.income;
+          final type = switch (_tabController.index) {
+            0 => TransactionType.expense,
+            1 => TransactionType.income,
+            _ => TransactionType.transfer,
+          };
           _addCategory(type);
         },
         child: const Icon(Icons.add),
@@ -196,9 +218,11 @@ class _CategoriesPageState extends State<CategoriesPage>
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     if (cats.isEmpty) {
-      final typeLabel = type == TransactionType.expense
-          ? l10n.financeExpense
-          : l10n.financeIncome;
+      final typeLabel = switch (type) {
+        TransactionType.expense => l10n.financeExpense,
+        TransactionType.income => l10n.financeIncome,
+        TransactionType.transfer => l10n.financeTransfer,
+      };
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,

@@ -1173,6 +1173,24 @@ class AppLocalizationsZh extends AppLocalizations {
   String get weightRaw => '实际';
 
   @override
+  String get weightReminder => '体重提醒';
+
+  @override
+  String get weightReminderNone => '不提醒';
+
+  @override
+  String get weightReminderOnce => '每天一次';
+
+  @override
+  String get weightReminderTwice => '每天两次（早晚）';
+
+  @override
+  String get weightReminderMorning => '早晨';
+
+  @override
+  String get weightReminderEvening => '晚间';
+
+  @override
   String get commonChange => '更换';
 
   @override
@@ -1306,6 +1324,9 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get notifWeightReminder => '该记录体重了！⚖️';
+
+  @override
   String notifUpcomingRenewals(String list) {
     return '即将续费：$list';
   }
@@ -1428,6 +1449,33 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get financeNoteHint => '这笔钱用于？';
+
+  @override
+  String get financeThisAccount => '此账户';
+
+  @override
+  String get commonThisRecord => '此记录';
+
+  @override
+  String get financeBalanceAdjustment => '余额调整';
+
+  @override
+  String get financeCatCreditCardPayment => '还信用卡';
+
+  @override
+  String get financeCatFixedDeposit => '定存到期';
+
+  @override
+  String get financeCatInternalTransfer => '内部转账';
+
+  @override
+  String get financeCatLoanRepayment => '还贷';
+
+  @override
+  String get financeCatInvestmentTransfer => '投资转入';
+
+  @override
+  String get financeCatReimburse => '报销';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -2599,6 +2647,24 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get weightRaw => '實際';
 
   @override
+  String get weightReminder => '體重提醒';
+
+  @override
+  String get weightReminderNone => '不提醒';
+
+  @override
+  String get weightReminderOnce => '每天一次';
+
+  @override
+  String get weightReminderTwice => '每天兩次（早晚）';
+
+  @override
+  String get weightReminderMorning => '早晨';
+
+  @override
+  String get weightReminderEvening => '晚間';
+
+  @override
   String get commonChange => '更換';
 
   @override
@@ -2732,6 +2798,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   }
 
   @override
+  String get notifWeightReminder => '記得記錄體重！⚖️';
+
+  @override
   String notifUpcomingRenewals(String list) {
     return '即將續費：$list';
   }
@@ -2854,4 +2923,31 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get financeNoteHint => '這筆是為了什麼？';
+
+  @override
+  String get financeThisAccount => '此帳戶';
+
+  @override
+  String get commonThisRecord => '此記錄';
+
+  @override
+  String get financeBalanceAdjustment => '餘額調整';
+
+  @override
+  String get financeCatCreditCardPayment => '還信用卡';
+
+  @override
+  String get financeCatFixedDeposit => '定存到期';
+
+  @override
+  String get financeCatInternalTransfer => '內部轉帳';
+
+  @override
+  String get financeCatLoanRepayment => '還貸';
+
+  @override
+  String get financeCatInvestmentTransfer => '投資轉入';
+
+  @override
+  String get financeCatReimburse => '報帳';
 }

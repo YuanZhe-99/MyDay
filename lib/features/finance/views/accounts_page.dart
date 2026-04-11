@@ -81,7 +81,7 @@ class _AccountsPageState extends State<AccountsPage> {
             currency: account.currency,
             rateSnapshotId: widget.rateData.currentSnapshotId,
             accountId: account.id,
-            note: 'Balance Adjustment',
+            note: AppLocalizations.of(context)!.financeBalanceAdjustment,
             date: account.forcedBalanceDate ?? DateTime.now(),
           );
           setState(() {
@@ -170,7 +170,7 @@ class _AccountsPageState extends State<AccountsPage> {
                               _editAccount(entry.key);
                               return false;
                             }
-                            return confirmDelete(context, 'this account');
+                            return confirmDelete(context, AppLocalizations.of(context)!.financeThisAccount);
                           },
                           onDismissed: (_) => _deleteAccount(entry.key),
                           child: ListTile(

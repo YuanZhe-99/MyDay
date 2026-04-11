@@ -213,10 +213,24 @@ class _FinancePageState extends State<FinancePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.financeTitle),
-        centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings_outlined),
+            icon: const Icon(Icons.account_balance),
+            tooltip: l10n.financeAccounts,
+            onPressed: () => _openAccounts(context),
+          ),
+          IconButton(
+            icon: const Icon(Icons.analytics_outlined),
+            tooltip: l10n.financeAnalysis,
+            onPressed: () => _openAnalysis(context),
+          ),
+          IconButton(
+            icon: const Icon(Icons.repeat),
+            tooltip: l10n.financeSubscriptions,
+            onPressed: () => _openSubscriptions(context),
+          ),
+          IconButton(
+            icon: const Icon(Icons.more_vert),
             tooltip: l10n.financeAccountsCategories,
             onPressed: () {
               _showFinanceMenu(context);
@@ -377,6 +391,85 @@ class _FinancePageState extends State<FinancePage> {
     );
   }
 
+  void _openAccounts(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AccountsPage(
+          accounts: _accounts,
+          transactions: _transactions,
+          categories: _categories,
+          rateData: _rateData,
+          onChanged: (a) {
+            setState(() => _accounts = a);
+            _saveData();
+          },
+          onTransactionsChanged: (t) {
+            setState(() => _transactions = t);
+            _saveData();
+          },
+        ),
+      ),
+    );
+  }
+
+  void _openAnalysis(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AnalysisPage(
+          transactions: _transactions,
+          categories: _categories,
+          rateData: _rateData,
+          defaultCurrency: _defaultCurrency,
+        ),
+      ),
+    );
+  }
+
+  void _openSubscriptions(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SubscriptionsPage(
+          subscriptions: _subscriptions,
+          transactions: _transactions,
+          categories: _categories,
+          accounts: _accounts,
+          rateData: _rateData,
+          defaultCurrency: _defaultCurrency,
+          reminderHour: _subscriptionReminderHour,
+          reminderMinute: _subscriptionReminderMinute,
+          sortMode: _subscriptionSortMode,
+          customOrder: _subscriptionCustomOrder,
+          onSubscriptionsChanged: (s) {
+            setState(() => _subscriptions = s);
+            _saveData();
+            _processSubscriptions();
+          },
+          onTransactionsChanged: (t) {
+            setState(() => _transactions = t);
+            _saveData();
+          },
+          onReminderChanged: (hour, minute) {
+            setState(() {
+              _subscriptionReminderHour = hour;
+              _subscriptionReminderMinute = minute;
+            });
+            _saveData();
+          },
+          onSortChanged: (mode, order) {
+            setState(() {
+              _subscriptionSortMode = mode;
+              _subscriptionCustomOrder = order;
+            });
+            _saveData();
+          },
+        ),
+      ),
+    );
+  }
+
   void _showFinanceMenu(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
@@ -385,32 +478,6 @@ class _FinancePageState extends State<FinancePage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(
-              leading: const Icon(Icons.account_balance),
-              title: Text(l10n.financeAccounts),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => AccountsPage(
-                      accounts: _accounts,
-                      transactions: _transactions,
-                      categories: _categories,
-                      rateData: _rateData,
-                      onChanged: (a) {
-                        setState(() => _accounts = a);
-                        _saveData();
-                      },
-                      onTransactionsChanged: (t) {
-                        setState(() => _transactions = t);
-                        _saveData();
-                      },
-                    ),
-                  ),
-                );
-              },
-            ),
             ListTile(
               leading: const Icon(Icons.category),
               title: Text(l10n.financeCategories),
@@ -431,71 +498,6 @@ class _FinancePageState extends State<FinancePage> {
                       },
                       onTransactionsChanged: (t) {
                         setState(() => _transactions = t);
-                        _saveData();
-                      },
-                    ),
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.analytics_outlined),
-              title: Text(l10n.financeAnalysis),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => AnalysisPage(
-                      transactions: _transactions,
-                      categories: _categories,
-                      rateData: _rateData,
-                      defaultCurrency: _defaultCurrency,
-                    ),
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.repeat),
-              title: Text(l10n.financeSubscriptions),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => SubscriptionsPage(
-                      subscriptions: _subscriptions,
-                      transactions: _transactions,
-                      categories: _categories,
-                      accounts: _accounts,
-                      rateData: _rateData,
-                      defaultCurrency: _defaultCurrency,
-                      reminderHour: _subscriptionReminderHour,
-                      reminderMinute: _subscriptionReminderMinute,
-                      sortMode: _subscriptionSortMode,
-                      customOrder: _subscriptionCustomOrder,
-                      onSubscriptionsChanged: (s) {
-                        setState(() => _subscriptions = s);
-                        _saveData();
-                        _processSubscriptions();
-                      },
-                      onTransactionsChanged: (t) {
-                        setState(() => _transactions = t);
-                        _saveData();
-                      },
-                      onReminderChanged: (hour, minute) {
-                        setState(() {
-                          _subscriptionReminderHour = hour;
-                          _subscriptionReminderMinute = minute;
-                        });
-                        _saveData();
-                      },
-                      onSortChanged: (mode, order) {
-                        setState(() {
-                          _subscriptionSortMode = mode;
-                          _subscriptionCustomOrder = order;
-                        });
                         _saveData();
                       },
                     ),

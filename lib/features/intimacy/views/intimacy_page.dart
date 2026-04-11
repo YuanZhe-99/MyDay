@@ -171,7 +171,6 @@ class _IntimacyPageState extends State<IntimacyPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(AppLocalizations.of(context)!.intimacyTitle),
-        centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.timer_outlined),
@@ -318,7 +317,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
                         _editRecord(record);
                         return false;
                       }
-                      return confirmDelete(context, 'this record');
+                      return confirmDelete(context, AppLocalizations.of(context)!.commonThisRecord);
                     },
                     onDismissed: (_) => _deleteRecord(record),
                     child: _RecordTile(

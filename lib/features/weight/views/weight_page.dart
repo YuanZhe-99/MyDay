@@ -134,7 +134,6 @@ class _WeightPageState extends State<WeightPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.weightTitle),
-        centerTitle: true,
         actions: [
           IconButton(
             icon: Icon(
@@ -720,7 +719,7 @@ class _WeightPageState extends State<WeightPage> {
         child:
             Icon(Icons.delete_outline, color: theme.colorScheme.onError),
       ),
-      confirmDismiss: (_) => confirmDelete(context, 'this record'),
+      confirmDismiss: (_) => confirmDelete(context, AppLocalizations.of(context)!.commonThisRecord),
       onDismissed: (_) {
         setState(() => _records.removeWhere((r) => r.id == record.id));
         _saveData();

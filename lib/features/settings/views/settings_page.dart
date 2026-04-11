@@ -110,7 +110,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.settingsTitle),
-        centerTitle: true,
       ),
       body: ListView(
         children: [

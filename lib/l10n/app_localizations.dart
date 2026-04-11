@@ -2357,6 +2357,42 @@ abstract class AppLocalizations {
   /// **'Actual'**
   String get weightRaw;
 
+  /// No description provided for @weightReminder.
+  ///
+  /// In en, this message translates to:
+  /// **'Weight Reminder'**
+  String get weightReminder;
+
+  /// No description provided for @weightReminderNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No Reminder'**
+  String get weightReminderNone;
+
+  /// No description provided for @weightReminderOnce.
+  ///
+  /// In en, this message translates to:
+  /// **'Once Daily'**
+  String get weightReminderOnce;
+
+  /// No description provided for @weightReminderTwice.
+  ///
+  /// In en, this message translates to:
+  /// **'Twice Daily (Morning & Evening)'**
+  String get weightReminderTwice;
+
+  /// No description provided for @weightReminderMorning.
+  ///
+  /// In en, this message translates to:
+  /// **'Morning'**
+  String get weightReminderMorning;
+
+  /// No description provided for @weightReminderEvening.
+  ///
+  /// In en, this message translates to:
+  /// **'Evening'**
+  String get weightReminderEvening;
+
   /// No description provided for @commonChange.
   ///
   /// In en, this message translates to:
@@ -2603,6 +2639,12 @@ abstract class AppLocalizations {
   /// **'You still have {count} uncompleted tasks today!'**
   String notifTodoUncompleted(int count);
 
+  /// No description provided for @notifWeightReminder.
+  ///
+  /// In en, this message translates to:
+  /// **'Time to log your weight! ⚖️'**
+  String get notifWeightReminder;
+
   /// No description provided for @notifUpcomingRenewals.
   ///
   /// In en, this message translates to:
@@ -2830,6 +2872,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'What was this for?'**
   String get financeNoteHint;
+
+  /// No description provided for @financeThisAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'this account'**
+  String get financeThisAccount;
+
+  /// No description provided for @commonThisRecord.
+  ///
+  /// In en, this message translates to:
+  /// **'this record'**
+  String get commonThisRecord;
+
+  /// No description provided for @financeBalanceAdjustment.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance Adjustment'**
+  String get financeBalanceAdjustment;
+
+  /// No description provided for @financeCatCreditCardPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Credit Card Payment'**
+  String get financeCatCreditCardPayment;
+
+  /// No description provided for @financeCatFixedDeposit.
+  ///
+  /// In en, this message translates to:
+  /// **'Fixed Deposit Maturity'**
+  String get financeCatFixedDeposit;
+
+  /// No description provided for @financeCatInternalTransfer.
+  ///
+  /// In en, this message translates to:
+  /// **'Internal Transfer'**
+  String get financeCatInternalTransfer;
+
+  /// No description provided for @financeCatLoanRepayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Loan Repayment'**
+  String get financeCatLoanRepayment;
+
+  /// No description provided for @financeCatInvestmentTransfer.
+  ///
+  /// In en, this message translates to:
+  /// **'Investment Transfer'**
+  String get financeCatInvestmentTransfer;
+
+  /// No description provided for @financeCatReimburse.
+  ///
+  /// In en, this message translates to:
+  /// **'Reimbursement'**
+  String get financeCatReimburse;
 }
 
 class _AppLocalizationsDelegate

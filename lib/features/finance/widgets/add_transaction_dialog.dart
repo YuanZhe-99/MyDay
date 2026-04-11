@@ -333,7 +333,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
   }
 
   List<Category> get _filteredCategories => widget.categories
-      .where((c) => c.type == _type || _type == TransactionType.transfer)
+      .where((c) => c.type == _type)
       .toList();
 
   Widget _buildCategoryPicker(ThemeData theme, AppLocalizations l10n) {
