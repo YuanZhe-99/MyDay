@@ -2,7 +2,7 @@ name: my_day
 description: "MyDay!!!!! — Your daily life companion"
 publish_to: 'none'
 
-version: 0.3.2+13
+version: 0.4.0+14
 
 environment:
   sdk: ^3.11.3
@@ -46,6 +46,13 @@ dependencies:
   tray_manager: ^0.2.3
   window_manager: ^0.4.3
   package_info_plus: ^9.0.0
+
+  # Local HTTP API server (desktop)
+  shelf: ^1.4.0
+  shelf_router: ^1.1.0
+
+  # Auto-start on boot (desktop)
+  launch_at_startup: ^0.5.1
 
 dev_dependencies:
   flutter_test:

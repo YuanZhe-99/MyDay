@@ -548,5 +548,19 @@
   "financeReceivedAmountHelper": "目标账户币种的到账金额",
   "financeNoteHint": "这笔钱用于？",
   "financeFromAccount": "转出账户",
-  "financeToAccount": "转入账户"
+  "financeToAccount": "转入账户",
+
+  "settingsAutoStart": "开机自启动",
+  "settingsApiEnabled": "本地 API 服务器",
+  "settingsApiServer": "API 服务器设置",
+  "settingsApiRunning": "运行中，端口 {port}",
+  "@settingsApiRunning": { "placeholders": { "port": { "type": "int" } } },
+  "settingsApiStopped": "已停止",
+  "settingsApiNeedCredentials": "非本地访问需设置凭据",
+  "settingsApiRestarted": "API 服务器已重启，端口 {port}",
+  "@settingsApiRestarted": { "placeholders": { "port": { "type": "int" } } },
+  "settingsApiListenAddress": "监听地址",
+  "settingsApiPort": "端口",
+  "settingsApiUsername": "用户名",
+  "settingsApiPassword": "密码"
 }

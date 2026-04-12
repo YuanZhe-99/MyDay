@@ -106,6 +106,38 @@ class TodoStorage {
     return File('${dir.path}/$_configFileName');
   }
 
+  /// Public access to the config file for other services (e.g. LocalApiServer).
+  static Future<File> getConfigFile() => _getConfigFile();
+
+  /// Read the raw config JSON (for modules that store their own keys).
+  static Future<Map<String, dynamic>> readConfig() async {
+    final file = await _getConfigFile();
+    try {
+      if (await file.exists()) {
+        return jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+      }
+    } catch (_) {}
+    return {};
+  }
+
+  /// Write config JSON (merge-write to preserve other modules' keys).
+  static Future<void> writeConfig(Map<String, dynamic> config) async {
+    final file = await _getConfigFile();
+    Map<String, dynamic> existing = {};
+    try {
+      if (await file.exists()) {
+        existing =
+            jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+      }
+    } catch (_) {}
+    existing.addAll(config);
+    // Remove null-valued keys
+    existing.removeWhere((_, v) => v == null);
+    await file.writeAsString(jsonEncode(existing));
+    // Invalidate cached config so next _loadConfig() re-reads
+    _configLoaded = false;
+  }
+
   /// Load the config from config file.
   static Future<void> _loadConfig() async {
     if (_configLoaded) return;

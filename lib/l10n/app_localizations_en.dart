@@ -1498,4 +1498,42 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get financeCatReimburse => 'Reimbursement';
+
+  @override
+  String get settingsAutoStart => 'Launch at Startup';
+
+  @override
+  String get settingsApiEnabled => 'Local API Server';
+
+  @override
+  String get settingsApiServer => 'API Server Settings';
+
+  @override
+  String settingsApiRunning(int port) {
+    return 'Running on port $port';
+  }
+
+  @override
+  String get settingsApiStopped => 'Stopped';
+
+  @override
+  String get settingsApiNeedCredentials =>
+      'Credentials required for non-localhost';
+
+  @override
+  String settingsApiRestarted(int port) {
+    return 'API server restarted on port $port';
+  }
+
+  @override
+  String get settingsApiListenAddress => 'Listen Address';
+
+  @override
+  String get settingsApiPort => 'Port';
+
+  @override
+  String get settingsApiUsername => 'Username';
+
+  @override
+  String get settingsApiPassword => 'Password';
 }

@@ -571,5 +571,19 @@
   "financeCatInternalTransfer": "Internal Transfer",
   "financeCatLoanRepayment": "Loan Repayment",
   "financeCatInvestmentTransfer": "Investment Transfer",
-  "financeCatReimburse": "Reimbursement"
+  "financeCatReimburse": "Reimbursement",
+
+  "settingsAutoStart": "Launch at Startup",
+  "settingsApiEnabled": "Local API Server",
+  "settingsApiServer": "API Server Settings",
+  "settingsApiRunning": "Running on port {port}",
+  "@settingsApiRunning": { "placeholders": { "port": { "type": "int" } } },
+  "settingsApiStopped": "Stopped",
+  "settingsApiNeedCredentials": "Credentials required for non-localhost",
+  "settingsApiRestarted": "API server restarted on port {port}",
+  "@settingsApiRestarted": { "placeholders": { "port": { "type": "int" } } },
+  "settingsApiListenAddress": "Listen Address",
+  "settingsApiPort": "Port",
+  "settingsApiUsername": "Username",
+  "settingsApiPassword": "Password"
 }

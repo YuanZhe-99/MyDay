@@ -4,11 +4,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:launch_at_startup/launch_at_startup.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/providers/app_settings.dart';
 import '../../../shared/providers/intimacy_visibility.dart';
+import '../../../shared/services/local_api_server.dart';
 import '../../../shared/services/tray_service.dart';
 import '../../../shared/services/webdav_service.dart';
 import '../../../shared/views/backup_page.dart';
@@ -31,7 +33,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   String _appVersion = '';
   bool _minimizeToTray = false;
   bool _closeToTray = false;
+  bool _autoStart = false;
   bool _webdavConfigured = false;
+  // API server settings
+  bool _apiEnabled = false;
+  int _apiPort = 7790;
+  String _apiListenAddress = 'localhost';
+  String _apiUsername = '';
+  String _apiPassword = '';
 
   bool get _isDesktop =>
       Platform.isWindows || Platform.isMacOS || Platform.isLinux;
@@ -42,7 +51,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     _loadStoragePath();
     _loadVersion();
     _loadWebDAVStatus();
-    if (_isDesktop) _loadTraySettings();
+    if (_isDesktop) {
+      _loadTraySettings();
+      _loadAutoStartStatus();
+      _loadApiSettings();
+    }
   }
 
   Future<void> _loadTraySettings() async {
@@ -81,6 +94,99 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final config = await WebDAVService.loadConfig();
     if (mounted) {
       setState(() => _webdavConfigured = config?.isConfigured ?? false);
+    }
+  }
+
+  Future<void> _loadAutoStartStatus() async {
+    final enabled = await launchAtStartup.isEnabled();
+    if (mounted) setState(() => _autoStart = enabled);
+  }
+
+  Future<void> _loadApiSettings() async {
+    final config = await TodoStorage.readConfig();
+    if (!mounted) return;
+    setState(() {
+      _apiEnabled = config['apiEnabled'] as bool? ?? false;
+      _apiPort = config['apiPort'] as int? ?? 7790;
+      _apiListenAddress = config['apiListenAddress'] as String? ?? 'localhost';
+      _apiUsername = config['apiUsername'] as String? ?? '';
+      _apiPassword = config['apiPassword'] as String? ?? '';
+    });
+  }
+
+  Future<void> _showApiSettingsDialog() async {
+    final l10n = AppLocalizations.of(context)!;
+    final portCtrl = TextEditingController(text: _apiPort.toString());
+    final addrCtrl = TextEditingController(text: _apiListenAddress);
+    final userCtrl = TextEditingController(text: _apiUsername);
+    final passCtrl = TextEditingController(text: _apiPassword);
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.settingsApiServer),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: addrCtrl,
+              decoration: InputDecoration(labelText: l10n.settingsApiListenAddress),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: portCtrl,
+              decoration: InputDecoration(labelText: l10n.settingsApiPort),
+              keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: userCtrl,
+              decoration: InputDecoration(labelText: l10n.settingsApiUsername),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: passCtrl,
+              decoration: InputDecoration(labelText: l10n.settingsApiPassword),
+              obscureText: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.commonSave),
+          ),
+        ],
+      ),
+    );
+    if (saved != true || !mounted) return;
+
+    final newPort = int.tryParse(portCtrl.text.trim()) ?? 7790;
+    final newAddr = addrCtrl.text.trim().isEmpty ? 'localhost' : addrCtrl.text.trim();
+    final newUser = userCtrl.text.trim();
+    final newPass = passCtrl.text.trim();
+    await TodoStorage.writeConfig({
+      'apiPort': newPort,
+      'apiListenAddress': newAddr,
+      'apiUsername': newUser.isEmpty ? null : newUser,
+      'apiPassword': newPass.isEmpty ? null : newPass,
+    });
+    setState(() {
+      _apiPort = newPort;
+      _apiListenAddress = newAddr;
+      _apiUsername = newUser;
+      _apiPassword = newPass;
+    });
+    await LocalApiServer.restart();
+    if (mounted) {
+      setState(() {});
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.settingsApiRestarted(LocalApiServer.port))),
+      );
     }
   }
 
@@ -164,7 +270,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ),
           ]),
 
-          // Desktop-only section: tray settings + storage location
+          // Desktop-only section: tray settings + storage location + API
           if (_isDesktop)
             _buildSection(context, l10n.settingsDesktop, [
               SwitchListTile(
@@ -185,6 +291,55 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   setState(() => _closeToTray = value);
                 },
               ),
+              SwitchListTile(
+                secondary: const Icon(Icons.login_outlined),
+                title: Text(l10n.settingsAutoStart),
+                value: _autoStart,
+                onChanged: (v) async {
+                  if (v) {
+                    await launchAtStartup.enable();
+                  } else {
+                    await launchAtStartup.disable();
+                  }
+                  setState(() => _autoStart = v);
+                },
+              ),
+              const Divider(height: 1, indent: 16, endIndent: 16),
+              SwitchListTile(
+                secondary: const Icon(Icons.dns_outlined),
+                title: Text(l10n.settingsApiEnabled),
+                subtitle: Text(
+                  LocalApiServer.isRunning
+                      ? l10n.settingsApiRunning(LocalApiServer.port)
+                      : LocalApiServer.lastError == 'credentials_required'
+                          ? l10n.settingsApiNeedCredentials
+                          : LocalApiServer.lastError != null
+                              ? '${l10n.settingsApiStopped} (${LocalApiServer.lastError})'
+                              : l10n.settingsApiStopped,
+                  style: !LocalApiServer.isRunning && LocalApiServer.lastError != null
+                      ? TextStyle(color: Theme.of(context).colorScheme.error)
+                      : null,
+                ),
+                value: _apiEnabled,
+                onChanged: (v) async {
+                  await TodoStorage.writeConfig({'apiEnabled': v});
+                  setState(() => _apiEnabled = v);
+                  if (v) {
+                    await LocalApiServer.start();
+                  } else {
+                    await LocalApiServer.stop();
+                  }
+                  if (mounted) setState(() {});
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.settings_outlined),
+                title: Text(l10n.settingsApiServer),
+                trailing: const Icon(Icons.chevron_right),
+                enabled: _apiEnabled,
+                onTap: _apiEnabled ? _showApiSettingsDialog : null,
+              ),
+              const Divider(height: 1, indent: 16, endIndent: 16),
               ListTile(
                 leading: const Icon(Icons.folder_outlined),
                 title: Text(l10n.settingsStorageLocation),

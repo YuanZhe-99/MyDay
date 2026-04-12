@@ -548,5 +548,19 @@
   "financeReceivedAmountHelper": "先方口座の通貨での入金額",
   "financeNoteHint": "何のため？",
   "financeFromAccount": "振替元口座",
-  "financeToAccount": "振替先口座"
+  "financeToAccount": "振替先口座",
+
+  "settingsAutoStart": "起動時に自動起動",
+  "settingsApiEnabled": "ローカル API サーバー",
+  "settingsApiServer": "API サーバー設定",
+  "settingsApiRunning": "ポート {port} で実行中",
+  "@settingsApiRunning": { "placeholders": { "port": { "type": "int" } } },
+  "settingsApiStopped": "停止中",
+  "settingsApiNeedCredentials": "ローカル以外のアクセスには認証が必要",
+  "settingsApiRestarted": "API サーバーをポート {port} で再起動しました",
+  "@settingsApiRestarted": { "placeholders": { "port": { "type": "int" } } },
+  "settingsApiListenAddress": "リッスンアドレス",
+  "settingsApiPort": "ポート",
+  "settingsApiUsername": "ユーザー名",
+  "settingsApiPassword": "パスワード"
 }

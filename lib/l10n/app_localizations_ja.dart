@@ -1478,4 +1478,41 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get financeCatReimburse => '立替精算';
+
+  @override
+  String get settingsAutoStart => '起動時に自動起動';
+
+  @override
+  String get settingsApiEnabled => 'ローカル API サーバー';
+
+  @override
+  String get settingsApiServer => 'API サーバー設定';
+
+  @override
+  String settingsApiRunning(int port) {
+    return 'ポート $port で実行中';
+  }
+
+  @override
+  String get settingsApiStopped => '停止中';
+
+  @override
+  String get settingsApiNeedCredentials => 'ローカル以外のアクセスには認証が必要';
+
+  @override
+  String settingsApiRestarted(int port) {
+    return 'API サーバーをポート $port で再起動しました';
+  }
+
+  @override
+  String get settingsApiListenAddress => 'リッスンアドレス';
+
+  @override
+  String get settingsApiPort => 'ポート';
+
+  @override
+  String get settingsApiUsername => 'ユーザー名';
+
+  @override
+  String get settingsApiPassword => 'パスワード';
 }

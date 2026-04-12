@@ -1476,6 +1476,43 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get financeCatReimburse => '报销';
+
+  @override
+  String get settingsAutoStart => '开机自启动';
+
+  @override
+  String get settingsApiEnabled => '本地 API 服务器';
+
+  @override
+  String get settingsApiServer => 'API 服务器设置';
+
+  @override
+  String settingsApiRunning(int port) {
+    return '运行中，端口 $port';
+  }
+
+  @override
+  String get settingsApiStopped => '已停止';
+
+  @override
+  String get settingsApiNeedCredentials => '非本地访问需设置凭据';
+
+  @override
+  String settingsApiRestarted(int port) {
+    return 'API 服务器已重启，端口 $port';
+  }
+
+  @override
+  String get settingsApiListenAddress => '监听地址';
+
+  @override
+  String get settingsApiPort => '端口';
+
+  @override
+  String get settingsApiUsername => '用户名';
+
+  @override
+  String get settingsApiPassword => '密码';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -2950,4 +2987,41 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get financeCatReimburse => '報帳';
+
+  @override
+  String get settingsAutoStart => '開機自動啟動';
+
+  @override
+  String get settingsApiEnabled => '本機 API 伺服器';
+
+  @override
+  String get settingsApiServer => 'API 伺服器設定';
+
+  @override
+  String settingsApiRunning(int port) {
+    return '運行中，連接埠 $port';
+  }
+
+  @override
+  String get settingsApiStopped => '已停止';
+
+  @override
+  String get settingsApiNeedCredentials => '非本機存取需設定認證';
+
+  @override
+  String settingsApiRestarted(int port) {
+    return 'API 伺服器已重啟，連接埠 $port';
+  }
+
+  @override
+  String get settingsApiListenAddress => '監聽地址';
+
+  @override
+  String get settingsApiPort => '連接埠';
+
+  @override
+  String get settingsApiUsername => '使用者名稱';
+
+  @override
+  String get settingsApiPassword => '密碼';
 }
