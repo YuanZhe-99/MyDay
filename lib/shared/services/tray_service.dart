@@ -40,7 +40,7 @@ class TrayService with TrayListener, WindowListener {
 
   Future<void> _setupTray() async {
     final iconPath =
-        Platform.isWindows ? 'assets/app_icon.ico' : 'assets/app_icon.png';
+        Platform.isWindows ? 'assets/app_icon.ico' : 'assets/icon/app_icon.png';
     await trayManager.setIcon(iconPath);
     await trayManager.setToolTip('MyDay!!!!!');
     await _rebuildMenu();

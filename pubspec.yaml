@@ -77,6 +77,7 @@ flutter:
 
   assets:
     - assets/app_icon.ico
+    - assets/icon/
     - assets/banks.json
     - assets/template_finance.csv
     - assets/template_intimacy.csv

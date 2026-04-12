@@ -24,7 +24,7 @@ void main() async {
   } else {
     await localNotifier.setup(
       appName: 'MyDay!!!!!',
-      shortcutPolicy: ShortcutPolicy.requireNoCreate,
+      shortcutPolicy: ShortcutPolicy.ignore,
     );
   }
 
