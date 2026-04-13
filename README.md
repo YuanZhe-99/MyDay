@@ -19,7 +19,8 @@ A privacy-first Flutter app for task management, personal finance tracking, weig
 
 | Platform | Artifact |
 |----------|----------|
-| Windows  | Inno Setup installer (`MyDay_x.x.x_Setup.exe`) |
+| Windows (x64) | Inno Setup installer (`MyDay_x.x.x_Setup.exe`) |
+| Windows (ARM64) | Inno Setup installer (`MyDay_x.x.x_arm64_Setup.exe`) |
 | Android  | APK (`app-release.apk`) |
 | Android  | AAB (`app-release.aab`) |
 | iOS      | Sideload IPA |
@@ -28,9 +29,13 @@ A privacy-first Flutter app for task management, personal finance tracking, weig
 ## Build
 
 ```bash
-# Windows installer
+# Windows x64 installer
 flutter build windows --release
-# then run Inno Setup on installer.iss
+iscc installer.iss
+
+# Windows ARM64 installer (requires Flutter master for ARM64 engine)
+flutter build windows --release
+iscc /DARM64 installer.iss
 
 # Android APK (icons are dynamically stored, need --no-tree-shake-icons)
 flutter build apk --release --no-tree-shake-icons
@@ -52,6 +57,7 @@ create-dmg \
   "build/macos/MyDay.dmg" \
   "build/macos/Build/Products/Release/MyDay!!!!!.app"
 ```
+
 
 ## License
 
