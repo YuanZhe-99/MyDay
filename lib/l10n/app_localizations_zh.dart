@@ -497,6 +497,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get intimacyRetiredDate => '退役日期';
 
   @override
+  String get intimacyBreakUp => '分手';
+
+  @override
+  String get intimacyRetire => '退役';
+
+  @override
   String get settingsTitle => '设置';
 
   @override
@@ -2006,6 +2012,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get intimacyRetiredDate => '退役日期';
+
+  @override
+  String get intimacyBreakUp => '分手';
+
+  @override
+  String get intimacyRetire => '退役';
 
   @override
   String get settingsTitle => '設定';

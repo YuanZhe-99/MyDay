@@ -497,6 +497,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get intimacyRetiredDate => '引退日';
 
   @override
+  String get intimacyBreakUp => '別れる';
+
+  @override
+  String get intimacyRetire => '引退';
+
+  @override
   String get settingsTitle => '設定';
 
   @override

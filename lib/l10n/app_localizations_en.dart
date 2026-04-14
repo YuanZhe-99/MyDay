@@ -498,6 +498,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get intimacyRetiredDate => 'Retired Date';
 
   @override
+  String get intimacyBreakUp => 'Break Up';
+
+  @override
+  String get intimacyRetire => 'Retire';
+
+  @override
   String get settingsTitle => 'Settings';
 
   @override

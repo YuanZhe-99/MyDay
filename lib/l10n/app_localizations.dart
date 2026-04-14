@@ -1049,6 +1049,18 @@ abstract class AppLocalizations {
   /// **'Retired Date'**
   String get intimacyRetiredDate;
 
+  /// No description provided for @intimacyBreakUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Break Up'**
+  String get intimacyBreakUp;
+
+  /// No description provided for @intimacyRetire.
+  ///
+  /// In en, this message translates to:
+  /// **'Retire'**
+  String get intimacyRetire;
+
   /// No description provided for @settingsTitle.
   ///
   /// In en, this message translates to:

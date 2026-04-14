@@ -176,6 +176,8 @@
   "intimacyEndDate": "交往結束",
   "intimacyPurchaseDate": "購買日期",
   "intimacyRetiredDate": "退役日期",
+  "intimacyBreakUp": "分手",
+  "intimacyRetire": "退役",
 
   "settingsTitle": "設定",
   "settingsGeneral": "一般",

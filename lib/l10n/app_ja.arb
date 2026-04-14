@@ -178,6 +178,8 @@
   "intimacyEndDate": "交際終了",
   "intimacyPurchaseDate": "購入日",
   "intimacyRetiredDate": "引退日",
+  "intimacyBreakUp": "別れる",
+  "intimacyRetire": "引退",
 
   "settingsTitle": "設定",
   "settingsGeneral": "一般",

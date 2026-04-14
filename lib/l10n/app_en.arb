@@ -184,6 +184,8 @@
   "intimacyEndDate": "End Date",
   "intimacyPurchaseDate": "Purchase Date",
   "intimacyRetiredDate": "Retired Date",
+  "intimacyBreakUp": "Break Up",
+  "intimacyRetire": "Retire",
 
   "settingsTitle": "Settings",
   "settingsGeneral": "General",

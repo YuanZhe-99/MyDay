@@ -134,9 +134,11 @@ class _IntimacyPageState extends State<IntimacyPage> {
   }
 
   Future<void> _addRecord() async {
+    final activePartners = _partners.where((p) => p.endDate == null).toList();
+    final activeToys = _toys.where((t) => t.retiredDate == null).toList();
     final record = await showDialog<IntimacyRecord>(
       context: context,
-      builder: (_) => AddRecordDialog(partners: _partners, toys: _toys, positions: _positions),
+      builder: (_) => AddRecordDialog(partners: activePartners, toys: activeToys, positions: _positions),
     );
     if (record != null) {
       setState(() => _records.insert(0, record));
@@ -150,10 +152,12 @@ class _IntimacyPageState extends State<IntimacyPage> {
   }
 
   Future<void> _editRecord(IntimacyRecord record) async {
+    final activePartners = _partners.where((p) => p.endDate == null).toList();
+    final activeToys = _toys.where((t) => t.retiredDate == null).toList();
     final updated = await showDialog<IntimacyRecord>(
       context: context,
       builder: (_) =>
-          AddRecordDialog(record: record, partners: _partners, toys: _toys, positions: _positions),
+          AddRecordDialog(record: record, partners: activePartners, toys: activeToys, positions: _positions),
     );
     if (updated != null) {
       setState(() {
@@ -180,8 +184,8 @@ class _IntimacyPageState extends State<IntimacyPage> {
                 context,
                 MaterialPageRoute(
                     builder: (_) => TimerPage(
-                          partners: _partners,
-                          toys: _toys,
+                          partners: _partners.where((p) => p.endDate == null).toList(),
+                          toys: _toys.where((t) => t.retiredDate == null).toList(),
                           positions: _positions,
                           timerHistory: _timerHistory,
                           timerHistoryRetentionDays:
@@ -1190,6 +1194,23 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
     widget.onChanged(_partners);
   }
 
+  void _breakUpPartner(Partner p) {
+    final now = DateTime.now();
+    // Remove from list, re-add at end with endDate set
+    setState(() {
+      _partners.removeWhere((x) => x.id == p.id);
+      _partners.add(Partner(
+        id: p.id,
+        name: p.name,
+        emoji: p.emoji,
+        imagePath: p.imagePath,
+        startDate: p.startDate,
+        endDate: now,
+      ));
+    });
+    widget.onChanged(_partners);
+  }
+
   void _showPartnerRecords(Partner p) {
     final related = widget.records
         .where((r) => r.partnerId == p.id)
@@ -1407,19 +1428,29 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
     return parts.join(' · ');
   }
 
+  /// Returns partners sorted: active (no endDate) first, broken-up at end.
+  List<Partner> get _sortedPartners {
+    final active = _partners.where((p) => p.endDate == null).toList();
+    final broken = _partners.where((p) => p.endDate != null).toList();
+    return [...active, ...broken];
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final sorted = _sortedPartners;
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.intimacyPartners),
+        title: Text(l10n.intimacyPartners),
         centerTitle: true,
       ),
       body: _partners.isEmpty
-          ? Center(child: Text(AppLocalizations.of(context)!.intimacyNoPartners))
+          ? Center(child: Text(l10n.intimacyNoPartners))
           : ListView.builder(
-              itemCount: _partners.length,
+              itemCount: sorted.length,
               itemBuilder: (context, index) {
-                final p = _partners[index];
+                final p = sorted[index];
+                final isInactive = p.endDate != null;
                 final recordCount = widget.records
                     .where((r) => r.partnerId == p.id)
                     .length;
@@ -1436,21 +1467,71 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
                   secondaryBackground: Container(
                     alignment: Alignment.centerRight,
                     padding: const EdgeInsets.only(right: 20),
-                    color: Theme.of(context).colorScheme.error,
-                    child: Icon(Icons.delete_outline,
-                        color: Theme.of(context).colorScheme.onError),
+                    color: isInactive
+                        ? Theme.of(context).colorScheme.error
+                        : Theme.of(context).colorScheme.tertiary,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Icon(
+                          isInactive ? Icons.delete_outline : Icons.heart_broken_outlined,
+                          color: Theme.of(context).colorScheme.onTertiary,
+                        ),
+                        const SizedBox(width: 8),
+                        if (!isInactive)
+                          Text(
+                            l10n.intimacyBreakUp,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onTertiary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        const SizedBox(width: 20),
+                      ],
+                    ),
                   ),
                   confirmDismiss: (direction) async {
                     if (direction == DismissDirection.startToEnd) {
                       _editPartner(p);
                       return false;
                     }
-                    return confirmDelete(context, p.name);
+                    if (isInactive) {
+                      return confirmDelete(context, p.name);
+                    }
+                    // Break up confirmation
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: Text(l10n.intimacyBreakUp),
+                        content: Text(p.name),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: Text(l10n.commonCancel),
+                          ),
+                          FilledButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            child: Text(l10n.intimacyBreakUp),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirm == true) {
+                      _breakUpPartner(p);
+                    }
+                    return false;
                   },
                   onDismissed: (_) => _deletePartner(p),
                   child: ListTile(
                     leading: _buildPartnerAvatar(p),
-                    title: Text(p.name),
+                    title: Text(
+                      p.name,
+                      style: isInactive
+                          ? TextStyle(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            )
+                          : null,
+                    ),
                     subtitle: Text(_partnerSubtitle(p, recordCount)),
                     onTap: () => _showPartnerRecords(p),
                   ),
@@ -1518,6 +1599,24 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
 
   void _deleteToy(Toy t) {
     setState(() => _toys.removeWhere((x) => x.id == t.id));
+    widget.onChanged(_toys);
+  }
+
+  void _retireToy(Toy t) {
+    final now = DateTime.now();
+    setState(() {
+      _toys.removeWhere((x) => x.id == t.id);
+      _toys.add(Toy(
+        id: t.id,
+        name: t.name,
+        emoji: t.emoji,
+        imagePath: t.imagePath,
+        purchaseDate: t.purchaseDate,
+        retiredDate: now,
+        purchaseLink: t.purchaseLink,
+        price: t.price,
+      ));
+    });
     widget.onChanged(_toys);
   }
 
@@ -1772,19 +1871,29 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
     return parts.join(' · ');
   }
 
+  /// Returns toys sorted: active (no retiredDate) first, retired at end.
+  List<Toy> get _sortedToys {
+    final active = _toys.where((t) => t.retiredDate == null).toList();
+    final retired = _toys.where((t) => t.retiredDate != null).toList();
+    return [...active, ...retired];
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final sorted = _sortedToys;
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.intimacyToys),
+        title: Text(l10n.intimacyToys),
         centerTitle: true,
       ),
       body: _toys.isEmpty
-          ? Center(child: Text(AppLocalizations.of(context)!.intimacyNoToys))
+          ? Center(child: Text(l10n.intimacyNoToys))
           : ListView.builder(
-              itemCount: _toys.length,
+              itemCount: sorted.length,
               itemBuilder: (context, index) {
-                final t = _toys[index];
+                final t = sorted[index];
+                final isRetired = t.retiredDate != null;
                 final recordCount = widget.records
                     .where((r) => r.toyIds.contains(t.id))
                     .length;
@@ -1801,21 +1910,71 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
                   secondaryBackground: Container(
                     alignment: Alignment.centerRight,
                     padding: const EdgeInsets.only(right: 20),
-                    color: Theme.of(context).colorScheme.error,
-                    child: Icon(Icons.delete_outline,
-                        color: Theme.of(context).colorScheme.onError),
+                    color: isRetired
+                        ? Theme.of(context).colorScheme.error
+                        : Theme.of(context).colorScheme.tertiary,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Icon(
+                          isRetired ? Icons.delete_outline : Icons.archive_outlined,
+                          color: Theme.of(context).colorScheme.onTertiary,
+                        ),
+                        const SizedBox(width: 8),
+                        if (!isRetired)
+                          Text(
+                            l10n.intimacyRetire,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onTertiary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        const SizedBox(width: 20),
+                      ],
+                    ),
                   ),
                   confirmDismiss: (direction) async {
                     if (direction == DismissDirection.startToEnd) {
                       _editToy(t);
                       return false;
                     }
-                    return confirmDelete(context, t.name);
+                    if (isRetired) {
+                      return confirmDelete(context, t.name);
+                    }
+                    // Retire confirmation
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: Text(l10n.intimacyRetire),
+                        content: Text(t.name),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: Text(l10n.commonCancel),
+                          ),
+                          FilledButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            child: Text(l10n.intimacyRetire),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirm == true) {
+                      _retireToy(t);
+                    }
+                    return false;
                   },
                   onDismissed: (_) => _deleteToy(t),
                   child: ListTile(
                     leading: _buildToyAvatar(t),
-                    title: Text(t.name),
+                    title: Text(
+                      t.name,
+                      style: isRetired
+                          ? TextStyle(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            )
+                          : null,
+                    ),
                     subtitle: Text(_toySubtitle(t, recordCount)),
                     onTap: () => _showToyRecords(t),
                   ),
