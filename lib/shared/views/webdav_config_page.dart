@@ -117,11 +117,21 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
       }
     } else {
       setState(() => _syncing = false);
+      if (!mounted) return;
+      final msg = result.success
+          ? AppLocalizations.of(context)!.settingsWebDAVSyncSuccess
+          : '${AppLocalizations.of(context)!.settingsWebDAVSyncFailed}: ${result.error ?? ''}';
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result.success
-            ? AppLocalizations.of(context)!.settingsWebDAVSyncSuccess
-            : AppLocalizations.of(context)!.settingsWebDAVSyncFailed)),
+        SnackBar(content: Text(msg)),
       );
+      if (result.warnings.isNotEmpty && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Image sync warnings:\n${result.warnings.join('\n')}'),
+            duration: const Duration(seconds: 8),
+          ),
+        );
+      }
     }
   }
 

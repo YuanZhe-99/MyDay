@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -73,7 +74,15 @@ class SyncResult {
   /// Non-null when there are per-record conflicts needing user resolution.
   final PendingSync? pending;
 
-  const SyncResult({required this.success, this.error, this.pending});
+  /// Non-fatal warnings (e.g. individual image transfer failures).
+  final List<String> warnings;
+
+  const SyncResult({
+    required this.success,
+    this.error,
+    this.pending,
+    this.warnings = const [],
+  });
 
   bool get hasConflicts => pending != null;
 }
@@ -284,26 +293,25 @@ class WebDAVService {
     }
   }
 
-  static Future<bool> _uploadBytes(
+  /// Throws [Exception] on HTTP error or network failure.
+  static Future<void> _uploadBytes(
     WebDAVConfig config,
     String fileName,
     Uint8List bytes,
   ) async {
-    try {
-      final url = Uri.parse(_remoteFileUrl(config, fileName));
-      final response = await http
-          .put(
-            url,
-            headers: {
-              ..._authHeaders(config),
-              'Content-Type': 'application/octet-stream',
-            },
-            body: bytes,
-          )
-          .timeout(const Duration(seconds: 60));
-      return response.statusCode >= 200 && response.statusCode < 300;
-    } catch (_) {
-      return false;
+    final url = Uri.parse(_remoteFileUrl(config, fileName));
+    final response = await http
+        .put(
+          url,
+          headers: {
+            ..._authHeaders(config),
+            'Content-Type': 'application/octet-stream',
+          },
+          body: bytes,
+        )
+        .timeout(const Duration(seconds: 120));
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('HTTP ${response.statusCode}');
     }
   }
 
@@ -374,7 +382,7 @@ class WebDAVService {
       for (final match in hrefPattern.allMatches(body)) {
         final href = Uri.decodeFull(match.group(1)!);
         // Skip the directory itself (ends with subPath/)
-        if (href.endsWith('$subPath/') || href.endsWith('$subPath')) continue;
+        if (href.endsWith('$subPath/') || href.endsWith(subPath)) continue;
         final fileName = href.split('/').where((s) => s.isNotEmpty).last;
         if (fileName.isNotEmpty) names.add(fileName);
       }
@@ -384,58 +392,115 @@ class WebDAVService {
     }
   }
 
-  static Future<Uint8List?> _downloadBytes(
+  /// Throws [Exception] on HTTP error or network failure.
+  static Future<Uint8List> _downloadBytes(
     WebDAVConfig config,
     String fileName,
   ) async {
+    final url = Uri.parse(_remoteFileUrl(config, fileName));
+    final response = await http
+        .get(url, headers: _authHeaders(config))
+        .timeout(const Duration(seconds: 120));
+    if (response.statusCode == 200) return response.bodyBytes;
+    throw Exception('HTTP ${response.statusCode}');
+  }
+
+  /// Extract basenames of images referenced by actual records in the given JSON.
+  ///
+  /// [dataFile] is the file name, used to determine which fields to inspect.
+  /// Supports `finance_data.json` (accounts + subscriptions) and
+  /// `intimacy_data.json` (partners + toys).
+  static Set<String> _getReferencedImageNames(String? json, String dataFile) {
+    if (json == null) return {};
     try {
-      final url = Uri.parse(_remoteFileUrl(config, fileName));
-      final response = await http
-          .get(url, headers: _authHeaders(config))
-          .timeout(const Duration(seconds: 60));
-      if (response.statusCode == 200) return response.bodyBytes;
-      return null;
+      final decoded = jsonDecode(json) as Map<String, dynamic>;
+      final names = <String>{};
+      List<String> sections;
+      switch (dataFile) {
+        case 'finance_data.json':
+          sections = ['accounts', 'subscriptions'];
+        case 'intimacy_data.json':
+          sections = ['partners', 'toys'];
+        default:
+          return {};
+      }
+      for (final section in sections) {
+        final items = decoded[section];
+        if (items is List) {
+          for (final item in items) {
+            if (item is Map) {
+              final path = item['imagePath'] as String?;
+              if (path != null && path.isNotEmpty) {
+                names.add(p.basename(path));
+              }
+            }
+          }
+        }
+      }
+      return names;
     } catch (_) {
-      return null;
+      return {};
     }
   }
 
-  static Future<void> _syncImages(WebDAVConfig config, Directory appDir) async {
+  /// Sync only images that are referenced by actual records (local ∪ remote),
+  /// skipping orphaned images to avoid transferring stale/unused data.
+  ///
+  /// Returns a list of non-fatal error strings for individual transfer failures.
+  static Future<List<String>> _syncImages(
+    WebDAVConfig config,
+    Directory appDir,
+    Set<String> referencedImages,
+  ) async {
+    final errors = <String>[];
+    if (referencedImages.isEmpty) return errors;
+
     final imgDir = Directory(p.join(appDir.path, 'images'));
+    if (!await imgDir.exists()) await imgDir.create(recursive: true);
 
     await _ensureRemoteSubDir(config, 'images');
 
-    // Collect local image names
+    // Collect local referenced images (skip orphans)
     final localNames = <String>{};
-    if (await imgDir.exists()) {
-      await for (final entity in imgDir.list()) {
-        if (entity is File) {
-          localNames.add(p.basename(entity.path));
-        }
+    await for (final entity in imgDir.list()) {
+      if (entity is File) {
+        final name = p.basename(entity.path);
+        if (referencedImages.contains(name)) localNames.add(name);
       }
     }
 
-    // List remote images
+    // List all remote files (needed to avoid re-uploading existing ones)
     final remoteNames = await _listRemoteDir(config, 'images');
 
-    // Download remote images not present locally
-    if (!await imgDir.exists()) await imgDir.create(recursive: true);
-    for (final name in remoteNames) {
-      if (!localNames.contains(name)) {
-        final bytes = await _downloadBytes(config, 'images/$name');
-        if (bytes != null) {
-          await File(p.join(imgDir.path, name)).writeAsBytes(bytes);
+    // Upload local referenced images that are missing on remote
+    for (final name in localNames) {
+      if (!remoteNames.contains(name)) {
+        try {
+          final bytes = await File(p.join(imgDir.path, name)).readAsBytes();
+          await _uploadBytes(config, 'images/$name', bytes);
+        } on TimeoutException {
+          errors.add('Upload timed out: $name');
+        } catch (e) {
+          errors.add('Upload failed for $name: $e');
         }
       }
     }
 
-    // Upload local images not present on remote
-    for (final name in localNames) {
-      if (!remoteNames.contains(name)) {
-        final bytes = await File(p.join(imgDir.path, name)).readAsBytes();
-        await _uploadBytes(config, 'images/$name', bytes);
+    // Download referenced remote images that are missing locally
+    for (final name in referencedImages) {
+      if (!localNames.contains(name) && remoteNames.contains(name)) {
+        try {
+          final bytes = await _downloadBytes(config, 'images/$name');
+          await File(p.join(imgDir.path, name)).writeAsBytes(bytes);
+        } on TimeoutException {
+          errors.add('Download timed out: $name');
+        } catch (e) {
+          errors.add('Download failed for $name: $e');
+        }
       }
     }
+
+    return errors;
   }
 
   // ── Per-record merge sync ──
@@ -475,6 +540,12 @@ class WebDAVService {
       WeightMergeResult? pendingWeight;
       final perFileErrors = <String>[];
 
+      // Track JSON for referenced-image computation (local ∪ remote).
+      String? localFinanceJson;
+      String? remoteFinanceJson;
+      String? localIntimacyJson;
+      String? remoteIntimacyJson;
+
       for (final name in _dataFileNames) {
         final localFile = File('${appDir.path}/$name');
         final localExists = await localFile.exists();
@@ -488,10 +559,14 @@ class WebDAVService {
           await _atomicWrite(localFile, remoteRaw);
           await _saveBase(name, _toJson(remoteRaw));
           _localDataChanged = true;
+          if (name == 'finance_data.json') remoteFinanceJson = remoteRaw;
+          if (name == 'intimacy_data.json') remoteIntimacyJson = remoteRaw;
           continue;
         }
 
         final localRaw = await localFile.readAsString();
+        if (name == 'finance_data.json') localFinanceJson = localRaw;
+        if (name == 'intimacy_data.json') localIntimacyJson = localRaw;
 
         if (localExists && remoteRaw == null) {
           // Only on local → upload
@@ -499,6 +574,9 @@ class WebDAVService {
           if (uploaded) await _saveBase(name, _toJson(localRaw));
           continue;
         }
+
+        if (name == 'finance_data.json') remoteFinanceJson = remoteRaw;
+        if (name == 'intimacy_data.json') remoteIntimacyJson = remoteRaw;
 
         // Both exist → per-record merge
         final localJson = _toJson(localRaw);
@@ -587,6 +665,8 @@ class WebDAVService {
                 await _atomicWrite(localFile, mergedRaw);
                 final uploaded = await _upload(config, name, mergedRaw);
                 if (uploaded) await _saveBase(name, mergedJson);
+                // Use merged result for image reference computation.
+                localFinanceJson = mergedJson;
                 _localDataChanged = true;
               }
 
@@ -618,6 +698,8 @@ class WebDAVService {
                 await _atomicWrite(localFile, mergedRaw);
                 final uploaded = await _upload(config, name, mergedRaw);
                 if (uploaded) await _saveBase(name, mergedJson);
+                // Use merged result for image reference computation.
+                localIntimacyJson = mergedJson;
                 _localDataChanged = true;
               }
 
@@ -659,8 +741,15 @@ class WebDAVService {
         }
       }
 
-      // Sync images (additive, no conflict)
-      await _syncImages(config, appDir);
+      // Sync only images referenced by actual records (local ∪ remote),
+      // skipping orphaned images to avoid transferring stale/unused data.
+      final referencedImages = {
+        ..._getReferencedImageNames(localFinanceJson, 'finance_data.json'),
+        ..._getReferencedImageNames(remoteFinanceJson, 'finance_data.json'),
+        ..._getReferencedImageNames(localIntimacyJson, 'intimacy_data.json'),
+        ..._getReferencedImageNames(remoteIntimacyJson, 'intimacy_data.json'),
+      };
+      final imageErrors = await _syncImages(config, appDir, referencedImages);
 
       final hasConflicts =
           pendingTodo != null ||
@@ -678,12 +767,14 @@ class WebDAVService {
             intimacyMerge: pendingIntimacy,
             weightMerge: pendingWeight,
           ),
+          warnings: imageErrors,
         );
       }
 
       return SyncResult(
         success: perFileErrors.isEmpty,
         error: perFileErrors.isNotEmpty ? perFileErrors.join('; ') : null,
+        warnings: imageErrors,
       );
     } catch (e) {
       return SyncResult(success: false, error: e.toString());

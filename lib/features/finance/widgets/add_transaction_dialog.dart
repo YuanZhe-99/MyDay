@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/services/image_service.dart';
@@ -100,6 +99,16 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
     super.dispose();
   }
 
+  Future<void> _openCalcKeyboard(TextEditingController controller, String label) async {
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => _CalcKeyboard(initial: controller.text, label: label),
+    );
+    if (result != null) setState(() => controller.text = result);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -145,18 +154,14 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
             // Amount
             TextField(
               controller: _amountController,
-              autofocus: true,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
-              ],
+              readOnly: true,
+              onTap: () => _openCalcKeyboard(_amountController, l10n.financeAmount),
               decoration: InputDecoration(
                 labelText: l10n.financeAmount,
                 prefixText: '${currencySymbol(_currency)} ',
                 prefixStyle: TextStyle(color: theme.colorScheme.onSurface),
+                suffixIcon: const Icon(Icons.calculate_outlined, size: 18),
               ),
-              onSubmitted: (_) => _submit(),
             ),
             const SizedBox(height: 12),
 
@@ -186,16 +191,17 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
             if (_isCrossCurrency) ...[
               TextField(
                 controller: _toAmountController,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
-                ],
+                readOnly: true,
+                onTap: () => _openCalcKeyboard(
+                  _toAmountController,
+                  l10n.financeReceivedAmount(_selectedToAccount!.currency),
+                ),
                 decoration: InputDecoration(
                   labelText: l10n.financeReceivedAmount(_selectedToAccount!.currency),
                   prefixText: '${currencySymbol(_selectedToAccount!.currency)} ',
                   prefixStyle: TextStyle(color: theme.colorScheme.onSurface),
                   helperText: l10n.financeReceivedAmountHelper,
+                  suffixIcon: const Icon(Icons.calculate_outlined, size: 18),
                 ),
               ),
               const SizedBox(height: 12),
@@ -421,5 +427,247 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
         ],
       ],
     );
+  }
+}
+
+// ── Calculator keyboard ──────────────────────────────────────────────────────
+
+class _CalcKeyboard extends StatefulWidget {
+  final String initial;
+  final String label;
+
+  const _CalcKeyboard({this.initial = '', required this.label});
+
+  @override
+  State<_CalcKeyboard> createState() => _CalcKeyboardState();
+}
+
+class _CalcKeyboardState extends State<_CalcKeyboard> {
+  late String _expr;
+
+  @override
+  void initState() {
+    super.initState();
+    _expr = widget.initial;
+  }
+
+  void _append(String s) => setState(() => _expr += s);
+
+  void _backspace() => setState(() {
+        if (_expr.isNotEmpty) _expr = _expr.substring(0, _expr.length - 1);
+      });
+
+  void _clear() => setState(() => _expr = '');
+
+  void _confirm() {
+    final result = _evalExpr(_expr);
+    if (result != null && result > 0) {
+      Navigator.pop(context, result.toStringAsFixed(2));
+    } else {
+      final direct = double.tryParse(_expr);
+      if (direct != null && direct > 0) {
+        Navigator.pop(context, direct.toStringAsFixed(2));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final preview = _evalExpr(_expr);
+    final showPreview = preview != null && _expr.isNotEmpty &&
+        double.tryParse(_expr) == null; // only when it's an expression
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Handle bar
+          Container(
+            width: 40, height: 4,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.outlineVariant,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Display
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  widget.label,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _expr.isEmpty ? '0' : _expr,
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.right,
+                ),
+                if (showPreview)
+                  Text(
+                    '= ${preview.toStringAsFixed(2)}',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Button grid
+          ...[
+            ['7', '8', '9', '÷'],
+            ['4', '5', '6', '×'],
+            ['1', '2', '3', '-'],
+            ['.', '0', '⌫', '+'],
+          ].map((row) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: row.asMap().entries.map((e) {
+                    final label = e.value;
+                    final isOp = '÷×-+'.contains(label);
+                    return Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.only(left: e.key == 0 ? 0 : 8),
+                        child: SizedBox(
+                          height: 56,
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: isOp
+                                  ? theme.colorScheme.primary
+                                  : theme.colorScheme.onSurface,
+                              side: BorderSide(
+                                color: isOp
+                                    ? theme.colorScheme.primary.withValues(alpha: 0.4)
+                                    : theme.colorScheme.outlineVariant,
+                              ),
+                            ),
+                            onPressed: () {
+                              if (label == '⌫') {
+                                _backspace();
+                              } else {
+                                _append(label);
+                              }
+                            },
+                            child: Text(label,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: isOp ? FontWeight.w600 : FontWeight.normal,
+                                )),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              )),
+          // Bottom row: clear + confirm
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 56,
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: theme.colorScheme.error,
+                      side: BorderSide(color: theme.colorScheme.error.withValues(alpha: 0.4)),
+                    ),
+                    onPressed: _clear,
+                    child: const Text('C', style: TextStyle(fontWeight: FontWeight.w600)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                flex: 3,
+                child: SizedBox(
+                  height: 56,
+                  child: FilledButton(
+                    onPressed: _confirm,
+                    child: const Text('=',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Expression evaluator ─────────────────────────────────────────────────────
+
+double? _evalExpr(String expr) {
+  expr = expr.trim().replaceAll('×', '*').replaceAll('÷', '/');
+  if (expr.isEmpty) return null;
+  try {
+    return _ExprParser(expr).parse();
+  } catch (_) {
+    return null;
+  }
+}
+
+class _ExprParser {
+  final String src;
+  int _pos = 0;
+
+  _ExprParser(this.src);
+
+  double parse() {
+    final v = _parseAddSub();
+    if (_pos != src.length) throw const FormatException('unexpected char');
+    return v;
+  }
+
+  double _parseAddSub() {
+    var v = _parseMulDiv();
+    while (_pos < src.length && (src[_pos] == '+' || src[_pos] == '-')) {
+      final op = src[_pos++];
+      final r = _parseMulDiv();
+      v = op == '+' ? v + r : v - r;
+    }
+    return v;
+  }
+
+  double _parseMulDiv() {
+    var v = _parseNumber();
+    while (_pos < src.length && (src[_pos] == '*' || src[_pos] == '/')) {
+      final op = src[_pos++];
+      final r = _parseNumber();
+      if (op == '/' && r == 0) throw const FormatException('div by zero');
+      v = op == '*' ? v * r : v / r;
+    }
+    return v;
+  }
+
+  double _parseNumber() {
+    final start = _pos;
+    // Allow leading minus for unary negation only at start of expression
+    if (_pos < src.length && src[_pos] == '-' && start == 0) _pos++;
+    while (_pos < src.length) {
+      final c = src[_pos];
+      if ((c.codeUnitAt(0) >= 48 && c.codeUnitAt(0) <= 57) || c == '.') {
+        _pos++;
+      } else {
+        break;
+      }
+    }
+    if (_pos == start) throw const FormatException('expected number');
+    return double.parse(src.substring(start, _pos));
   }
 }

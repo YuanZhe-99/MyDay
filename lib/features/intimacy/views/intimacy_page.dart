@@ -414,6 +414,36 @@ class _IntimacyPageState extends State<IntimacyPage> {
       ..sort((a, b) => a.datetime.compareTo(b.datetime));
   }
 
+  /// Build EWMA smoothed curve for duration (in minutes).
+  /// Processes [allData] for warm-up but only emits spots at/after [visibleFrom].
+  List<FlSpot> _buildEwmaDurationSpots(
+    List<IntimacyRecord> allData,
+    DateTime visibleFrom, {
+    double halfLifeDays = 7,
+  }) {
+    if (allData.isEmpty) return [];
+    final tau = halfLifeDays * 86400 * 1000;
+    final spots = <FlSpot>[];
+    final firstMin = allData.first.duration.inSeconds / 60.0;
+    double ewma = firstMin;
+    DateTime prevTime = allData.first.datetime;
+
+    for (final r in allData) {
+      final dtMs = r.datetime.difference(prevTime).inMilliseconds.toDouble();
+      final alpha = 1.0 - math.exp(-dtMs / tau);
+      final durationMin = r.duration.inSeconds / 60.0;
+      ewma = alpha * durationMin + (1 - alpha) * ewma;
+      if (!r.datetime.isBefore(visibleFrom)) {
+        spots.add(FlSpot(
+          r.datetime.millisecondsSinceEpoch.toDouble(),
+          ewma,
+        ));
+      }
+      prevTime = r.datetime;
+    }
+    return spots;
+  }
+
   /// Build EWMA smoothed curve for pleasure level.
   /// Uses adaptive alpha based on time gap with half-life of [halfLifeDays].
   /// Processes [allData] for warm-up but only emits spots at/after [visibleFrom].
@@ -493,6 +523,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
     final cutoff = data.isNotEmpty ? data.first.datetime : DateTime.now();
     final pleasureSpots = _buildEwmaPleasureSpots(allSorted, cutoff);
     final frequencySpots = _buildEwmaFrequencySpots(allSorted, cutoff);
+    final durationSpots = _buildEwmaDurationSpots(allSorted, cutoff);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -522,7 +553,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
             ],
           ),
           const SizedBox(height: 8),
-          // Legend
+          // Legend — pleasure & frequency
           Row(
             children: [
               Container(width: 16, height: 2, color: theme.colorScheme.primary),
@@ -550,6 +581,32 @@ class _IntimacyPageState extends State<IntimacyPage> {
                 ? Center(child: Text(l10n.intimacyChartNoData,
                     style: TextStyle(color: theme.colorScheme.onSurfaceVariant)))
                 : _buildChart(theme, pleasureSpots, frequencySpots, data),
+          ),
+          const SizedBox(height: 12),
+          // Legend — duration
+          Row(
+            children: [
+              Container(
+                width: 16, height: 2,
+                decoration: BoxDecoration(
+                  border: Border(bottom: BorderSide(
+                    color: theme.colorScheme.secondary,
+                    width: 2,
+                    strokeAlign: BorderSide.strokeAlignCenter,
+                  )),
+                ),
+              ),
+              const SizedBox(width: 4),
+              Text(l10n.intimacyDuration, style: theme.textTheme.labelSmall),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 150,
+            child: data.length < 2
+                ? Center(child: Text(l10n.intimacyChartNoData,
+                    style: TextStyle(color: theme.colorScheme.onSurfaceVariant)))
+                : _buildDurationChart(theme, durationSpots, data),
           ),
           const Divider(height: 16),
         ],
@@ -715,6 +772,135 @@ class _IntimacyPageState extends State<IntimacyPage> {
                     ),
                   );
                 }
+              }).toList();
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDurationChart(
+    ThemeData theme,
+    List<FlSpot> durationSpots,
+    List<IntimacyRecord> data,
+  ) {
+    final maxMin = durationSpots.isEmpty
+        ? 30.0
+        : durationSpots.map((s) => s.y).reduce(math.max);
+    // Snap to a clean ceiling (minutes)
+    double minCeil(double v) {
+      const steps = [5.0, 10.0, 15.0, 20.0, 30.0, 45.0, 60.0, 90.0, 120.0];
+      for (final s in steps) {
+        if (s >= v) return s;
+      }
+      return (v / 30).ceil() * 30.0;
+    }
+    final yMax = minCeil(math.max(maxMin * 1.15, 5.0));
+
+    return LineChart(
+      LineChartData(
+        gridData: FlGridData(
+          show: true,
+          getDrawingHorizontalLine: (value) => FlLine(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+            strokeWidth: 0.5,
+          ),
+          getDrawingVerticalLine: (value) => FlLine(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
+            strokeWidth: 0.5,
+            dashArray: [4, 4],
+          ),
+        ),
+        titlesData: FlTitlesData(
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 28,
+              interval: _chartDateInterval(data),
+              getTitlesWidget: (value, meta) {
+                final date = DateTime.fromMillisecondsSinceEpoch(value.toInt());
+                final spanDays = data.last.datetime
+                    .difference(data.first.datetime)
+                    .inDays;
+                final fmt = spanDays > 730
+                    ? DateFormat('yyyy')
+                    : spanDays > 365
+                        ? DateFormat('M/yy')
+                        : DateFormat('M/d');
+                return SideTitleWidget(
+                  meta: meta,
+                  child: Text(
+                    fmt.format(date),
+                    style: theme.textTheme.labelSmall?.copyWith(fontSize: 9),
+                  ),
+                );
+              },
+            ),
+          ),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 32,
+              getTitlesWidget: (value, meta) {
+                if (value != value.roundToDouble()) {
+                  return const SizedBox.shrink();
+                }
+                return SideTitleWidget(
+                  meta: meta,
+                  child: Text(
+                    '${value.toInt()}m',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      fontSize: 9,
+                      color: theme.colorScheme.secondary,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+        ),
+        borderData: FlBorderData(
+          show: true,
+          border: Border.all(
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
+        ),
+        minY: 0,
+        maxY: yMax,
+        lineBarsData: [
+          LineChartBarData(
+            spots: durationSpots,
+            isCurved: true,
+            curveSmoothness: 0.3,
+            color: theme.colorScheme.secondary,
+            barWidth: 2,
+            dashArray: [6, 4],
+            dotData: const FlDotData(show: false),
+            belowBarData: BarAreaData(
+              show: true,
+              color: theme.colorScheme.secondary.withValues(alpha: 0.08),
+            ),
+          ),
+        ],
+        lineTouchData: LineTouchData(
+          touchTooltipData: LineTouchTooltipData(
+            getTooltipItems: (spots) {
+              return spots.map((s) {
+                final date = DateTime.fromMillisecondsSinceEpoch(s.x.toInt());
+                return LineTooltipItem(
+                  '${AppLocalizations.of(context)!.intimacyDuration}: ${s.y.toStringAsFixed(1)}min\n${DateFormat('MMM d').format(date)}',
+                  TextStyle(
+                    color: theme.colorScheme.onPrimary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                );
               }).toList();
             },
           ),
