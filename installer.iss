@@ -1,7 +1,7 @@
 [Setup]
 AppId={{B2C3D4E5-F6A7-8901-BCDE-F12345678901}
 AppName=MyDay!!!!!
-AppVersion=0.5.0
+AppVersion=0.5.1
 AppPublisher=yuanzhe
 AppPublisherURL=https://github.com/yuanzhe
 DefaultDirName={autopf}\MyDay
@@ -9,7 +9,7 @@ DefaultGroupName=MyDay!!!!!
 UninstallDisplayIcon={app}\my_day.exe
 OutputDir=build\installer
 #ifdef ARM64
-OutputBaseFilename=MyDay_0.4.3_arm64_Setup
+OutputBaseFilename=MyDay_{#SetupSetting("AppVersion")}_arm64_Setup
 #else
 OutputBaseFilename=MyDay_{#SetupSetting("AppVersion")}_Setup
 #endif

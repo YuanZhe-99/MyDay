@@ -444,6 +444,27 @@ class _IntimacyPageState extends State<IntimacyPage> {
     return spots;
   }
 
+  /// Build raw (instantaneous) frequency spots — records per week based on gap since previous record.
+  /// Processes [allData] but only emits spots at/after [visibleFrom].
+  List<FlSpot> _buildRawFrequencySpots(
+    List<IntimacyRecord> allData,
+    DateTime visibleFrom,
+  ) {
+    if (allData.length < 2) return [];
+    final spots = <FlSpot>[];
+    for (int i = 1; i < allData.length; i++) {
+      final r = allData[i];
+      final dtMs =
+          r.datetime.difference(allData[i - 1].datetime).inMilliseconds.toDouble();
+      if (dtMs <= 0) continue;
+      final rate = 7.0 * 86400 * 1000 / dtMs;
+      if (!r.datetime.isBefore(visibleFrom)) {
+        spots.add(FlSpot(r.datetime.millisecondsSinceEpoch.toDouble(), rate));
+      }
+    }
+    return spots;
+  }
+
   /// Build EWMA smoothed curve for pleasure level.
   /// Uses adaptive alpha based on time gap with half-life of [halfLifeDays].
   /// Processes [allData] for warm-up but only emits spots at/after [visibleFrom].
@@ -524,6 +545,16 @@ class _IntimacyPageState extends State<IntimacyPage> {
     final pleasureSpots = _buildEwmaPleasureSpots(allSorted, cutoff);
     final frequencySpots = _buildEwmaFrequencySpots(allSorted, cutoff);
     final durationSpots = _buildEwmaDurationSpots(allSorted, cutoff);
+    // Raw (actual) spots — no EWMA smoothing
+    final rawPleasureSpots = data
+        .map((r) => FlSpot(r.datetime.millisecondsSinceEpoch.toDouble(),
+            r.pleasureLevel.toDouble()))
+        .toList();
+    final rawFrequencySpots = _buildRawFrequencySpots(allSorted, cutoff);
+    final rawDurationSpots = data
+        .map((r) => FlSpot(r.datetime.millisecondsSinceEpoch.toDouble(),
+            r.duration.inSeconds / 60.0))
+        .toList();
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -556,22 +587,9 @@ class _IntimacyPageState extends State<IntimacyPage> {
           // Legend — pleasure & frequency
           Row(
             children: [
-              Container(width: 16, height: 2, color: theme.colorScheme.primary),
-              const SizedBox(width: 4),
-              Text(l10n.intimacyPleasure, style: theme.textTheme.labelSmall),
+              _legendItem(theme.colorScheme.primary, theme.textTheme.labelSmall, l10n.intimacyPleasure),
               const SizedBox(width: 16),
-              Container(
-                width: 16, height: 2,
-                decoration: BoxDecoration(
-                  border: Border(bottom: BorderSide(
-                    color: theme.colorScheme.tertiary,
-                    width: 2,
-                    strokeAlign: BorderSide.strokeAlignCenter,
-                  )),
-                ),
-              ),
-              const SizedBox(width: 4),
-              Text(l10n.intimacyFrequency, style: theme.textTheme.labelSmall),
+              _legendItem(theme.colorScheme.tertiary, theme.textTheme.labelSmall, l10n.intimacyFrequency),
             ],
           ),
           const SizedBox(height: 8),
@@ -580,24 +598,13 @@ class _IntimacyPageState extends State<IntimacyPage> {
             child: data.length < 2
                 ? Center(child: Text(l10n.intimacyChartNoData,
                     style: TextStyle(color: theme.colorScheme.onSurfaceVariant)))
-                : _buildChart(theme, pleasureSpots, frequencySpots, data),
+                : _buildChart(theme, rawPleasureSpots, pleasureSpots, rawFrequencySpots, frequencySpots, data),
           ),
           const SizedBox(height: 12),
           // Legend — duration
           Row(
             children: [
-              Container(
-                width: 16, height: 2,
-                decoration: BoxDecoration(
-                  border: Border(bottom: BorderSide(
-                    color: theme.colorScheme.secondary,
-                    width: 2,
-                    strokeAlign: BorderSide.strokeAlignCenter,
-                  )),
-                ),
-              ),
-              const SizedBox(width: 4),
-              Text(l10n.intimacyDuration, style: theme.textTheme.labelSmall),
+              _legendItem(theme.colorScheme.secondary, theme.textTheme.labelSmall, l10n.intimacyDuration),
             ],
           ),
           const SizedBox(height: 8),
@@ -606,7 +613,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
             child: data.length < 2
                 ? Center(child: Text(l10n.intimacyChartNoData,
                     style: TextStyle(color: theme.colorScheme.onSurfaceVariant)))
-                : _buildDurationChart(theme, durationSpots, data),
+                : _buildDurationChart(theme, rawDurationSpots, durationSpots, data),
           ),
           const Divider(height: 16),
         ],
@@ -616,13 +623,17 @@ class _IntimacyPageState extends State<IntimacyPage> {
 
   Widget _buildChart(
     ThemeData theme,
+    List<FlSpot> rawPleasureSpots,
     List<FlSpot> pleasureSpots,
+    List<FlSpot> rawFrequencySpots,
     List<FlSpot> frequencySpots,
     List<IntimacyRecord> data,
   ) {
-    final maxFreq = frequencySpots.isEmpty
+    // Compute freqMax from both EWMA and raw spots
+    final allFreqSpots = [...frequencySpots, ...rawFrequencySpots];
+    final maxFreq = allFreqSpots.isEmpty
         ? 5.0
-        : frequencySpots.map((s) => s.y).reduce(math.max);
+        : allFreqSpots.map((s) => s.y).reduce(math.max);
     // Snap freqMax to a clean ceiling so right-axis labels land on round numbers
     double freqCeil(double v) {
       const steps = [1.0, 2.0, 3.0, 5.0, 7.0, 10.0, 14.0, 20.0];
@@ -654,6 +665,8 @@ class _IntimacyPageState extends State<IntimacyPage> {
               showTitles: true,
               reservedSize: 28,
               interval: _chartDateInterval(data),
+              minIncluded: false,
+              maxIncluded: false,
               getTitlesWidget: (value, meta) {
                 final date = DateTime.fromMillisecondsSinceEpoch(value.toInt());
                 final spanDays = data.last.datetime.difference(data.first.datetime).inDays;
@@ -721,20 +734,39 @@ class _IntimacyPageState extends State<IntimacyPage> {
         minY: 0,
         maxY: 5.5,
         lineBarsData: [
-          // Pleasure EWMA line (solid, primary color)
+          // Raw pleasure — thin solid primary
+          LineChartBarData(
+            spots: rawPleasureSpots,
+            isCurved: false,
+            color: theme.colorScheme.primary.withValues(alpha: 0.45),
+            barWidth: 1.5,
+            dotData: const FlDotData(show: false),
+          ),
+          // Pleasure EWMA — dashed primary
           LineChartBarData(
             spots: pleasureSpots,
             isCurved: true,
             curveSmoothness: 0.3,
             color: theme.colorScheme.primary,
             barWidth: 2.5,
+            dashArray: [6, 4],
             dotData: const FlDotData(show: false),
             belowBarData: BarAreaData(
               show: true,
               color: theme.colorScheme.primary.withValues(alpha: 0.08),
             ),
           ),
-          // Frequency EWMA line (dashed, tertiary color, scaled to fit 0-5)
+          // Raw frequency — thin solid tertiary (scaled to 0-5)
+          LineChartBarData(
+            spots: rawFrequencySpots
+                .map((s) => FlSpot(s.x, (s.y.clamp(0, freqMax) / freqMax) * 5))
+                .toList(),
+            isCurved: false,
+            color: theme.colorScheme.tertiary.withValues(alpha: 0.45),
+            barWidth: 1.5,
+            dotData: const FlDotData(show: false),
+          ),
+          // Frequency EWMA — dashed tertiary (scaled to 0-5)
           LineChartBarData(
             spots: frequencySpots
                 .map((s) => FlSpot(s.x, (s.y / freqMax) * 5))
@@ -753,7 +785,8 @@ class _IntimacyPageState extends State<IntimacyPage> {
               return spots.asMap().entries.map((entry) {
                 final s = entry.value;
                 final date = DateTime.fromMillisecondsSinceEpoch(s.x.toInt());
-                if (entry.key == 0) {
+                // Only show tooltip for EWMA series (indices 1 and 3); skip raw (0 and 2)
+                if (entry.key == 1) {
                   return LineTooltipItem(
                     '${AppLocalizations.of(context)!.intimacyPleasure}: ${s.y.toStringAsFixed(1)}\n${DateFormat('MMM d').format(date)}',
                     TextStyle(
@@ -762,7 +795,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
                       fontWeight: FontWeight.w600,
                     ),
                   );
-                } else {
+                } else if (entry.key == 3) {
                   final actualFreq = s.y / 5 * freqMax;
                   return LineTooltipItem(
                     '${AppLocalizations.of(context)!.intimacyFrequency}: ${actualFreq.toStringAsFixed(1)}/wk',
@@ -772,6 +805,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
                     ),
                   );
                 }
+                return null;
               }).toList();
             },
           ),
@@ -782,12 +816,14 @@ class _IntimacyPageState extends State<IntimacyPage> {
 
   Widget _buildDurationChart(
     ThemeData theme,
+    List<FlSpot> rawDurationSpots,
     List<FlSpot> durationSpots,
     List<IntimacyRecord> data,
   ) {
-    final maxMin = durationSpots.isEmpty
+    final allDurSpots = [...durationSpots, ...rawDurationSpots];
+    final maxMin = allDurSpots.isEmpty
         ? 30.0
-        : durationSpots.map((s) => s.y).reduce(math.max);
+        : allDurSpots.map((s) => s.y).reduce(math.max);
     // Snap to a clean ceiling (minutes)
     double minCeil(double v) {
       const steps = [5.0, 10.0, 15.0, 20.0, 30.0, 45.0, 60.0, 90.0, 120.0];
@@ -818,6 +854,8 @@ class _IntimacyPageState extends State<IntimacyPage> {
               showTitles: true,
               reservedSize: 28,
               interval: _chartDateInterval(data),
+              minIncluded: false,
+              maxIncluded: false,
               getTitlesWidget: (value, meta) {
                 final date = DateTime.fromMillisecondsSinceEpoch(value.toInt());
                 final spanDays = data.last.datetime
@@ -874,6 +912,15 @@ class _IntimacyPageState extends State<IntimacyPage> {
         minY: 0,
         maxY: yMax,
         lineBarsData: [
+          // Raw duration — thin solid secondary
+          LineChartBarData(
+            spots: rawDurationSpots,
+            isCurved: false,
+            color: theme.colorScheme.secondary.withValues(alpha: 0.45),
+            barWidth: 1.5,
+            dotData: const FlDotData(show: false),
+          ),
+          // Duration EWMA — dashed secondary
           LineChartBarData(
             spots: durationSpots,
             isCurved: true,
@@ -891,7 +938,9 @@ class _IntimacyPageState extends State<IntimacyPage> {
         lineTouchData: LineTouchData(
           touchTooltipData: LineTouchTooltipData(
             getTooltipItems: (spots) {
-              return spots.map((s) {
+              return spots.asMap().entries.map((entry) {
+                if (entry.key == 0) return null; // skip raw series
+                final s = entry.value;
                 final date = DateTime.fromMillisecondsSinceEpoch(s.x.toInt());
                 return LineTooltipItem(
                   '${AppLocalizations.of(context)!.intimacyDuration}: ${s.y.toStringAsFixed(1)}min\n${DateFormat('MMM d').format(date)}',
@@ -906,6 +955,21 @@ class _IntimacyPageState extends State<IntimacyPage> {
           ),
         ),
       ),
+    );
+  }
+
+  /// Legend item: solid line + dashed line + label for a given [color].
+  Widget _legendItem(Color color, TextStyle? labelStyle, String label) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(width: 10, height: 2, color: color),
+        const SizedBox(width: 2),
+        Container(width: 4, height: 2, color: color.withValues(alpha: 0)),
+        Container(width: 6, height: 2, color: color.withValues(alpha: 0.7)),
+        const SizedBox(width: 4),
+        Text(label, style: labelStyle),
+      ],
     );
   }
 
