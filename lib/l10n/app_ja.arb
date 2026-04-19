@@ -564,5 +564,14 @@
   "settingsApiListenAddress": "リッスンアドレス",
   "settingsApiPort": "ポート",
   "settingsApiUsername": "ユーザー名",
-  "settingsApiPassword": "パスワード"
+  "settingsApiPassword": "パスワード",
+  "todoRecurrence": "繰り返し",
+  "todoRecurrenceNone": "なし",
+  "todoRecurrenceEveryNDays": "{n}日ごと",
+  "@todoRecurrenceEveryNDays": { "placeholders": { "n": { "type": "int" } } },
+  "todoRecurrenceMonthlyOnDay": "毎月{n}日",
+  "@todoRecurrenceMonthlyOnDay": { "placeholders": { "n": { "type": "int" } } },
+  "todoRecurrenceYearlyOnDate": "毎年{month}/{day}",
+  "@todoRecurrenceYearlyOnDate": { "placeholders": { "month": { "type": "int" }, "day": { "type": "int" } } },
+  "todoNextOccurrence": "次の発生をスケジュール"
 }

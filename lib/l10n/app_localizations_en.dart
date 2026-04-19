@@ -1542,4 +1542,28 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsApiPassword => 'Password';
+
+  @override
+  String get todoRecurrence => 'Recurrence';
+
+  @override
+  String get todoRecurrenceNone => 'None';
+
+  @override
+  String todoRecurrenceEveryNDays(int n) {
+    return 'Every $n days';
+  }
+
+  @override
+  String todoRecurrenceMonthlyOnDay(int n) {
+    return 'Every month on the ${n}th';
+  }
+
+  @override
+  String todoRecurrenceYearlyOnDate(int month, int day) {
+    return 'Every year on $month/$day';
+  }
+
+  @override
+  String get todoNextOccurrence => 'Schedule Next Occurrence';
 }

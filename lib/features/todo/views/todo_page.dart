@@ -335,6 +335,7 @@ class _TodoPageState extends State<TodoPage> {
   }
 
   void _toggleTask(Task task) {
+    Task? completedWithRecurrence;
     setState(() {
       if (task.type == TaskType.daily) {
         // Toggle per-date completion
@@ -377,11 +378,51 @@ class _TodoPageState extends State<TodoPage> {
             scheduledDate: t.scheduledDate,
             deletedDate: t.deletedDate,
             startDate: t.startDate,
+            dueDate: t.dueDate,
+            recurrence: t.recurrence,
           );
+          if (nowCompleting && t.recurrence != null) {
+            completedWithRecurrence = _oneTimeTasks[index];
+          }
         }
       }
     });
     _saveData();
+    if (completedWithRecurrence != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _offerNextOccurrence(completedWithRecurrence!);
+      });
+    }
+  }
+
+  Future<void> _offerNextOccurrence(Task completedTask) async {
+    final l10n = AppLocalizations.of(context)!;
+    final nextDate = completedTask.recurrence!.nextDate(
+      completedTask.scheduledDate ?? completedTask.createdDate,
+    );
+    final nextTask = Task(
+      title: completedTask.title,
+      emoji: completedTask.emoji,
+      type: completedTask.type,
+      subtasks: completedTask.subtasks
+          .map((s) => SubTask(title: s.title))
+          .toList(),
+      scheduledDate: nextDate,
+      reminderTime: completedTask.reminderTime,
+      recurrence: completedTask.recurrence,
+    );
+    final task = await showDialog<Task>(
+      context: context,
+      builder: (_) => AddTaskDialog(
+        defaultDate: nextDate,
+        initialTask: nextTask,
+        dialogTitle: l10n.todoNextOccurrence,
+      ),
+    );
+    if (task != null && mounted) {
+      setState(() => _oneTimeTasks.add(task));
+      _saveData();
+    }
   }
 
   void _deleteTask(Task task) {

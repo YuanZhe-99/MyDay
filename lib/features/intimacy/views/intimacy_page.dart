@@ -444,22 +444,29 @@ class _IntimacyPageState extends State<IntimacyPage> {
     return spots;
   }
 
-  /// Build raw (instantaneous) frequency spots — records per week based on gap since previous record.
+  /// Build raw frequency spots — records per week using a 7-day rolling window.
+  /// For each record, counts records within the preceding 7 days (inclusive).
   /// Processes [allData] but only emits spots at/after [visibleFrom].
   List<FlSpot> _buildRawFrequencySpots(
     List<IntimacyRecord> allData,
     DateTime visibleFrom,
   ) {
-    if (allData.length < 2) return [];
+    if (allData.isEmpty) return [];
+    const windowMs = 7 * 86400 * 1000;
     final spots = <FlSpot>[];
-    for (int i = 1; i < allData.length; i++) {
+    for (int i = 0; i < allData.length; i++) {
       final r = allData[i];
-      final dtMs =
-          r.datetime.difference(allData[i - 1].datetime).inMilliseconds.toDouble();
-      if (dtMs <= 0) continue;
-      final rate = 7.0 * 86400 * 1000 / dtMs;
+      final tMs = r.datetime.millisecondsSinceEpoch;
+      int count = 0;
+      for (int j = i; j >= 0; j--) {
+        if (tMs - allData[j].datetime.millisecondsSinceEpoch <= windowMs) {
+          count++;
+        } else {
+          break;
+        }
+      }
       if (!r.datetime.isBefore(visibleFrom)) {
-        spots.add(FlSpot(r.datetime.millisecondsSinceEpoch.toDouble(), rate));
+        spots.add(FlSpot(tMs.toDouble(), count.toDouble()));
       }
     }
     return spots;

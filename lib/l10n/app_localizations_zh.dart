@@ -1519,6 +1519,30 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsApiPassword => '密码';
+
+  @override
+  String get todoRecurrence => '重复';
+
+  @override
+  String get todoRecurrenceNone => '无';
+
+  @override
+  String todoRecurrenceEveryNDays(int n) {
+    return '每隔 $n 天';
+  }
+
+  @override
+  String todoRecurrenceMonthlyOnDay(int n) {
+    return '每月 $n 日';
+  }
+
+  @override
+  String todoRecurrenceYearlyOnDate(int month, int day) {
+    return '每年 $month/$day';
+  }
+
+  @override
+  String get todoNextOccurrence => '安排下次任务';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -3036,4 +3060,28 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get settingsApiPassword => '密碼';
+
+  @override
+  String get todoRecurrence => '重複';
+
+  @override
+  String get todoRecurrenceNone => '無';
+
+  @override
+  String todoRecurrenceEveryNDays(int n) {
+    return '每隔 $n 天';
+  }
+
+  @override
+  String todoRecurrenceMonthlyOnDay(int n) {
+    return '每月 $n 日';
+  }
+
+  @override
+  String todoRecurrenceYearlyOnDate(int month, int day) {
+    return '每年 $month/$day';
+  }
+
+  @override
+  String get todoNextOccurrence => '安排下次任務';
 }

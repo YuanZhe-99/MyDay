@@ -1521,4 +1521,28 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsApiPassword => 'パスワード';
+
+  @override
+  String get todoRecurrence => '繰り返し';
+
+  @override
+  String get todoRecurrenceNone => 'なし';
+
+  @override
+  String todoRecurrenceEveryNDays(int n) {
+    return '$n日ごと';
+  }
+
+  @override
+  String todoRecurrenceMonthlyOnDay(int n) {
+    return '毎月$n日';
+  }
+
+  @override
+  String todoRecurrenceYearlyOnDate(int month, int day) {
+    return '毎年$month/$day';
+  }
+
+  @override
+  String get todoNextOccurrence => '次の発生をスケジュール';
 }

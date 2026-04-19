@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../models/task.dart';
+import 'recurrence_picker.dart';
 
 class EditTaskDialog extends StatefulWidget {
   final Task task;
@@ -24,6 +25,7 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
   late DateTime? _completedDate;
   late DateTime? _startDate;
   late DateTime? _dueDate;
+  late TaskRecurrence? _recurrence;
 
   @override
   void initState() {
@@ -40,6 +42,7 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
     _completedDate = t.completedDate;
     _startDate = t.startDate;
     _dueDate = t.dueDate;
+    _recurrence = t.recurrence;
   }
 
   @override
@@ -220,9 +223,28 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
                 },
               ),
 
-            // Completed date
-            if (_selectedType != TaskType.daily && widget.task.isCompleted)
+            // Recurrence (for one-time tasks)
+            if (_selectedType != TaskType.daily)
               ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(
+                  Icons.repeat,
+                  color: _recurrence != null ? theme.colorScheme.primary : null,
+                ),
+                title: Text(_recurrence != null
+                    ? _recurrenceLabel(_recurrence!, l10n)
+                    : l10n.todoRecurrence),
+                trailing: _recurrence != null
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: () => setState(() => _recurrence = null),
+                      )
+                    : null,
+                onTap: () => _showRecurrencePicker(l10n),
+              ),
+
+            // Completed date
+            if (_selectedType != TaskType.daily && widget.task.isCompleted)              ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: Icon(Icons.check_circle,
                     color: theme.colorScheme.primary),
@@ -554,10 +576,34 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
     );
   }
 
+  String _recurrenceLabel(TaskRecurrence r, AppLocalizations l10n) {
+    switch (r.type) {
+      case RecurrenceType.everyNDays:
+        return l10n.todoRecurrenceEveryNDays(r.intervalDays);
+      case RecurrenceType.monthlyOnDay:
+        return l10n.todoRecurrenceMonthlyOnDay(r.dayOfMonth);
+      case RecurrenceType.yearlyOnMonthDay:
+        return l10n.todoRecurrenceYearlyOnDate(r.monthOfYear, r.dayOfMonth);
+    }
+  }
+
+  void _showRecurrencePicker(AppLocalizations l10n) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => RecurrencePicker(
+        initial: _recurrence,
+        onSelected: (r) {
+          setState(() => _recurrence = r);
+          Navigator.pop(ctx);
+        },
+      ),
+    );
+  }
+
   void _submit() {
     final title = _titleController.text.trim();
     if (title.isEmpty) return;
-
     DateTime? reminder;
     if (_reminderTime != null) {
       final now = DateTime.now();
@@ -586,6 +632,7 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
       deletedDate: widget.task.deletedDate,
       startDate: _selectedType == TaskType.daily ? _startDate : null,
       dueDate: _selectedType != TaskType.daily ? _dueDate : null,
+      recurrence: _selectedType != TaskType.daily ? _recurrence : null,
     );
     Navigator.pop(context, updated);
   }

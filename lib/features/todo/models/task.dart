@@ -2,6 +2,67 @@ import 'package:uuid/uuid.dart';
 
 enum TaskType { daily, routineOnce, workOnce }
 
+/// How a one-time task recurs after completion.
+enum RecurrenceType { everyNDays, monthlyOnDay, yearlyOnMonthDay }
+
+class TaskRecurrence {
+  final RecurrenceType type;
+  /// Days between occurrences (used by [RecurrenceType.everyNDays]).
+  final int intervalDays;
+  /// Day of month (1-31), used by [RecurrenceType.monthlyOnDay] and [RecurrenceType.yearlyOnMonthDay].
+  final int dayOfMonth;
+  /// Month of year (1-12), used by [RecurrenceType.yearlyOnMonthDay].
+  final int monthOfYear;
+
+  const TaskRecurrence._({
+    required this.type,
+    this.intervalDays = 0,
+    this.dayOfMonth = 0,
+    this.monthOfYear = 0,
+  });
+
+  const TaskRecurrence.everyNDays(int days)
+      : this._(type: RecurrenceType.everyNDays, intervalDays: days);
+
+  const TaskRecurrence.monthlyOnDay(int day)
+      : this._(type: RecurrenceType.monthlyOnDay, dayOfMonth: day);
+
+  const TaskRecurrence.yearlyOnMonthDay(int month, int day)
+      : this._(type: RecurrenceType.yearlyOnMonthDay, monthOfYear: month, dayOfMonth: day);
+
+  /// Returns the next scheduled date relative to [from].
+  DateTime nextDate(DateTime from) {
+    switch (type) {
+      case RecurrenceType.everyNDays:
+        return from.add(Duration(days: intervalDays));
+      case RecurrenceType.monthlyOnDay:
+        var month = from.month + 1;
+        var year = from.year;
+        if (month > 12) { month = 1; year++; }
+        final lastDay = DateTime(year, month + 1, 0).day;
+        return DateTime(year, month, dayOfMonth.clamp(1, lastDay));
+      case RecurrenceType.yearlyOnMonthDay:
+        final lastDay = DateTime(from.year + 1, monthOfYear + 1, 0).day;
+        return DateTime(from.year + 1, monthOfYear, dayOfMonth.clamp(1, lastDay));
+    }
+  }
+
+  Map<String, dynamic> toJson() => {
+        'type': type.name,
+        'intervalDays': intervalDays,
+        'dayOfMonth': dayOfMonth,
+        'monthOfYear': monthOfYear,
+      };
+
+  factory TaskRecurrence.fromJson(Map<String, dynamic> json) =>
+      TaskRecurrence._(
+        type: RecurrenceType.values.byName(json['type'] as String),
+        intervalDays: json['intervalDays'] as int? ?? 0,
+        dayOfMonth: json['dayOfMonth'] as int? ?? 0,
+        monthOfYear: json['monthOfYear'] as int? ?? 0,
+      );
+}
+
 class SubTask {
   final String id;
   final String title;
@@ -63,6 +124,8 @@ class Task {
   final DateTime? startDate;
   /// For one-time tasks: optional due date for reminder purposes.
   final DateTime? dueDate;
+  /// For one-time tasks: optional recurrence — when completed, prompt to create the next occurrence.
+  final TaskRecurrence? recurrence;
   final DateTime modifiedAt;
 
   Task({
@@ -79,6 +142,7 @@ class Task {
     this.deletedDate,
     this.startDate,
     this.dueDate,
+    this.recurrence,
     DateTime? modifiedAt,
   })  : id = id ?? const Uuid().v4(),
         createdDate = createdDate ?? DateTime.now(),
@@ -98,6 +162,8 @@ class Task {
     DateTime? startDate,
     DateTime? dueDate,
     bool clearDueDate = false,
+    TaskRecurrence? recurrence,
+    bool clearRecurrence = false,
     DateTime? modifiedAt,
   }) {
     return Task(
@@ -114,6 +180,7 @@ class Task {
       deletedDate: clearDeletedDate ? null : (deletedDate ?? this.deletedDate),
       startDate: startDate ?? this.startDate,
       dueDate: clearDueDate ? null : (dueDate ?? this.dueDate),
+      recurrence: clearRecurrence ? null : (recurrence ?? this.recurrence),
       modifiedAt: modifiedAt ?? DateTime.now(),
     );
   }
@@ -132,6 +199,7 @@ class Task {
         'deletedDate': deletedDate?.toIso8601String(),
         'startDate': startDate?.toIso8601String(),
         'dueDate': dueDate?.toIso8601String(),
+        'recurrence': recurrence?.toJson(),
         'modifiedAt': modifiedAt.toIso8601String(),
       };
 
@@ -163,6 +231,9 @@ class Task {
             : null,
         dueDate: json['dueDate'] != null
             ? DateTime.parse(json['dueDate'] as String)
+            : null,
+        recurrence: json['recurrence'] != null
+            ? TaskRecurrence.fromJson(json['recurrence'] as Map<String, dynamic>)
             : null,
         modifiedAt: json['modifiedAt'] != null
             ? DateTime.parse(json['modifiedAt'] as String)

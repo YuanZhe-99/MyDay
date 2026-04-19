@@ -587,5 +587,14 @@
   "settingsApiListenAddress": "Listen Address",
   "settingsApiPort": "Port",
   "settingsApiUsername": "Username",
-  "settingsApiPassword": "Password"
+  "settingsApiPassword": "Password",
+  "todoRecurrence": "Recurrence",
+  "todoRecurrenceNone": "None",
+  "todoRecurrenceEveryNDays": "Every {n} days",
+  "@todoRecurrenceEveryNDays": { "placeholders": { "n": { "type": "int" } } },
+  "todoRecurrenceMonthlyOnDay": "Every month on the {n}th",
+  "@todoRecurrenceMonthlyOnDay": { "placeholders": { "n": { "type": "int" } } },
+  "todoRecurrenceYearlyOnDate": "Every year on {month}/{day}",
+  "@todoRecurrenceYearlyOnDate": { "placeholders": { "month": { "type": "int" }, "day": { "type": "int" } } },
+  "todoNextOccurrence": "Schedule Next Occurrence"
 }

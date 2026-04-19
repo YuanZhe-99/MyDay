@@ -3004,6 +3004,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Password'**
   String get settingsApiPassword;
+
+  /// No description provided for @todoRecurrence.
+  ///
+  /// In en, this message translates to:
+  /// **'Recurrence'**
+  String get todoRecurrence;
+
+  /// No description provided for @todoRecurrenceNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get todoRecurrenceNone;
+
+  /// No description provided for @todoRecurrenceEveryNDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Every {n} days'**
+  String todoRecurrenceEveryNDays(int n);
+
+  /// No description provided for @todoRecurrenceMonthlyOnDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Every month on the {n}th'**
+  String todoRecurrenceMonthlyOnDay(int n);
+
+  /// No description provided for @todoRecurrenceYearlyOnDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Every year on {month}/{day}'**
+  String todoRecurrenceYearlyOnDate(int month, int day);
+
+  /// No description provided for @todoNextOccurrence.
+  ///
+  /// In en, this message translates to:
+  /// **'Schedule Next Occurrence'**
+  String get todoNextOccurrence;
 }
 
 class _AppLocalizationsDelegate

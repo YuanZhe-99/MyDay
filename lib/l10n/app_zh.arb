@@ -564,5 +564,14 @@
   "settingsApiListenAddress": "监听地址",
   "settingsApiPort": "端口",
   "settingsApiUsername": "用户名",
-  "settingsApiPassword": "密码"
+  "settingsApiPassword": "密码",
+  "todoRecurrence": "重复",
+  "todoRecurrenceNone": "无",
+  "todoRecurrenceEveryNDays": "每隔 {n} 天",
+  "@todoRecurrenceEveryNDays": { "placeholders": { "n": { "type": "int" } } },
+  "todoRecurrenceMonthlyOnDay": "每月 {n} 日",
+  "@todoRecurrenceMonthlyOnDay": { "placeholders": { "n": { "type": "int" } } },
+  "todoRecurrenceYearlyOnDate": "每年 {month}/{day}",
+  "@todoRecurrenceYearlyOnDate": { "placeholders": { "month": { "type": "int" }, "day": { "type": "int" } } },
+  "todoNextOccurrence": "安排下次任务"
 }

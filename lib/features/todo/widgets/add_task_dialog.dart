@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../models/task.dart';
+import 'recurrence_picker.dart';
 
 class AddTaskDialog extends StatefulWidget {
   final DateTime? defaultDate;
-  const AddTaskDialog({super.key, this.defaultDate});
+  /// When set, pre-fills all fields and uses this as the dialog title.
+  final Task? initialTask;
+  final String? dialogTitle;
+  const AddTaskDialog({super.key, this.defaultDate, this.initialTask, this.dialogTitle});
 
   @override
   State<AddTaskDialog> createState() => _AddTaskDialogState();
@@ -17,8 +21,29 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   TaskType _selectedType = TaskType.routineOnce;
   TimeOfDay? _reminderTime;
   String? _selectedEmoji;
+  DateTime? _scheduledDate;
   DateTime? _dueDate;
+  TaskRecurrence? _recurrence;
   final List<String> _subtaskTitles = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _scheduledDate = widget.initialTask?.scheduledDate ?? widget.defaultDate;
+    if (widget.initialTask != null) {
+      final t = widget.initialTask!;
+      _titleController.text = t.title;
+      _selectedType = t.type;
+      _selectedEmoji = t.emoji;
+      _recurrence = t.recurrence;
+      if (t.reminderTime != null) {
+        _reminderTime = TimeOfDay.fromDateTime(t.reminderTime!);
+      }
+      for (final s in t.subtasks) {
+        _subtaskTitles.add(s.title);
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -40,7 +65,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              l10n.todoAddTask,
+              widget.dialogTitle ?? l10n.todoAddTask,
               style: theme.textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
@@ -148,6 +173,25 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
             ),
             const SizedBox(height: 12),
 
+            // Scheduled date (for one-time tasks)
+            if (_selectedType != TaskType.daily)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.event),
+                title: Text(_scheduledDate != null
+                    ? l10n.todoScheduledAt(_fmtDate(_scheduledDate!))
+                    : l10n.todoSetScheduledDate),
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: _scheduledDate ?? DateTime.now(),
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime.now().add(const Duration(days: 3650)),
+                  );
+                  if (picked != null) setState(() => _scheduledDate = picked);
+                },
+              ),
+
             // Due date (optional, for one-time tasks)
             if (_selectedType != TaskType.daily)
               ListTile(
@@ -156,11 +200,9 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                   _dueDate != null ? Icons.flag : Icons.flag_outlined,
                   color: _dueDate != null ? theme.colorScheme.error : null,
                 ),
-                title: Text(
-                  _dueDate != null
-                      ? '${l10n.todoDueDate}: ${_dueDate!.year}-${_dueDate!.month.toString().padLeft(2, '0')}-${_dueDate!.day.toString().padLeft(2, '0')}'
-                      : l10n.todoSetDueDate,
-                ),
+                title: Text(_dueDate != null
+                    ? '${l10n.todoDueDate}: ${_fmtDate(_dueDate!)}'
+                    : l10n.todoSetDueDate),
                 trailing: _dueDate != null
                     ? IconButton(
                         icon: const Icon(Icons.clear, size: 18),
@@ -174,10 +216,28 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                     firstDate: DateTime(2020),
                     lastDate: DateTime.now().add(const Duration(days: 3650)),
                   );
-                  if (picked != null) {
-                    setState(() => _dueDate = picked);
-                  }
+                  if (picked != null) setState(() => _dueDate = picked);
                 },
+              ),
+
+            // Recurrence (for one-time tasks)
+            if (_selectedType != TaskType.daily)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(
+                  Icons.repeat,
+                  color: _recurrence != null ? theme.colorScheme.primary : null,
+                ),
+                title: Text(_recurrence != null
+                    ? _recurrenceLabel(_recurrence!, l10n)
+                    : l10n.todoRecurrence),
+                trailing: _recurrence != null
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: () => setState(() => _recurrence = null),
+                      )
+                    : null,
+                onTap: () => _showRecurrencePicker(l10n),
               ),
 
             // Subtasks
@@ -389,13 +449,43 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
       reminderTime: reminder,
       subtasks: _subtaskTitles.map((t) => SubTask(title: t)).toList(),
       scheduledDate: _selectedType != TaskType.daily
-          ? widget.defaultDate ?? DateTime.now()
+          ? _scheduledDate ?? widget.defaultDate ?? DateTime.now()
           : null,
       startDate: _selectedType == TaskType.daily
           ? widget.defaultDate ?? DateTime.now()
           : null,
       dueDate: _selectedType != TaskType.daily ? _dueDate : null,
+      recurrence: _selectedType != TaskType.daily ? _recurrence : null,
     );
     Navigator.pop(context, task);
   }
+
+  String _fmtDate(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  String _recurrenceLabel(TaskRecurrence r, AppLocalizations l10n) {
+    switch (r.type) {
+      case RecurrenceType.everyNDays:
+        return l10n.todoRecurrenceEveryNDays(r.intervalDays);
+      case RecurrenceType.monthlyOnDay:
+        return l10n.todoRecurrenceMonthlyOnDay(r.dayOfMonth);
+      case RecurrenceType.yearlyOnMonthDay:
+        return l10n.todoRecurrenceYearlyOnDate(r.monthOfYear, r.dayOfMonth);
+    }
+  }
+
+  void _showRecurrencePicker(AppLocalizations l10n) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => RecurrencePicker(
+        initial: _recurrence,
+        onSelected: (r) {
+          setState(() => _recurrence = r);
+          Navigator.pop(ctx);
+        },
+      ),
+    );
+  }
 }
+
