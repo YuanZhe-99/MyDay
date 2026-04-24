@@ -45,6 +45,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get todoTitle => 'Title';
 
   @override
+  String get todoNote => 'Note';
+
+  @override
+  String get todoNoteHint => 'Add an optional note';
+
+  @override
   String get todoSubtasks => 'Subtasks';
 
   @override
@@ -136,6 +142,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String todoTaskDue(String date) {
     return 'Due: $date';
+  }
+
+  @override
+  String todoTaskNote(String note) {
+    return 'Note: $note';
   }
 
   @override

@@ -16,6 +16,7 @@ class EditTaskDialog extends StatefulWidget {
 
 class _EditTaskDialogState extends State<EditTaskDialog> {
   late final TextEditingController _titleController;
+  late final TextEditingController _noteController;
   final _subtaskController = TextEditingController();
   late TaskType _selectedType;
   late TimeOfDay? _reminderTime;
@@ -32,6 +33,7 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
     super.initState();
     final t = widget.task;
     _titleController = TextEditingController(text: t.title);
+    _noteController = TextEditingController(text: t.note ?? '');
     _selectedType = t.type;
     _selectedEmoji = t.emoji;
     _reminderTime = t.reminderTime != null
@@ -48,6 +50,7 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
   @override
   void dispose() {
     _titleController.dispose();
+    _noteController.dispose();
     _subtaskController.dispose();
     super.dispose();
   }
@@ -109,6 +112,18 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
             ),
             const SizedBox(height: 16),
 
+            TextField(
+              controller: _noteController,
+              decoration: InputDecoration(
+                labelText: l10n.todoNote,
+                hintText: l10n.todoNoteHint,
+              ),
+              minLines: 1,
+              maxLines: 3,
+              textInputAction: TextInputAction.newline,
+            ),
+            const SizedBox(height: 16),
+
             // Type selector
             SegmentedButton<TaskType>(
               segments: [
@@ -152,8 +167,7 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
               trailing: _reminderTime != null
                   ? IconButton(
                       icon: const Icon(Icons.clear, size: 18),
-                      onPressed: () =>
-                          setState(() => _reminderTime = null),
+                      onPressed: () => setState(() => _reminderTime = null),
                     )
                   : null,
               onTap: () async {
@@ -175,7 +189,9 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
                 leading: const Icon(Icons.event),
                 title: Text(
                   _scheduledDate != null
-                      ? l10n.todoScheduledAt('${_scheduledDate!.year}-${_scheduledDate!.month.toString().padLeft(2, '0')}-${_scheduledDate!.day.toString().padLeft(2, '0')}')
+                      ? l10n.todoScheduledAt(
+                          '${_scheduledDate!.year}-${_scheduledDate!.month.toString().padLeft(2, '0')}-${_scheduledDate!.day.toString().padLeft(2, '0')}',
+                        )
                       : l10n.todoSetScheduledDate,
                 ),
                 onTap: () async {
@@ -231,9 +247,11 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
                   Icons.repeat,
                   color: _recurrence != null ? theme.colorScheme.primary : null,
                 ),
-                title: Text(_recurrence != null
-                    ? _recurrenceLabel(_recurrence!, l10n)
-                    : l10n.todoRecurrence),
+                title: Text(
+                  _recurrence != null
+                      ? _recurrenceLabel(_recurrence!, l10n)
+                      : l10n.todoRecurrence,
+                ),
                 trailing: _recurrence != null
                     ? IconButton(
                         icon: const Icon(Icons.clear, size: 18),
@@ -244,13 +262,18 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
               ),
 
             // Completed date
-            if (_selectedType != TaskType.daily && widget.task.isCompleted)              ListTile(
+            if (_selectedType != TaskType.daily && widget.task.isCompleted)
+              ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: Icon(Icons.check_circle,
-                    color: theme.colorScheme.primary),
+                leading: Icon(
+                  Icons.check_circle,
+                  color: theme.colorScheme.primary,
+                ),
                 title: Text(
                   _completedDate != null
-                      ? l10n.todoCompletedAt('${_completedDate!.year}-${_completedDate!.month.toString().padLeft(2, '0')}-${_completedDate!.day.toString().padLeft(2, '0')}')
+                      ? l10n.todoCompletedAt(
+                          '${_completedDate!.year}-${_completedDate!.month.toString().padLeft(2, '0')}-${_completedDate!.day.toString().padLeft(2, '0')}',
+                        )
                       : l10n.todoSetCompletedDate,
                 ),
                 onTap: () async {
@@ -270,12 +293,17 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
             if (_selectedType == TaskType.daily) ...[
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: Icon(Icons.play_arrow, color: theme.colorScheme.primary),
-                title: Text(l10n.todoStartDate(
-                  _startDate != null
-                      ? '${_startDate!.year}-${_startDate!.month.toString().padLeft(2, '0')}-${_startDate!.day.toString().padLeft(2, '0')}'
-                      : '${widget.task.createdDate.year}-${widget.task.createdDate.month.toString().padLeft(2, '0')}-${widget.task.createdDate.day.toString().padLeft(2, '0')}',
-                )),
+                leading: Icon(
+                  Icons.play_arrow,
+                  color: theme.colorScheme.primary,
+                ),
+                title: Text(
+                  l10n.todoStartDate(
+                    _startDate != null
+                        ? '${_startDate!.year}-${_startDate!.month.toString().padLeft(2, '0')}-${_startDate!.day.toString().padLeft(2, '0')}'
+                        : '${widget.task.createdDate.year}-${widget.task.createdDate.month.toString().padLeft(2, '0')}-${widget.task.createdDate.day.toString().padLeft(2, '0')}',
+                  ),
+                ),
                 onTap: () async {
                   final picked = await showDatePicker(
                     context: context,
@@ -291,10 +319,15 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
             ] else ...[
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: Icon(Icons.access_time, color: theme.colorScheme.outline),
-                title: Text(l10n.todoCreatedDate(
-                  '${widget.task.createdDate.year}-${widget.task.createdDate.month.toString().padLeft(2, '0')}-${widget.task.createdDate.day.toString().padLeft(2, '0')}',
-                )),
+                leading: Icon(
+                  Icons.access_time,
+                  color: theme.colorScheme.outline,
+                ),
+                title: Text(
+                  l10n.todoCreatedDate(
+                    '${widget.task.createdDate.year}-${widget.task.createdDate.month.toString().padLeft(2, '0')}-${widget.task.createdDate.day.toString().padLeft(2, '0')}',
+                  ),
+                ),
               ),
             ],
 
@@ -302,14 +335,20 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
             if (widget.task.deletedDate != null)
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: Icon(Icons.delete_outline, color: theme.colorScheme.error),
-                title: Text(l10n.todoDeletedDate(
-                  '${widget.task.deletedDate!.year}-${widget.task.deletedDate!.month.toString().padLeft(2, '0')}-${widget.task.deletedDate!.day.toString().padLeft(2, '0')}',
-                )),
+                leading: Icon(
+                  Icons.delete_outline,
+                  color: theme.colorScheme.error,
+                ),
+                title: Text(
+                  l10n.todoDeletedDate(
+                    '${widget.task.deletedDate!.year}-${widget.task.deletedDate!.month.toString().padLeft(2, '0')}-${widget.task.deletedDate!.day.toString().padLeft(2, '0')}',
+                  ),
+                ),
               ),
 
             // Permanent delete button (only if soft-deleted)
-            if (widget.task.deletedDate != null && widget.onPermanentDelete != null)
+            if (widget.task.deletedDate != null &&
+                widget.onPermanentDelete != null)
               Padding(
                 padding: const EdgeInsets.only(top: 4),
                 child: OutlinedButton.icon(
@@ -352,31 +391,33 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
             if (_subtasks.isNotEmpty) ...[
               Text(l10n.todoSubtasks, style: theme.textTheme.bodySmall),
               const SizedBox(height: 4),
-              ..._subtasks.asMap().entries.map((entry) => Row(
-                    children: [
-                      Icon(
-                        entry.value.isCompleted
-                            ? Icons.check_box
-                            : Icons.check_box_outline_blank,
-                        size: 18,
+              ..._subtasks.asMap().entries.map(
+                (entry) => Row(
+                  children: [
+                    Icon(
+                      entry.value.isCompleted
+                          ? Icons.check_box
+                          : Icons.check_box_outline_blank,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => _editSubtask(entry.key),
+                        child: Text(entry.value.title),
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => _editSubtask(entry.key),
-                          child: Text(entry.value.title),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close, size: 16),
-                        onPressed: () {
-                          setState(() => _subtasks.removeAt(entry.key));
-                        },
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                      ),
-                    ],
-                  )),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 16),
+                      onPressed: () {
+                        setState(() => _subtasks.removeAt(entry.key));
+                      },
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(height: 4),
             ],
             Row(
@@ -410,10 +451,7 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
                   child: Text(l10n.commonCancel),
                 ),
                 const SizedBox(width: 8),
-                FilledButton(
-                  onPressed: _submit,
-                  child: Text(l10n.commonSave),
-                ),
+                FilledButton(onPressed: _submit, child: Text(l10n.commonSave)),
               ],
             ),
           ],
@@ -464,10 +502,38 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
   }
 
   static const _commonEmojis = [
-    '📝', '🏃', '📖', '💪', '🧘', '🎯', '📧', '☎️',
-    '🛒', '🧹', '👨‍💻', '✍️', '📅', '🔧', '🎓', '💼',
-    '🍳', '🚗', '💊', '🐕', '🏠', '🎵', '🎨', '📸',
-    '💡', '🔬', '📊', '🗂️', '✈️', '💤', '🏋️', '🧑‍🍳',
+    '📝',
+    '🏃',
+    '📖',
+    '💪',
+    '🧘',
+    '🎯',
+    '📧',
+    '☎️',
+    '🛒',
+    '🧹',
+    '👨‍💻',
+    '✍️',
+    '📅',
+    '🔧',
+    '🎓',
+    '💼',
+    '🍳',
+    '🚗',
+    '💊',
+    '🐕',
+    '🏠',
+    '🎵',
+    '🎨',
+    '📸',
+    '💡',
+    '🔬',
+    '📊',
+    '🗂️',
+    '✈️',
+    '💤',
+    '🏋️',
+    '🧑‍🍳',
   ];
 
   void _showEmojiPicker(BuildContext context) {
@@ -480,8 +546,10 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(AppLocalizations.of(context)!.commonPickIcon,
-                  style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                AppLocalizations.of(context)!.commonPickIcon,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: 12),
               GridView.builder(
                 shrinkWrap: true,
@@ -501,7 +569,10 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
                         Navigator.pop(context);
                       },
                       child: Center(
-                        child: Text(emoji, style: const TextStyle(fontSize: 24)),
+                        child: Text(
+                          emoji,
+                          style: const TextStyle(fontSize: 24),
+                        ),
                       ),
                     );
                   }
@@ -512,9 +583,11 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
                       _showCustomEmojiInput(context);
                     },
                     child: Center(
-                      child: Icon(Icons.edit_outlined,
-                          size: 24,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant),
+                      child: Icon(
+                        Icons.edit_outlined,
+                        size: 24,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   );
                 },
@@ -604,6 +677,7 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
   void _submit() {
     final title = _titleController.text.trim();
     if (title.isEmpty) return;
+    final note = _noteController.text.trim();
     DateTime? reminder;
     if (_reminderTime != null) {
       final now = DateTime.now();
@@ -619,6 +693,7 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
     final updated = Task(
       id: widget.task.id,
       title: title,
+      note: note.isEmpty ? null : note,
       emoji: _selectedEmoji,
       type: _selectedType,
       isCompleted: widget.task.isCompleted,

@@ -62,21 +62,25 @@ class TaskSectionWidget extends StatelessWidget {
             child: Text(
               AppLocalizations.of(context)?.todoNoTasks ?? 'No tasks yet',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                color: theme.colorScheme.onSurfaceVariant.withValues(
+                  alpha: 0.6,
+                ),
               ),
             ),
           )
         else
-          ...tasks.map((task) => _TaskTile(
-                key: ValueKey(task.id),
-                task: task,
-                onToggle: onToggle != null ? () => onToggle!(task) : null,
-                onDelete: onDelete != null ? () => onDelete!(task) : null,
-                onEdit: onEdit != null ? () => onEdit!(task) : null,
-                onSubtaskToggle: onSubtaskToggle != null
-                    ? (sub) => onSubtaskToggle!(task, sub)
-                    : null,
-              )),
+          ...tasks.map(
+            (task) => _TaskTile(
+              key: ValueKey(task.id),
+              task: task,
+              onToggle: onToggle != null ? () => onToggle!(task) : null,
+              onDelete: onDelete != null ? () => onDelete!(task) : null,
+              onEdit: onEdit != null ? () => onEdit!(task) : null,
+              onSubtaskToggle: onSubtaskToggle != null
+                  ? (sub) => onSubtaskToggle!(task, sub)
+                  : null,
+            ),
+          ),
       ],
     );
   }
@@ -113,18 +117,37 @@ class _TaskTileState extends State<_TaskTile> {
     final hasSubtasks = task.subtasks.isNotEmpty;
     final completedSubs = task.subtasks.where((s) => s.isCompleted).length;
     final hasDueDate = task.dueDate != null && task.type != TaskType.daily;
-    final isOverdue = hasDueDate && !task.isCompleted &&
-        DateTime(task.dueDate!.year, task.dueDate!.month, task.dueDate!.day)
-            .isBefore(DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day));
+    final note = task.note?.trim();
+    final hasNote = note != null && note.isNotEmpty;
+    final isOverdue =
+        hasDueDate &&
+        !task.isCompleted &&
+        DateTime(
+          task.dueDate!.year,
+          task.dueDate!.month,
+          task.dueDate!.day,
+        ).isBefore(
+          DateTime(
+            DateTime.now().year,
+            DateTime.now().month,
+            DateTime.now().day,
+          ),
+        );
 
     // Build subtitle parts
     final subtitleParts = <String>[];
-    if (hasSubtasks) subtitleParts.add(l10n.todoSubtasksProgress(completedSubs, task.subtasks.length));
+    if (hasSubtasks) {
+      subtitleParts.add(
+        l10n.todoSubtasksProgress(completedSubs, task.subtasks.length),
+      );
+    }
     if (hasDueDate) {
       final dd = task.dueDate!;
-      final dateStr = '${dd.year}-${dd.month.toString().padLeft(2, '0')}-${dd.day.toString().padLeft(2, '0')}';
+      final dateStr =
+          '${dd.year}-${dd.month.toString().padLeft(2, '0')}-${dd.day.toString().padLeft(2, '0')}';
       subtitleParts.add(l10n.todoTaskDue(dateStr));
     }
+    if (hasNote) subtitleParts.add(l10n.todoTaskNote(note));
 
     final tile = Column(
       children: [
@@ -149,6 +172,8 @@ class _TaskTileState extends State<_TaskTile> {
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: isOverdue ? theme.colorScheme.error : null,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 )
               : null,
           trailing: Row(
@@ -183,35 +208,36 @@ class _TaskTileState extends State<_TaskTile> {
             padding: const EdgeInsets.only(left: 56, right: 16, bottom: 4),
             child: Column(
               children: task.subtasks
-                  .map((sub) => Row(
-                        children: [
-                          SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: Checkbox(
-                              value: sub.isCompleted,
-                              onChanged: (_) =>
-                                  widget.onSubtaskToggle?.call(sub),
-                              materialTapTargetSize:
-                                  MaterialTapTargetSize.shrinkWrap,
+                  .map(
+                    (sub) => Row(
+                      children: [
+                        SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: Checkbox(
+                            value: sub.isCompleted,
+                            onChanged: (_) => widget.onSubtaskToggle?.call(sub),
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            sub.title,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              decoration: sub.isCompleted
+                                  ? TextDecoration.lineThrough
+                                  : null,
+                              color: sub.isCompleted
+                                  ? theme.colorScheme.onSurfaceVariant
+                                  : null,
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              sub.title,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                decoration: sub.isCompleted
-                                    ? TextDecoration.lineThrough
-                                    : null,
-                                color: sub.isCompleted
-                                    ? theme.colorScheme.onSurfaceVariant
-                                    : null,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ))
+                        ),
+                      ],
+                    ),
+                  )
                   .toList(),
             ),
           ),
@@ -225,8 +251,8 @@ class _TaskTileState extends State<_TaskTile> {
       direction: widget.onDelete != null && widget.onEdit != null
           ? DismissDirection.horizontal
           : widget.onDelete != null
-              ? DismissDirection.endToStart
-              : DismissDirection.startToEnd,
+          ? DismissDirection.endToStart
+          : DismissDirection.startToEnd,
       background: Container(
         alignment: Alignment.centerLeft,
         padding: const EdgeInsets.only(left: 20),
@@ -244,7 +270,10 @@ class _TaskTileState extends State<_TaskTile> {
           widget.onEdit?.call();
           return false; // don't dismiss, just trigger edit
         }
-          return confirmDelete(context, AppLocalizations.of(context)!.todoThisTask);
+        return confirmDelete(
+          context,
+          AppLocalizations.of(context)!.todoThisTask,
+        );
       },
       onDismissed: (_) => widget.onDelete?.call(),
       child: tile,

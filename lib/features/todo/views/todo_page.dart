@@ -75,15 +75,17 @@ class _TodoPageState extends State<TodoPage> {
   }
 
   Future<void> _saveData() async {
-    await TodoStorage.save(TodoData(
-      dailyTemplates: _dailyTemplates,
-      oneTimeTasks: _oneTimeTasks,
-      dailyLog: _dailyLog,
-      morningReminderHour: _morningReminderTime?.hour,
-      morningReminderMinute: _morningReminderTime?.minute,
-      completionReminderHour: _completionReminderTime?.hour,
-      completionReminderMinute: _completionReminderTime?.minute,
-    ));
+    await TodoStorage.save(
+      TodoData(
+        dailyTemplates: _dailyTemplates,
+        oneTimeTasks: _oneTimeTasks,
+        dailyLog: _dailyLog,
+        morningReminderHour: _morningReminderTime?.hour,
+        morningReminderMinute: _morningReminderTime?.minute,
+        completionReminderHour: _completionReminderTime?.hour,
+        completionReminderMinute: _completionReminderTime?.minute,
+      ),
+    );
     _syncReminders();
     AutoSyncService.instance.notifySaved();
   }
@@ -112,22 +114,33 @@ class _TodoPageState extends State<TodoPage> {
                 children: [
                   ListTile(
                     leading: const Icon(Icons.notifications_active),
-                    title: Text(AppLocalizations.of(ctx)?.todoDailyReminders ?? 'Daily Reminders'),
+                    title: Text(
+                      AppLocalizations.of(ctx)?.todoDailyReminders ??
+                          'Daily Reminders',
+                    ),
                   ),
                   const Divider(height: 1),
 
                   // Morning reminder
                   ListTile(
                     leading: const Icon(Icons.wb_sunny_outlined),
-                    title: Text(AppLocalizations.of(ctx)?.todoMorningReminder ?? 'Morning Plan'),
-                    subtitle: Text(_morningReminderTime != null
-                        ? _morningReminderTime!.format(ctx)
-                        : AppLocalizations.of(ctx)?.todoRemindReviewHint ?? 'Remind to review today\'s Todo list'),
+                    title: Text(
+                      AppLocalizations.of(ctx)?.todoMorningReminder ??
+                          'Morning Plan',
+                    ),
+                    subtitle: Text(
+                      _morningReminderTime != null
+                          ? _morningReminderTime!.format(ctx)
+                          : AppLocalizations.of(ctx)?.todoRemindReviewHint ??
+                                'Remind to review today\'s Todo list',
+                    ),
                     trailing: _morningReminderTime != null
                         ? IconButton(
-                            icon: Icon(Icons.close,
-                                size: 18,
-                                color: Theme.of(ctx).colorScheme.error),
+                            icon: Icon(
+                              Icons.close,
+                              size: 18,
+                              color: Theme.of(ctx).colorScheme.error,
+                            ),
                             onPressed: () {
                               setState(() => _morningReminderTime = null);
                               setSheetState(() {});
@@ -138,7 +151,8 @@ class _TodoPageState extends State<TodoPage> {
                     onTap: () async {
                       final picked = await showTimePicker(
                         context: ctx,
-                        initialTime: _morningReminderTime ??
+                        initialTime:
+                            _morningReminderTime ??
                             const TimeOfDay(hour: 8, minute: 0),
                       );
                       if (picked != null) {
@@ -152,15 +166,23 @@ class _TodoPageState extends State<TodoPage> {
                   // Completion reminder
                   ListTile(
                     leading: const Icon(Icons.checklist),
-                    title: Text(AppLocalizations.of(ctx)?.todoCompletionReminder ?? 'Completion Check'),
-                    subtitle: Text(_completionReminderTime != null
-                        ? _completionReminderTime!.format(ctx)
-                        : AppLocalizations.of(ctx)?.todoRemindUndoneHint ?? 'Remind if tasks are still undone'),
+                    title: Text(
+                      AppLocalizations.of(ctx)?.todoCompletionReminder ??
+                          'Completion Check',
+                    ),
+                    subtitle: Text(
+                      _completionReminderTime != null
+                          ? _completionReminderTime!.format(ctx)
+                          : AppLocalizations.of(ctx)?.todoRemindUndoneHint ??
+                                'Remind if tasks are still undone',
+                    ),
                     trailing: _completionReminderTime != null
                         ? IconButton(
-                            icon: Icon(Icons.close,
-                                size: 18,
-                                color: Theme.of(ctx).colorScheme.error),
+                            icon: Icon(
+                              Icons.close,
+                              size: 18,
+                              color: Theme.of(ctx).colorScheme.error,
+                            ),
                             onPressed: () {
                               setState(() => _completionReminderTime = null);
                               setSheetState(() {});
@@ -171,7 +193,8 @@ class _TodoPageState extends State<TodoPage> {
                     onTap: () async {
                       final picked = await showTimePicker(
                         context: ctx,
-                        initialTime: _completionReminderTime ??
+                        initialTime:
+                            _completionReminderTime ??
                             const TimeOfDay(hour: 21, minute: 0),
                       );
                       if (picked != null) {
@@ -204,21 +227,26 @@ class _TodoPageState extends State<TodoPage> {
     final selDate = _dateOnly(_selectedDate);
     return _dailyTemplates
         .where((t) {
-            final start = _dateOnly(t.startDate ?? t.createdDate);
-            return !start.isAfter(selDate) &&
-                (t.deletedDate == null ||
-                    _dateOnly(t.deletedDate!).isAfter(selDate));
+          final start = _dateOnly(t.startDate ?? t.createdDate);
+          return !start.isAfter(selDate) &&
+              (t.deletedDate == null ||
+                  _dateOnly(t.deletedDate!).isAfter(selDate));
         })
         .map((t) {
-      final done = _dailyLog.isCompleted(_selectedDate, t.id);
-      // Map subtask completion from per-date log
-      final mappedSubs = t.subtasks.map((s) {
-        final subDone = _dailyLog.isSubtaskCompleted(_selectedDate, s.id);
-        return subDone != s.isCompleted ? s.copyWith(isCompleted: subDone) : s;
-      }).toList();
-      final needsCopy = done != t.isCompleted || mappedSubs != t.subtasks;
-      return needsCopy ? t.copyWith(isCompleted: done, subtasks: mappedSubs) : t;
-    }).toList();
+          final done = _dailyLog.isCompleted(_selectedDate, t.id);
+          // Map subtask completion from per-date log
+          final mappedSubs = t.subtasks.map((s) {
+            final subDone = _dailyLog.isSubtaskCompleted(_selectedDate, s.id);
+            return subDone != s.isCompleted
+                ? s.copyWith(isCompleted: subDone)
+                : s;
+          }).toList();
+          final needsCopy = done != t.isCompleted || mappedSubs != t.subtasks;
+          return needsCopy
+              ? t.copyWith(isCompleted: done, subtasks: mappedSubs)
+              : t;
+        })
+        .toList();
   }
 
   /// Strip time from DateTime for comparison
@@ -245,7 +273,9 @@ class _TodoPageState extends State<TodoPage> {
   /// One-time routine tasks for selected date
   List<Task> get _routineForDate {
     return _oneTimeTasks
-        .where((t) => t.type == TaskType.routineOnce && _oneTimeVisibleOnDate(t))
+        .where(
+          (t) => t.type == TaskType.routineOnce && _oneTimeVisibleOnDate(t),
+        )
         .toList();
   }
 
@@ -368,6 +398,7 @@ class _TodoPageState extends State<TodoPage> {
           _oneTimeTasks[index] = Task(
             id: t.id,
             title: t.title,
+            note: t.note,
             emoji: t.emoji,
             type: t.type,
             isCompleted: nowCompleting,
@@ -402,6 +433,7 @@ class _TodoPageState extends State<TodoPage> {
     );
     final nextTask = Task(
       title: completedTask.title,
+      note: completedTask.note,
       emoji: completedTask.emoji,
       type: completedTask.type,
       subtasks: completedTask.subtasks
@@ -463,7 +495,9 @@ class _TodoPageState extends State<TodoPage> {
           }
           return s;
         }).toList();
-        _oneTimeTasks[taskIndex] = _oneTimeTasks[taskIndex].copyWith(subtasks: subs);
+        _oneTimeTasks[taskIndex] = _oneTimeTasks[taskIndex].copyWith(
+          subtasks: subs,
+        );
       }
     });
     _saveData();
@@ -534,7 +568,8 @@ class _TodoPageState extends State<TodoPage> {
           IconButton(
             icon: Icon(
               Icons.notifications_outlined,
-              color: (_morningReminderTime != null ||
+              color:
+                  (_morningReminderTime != null ||
                       _completionReminderTime != null)
                   ? Theme.of(context).colorScheme.primary
                   : null,
@@ -547,99 +582,102 @@ class _TodoPageState extends State<TodoPage> {
       body: !_loaded
           ? const Center(child: CircularProgressIndicator())
           : Column(
-        children: [
-          // Date navigation bar
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            child: Row(
               children: [
-                IconButton(
-                  icon: const Icon(Icons.chevron_left),
-                  onPressed: () => _changeDate(-1),
-                ),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _selectedDate = DateTime.now();
-                      });
-                    },
-                    child: Column(
-                      children: [
-                        Text(
-                          dateFormat.format(_selectedDate),
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w600,
+                // Date navigation bar
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.chevron_left),
+                        onPressed: () => _changeDate(-1),
+                      ),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _selectedDate = DateTime.now();
+                            });
+                          },
+                          child: Column(
+                            children: [
+                              Text(
+                                dateFormat.format(_selectedDate),
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              if (!_isToday)
+                                Text(
+                                  l10n.todoTapReturnToday,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.primary,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
-                        if (!_isToday)
-                          Text(
-                            l10n.todoTapReturnToday,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.primary,
-                              fontSize: 11,
-                            ),
-                          ),
-                      ],
-                    ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.calendar_month),
+                        onPressed: _showCalendar,
+                        tooltip: l10n.todoCalendar,
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.chevron_right),
+                        onPressed: () => _changeDate(1),
+                      ),
+                    ],
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.calendar_month),
-                  onPressed: _showCalendar,
-                  tooltip: l10n.todoCalendar,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.chevron_right),
-                  onPressed: () => _changeDate(1),
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1),
+                const Divider(height: 1),
 
-          // Task list: 3 sections
-          Expanded(
-            child: ListView(
-              children: [
-                TaskSectionWidget(
-                  title: l10n.todoSectionDaily,
-                  icon: Icons.repeat,
-                  color: theme.colorScheme.primary,
-                  tasks: _dailyForDate,
-                  onToggle: _toggleTask,
-                  onDelete: _deleteTask,
-                  onEdit: _editTask,
-                  onSubtaskToggle: _toggleSubtask,
+                // Task list: 3 sections
+                Expanded(
+                  child: ListView(
+                    children: [
+                      TaskSectionWidget(
+                        title: l10n.todoSectionDaily,
+                        icon: Icons.repeat,
+                        color: theme.colorScheme.primary,
+                        tasks: _dailyForDate,
+                        onToggle: _toggleTask,
+                        onDelete: _deleteTask,
+                        onEdit: _editTask,
+                        onSubtaskToggle: _toggleSubtask,
+                      ),
+                      const Divider(indent: 16, endIndent: 16),
+                      TaskSectionWidget(
+                        title: l10n.todoSectionRoutine,
+                        icon: Icons.today,
+                        color: theme.colorScheme.tertiary,
+                        tasks: _routineForDate,
+                        onToggle: _toggleTask,
+                        onDelete: _deleteTask,
+                        onEdit: _editTask,
+                        onSubtaskToggle: _toggleSubtask,
+                      ),
+                      const Divider(indent: 16, endIndent: 16),
+                      TaskSectionWidget(
+                        title: l10n.todoSectionWork,
+                        icon: Icons.work_outline,
+                        color: theme.colorScheme.secondary,
+                        tasks: _workForDate,
+                        onToggle: _toggleTask,
+                        onDelete: _deleteTask,
+                        onEdit: _editTask,
+                        onSubtaskToggle: _toggleSubtask,
+                      ),
+                      const SizedBox(height: 80),
+                    ],
+                  ),
                 ),
-                const Divider(indent: 16, endIndent: 16),
-                TaskSectionWidget(
-                  title: l10n.todoSectionRoutine,
-                  icon: Icons.today,
-                  color: theme.colorScheme.tertiary,
-                  tasks: _routineForDate,
-                  onToggle: _toggleTask,
-                  onDelete: _deleteTask,
-                  onEdit: _editTask,
-                  onSubtaskToggle: _toggleSubtask,
-                ),
-                const Divider(indent: 16, endIndent: 16),
-                TaskSectionWidget(
-                  title: l10n.todoSectionWork,
-                  icon: Icons.work_outline,
-                  color: theme.colorScheme.secondary,
-                  tasks: _workForDate,
-                  onToggle: _toggleTask,
-                  onDelete: _deleteTask,
-                  onEdit: _editTask,
-                  onSubtaskToggle: _toggleSubtask,
-                ),
-                const SizedBox(height: 80),
               ],
             ),
-          ),
-        ],
-      ),
       floatingActionButton: FloatingActionButton(
         onPressed: _addTask,
         child: const Icon(Icons.add),
@@ -673,8 +711,7 @@ class _CalendarDialogState extends State<_CalendarDialog> {
   @override
   void initState() {
     super.initState();
-    _viewMonth =
-        DateTime(widget.selectedDate.year, widget.selectedDate.month);
+    _viewMonth = DateTime(widget.selectedDate.year, widget.selectedDate.month);
   }
 
   void _prevMonth() {
@@ -695,8 +732,7 @@ class _CalendarDialogState extends State<_CalendarDialog> {
     final l10n = AppLocalizations.of(context)!;
     final today = DateTime.now();
     final firstDayOfMonth = DateTime(_viewMonth.year, _viewMonth.month, 1);
-    final daysInMonth =
-        DateTime(_viewMonth.year, _viewMonth.month + 1, 0).day;
+    final daysInMonth = DateTime(_viewMonth.year, _viewMonth.month + 1, 0).day;
     final startWeekday = firstDayOfMonth.weekday; // 1=Mon, 7=Sun
     final totalCells = ((startWeekday - 1) + daysInMonth + 6) ~/ 7 * 7;
 
@@ -730,19 +766,30 @@ class _CalendarDialogState extends State<_CalendarDialog> {
 
             // Weekday headers
             Row(
-              children: [l10n.todoWeekMon, l10n.todoWeekTue, l10n.todoWeekWed, l10n.todoWeekThu, l10n.todoWeekFri, l10n.todoWeekSat, l10n.todoWeekSun]
-                  .map((d) => Expanded(
-                        child: Center(
-                          child: Text(
-                            d,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: theme.colorScheme.onSurfaceVariant,
+              children:
+                  [
+                        l10n.todoWeekMon,
+                        l10n.todoWeekTue,
+                        l10n.todoWeekWed,
+                        l10n.todoWeekThu,
+                        l10n.todoWeekFri,
+                        l10n.todoWeekSat,
+                        l10n.todoWeekSun,
+                      ]
+                      .map(
+                        (d) => Expanded(
+                          child: Center(
+                            child: Text(
+                              d,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
                             ),
                           ),
                         ),
-                      ))
-                  .toList(),
+                      )
+                      .toList(),
             ),
             const SizedBox(height: 4),
 
@@ -760,13 +807,13 @@ class _CalendarDialogState extends State<_CalendarDialog> {
                   return const SizedBox.shrink();
                 }
                 final day = dayOffset + 1;
-                final date =
-                    DateTime(_viewMonth.year, _viewMonth.month, day);
+                final date = DateTime(_viewMonth.year, _viewMonth.month, day);
                 final isSelected =
                     date.year == widget.selectedDate.year &&
-                        date.month == widget.selectedDate.month &&
-                        date.day == widget.selectedDate.day;
-                final isToday = date.year == today.year &&
+                    date.month == widget.selectedDate.month &&
+                    date.day == widget.selectedDate.day;
+                final isToday =
+                    date.year == today.year &&
                     date.month == today.month &&
                     date.day == today.day;
 
@@ -781,15 +828,15 @@ class _CalendarDialogState extends State<_CalendarDialog> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: allDone
-                          ? theme.colorScheme.primary
-                              .withValues(alpha: 0.2)
+                          ? theme.colorScheme.primary.withValues(alpha: 0.2)
                           : isSelected
-                              ? theme.colorScheme.primaryContainer
-                              : null,
+                          ? theme.colorScheme.primaryContainer
+                          : null,
                       border: isToday
                           ? Border.all(
                               color: theme.colorScheme.primary,
-                              width: 2)
+                              width: 2,
+                            )
                           : null,
                     ),
                     child: Column(
@@ -801,23 +848,27 @@ class _CalendarDialogState extends State<_CalendarDialog> {
                             fontWeight: isSelected || isToday
                                 ? FontWeight.bold
                                 : null,
-                            color: allDone
-                                ? theme.colorScheme.primary
-                                : null,
+                            color: allDone ? theme.colorScheme.primary : null,
                           ),
                         ),
                         if (allDone)
-                          Icon(Icons.check_circle,
-                              size: 8,
-                              color: theme.colorScheme.primary)
+                          Icon(
+                            Icons.check_circle,
+                            size: 8,
+                            color: theme.colorScheme.primary,
+                          )
                         else if (dailyDone)
-                          Icon(Icons.circle,
-                              size: 6,
-                              color: theme.colorScheme.tertiary)
+                          Icon(
+                            Icons.circle,
+                            size: 6,
+                            color: theme.colorScheme.tertiary,
+                          )
                         else if (someDone)
-                          Icon(Icons.circle,
-                              size: 6,
-                              color: theme.colorScheme.outline),
+                          Icon(
+                            Icons.circle,
+                            size: 6,
+                            color: theme.colorScheme.outline,
+                          ),
                       ],
                     ),
                   ),
@@ -830,20 +881,30 @@ class _CalendarDialogState extends State<_CalendarDialog> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.circle,
-                    size: 6, color: theme.colorScheme.outline),
+                Icon(Icons.circle, size: 6, color: theme.colorScheme.outline),
                 const SizedBox(width: 4),
-                Text(l10n.todoCalendarSomeDaily, style: theme.textTheme.bodySmall),
+                Text(
+                  l10n.todoCalendarSomeDaily,
+                  style: theme.textTheme.bodySmall,
+                ),
                 const SizedBox(width: 12),
-                Icon(Icons.circle,
-                    size: 6, color: theme.colorScheme.tertiary),
+                Icon(Icons.circle, size: 6, color: theme.colorScheme.tertiary),
                 const SizedBox(width: 4),
-                Text(l10n.todoCalendarAllDaily, style: theme.textTheme.bodySmall),
+                Text(
+                  l10n.todoCalendarAllDaily,
+                  style: theme.textTheme.bodySmall,
+                ),
                 const SizedBox(width: 12),
-                Icon(Icons.check_circle,
-                    size: 8, color: theme.colorScheme.primary),
+                Icon(
+                  Icons.check_circle,
+                  size: 8,
+                  color: theme.colorScheme.primary,
+                ),
                 const SizedBox(width: 4),
-                Text(l10n.todoCalendarAllDone, style: theme.textTheme.bodySmall),
+                Text(
+                  l10n.todoCalendarAllDone,
+                  style: theme.textTheme.bodySmall,
+                ),
               ],
             ),
           ],

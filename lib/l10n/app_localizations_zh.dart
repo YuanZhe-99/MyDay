@@ -45,6 +45,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get todoTitle => '标题';
 
   @override
+  String get todoNote => '备注';
+
+  @override
+  String get todoNoteHint => '添加可选备注';
+
+  @override
   String get todoSubtasks => '子任务';
 
   @override
@@ -135,6 +141,11 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String todoTaskDue(String date) {
     return '截止：$date';
+  }
+
+  @override
+  String todoTaskNote(String note) {
+    return '备注：$note';
   }
 
   @override
@@ -1586,6 +1597,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get todoTitle => '標題';
 
   @override
+  String get todoNote => '備註';
+
+  @override
+  String get todoNoteHint => '新增選填備註';
+
+  @override
   String get todoSubtasks => '子任務';
 
   @override
@@ -1676,6 +1693,11 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   @override
   String todoTaskDue(String date) {
     return '截止：$date';
+  }
+
+  @override
+  String todoTaskNote(String note) {
+    return '備註：$note';
   }
 
   @override

@@ -15,6 +15,8 @@
   "todoAddTask": "新增任務",
   "todoEditTask": "編輯任務",
   "todoTitle": "標題",
+  "todoNote": "備註",
+  "todoNoteHint": "新增選填備註",
   "todoSubtasks": "子任務",
   "todoAddSubtask": "新增子任務",
   "todoReminderTime": "提醒時間",
@@ -55,6 +57,10 @@
   "todoTaskDue": "截止：{date}",
   "@todoTaskDue": {
     "placeholders": { "date": { "type": "String" } }
+  },
+  "todoTaskNote": "備註：{note}",
+  "@todoTaskNote": {
+    "placeholders": { "note": { "type": "String" } }
   },
   "todoThisTask": "此任务",
   "financeTitle": "財務",

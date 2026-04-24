@@ -47,9 +47,11 @@ class LocalApiServer {
     _lastError = null;
     if (!_enabled) return;
 
-    final isNonLoopback = _listenAddress == '0.0.0.0' ||
+    final isNonLoopback =
+        _listenAddress == '0.0.0.0' ||
         (_listenAddress != 'localhost' && _listenAddress != '127.0.0.1');
-    final hasCredentials = _username != null &&
+    final hasCredentials =
+        _username != null &&
         _username!.isNotEmpty &&
         _password != null &&
         _password!.isNotEmpty;
@@ -89,8 +91,10 @@ class LocalApiServer {
           _listenAddress == '127.0.0.1') {
         bindAddress = InternetAddress.loopbackIPv4;
       } else {
-        bindAddress =
-            InternetAddress(_listenAddress, type: InternetAddressType.any);
+        bindAddress = InternetAddress(
+          _listenAddress,
+          type: InternetAddressType.any,
+        );
       }
       _server = await shelf_io.serve(handler, bindAddress, _port);
       // ignore: avoid_print
@@ -150,16 +154,18 @@ class LocalApiServer {
       results.add({
         'id': t.id,
         'title': t.title,
+        'note': t.note,
         'emoji': t.emoji,
         'type': t.type.name,
         'isCompleted': isCompleted,
         'subtasks': t.subtasks
-            .map((s) => {
-                  'id': s.id,
-                  'title': s.title,
-                  'isCompleted':
-                      data.dailyLog.isSubtaskCompleted(date, s.id),
-                })
+            .map(
+              (s) => {
+                'id': s.id,
+                'title': s.title,
+                'isCompleted': data.dailyLog.isSubtaskCompleted(date, s.id),
+              },
+            )
             .toList(),
         'dueDate': t.dueDate?.toIso8601String(),
         'scheduledDate': t.scheduledDate?.toIso8601String(),
@@ -181,15 +187,18 @@ class LocalApiServer {
       results.add({
         'id': t.id,
         'title': t.title,
+        'note': t.note,
         'emoji': t.emoji,
         'type': t.type.name,
         'isCompleted': t.isCompleted,
         'subtasks': t.subtasks
-            .map((s) => {
-                  'id': s.id,
-                  'title': s.title,
-                  'isCompleted': s.isCompleted,
-                })
+            .map(
+              (s) => {
+                'id': s.id,
+                'title': s.title,
+                'isCompleted': s.isCompleted,
+              },
+            )
             .toList(),
         'dueDate': t.dueDate?.toIso8601String(),
         'scheduledDate': t.scheduledDate?.toIso8601String(),
@@ -207,9 +216,11 @@ class LocalApiServer {
       return _error(400, 'title is required');
     }
     final typeStr = body['type'] as String? ?? 'workOnce';
-    final type = TaskType.values.where((t) => t.name == typeStr).firstOrNull ??
+    final type =
+        TaskType.values.where((t) => t.name == typeStr).firstOrNull ??
         TaskType.workOnce;
     final emoji = body['emoji'] as String?;
+    final note = (body['note'] as String?)?.trim();
     DateTime? dueDate;
     if (body['dueDate'] != null) {
       dueDate = DateTime.tryParse(body['dueDate'] as String);
@@ -221,6 +232,7 @@ class LocalApiServer {
 
     final task = Task(
       title: title.trim(),
+      note: note == null || note.isEmpty ? null : note,
       type: type,
       emoji: emoji,
       dueDate: dueDate,
@@ -228,7 +240,8 @@ class LocalApiServer {
       startDate: type == TaskType.daily ? DateTime.now() : null,
     );
 
-    final data = await TodoStorage.load() ??
+    final data =
+        await TodoStorage.load() ??
         TodoData(
           dailyTemplates: [],
           oneTimeTasks: [],
@@ -236,27 +249,31 @@ class LocalApiServer {
         );
 
     if (type == TaskType.daily) {
-      await TodoStorage.save(TodoData(
-        dailyTemplates: [...data.dailyTemplates, task],
-        oneTimeTasks: data.oneTimeTasks,
-        dailyLog: data.dailyLog,
-        morningReminderHour: data.morningReminderHour,
-        morningReminderMinute: data.morningReminderMinute,
-        completionReminderHour: data.completionReminderHour,
-        completionReminderMinute: data.completionReminderMinute,
-        settingsModifiedAt: data.settingsModifiedAt,
-      ));
+      await TodoStorage.save(
+        TodoData(
+          dailyTemplates: [...data.dailyTemplates, task],
+          oneTimeTasks: data.oneTimeTasks,
+          dailyLog: data.dailyLog,
+          morningReminderHour: data.morningReminderHour,
+          morningReminderMinute: data.morningReminderMinute,
+          completionReminderHour: data.completionReminderHour,
+          completionReminderMinute: data.completionReminderMinute,
+          settingsModifiedAt: data.settingsModifiedAt,
+        ),
+      );
     } else {
-      await TodoStorage.save(TodoData(
-        dailyTemplates: data.dailyTemplates,
-        oneTimeTasks: [...data.oneTimeTasks, task],
-        dailyLog: data.dailyLog,
-        morningReminderHour: data.morningReminderHour,
-        morningReminderMinute: data.morningReminderMinute,
-        completionReminderHour: data.completionReminderHour,
-        completionReminderMinute: data.completionReminderMinute,
-        settingsModifiedAt: data.settingsModifiedAt,
-      ));
+      await TodoStorage.save(
+        TodoData(
+          dailyTemplates: data.dailyTemplates,
+          oneTimeTasks: [...data.oneTimeTasks, task],
+          dailyLog: data.dailyLog,
+          morningReminderHour: data.morningReminderHour,
+          morningReminderMinute: data.morningReminderMinute,
+          completionReminderHour: data.completionReminderHour,
+          completionReminderMinute: data.completionReminderMinute,
+          settingsModifiedAt: data.settingsModifiedAt,
+        ),
+      );
     }
     return _json({'success': true, 'id': task.id});
   }
@@ -295,16 +312,18 @@ class LocalApiServer {
     );
     final newList = List<Task>.from(data.oneTimeTasks);
     newList[idx] = updated;
-    await TodoStorage.save(TodoData(
-      dailyTemplates: data.dailyTemplates,
-      oneTimeTasks: newList,
-      dailyLog: data.dailyLog,
-      morningReminderHour: data.morningReminderHour,
-      morningReminderMinute: data.morningReminderMinute,
-      completionReminderHour: data.completionReminderHour,
-      completionReminderMinute: data.completionReminderMinute,
-      settingsModifiedAt: data.settingsModifiedAt,
-    ));
+    await TodoStorage.save(
+      TodoData(
+        dailyTemplates: data.dailyTemplates,
+        oneTimeTasks: newList,
+        dailyLog: data.dailyLog,
+        morningReminderHour: data.morningReminderHour,
+        morningReminderMinute: data.morningReminderMinute,
+        completionReminderHour: data.completionReminderHour,
+        completionReminderMinute: data.completionReminderMinute,
+        settingsModifiedAt: data.settingsModifiedAt,
+      ),
+    );
     return _json({'success': true});
   }
 
@@ -456,8 +475,9 @@ class LocalApiServer {
       ..sort((a, b) => b.date.compareTo(a.date));
 
     if (typeStr != null) {
-      final type =
-          TransactionType.values.where((t) => t.name == typeStr).firstOrNull;
+      final type = TransactionType.values
+          .where((t) => t.name == typeStr)
+          .firstOrNull;
       if (type != null) {
         txs = txs.where((t) => t.type == type).toList();
       }
@@ -467,8 +487,10 @@ class LocalApiServer {
     final catMap = {for (final c in finData.categories) c.id: c.name};
     final acctMap = {for (final a in finData.accounts) a.id: a.name};
 
-    return _json(paged
-        .map((t) => {
+    return _json(
+      paged
+          .map(
+            (t) => {
               'id': t.id,
               'type': t.type.name,
               'amount': t.amount,
@@ -476,15 +498,19 @@ class LocalApiServer {
               'accountId': t.accountId,
               'accountName': acctMap[t.accountId],
               'toAccountId': t.toAccountId,
-              'toAccountName':
-                  t.toAccountId != null ? acctMap[t.toAccountId] : null,
+              'toAccountName': t.toAccountId != null
+                  ? acctMap[t.toAccountId]
+                  : null,
               'categoryId': t.categoryId,
-              'categoryName':
-                  t.categoryId != null ? catMap[t.categoryId] : null,
+              'categoryName': t.categoryId != null
+                  ? catMap[t.categoryId]
+                  : null,
               'note': t.note,
               'date': t.date.toIso8601String(),
-            })
-        .toList());
+            },
+          )
+          .toList(),
+    );
   }
 
   static Future<Response> _handleFinanceAddTransaction(Request request) async {
@@ -493,13 +519,14 @@ class LocalApiServer {
 
     final typeStr = body['type'] as String?;
     if (typeStr == null) return _error(400, 'type is required');
-    final type = TransactionType.values
-            .where((t) => t.name == typeStr)
-            .firstOrNull ??
+    final type =
+        TransactionType.values.where((t) => t.name == typeStr).firstOrNull ??
         TransactionType.expense;
 
     final amount = (body['amount'] as num?)?.toDouble();
-    if (amount == null || amount <= 0) return _error(400, 'valid amount is required');
+    if (amount == null || amount <= 0) {
+      return _error(400, 'valid amount is required');
+    }
 
     final accountId = body['accountId'] as String?;
     if (accountId == null) return _error(400, 'accountId is required');
@@ -524,21 +551,24 @@ class LocalApiServer {
       date: date,
     );
 
-    final finData = await FinanceStorage.load() ??
+    final finData =
+        await FinanceStorage.load() ??
         FinanceData(accounts: [], categories: [], transactions: []);
 
-    await FinanceStorage.save(FinanceData(
-      accounts: finData.accounts,
-      categories: finData.categories,
-      transactions: [...finData.transactions, tx],
-      subscriptions: finData.subscriptions,
-      defaultCurrency: finData.defaultCurrency,
-      settingsModifiedAt: finData.settingsModifiedAt,
-      subscriptionReminderHour: finData.subscriptionReminderHour,
-      subscriptionReminderMinute: finData.subscriptionReminderMinute,
-      subscriptionSortMode: finData.subscriptionSortMode,
-      subscriptionCustomOrder: finData.subscriptionCustomOrder,
-    ));
+    await FinanceStorage.save(
+      FinanceData(
+        accounts: finData.accounts,
+        categories: finData.categories,
+        transactions: [...finData.transactions, tx],
+        subscriptions: finData.subscriptions,
+        defaultCurrency: finData.defaultCurrency,
+        settingsModifiedAt: finData.settingsModifiedAt,
+        subscriptionReminderHour: finData.subscriptionReminderHour,
+        subscriptionReminderMinute: finData.subscriptionReminderMinute,
+        subscriptionSortMode: finData.subscriptionSortMode,
+        subscriptionCustomOrder: finData.subscriptionCustomOrder,
+      ),
+    );
     return _json({'success': true, 'id': tx.id});
   }
 
@@ -546,8 +576,10 @@ class LocalApiServer {
     final finData = await FinanceStorage.load();
     if (finData == null) return _json([]);
     final active = finData.subscriptions.where((s) => s.isActive);
-    return _json(active
-        .map((s) => {
+    return _json(
+      active
+          .map(
+            (s) => {
               'id': s.id,
               'name': s.name,
               'emoji': s.emoji,
@@ -555,8 +587,10 @@ class LocalApiServer {
               'currency': s.currency,
               'nextBillingDate': s.nextBillingDate?.toIso8601String(),
               'billingCycleType': s.billingCycleType.name,
-            })
-        .toList());
+            },
+          )
+          .toList(),
+    );
   }
 
   // ── Weight ──
@@ -568,14 +602,18 @@ class LocalApiServer {
     if (data == null) return _json([]);
     final sorted = data.records.toList()
       ..sort((a, b) => b.datetime.compareTo(a.datetime));
-    return _json(sorted
-        .take(limit)
-        .map((r) => {
+    return _json(
+      sorted
+          .take(limit)
+          .map(
+            (r) => {
               'id': r.id,
               'weight': r.weight,
               'date': DateFormat('yyyy-MM-dd').format(r.datetime),
-            })
-        .toList());
+            },
+          )
+          .toList(),
+    );
   }
 
   static Future<Response> _handleWeightAdd(Request request) async {
@@ -592,16 +630,18 @@ class LocalApiServer {
 
     final record = WeightRecord(weight: weight, datetime: date);
     final data = await WeightStorage.load() ?? WeightData(records: []);
-    await WeightStorage.save(WeightData(
-      height: data.height,
-      records: [...data.records, record],
-      reminderMode: data.reminderMode,
-      morningHour: data.morningHour,
-      morningMinute: data.morningMinute,
-      eveningHour: data.eveningHour,
-      eveningMinute: data.eveningMinute,
-      settingsModifiedAt: data.settingsModifiedAt,
-    ));
+    await WeightStorage.save(
+      WeightData(
+        height: data.height,
+        records: [...data.records, record],
+        reminderMode: data.reminderMode,
+        morningHour: data.morningHour,
+        morningMinute: data.morningMinute,
+        eveningHour: data.eveningHour,
+        eveningMinute: data.eveningMinute,
+        settingsModifiedAt: data.settingsModifiedAt,
+      ),
+    );
     return _json({'success': true, 'id': record.id});
   }
 
@@ -627,10 +667,10 @@ class LocalApiServer {
         .where((r) => now.difference(r.datetime).inDays <= 30)
         .map((r) => r.weight)
         .toList();
-    final avg7 =
-        r7.isNotEmpty ? r7.reduce((a, b) => a + b) / r7.length : null;
-    final avg30 =
-        r30.isNotEmpty ? r30.reduce((a, b) => a + b) / r30.length : null;
+    final avg7 = r7.isNotEmpty ? r7.reduce((a, b) => a + b) / r7.length : null;
+    final avg30 = r30.isNotEmpty
+        ? r30.reduce((a, b) => a + b) / r30.length
+        : null;
 
     // Trend: compare avg of first half vs second half of last 30 days
     String trend = 'unknown';
@@ -653,8 +693,7 @@ class LocalApiServer {
     return _json({
       'latest': double.parse(latest.toStringAsFixed(1)),
       'avg_7d': avg7 != null ? double.parse(avg7.toStringAsFixed(1)) : null,
-      'avg_30d':
-          avg30 != null ? double.parse(avg30.toStringAsFixed(1)) : null,
+      'avg_30d': avg30 != null ? double.parse(avg30.toStringAsFixed(1)) : null,
       'trend': trend,
     });
   }
@@ -662,15 +701,15 @@ class LocalApiServer {
   // ── Helpers ──
 
   static Response _json(Object data) => Response.ok(
-        jsonEncode(data),
-        headers: {'Content-Type': 'application/json'},
-      );
+    jsonEncode(data),
+    headers: {'Content-Type': 'application/json'},
+  );
 
   static Response _error(int status, String message) => Response(
-        status,
-        body: jsonEncode({'error': message}),
-        headers: {'Content-Type': 'application/json'},
-      );
+    status,
+    body: jsonEncode({'error': message}),
+    headers: {'Content-Type': 'application/json'},
+  );
 
   static Future<Map<String, dynamic>?> _parseBody(Request request) async {
     try {
@@ -705,17 +744,20 @@ class LocalApiServer {
   static Middleware _authMiddleware() {
     return (Handler innerHandler) {
       return (Request request) async {
-        final remoteAddr = (request.context['shelf.io.connection_info']
-                as HttpConnectionInfo?)
-            ?.remoteAddress;
+        final remoteAddr =
+            (request.context['shelf.io.connection_info'] as HttpConnectionInfo?)
+                ?.remoteAddress;
         final isLoopback = remoteAddr == null || remoteAddr.isLoopback;
-        final hasCredentials = _username != null &&
+        final hasCredentials =
+            _username != null &&
             _username!.isNotEmpty &&
             _password != null &&
             _password!.isNotEmpty;
         if (!isLoopback && !hasCredentials) {
           return _error(
-              403, 'authentication required for non-localhost access');
+            403,
+            'authentication required for non-localhost access',
+          );
         }
         if (hasCredentials && !isLoopback) {
           final authHeader = request.headers['authorization'];

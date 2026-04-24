@@ -173,6 +173,18 @@ abstract class AppLocalizations {
   /// **'Title'**
   String get todoTitle;
 
+  /// No description provided for @todoNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Note'**
+  String get todoNote;
+
+  /// No description provided for @todoNoteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Add an optional note'**
+  String get todoNoteHint;
+
   /// No description provided for @todoSubtasks.
   ///
   /// In en, this message translates to:
@@ -334,6 +346,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Due: {date}'**
   String todoTaskDue(String date);
+
+  /// No description provided for @todoTaskNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Note: {note}'**
+  String todoTaskNote(String note);
 
   /// No description provided for @todoThisTask.
   ///

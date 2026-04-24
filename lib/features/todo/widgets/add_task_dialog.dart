@@ -6,10 +6,16 @@ import 'recurrence_picker.dart';
 
 class AddTaskDialog extends StatefulWidget {
   final DateTime? defaultDate;
+
   /// When set, pre-fills all fields and uses this as the dialog title.
   final Task? initialTask;
   final String? dialogTitle;
-  const AddTaskDialog({super.key, this.defaultDate, this.initialTask, this.dialogTitle});
+  const AddTaskDialog({
+    super.key,
+    this.defaultDate,
+    this.initialTask,
+    this.dialogTitle,
+  });
 
   @override
   State<AddTaskDialog> createState() => _AddTaskDialogState();
@@ -17,6 +23,7 @@ class AddTaskDialog extends StatefulWidget {
 
 class _AddTaskDialogState extends State<AddTaskDialog> {
   final _titleController = TextEditingController();
+  final _noteController = TextEditingController();
   final _subtaskController = TextEditingController();
   TaskType _selectedType = TaskType.routineOnce;
   TimeOfDay? _reminderTime;
@@ -33,6 +40,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
     if (widget.initialTask != null) {
       final t = widget.initialTask!;
       _titleController.text = t.title;
+      _noteController.text = t.note ?? '';
       _selectedType = t.type;
       _selectedEmoji = t.emoji;
       _recurrence = t.recurrence;
@@ -48,6 +56,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   @override
   void dispose() {
     _titleController.dispose();
+    _noteController.dispose();
     _subtaskController.dispose();
     super.dispose();
   }
@@ -79,9 +88,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      border: Border.all(
-                        color: theme.colorScheme.outline,
-                      ),
+                      border: Border.all(color: theme.colorScheme.outline),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Center(
@@ -111,6 +118,18 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 16),
+
+            TextField(
+              controller: _noteController,
+              decoration: InputDecoration(
+                labelText: l10n.todoNote,
+                hintText: l10n.todoNoteHint,
+              ),
+              minLines: 1,
+              maxLines: 3,
+              textInputAction: TextInputAction.newline,
             ),
             const SizedBox(height: 16),
 
@@ -157,8 +176,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
               trailing: _reminderTime != null
                   ? IconButton(
                       icon: const Icon(Icons.clear, size: 18),
-                      onPressed: () =>
-                          setState(() => _reminderTime = null),
+                      onPressed: () => setState(() => _reminderTime = null),
                     )
                   : null,
               onTap: () async {
@@ -178,9 +196,11 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.event),
-                title: Text(_scheduledDate != null
-                    ? l10n.todoScheduledAt(_fmtDate(_scheduledDate!))
-                    : l10n.todoSetScheduledDate),
+                title: Text(
+                  _scheduledDate != null
+                      ? l10n.todoScheduledAt(_fmtDate(_scheduledDate!))
+                      : l10n.todoSetScheduledDate,
+                ),
                 onTap: () async {
                   final picked = await showDatePicker(
                     context: context,
@@ -200,9 +220,11 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                   _dueDate != null ? Icons.flag : Icons.flag_outlined,
                   color: _dueDate != null ? theme.colorScheme.error : null,
                 ),
-                title: Text(_dueDate != null
-                    ? '${l10n.todoDueDate}: ${_fmtDate(_dueDate!)}'
-                    : l10n.todoSetDueDate),
+                title: Text(
+                  _dueDate != null
+                      ? '${l10n.todoDueDate}: ${_fmtDate(_dueDate!)}'
+                      : l10n.todoSetDueDate,
+                ),
                 trailing: _dueDate != null
                     ? IconButton(
                         icon: const Icon(Icons.clear, size: 18),
@@ -228,9 +250,11 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                   Icons.repeat,
                   color: _recurrence != null ? theme.colorScheme.primary : null,
                 ),
-                title: Text(_recurrence != null
-                    ? _recurrenceLabel(_recurrence!, l10n)
-                    : l10n.todoRecurrence),
+                title: Text(
+                  _recurrence != null
+                      ? _recurrenceLabel(_recurrence!, l10n)
+                      : l10n.todoRecurrence,
+                ),
                 trailing: _recurrence != null
                     ? IconButton(
                         icon: const Icon(Icons.clear, size: 18),
@@ -244,21 +268,23 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
             if (_subtaskTitles.isNotEmpty) ...[
               Text(l10n.todoSubtasks, style: theme.textTheme.bodySmall),
               const SizedBox(height: 4),
-              ..._subtaskTitles.asMap().entries.map((entry) => Row(
-                    children: [
-                      const Icon(Icons.check_box_outline_blank, size: 18),
-                      const SizedBox(width: 8),
-                      Expanded(child: Text(entry.value)),
-                      IconButton(
-                        icon: const Icon(Icons.close, size: 16),
-                        onPressed: () {
-                          setState(() => _subtaskTitles.removeAt(entry.key));
-                        },
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                      ),
-                    ],
-                  )),
+              ..._subtaskTitles.asMap().entries.map(
+                (entry) => Row(
+                  children: [
+                    const Icon(Icons.check_box_outline_blank, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(entry.value)),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 16),
+                      onPressed: () {
+                        setState(() => _subtaskTitles.removeAt(entry.key));
+                      },
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(height: 4),
             ],
             Row(
@@ -292,10 +318,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                   child: Text(l10n.commonCancel),
                 ),
                 const SizedBox(width: 8),
-                FilledButton(
-                  onPressed: _submit,
-                  child: Text(l10n.commonAdd),
-                ),
+                FilledButton(onPressed: _submit, child: Text(l10n.commonAdd)),
               ],
             ),
           ],
@@ -314,10 +337,38 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   }
 
   static const _commonEmojis = [
-    '📝', '🏃', '📖', '💪', '🧘', '🎯', '📧', '☎️',
-    '🛒', '🧹', '👨‍💻', '✍️', '📅', '🔧', '🎓', '💼',
-    '🍳', '🚗', '💊', '🐕', '🏠', '🎵', '🎨', '📸',
-    '💡', '🔬', '📊', '🗂️', '✈️', '💤', '🏋️', '🧑‍🍳',
+    '📝',
+    '🏃',
+    '📖',
+    '💪',
+    '🧘',
+    '🎯',
+    '📧',
+    '☎️',
+    '🛒',
+    '🧹',
+    '👨‍💻',
+    '✍️',
+    '📅',
+    '🔧',
+    '🎓',
+    '💼',
+    '🍳',
+    '🚗',
+    '💊',
+    '🐕',
+    '🏠',
+    '🎵',
+    '🎨',
+    '📸',
+    '💡',
+    '🔬',
+    '📊',
+    '🗂️',
+    '✈️',
+    '💤',
+    '🏋️',
+    '🧑‍🍳',
   ];
 
   void _showEmojiPicker(BuildContext context) {
@@ -330,8 +381,10 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(AppLocalizations.of(context)!.commonPickIcon,
-                  style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                AppLocalizations.of(context)!.commonPickIcon,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: 12),
               GridView.builder(
                 shrinkWrap: true,
@@ -351,7 +404,10 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                         Navigator.pop(context);
                       },
                       child: Center(
-                        child: Text(emoji, style: const TextStyle(fontSize: 24)),
+                        child: Text(
+                          emoji,
+                          style: const TextStyle(fontSize: 24),
+                        ),
                       ),
                     );
                   }
@@ -362,9 +418,11 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                       _showCustomEmojiInput(context);
                     },
                     child: Center(
-                      child: Icon(Icons.edit_outlined,
-                          size: 24,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant),
+                      child: Icon(
+                        Icons.edit_outlined,
+                        size: 24,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   );
                 },
@@ -429,6 +487,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   void _submit() {
     final title = _titleController.text.trim();
     if (title.isEmpty) return;
+    final note = _noteController.text.trim();
 
     DateTime? reminder;
     if (_reminderTime != null) {
@@ -444,6 +503,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
 
     final task = Task(
       title: title,
+      note: note.isEmpty ? null : note,
       emoji: _selectedEmoji,
       type: _selectedType,
       reminderTime: reminder,
@@ -488,4 +548,3 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
     );
   }
 }
-
