@@ -373,6 +373,7 @@
   "financeSortBy": "Sort",
   "financeSortByRenewal": "By Renewal Date",
   "financeSortByName": "By Name",
+  "financeSortByBank": "By Bank / App",
   "financeSortCustom": "Custom",
   "financeSortReorder": "Reorder",
   "financeSortDone": "Done",
@@ -495,6 +496,11 @@
   "todoCompletedAt": "Completed: {date}",
   "@todoCompletedAt": { "placeholders": { "date": { "type": "String" } } },
   "todoSetCompletedDate": "Set completed date",
+  "todoSortBy": "Sort",
+  "todoSortByAdded": "By Added Time",
+  "todoSortByDueDate": "By Due Date",
+  "todoSortByName": "By Name",
+  "todoSortCustom": "Custom",
 
   "weightUnitKg": "kg",
   "weightValueKg": "{value} kg",
@@ -602,5 +608,12 @@
   "@todoRecurrenceMonthlyOnDay": { "placeholders": { "n": { "type": "int" } } },
   "todoRecurrenceYearlyOnDate": "Every year on {month}/{day}",
   "@todoRecurrenceYearlyOnDate": { "placeholders": { "month": { "type": "int" }, "day": { "type": "int" } } },
-  "todoNextOccurrence": "Schedule Next Occurrence"
+  "todoNextOccurrence": "Schedule Next Occurrence",
+  "intimacyActivePartners": "Active Partners",
+  "intimacyPastPartners": "Past Partners",
+  "intimacyActiveToys": "Active Toys",
+  "intimacyRetiredToys": "Retired Toys",
+  "intimacySortByRelationshipDate": "By Relationship Date",
+  "intimacySortByPurchaseDate": "By Purchase Date",
+  "intimacySortByUseCount": "By Use Count"
 }

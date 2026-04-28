@@ -19,8 +19,15 @@ class AccountsPage extends StatefulWidget {
   final List<Transaction> transactions;
   final List<Category> categories;
   final ExchangeRateData rateData;
+  final Map<String, String> sortModes;
+  final Map<String, List<String>> customOrders;
   final void Function(List<Account>) onChanged;
   final void Function(List<Transaction>) onTransactionsChanged;
+  final void Function(
+    Map<String, String> sortModes,
+    Map<String, List<String>> customOrders,
+  )?
+  onSortChanged;
 
   const AccountsPage({
     super.key,
@@ -28,8 +35,11 @@ class AccountsPage extends StatefulWidget {
     required this.transactions,
     required this.categories,
     required this.rateData,
+    this.sortModes = const {},
+    this.customOrders = const {},
     required this.onChanged,
     required this.onTransactionsChanged,
+    this.onSortChanged,
   });
 
   @override
@@ -39,16 +49,149 @@ class AccountsPage extends StatefulWidget {
 class _AccountsPageState extends State<AccountsPage> {
   late List<Account> _accounts;
   late List<Transaction> _transactions;
+  late Map<String, String> _sortModes;
+  late Map<String, List<String>> _customOrders;
+  final Map<String, bool> _reordering = {};
+
+  static const _sortName = 'name';
+  static const _sortBank = 'bank';
+  static const _sortCustom = 'custom';
 
   @override
   void initState() {
     super.initState();
     _accounts = List.of(widget.accounts);
     _transactions = List.of(widget.transactions);
+    _sortModes = Map.of(widget.sortModes);
+    _customOrders = widget.customOrders.map(
+      (key, value) => MapEntry(key, List<String>.of(value)),
+    );
   }
 
   void _notifyAccounts() => widget.onChanged(_accounts);
   void _notifyTransactions() => widget.onTransactionsChanged(_transactions);
+  void _notifySort() => widget.onSortChanged?.call(_sortModes, _customOrders);
+
+  String _typeKey(AccountType type) => type.name;
+
+  String _sortMode(AccountType type) =>
+      _sortModes[_typeKey(type)] ?? _sortCustom;
+
+  int _compareText(String a, String b) =>
+      a.toLowerCase().compareTo(b.toLowerCase());
+
+  List<String> _normalizedOrder(AccountType type) {
+    final key = _typeKey(type);
+    final allIds = _accounts
+        .where((account) => account.type == type)
+        .map((account) => account.id)
+        .toList();
+    final allIdSet = allIds.toSet();
+    final seen = <String>{};
+    final normalized = <String>[
+      for (final id in _customOrders[key] ?? const <String>[])
+        if (allIdSet.contains(id) && seen.add(id)) id,
+    ];
+    for (final id in allIds) {
+      if (seen.add(id)) normalized.add(id);
+    }
+    return normalized;
+  }
+
+  List<MapEntry<int, Account>> _sortEntries(
+    AccountType type,
+    List<MapEntry<int, Account>> entries,
+  ) {
+    final list = List<MapEntry<int, Account>>.of(entries);
+    switch (_sortMode(type)) {
+      case _sortName:
+        list.sort((a, b) {
+          final byName = _compareText(a.value.name, b.value.name);
+          return byName != 0
+              ? byName
+              : _compareText(a.value.bankOrApp, b.value.bankOrApp);
+        });
+      case _sortBank:
+        list.sort((a, b) {
+          final byBank = _compareText(a.value.bankOrApp, b.value.bankOrApp);
+          return byBank != 0
+              ? byBank
+              : _compareText(a.value.name, b.value.name);
+        });
+      case _sortCustom:
+      default:
+        final order = _normalizedOrder(type);
+        final fallbackIndex = order.length;
+        list.sort((a, b) {
+          final ai = order.indexOf(a.value.id);
+          final bi = order.indexOf(b.value.id);
+          final byOrder = (ai == -1 ? fallbackIndex : ai).compareTo(
+            bi == -1 ? fallbackIndex : bi,
+          );
+          return byOrder != 0 ? byOrder : a.key.compareTo(b.key);
+        });
+    }
+    return list;
+  }
+
+  void _setSortMode(AccountType type, String mode) {
+    final key = _typeKey(type);
+    setState(() {
+      if (mode == _sortCustom && !_customOrders.containsKey(key)) {
+        final entries = <MapEntry<int, Account>>[];
+        for (var i = 0; i < _accounts.length; i++) {
+          if (_accounts[i].type == type) entries.add(MapEntry(i, _accounts[i]));
+        }
+        _customOrders[key] = _sortEntries(
+          type,
+          entries,
+        ).map((entry) => entry.value.id).toList();
+      }
+      _sortModes[key] = mode;
+      if (mode == _sortCustom) {
+        _customOrders[key] = _normalizedOrder(type);
+      } else {
+        _reordering[key] = false;
+      }
+    });
+    _notifySort();
+  }
+
+  void _appendAccountToCustomOrderIfNeeded(Account account) {
+    if (_sortMode(account.type) != _sortCustom) return;
+    _customOrders[_typeKey(account.type)] = _normalizedOrder(account.type);
+  }
+
+  void _removeAccountFromCustomOrders(String accountId) {
+    for (final entry in _customOrders.entries) {
+      entry.value.remove(accountId);
+    }
+  }
+
+  void _reorderAccounts(
+    AccountType type,
+    List<MapEntry<int, Account>> entries,
+    int oldIndex,
+    int newIndex,
+  ) {
+    if (newIndex > oldIndex) newIndex--;
+    final key = _typeKey(type);
+    final ids = entries.map((entry) => entry.value.id).toList();
+    if (oldIndex < 0 ||
+        oldIndex >= ids.length ||
+        newIndex < 0 ||
+        newIndex > ids.length) {
+      return;
+    }
+    final reordered = List<String>.of(ids);
+    final moved = reordered.removeAt(oldIndex);
+    reordered.insert(newIndex, moved);
+    setState(() {
+      _customOrders[key] = reordered;
+      _sortModes[key] = _sortCustom;
+    });
+    _notifySort();
+  }
 
   Future<void> _addAccount() async {
     final account = await showDialog<Account>(
@@ -57,22 +200,29 @@ class _AccountsPageState extends State<AccountsPage> {
     );
     if (account != null) {
       setState(() => _accounts.add(account));
+      _appendAccountToCustomOrderIfNeeded(account);
       _notifyAccounts();
+      _notifySort();
     }
   }
 
   Future<void> _editAccount(int index) async {
     final oldAccount = _accounts[index];
+    final l10n = AppLocalizations.of(context)!;
     final account = await showDialog<Account>(
       context: context,
       builder: (_) => _AccountDialog(account: oldAccount),
     );
+    if (!mounted) return;
     if (account != null) {
       // If forced balance changed, create an adjustment transaction
       if (account.forcedBalance != null &&
           account.forcedBalance != oldAccount.forcedBalance) {
-        final oldBalance = accountBalance(oldAccount, _transactions,
-            widget.rateData);
+        final oldBalance = accountBalance(
+          oldAccount,
+          _transactions,
+          widget.rateData,
+        );
         final delta = account.forcedBalance! - oldBalance;
         if (delta != 0) {
           final adjTx = Transaction(
@@ -81,7 +231,7 @@ class _AccountsPageState extends State<AccountsPage> {
             currency: account.currency,
             rateSnapshotId: widget.rateData.currentSnapshotId,
             accountId: account.id,
-            note: AppLocalizations.of(context)!.financeBalanceAdjustment,
+            note: l10n.financeBalanceAdjustment,
             date: account.forcedBalanceDate ?? DateTime.now(),
           );
           setState(() {
@@ -91,13 +241,21 @@ class _AccountsPageState extends State<AccountsPage> {
         }
       }
       setState(() => _accounts[index] = account);
+      if (oldAccount.type != account.type) {
+        _removeAccountFromCustomOrders(account.id);
+        _appendAccountToCustomOrderIfNeeded(account);
+      }
       _notifyAccounts();
+      _notifySort();
     }
   }
 
   void _deleteAccount(int index) {
+    final accountId = _accounts[index].id;
     setState(() => _accounts.removeAt(index));
+    _removeAccountFromCustomOrders(accountId);
     _notifyAccounts();
+    _notifySort();
   }
 
   void _deleteTransaction(Transaction tx) {
@@ -114,6 +272,10 @@ class _AccountsPageState extends State<AccountsPage> {
       grouped.putIfAbsent(_accounts[i].type, () => []);
       grouped[_accounts[i].type]!.add(MapEntry(i, _accounts[i]));
     }
+    final sortedGrouped = {
+      for (final entry in grouped.entries)
+        entry.key: _sortEntries(entry.key, entry.value),
+    };
 
     return Scaffold(
       appBar: AppBar(
@@ -125,13 +287,18 @@ class _AccountsPageState extends State<AccountsPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.account_balance,
-                      size: 48, color: theme.colorScheme.onSurfaceVariant),
+                  Icon(
+                    Icons.account_balance,
+                    size: 48,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                   const SizedBox(height: 12),
-                  Text(AppLocalizations.of(context)!.financeNoAccounts,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      )),
+                  Text(
+                    AppLocalizations.of(context)!.financeNoAccounts,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
                 ],
               ),
             )
@@ -139,38 +306,42 @@ class _AccountsPageState extends State<AccountsPage> {
               children: [
                 for (final type in AccountType.values)
                   if (grouped.containsKey(type)) ...[
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-                      child: Text(
-                        _accountTypeLabel(type),
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          color: theme.colorScheme.primary,
-                        ),
-                      ),
-                    ),
-                    ...grouped[type]!.map((entry) => Dismissible(
+                    _buildSectionHeader(type, sortedGrouped[type]!),
+                    if (_reordering[_typeKey(type)] == true &&
+                        _sortMode(type) == _sortCustom)
+                      _buildReorderList(type, sortedGrouped[type]!)
+                    else
+                      ...sortedGrouped[type]!.map(
+                        (entry) => Dismissible(
                           key: ValueKey(entry.value.id),
                           direction: DismissDirection.horizontal,
                           background: Container(
                             alignment: Alignment.centerLeft,
                             padding: const EdgeInsets.only(left: 20),
                             color: theme.colorScheme.primary,
-                            child: Icon(Icons.edit_outlined,
-                                color: theme.colorScheme.onPrimary),
+                            child: Icon(
+                              Icons.edit_outlined,
+                              color: theme.colorScheme.onPrimary,
+                            ),
                           ),
                           secondaryBackground: Container(
                             alignment: Alignment.centerRight,
                             padding: const EdgeInsets.only(right: 20),
                             color: theme.colorScheme.error,
-                            child: Icon(Icons.delete_outline,
-                                color: theme.colorScheme.onError),
+                            child: Icon(
+                              Icons.delete_outline,
+                              color: theme.colorScheme.onError,
+                            ),
                           ),
                           confirmDismiss: (direction) async {
                             if (direction == DismissDirection.startToEnd) {
                               _editAccount(entry.key);
                               return false;
                             }
-                            return confirmDelete(context, AppLocalizations.of(context)!.financeThisAccount);
+                            return confirmDelete(
+                              context,
+                              AppLocalizations.of(context)!.financeThisAccount,
+                            );
                           },
                           onDismissed: (_) => _deleteAccount(entry.key),
                           child: ListTile(
@@ -195,7 +366,9 @@ class _AccountsPageState extends State<AccountsPage> {
                                   rateData: widget.rateData,
                                   onEdit: (updated) {
                                     setState(() {
-                                      final i = _transactions.indexWhere((t) => t.id == updated.id);
+                                      final i = _transactions.indexWhere(
+                                        (t) => t.id == updated.id,
+                                      );
                                       if (i != -1) _transactions[i] = updated;
                                     });
                                     _notifyTransactions();
@@ -205,7 +378,8 @@ class _AccountsPageState extends State<AccountsPage> {
                               ),
                             ),
                           ),
-                        )),
+                        ),
+                      ),
                   ],
                 const SizedBox(height: 80),
               ],
@@ -214,6 +388,130 @@ class _AccountsPageState extends State<AccountsPage> {
         onPressed: _addAccount,
         child: const Icon(Icons.add),
       ),
+    );
+  }
+
+  Widget _buildSectionHeader(
+    AccountType type,
+    List<MapEntry<int, Account>> entries,
+  ) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final key = _typeKey(type);
+    final isCustom = _sortMode(type) == _sortCustom;
+    final isReordering = _reordering[key] == true;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 8, 4),
+      child: Row(
+        children: [
+          Text(
+            _accountTypeLabel(type),
+            style: theme.textTheme.titleSmall?.copyWith(
+              color: theme.colorScheme.primary,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '${entries.length}',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const Spacer(),
+          if (isCustom && entries.length > 1)
+            IconButton(
+              icon: Icon(isReordering ? Icons.check : Icons.reorder),
+              tooltip: isReordering
+                  ? l10n.financeSortDone
+                  : l10n.financeSortReorder,
+              onPressed: () => setState(() {
+                _reordering[key] = !isReordering;
+              }),
+            ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.sort),
+            tooltip: l10n.financeSortBy,
+            onSelected: (mode) => _setSortMode(type, mode),
+            itemBuilder: (_) => [
+              _sortMenuItem(
+                type: type,
+                value: _sortName,
+                label: l10n.financeSortByName,
+              ),
+              _sortMenuItem(
+                type: type,
+                value: _sortBank,
+                label: l10n.financeSortByBank,
+              ),
+              _sortMenuItem(
+                type: type,
+                value: _sortCustom,
+                label: l10n.financeSortCustom,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  PopupMenuEntry<String> _sortMenuItem({
+    required AccountType type,
+    required String value,
+    required String label,
+  }) {
+    return PopupMenuItem(
+      value: value,
+      child: Row(
+        children: [
+          Icon(
+            _sortMode(type) == value
+                ? Icons.radio_button_checked
+                : Icons.radio_button_off,
+            size: 18,
+          ),
+          const SizedBox(width: 8),
+          Text(label),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReorderList(
+    AccountType type,
+    List<MapEntry<int, Account>> entries,
+  ) {
+    final theme = Theme.of(context);
+    return ReorderableListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      buildDefaultDragHandles: false,
+      itemCount: entries.length,
+      onReorder: (oldIndex, newIndex) {
+        _reorderAccounts(type, entries, oldIndex, newIndex);
+      },
+      proxyDecorator: (child, index, animation) {
+        return Material(elevation: 4, child: child);
+      },
+      itemBuilder: (context, index) {
+        final account = entries[index].value;
+        return ListTile(
+          key: ValueKey('account-reorder-${account.id}'),
+          leading: ReorderableDragStartListener(
+            index: index,
+            child: const Icon(Icons.drag_handle),
+          ),
+          title: Text(account.name),
+          subtitle: Text('${account.bankOrApp}  â€¢  ${account.currency}'),
+          trailing: Text(
+            '${currencySymbol(account.currency)}${NumberFormat('#,##0.00').format(accountBalance(account, _transactions, widget.rateData))}',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -228,18 +526,18 @@ class _AccountsPageState extends State<AccountsPage> {
   }
 
   IconData _accountTypeIcon(AccountType type) => switch (type) {
-        AccountType.fund => Icons.savings,
-        AccountType.credit => Icons.credit_card,
-        AccountType.recharge => Icons.phone_android,
-        AccountType.financial => Icons.trending_up,
-      };
+    AccountType.fund => Icons.savings,
+    AccountType.credit => Icons.credit_card,
+    AccountType.recharge => Icons.phone_android,
+    AccountType.financial => Icons.trending_up,
+  };
 
   Color _accountTypeColor(AccountType type) => switch (type) {
-        AccountType.fund => Colors.blue,
-        AccountType.credit => Colors.orange,
-        AccountType.recharge => Colors.green,
-        AccountType.financial => Colors.purple,
-      };
+    AccountType.fund => Colors.blue,
+    AccountType.credit => Colors.orange,
+    AccountType.recharge => Colors.green,
+    AccountType.financial => Colors.purple,
+  };
 
   Widget _buildAccountAvatar(Account account, ThemeData theme) {
     final color = _accountTypeColor(account.type);
@@ -332,30 +630,40 @@ class _AccountTransactionsPageState extends State<_AccountTransactionsPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    final filtered = _transactions
-        .where(
-            (tx) => tx.accountId == widget.account.id || tx.toAccountId == widget.account.id)
-        .toList()
-      ..sort((a, b) => b.date.compareTo(a.date));
-    final balance = accountBalance(widget.account, _transactions, widget.rateData);
+    final filtered =
+        _transactions
+            .where(
+              (tx) =>
+                  tx.accountId == widget.account.id ||
+                  tx.toAccountId == widget.account.id,
+            )
+            .toList()
+          ..sort((a, b) => b.date.compareTo(a.date));
+    final balance = accountBalance(
+      widget.account,
+      _transactions,
+      widget.rateData,
+    );
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.account.name),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: Text(widget.account.name), centerTitle: true),
       body: Column(
         children: [
           Padding(
             padding: const EdgeInsets.all(16),
             child: Card(
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(l10n.financeBalance, style: theme.textTheme.titleSmall),
+                    Text(
+                      l10n.financeBalance,
+                      style: theme.textTheme.titleSmall,
+                    ),
                     Text(
                       '${currencySymbol(widget.account.currency)}${NumberFormat('#,##0.00').format(balance)}',
                       style: theme.textTheme.titleLarge?.copyWith(
@@ -381,94 +689,99 @@ class _AccountTransactionsPageState extends State<_AccountTransactionsPage> {
                       ),
                     ),
                   )
-                : buildGroupedTransactionList(
-                    context,
-                    filtered,
-                    (tx) {
-                      final isExpense = tx.type == TransactionType.expense;
-                      final isTransfer = tx.type == TransactionType.transfer;
-                      final sign = isExpense ? '-' : (isTransfer ? '' : '+');
-                      final color =
-                          isExpense ? theme.colorScheme.error : Colors.green;
-                      final dateStr =
-                          DateFormat('MM-dd HH:mm').format(tx.date);
+                : buildGroupedTransactionList(context, filtered, (tx) {
+                    final isExpense = tx.type == TransactionType.expense;
+                    final isTransfer = tx.type == TransactionType.transfer;
+                    final sign = isExpense ? '-' : (isTransfer ? '' : '+');
+                    final color = isExpense
+                        ? theme.colorScheme.error
+                        : Colors.green;
+                    final dateStr = DateFormat('MM-dd HH:mm').format(tx.date);
 
-                      final cat = tx.categoryId != null
-                          ? widget.categories
+                    final cat = tx.categoryId != null
+                        ? widget.categories
                               .where((c) => c.id == tx.categoryId)
                               .firstOrNull
-                          : null;
-                      final catLabel = cat != null
-                          ? (cat.emoji != null
+                        : null;
+                    final catLabel = cat != null
+                        ? (cat.emoji != null
                               ? '${cat.emoji} ${cat.name}'
                               : cat.name)
-                          : null;
+                        : null;
 
-                      final typeLabel = switch (tx.type) {
-                        TransactionType.expense => l10n.financeExpense,
-                        TransactionType.income => l10n.financeIncome,
-                        TransactionType.transfer => l10n.financeTransfer,
-                      };
+                    final typeLabel = switch (tx.type) {
+                      TransactionType.expense => l10n.financeExpense,
+                      TransactionType.income => l10n.financeIncome,
+                      TransactionType.transfer => l10n.financeTransfer,
+                    };
 
-                      return Dismissible(
-                        key: ValueKey(tx.id),
-                        direction: DismissDirection.horizontal,
-                        background: Container(
-                          alignment: Alignment.centerLeft,
-                          padding: const EdgeInsets.only(left: 20),
-                          color: theme.colorScheme.primary,
-                          child: Icon(Icons.edit_outlined,
-                              color: theme.colorScheme.onPrimary),
+                    return Dismissible(
+                      key: ValueKey(tx.id),
+                      direction: DismissDirection.horizontal,
+                      background: Container(
+                        alignment: Alignment.centerLeft,
+                        padding: const EdgeInsets.only(left: 20),
+                        color: theme.colorScheme.primary,
+                        child: Icon(
+                          Icons.edit_outlined,
+                          color: theme.colorScheme.onPrimary,
                         ),
-                        secondaryBackground: Container(
-                          alignment: Alignment.centerRight,
-                          padding: const EdgeInsets.only(right: 20),
-                          color: theme.colorScheme.error,
-                          child: Icon(Icons.delete_outline,
-                              color: theme.colorScheme.onError),
+                      ),
+                      secondaryBackground: Container(
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.only(right: 20),
+                        color: theme.colorScheme.error,
+                        child: Icon(
+                          Icons.delete_outline,
+                          color: theme.colorScheme.onError,
                         ),
-                        confirmDismiss: (direction) async {
-                          if (direction == DismissDirection.startToEnd) {
-                            _handleEdit(tx);
-                            return false;
-                          }
-                          return confirmDelete(context, l10n.financeThisTransaction);
-                        },
-                        onDismissed: (_) => _handleDelete(tx),
-                        child: ListTile(
-                          leading: CircleAvatar(
-                            backgroundColor: color.withValues(alpha: 0.1),
-                            child: cat?.emoji != null
-                                ? Text(cat!.emoji!,
-                                    style: const TextStyle(fontSize: 18))
-                                : Icon(
-                                    isExpense
-                                        ? Icons.remove
-                                        : isTransfer
-                                            ? Icons.swap_horiz
-                                            : Icons.add,
-                                    color: color,
-                                    size: 20,
-                                  ),
-                          ),
-                          title: Text(catLabel ?? typeLabel),
-                          subtitle: Text(
-                            tx.note.isNotEmpty
-                                ? '${tx.note}  •  $dateStr'
-                                : dateStr,
-                            style: theme.textTheme.bodySmall,
-                          ),
-                          trailing: Text(
-                            '$sign${currencySymbol(tx.currency)}${tx.amount.toStringAsFixed(2)}',
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              color: color,
-                              fontWeight: FontWeight.w600,
-                            ),
+                      ),
+                      confirmDismiss: (direction) async {
+                        if (direction == DismissDirection.startToEnd) {
+                          _handleEdit(tx);
+                          return false;
+                        }
+                        return confirmDelete(
+                          context,
+                          l10n.financeThisTransaction,
+                        );
+                      },
+                      onDismissed: (_) => _handleDelete(tx),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: color.withValues(alpha: 0.1),
+                          child: cat?.emoji != null
+                              ? Text(
+                                  cat!.emoji!,
+                                  style: const TextStyle(fontSize: 18),
+                                )
+                              : Icon(
+                                  isExpense
+                                      ? Icons.remove
+                                      : isTransfer
+                                      ? Icons.swap_horiz
+                                      : Icons.add,
+                                  color: color,
+                                  size: 20,
+                                ),
+                        ),
+                        title: Text(catLabel ?? typeLabel),
+                        subtitle: Text(
+                          tx.note.isNotEmpty
+                              ? '${tx.note}  •  $dateStr'
+                              : dateStr,
+                          style: theme.textTheme.bodySmall,
+                        ),
+                        trailing: Text(
+                          '$sign${currencySymbol(tx.currency)}${tx.amount.toStringAsFixed(2)}',
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            color: color,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                      );
-                    },
-                  ),
+                      ),
+                    );
+                  }),
           ),
         ],
       ),
@@ -498,16 +811,46 @@ class _AccountDialogState extends State<_AccountDialog> {
   DateTime? _forcedBalanceDate;
   BankPreset? _selectedBank;
 
-  static const _baseCurrencies = ['CNY', 'USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'TWD', 'HKD', 'SGD', 'KRW', 'CHF', 'NZD', 'INR'];
+  static const _baseCurrencies = [
+    'CNY',
+    'USD',
+    'EUR',
+    'GBP',
+    'JPY',
+    'CAD',
+    'AUD',
+    'TWD',
+    'HKD',
+    'SGD',
+    'KRW',
+    'CHF',
+    'NZD',
+    'INR',
+  ];
 
   List<String> get _currencies {
     final list = List<String>.from(_baseCurrencies);
     if (!list.contains(_currency)) list.insert(0, _currency);
     return list;
   }
+
   static const _commonEmojis = [
-    '🏦', '💳', '💰', '🏧', '📱', '💵', '💴', '💶',
-    '💷', '🪙', '🏠', '🚗', '✈️', '🛍️', '🎮', '📈',
+    '🏦',
+    '💳',
+    '💰',
+    '🏧',
+    '📱',
+    '💵',
+    '💴',
+    '💶',
+    '💷',
+    '🪙',
+    '🏠',
+    '🚗',
+    '✈️',
+    '🛍️',
+    '🎮',
+    '📈',
   ];
 
   @override
@@ -561,13 +904,15 @@ class _AccountDialogState extends State<_AccountDialog> {
             SegmentedButton<AccountType>(
               segments: [
                 ButtonSegment(
-                    value: AccountType.fund,
-                    label: Text(l10n.financeAccountTypeFund),
-                    icon: const Icon(Icons.savings, size: 16)),
+                  value: AccountType.fund,
+                  label: Text(l10n.financeAccountTypeFund),
+                  icon: const Icon(Icons.savings, size: 16),
+                ),
                 ButtonSegment(
-                    value: AccountType.credit,
-                    label: Text(l10n.financeAccountTypeCredit),
-                    icon: const Icon(Icons.credit_card, size: 16)),
+                  value: AccountType.credit,
+                  label: Text(l10n.financeAccountTypeCredit),
+                  icon: const Icon(Icons.credit_card, size: 16),
+                ),
               ],
               selected: {_type},
               onSelectionChanged: (s) => setState(() => _type = s.first),
@@ -576,13 +921,15 @@ class _AccountDialogState extends State<_AccountDialog> {
             SegmentedButton<AccountType>(
               segments: [
                 ButtonSegment(
-                    value: AccountType.recharge,
-                    label: Text(l10n.financeAccountTypeRecharge),
-                    icon: const Icon(Icons.phone_android, size: 16)),
+                  value: AccountType.recharge,
+                  label: Text(l10n.financeAccountTypeRecharge),
+                  icon: const Icon(Icons.phone_android, size: 16),
+                ),
                 ButtonSegment(
-                    value: AccountType.financial,
-                    label: Text(l10n.financeAccountTypeFinancial),
-                    icon: const Icon(Icons.trending_up, size: 16)),
+                  value: AccountType.financial,
+                  label: Text(l10n.financeAccountTypeFinancial),
+                  icon: const Icon(Icons.trending_up, size: 16),
+                ),
               ],
               selected: {_type},
               onSelectionChanged: (s) => setState(() => _type = s.first),
@@ -658,12 +1005,13 @@ class _AccountDialogState extends State<_AccountDialog> {
                           : null,
                       border: isSelected
                           ? Border.all(
-                              color: theme.colorScheme.primary, width: 2)
+                              color: theme.colorScheme.primary,
+                              width: 2,
+                            )
                           : null,
                     ),
                     child: Center(
-                      child: Text(emoji,
-                          style: const TextStyle(fontSize: 18)),
+                      child: Text(emoji, style: const TextStyle(fontSize: 18)),
                     ),
                   ),
                 );
@@ -672,14 +1020,19 @@ class _AccountDialogState extends State<_AccountDialog> {
             const SizedBox(height: 16),
 
             // Forced balance override
-            Text(l10n.financeForceBalance, style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.primary,
-            )),
+            Text(
+              l10n.financeForceBalance,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.primary,
+              ),
+            ),
             const SizedBox(height: 8),
             TextField(
               controller: _balanceController,
               keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true, signed: true),
+                decimal: true,
+                signed: true,
+              ),
               decoration: InputDecoration(
                 labelText: l10n.financeCurrentBalance,
                 hintText: l10n.financeCurrentBalanceHint,
@@ -757,7 +1110,12 @@ class _AccountDialogState extends State<_AccountDialog> {
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: Image.file(snap.data!, width: 48, height: 48, fit: BoxFit.cover),
+                      child: Image.file(
+                        snap.data!,
+                        width: 48,
+                        height: 48,
+                        fit: BoxFit.cover,
+                      ),
                     ),
                     Positioned(
                       top: -4,
@@ -770,7 +1128,11 @@ class _AccountDialogState extends State<_AccountDialog> {
                             color: theme.colorScheme.error,
                             shape: BoxShape.circle,
                           ),
-                          child: Icon(Icons.close, size: 12, color: theme.colorScheme.onError),
+                          child: Icon(
+                            Icons.close,
+                            size: 12,
+                            color: theme.colorScheme.onError,
+                          ),
                         ),
                       ),
                     ),
@@ -788,7 +1150,10 @@ class _AccountDialogState extends State<_AccountDialog> {
               label: Text(l10n.financeBankPresets),
               onPressed: _pickBankPreset,
             ),
-            if (_selectedBank != null && _selectedBank!.domain.isNotEmpty && _imagePath == null && !_downloadingLogo)
+            if (_selectedBank != null &&
+                _selectedBank!.domain.isNotEmpty &&
+                _imagePath == null &&
+                !_downloadingLogo)
               OutlinedButton.icon(
                 icon: const Icon(Icons.refresh, size: 16),
                 label: Text(l10n.financeFetchIcon),
@@ -796,7 +1161,9 @@ class _AccountDialogState extends State<_AccountDialog> {
               ),
             OutlinedButton.icon(
               icon: const Icon(Icons.image_outlined, size: 16),
-              label: Text(_imagePath != null ? l10n.commonChange : l10n.commonPickImage),
+              label: Text(
+                _imagePath != null ? l10n.commonChange : l10n.commonPickImage,
+              ),
               onPressed: () async {
                 final path = await ImageService.pickAndSaveImage();
                 if (path != null) {
@@ -858,8 +1225,9 @@ class _AccountDialogState extends State<_AccountDialog> {
     if (name.isEmpty || bank.isEmpty) return;
 
     final balanceText = _balanceController.text.trim();
-    final forcedBalance =
-        balanceText.isNotEmpty ? double.tryParse(balanceText) : null;
+    final forcedBalance = balanceText.isNotEmpty
+        ? double.tryParse(balanceText)
+        : null;
 
     final account = Account(
       id: widget.account?.id,
@@ -867,8 +1235,9 @@ class _AccountDialogState extends State<_AccountDialog> {
       bankOrApp: bank,
       name: name,
       currency: _currency,
-      cardNumber:
-          _cardController.text.trim().isEmpty ? null : _cardController.text.trim(),
+      cardNumber: _cardController.text.trim().isEmpty
+          ? null
+          : _cardController.text.trim(),
       emoji: _selectedEmoji,
       imagePath: _imagePath,
       forcedBalance: forcedBalance,

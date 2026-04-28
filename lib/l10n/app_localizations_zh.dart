@@ -977,6 +977,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get financeSortByName => '按名称';
 
   @override
+  String get financeSortByBank => '按银行 / 应用';
+
+  @override
   String get financeSortCustom => '自定义';
 
   @override
@@ -1295,6 +1298,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get todoSetCompletedDate => '设定完成日期';
 
   @override
+  String get todoSortBy => '排序';
+
+  @override
+  String get todoSortByAdded => '按添加时间';
+
+  @override
+  String get todoSortByDueDate => '按截止日期';
+
+  @override
+  String get todoSortByName => '按名称';
+
+  @override
+  String get todoSortCustom => '自定义';
+
+  @override
   String get weightUnitKg => 'kg';
 
   @override
@@ -1554,6 +1572,27 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get todoNextOccurrence => '安排下次任务';
+
+  @override
+  String get intimacyActivePartners => '现役伴侣';
+
+  @override
+  String get intimacyPastPartners => '已分手伴侣';
+
+  @override
+  String get intimacyActiveToys => '现役玩具';
+
+  @override
+  String get intimacyRetiredToys => '退役玩具';
+
+  @override
+  String get intimacySortByRelationshipDate => '按交往时间';
+
+  @override
+  String get intimacySortByPurchaseDate => '按购买时间';
+
+  @override
+  String get intimacySortByUseCount => '按使用次数';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -2529,6 +2568,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get financeSortByName => '按名稱';
 
   @override
+  String get financeSortByBank => '按銀行 / 應用';
+
+  @override
   String get financeSortCustom => '自訂';
 
   @override
@@ -2847,6 +2889,21 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get todoSetCompletedDate => '設定完成日期';
 
   @override
+  String get todoSortBy => '排序';
+
+  @override
+  String get todoSortByAdded => '按新增時間';
+
+  @override
+  String get todoSortByDueDate => '按截止日期';
+
+  @override
+  String get todoSortByName => '按名稱';
+
+  @override
+  String get todoSortCustom => '自訂';
+
+  @override
   String get weightUnitKg => 'kg';
 
   @override
@@ -3106,4 +3163,25 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get todoNextOccurrence => '安排下次任務';
+
+  @override
+  String get intimacyActivePartners => '現役伴侶';
+
+  @override
+  String get intimacyPastPartners => '已分手伴侶';
+
+  @override
+  String get intimacyActiveToys => '現役玩具';
+
+  @override
+  String get intimacyRetiredToys => '退役玩具';
+
+  @override
+  String get intimacySortByRelationshipDate => '按交往時間';
+
+  @override
+  String get intimacySortByPurchaseDate => '按購買時間';
+
+  @override
+  String get intimacySortByUseCount => '按使用次數';
 }

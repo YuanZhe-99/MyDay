@@ -33,6 +33,14 @@ class _TodoPageState extends State<TodoPage> {
   // Reminder state
   TimeOfDay? _morningReminderTime;
   TimeOfDay? _completionReminderTime;
+  Map<String, String> _taskSortModes = {};
+  Map<String, List<String>> _taskCustomOrders = {};
+  DateTime _settingsModifiedAt = DateTime.fromMillisecondsSinceEpoch(0);
+
+  static const _taskSortCreated = 'createdDate';
+  static const _taskSortDue = 'dueDate';
+  static const _taskSortName = 'name';
+  static const _taskSortCustom = 'custom';
 
   @override
   void initState() {
@@ -54,6 +62,11 @@ class _TodoPageState extends State<TodoPage> {
         _dailyTemplates = data.dailyTemplates;
         _oneTimeTasks = data.oneTimeTasks;
         _dailyLog = data.dailyLog;
+        _taskSortModes = Map.of(data.taskSortModes);
+        _taskCustomOrders = data.taskCustomOrders.map(
+          (key, value) => MapEntry(key, List<String>.of(value)),
+        );
+        _settingsModifiedAt = data.settingsModifiedAt;
         if (data.morningReminderHour != null &&
             data.morningReminderMinute != null) {
           _morningReminderTime = TimeOfDay(
@@ -84,6 +97,9 @@ class _TodoPageState extends State<TodoPage> {
         morningReminderMinute: _morningReminderTime?.minute,
         completionReminderHour: _completionReminderTime?.hour,
         completionReminderMinute: _completionReminderTime?.minute,
+        taskSortModes: _taskSortModes,
+        taskCustomOrders: _taskCustomOrders,
+        settingsModifiedAt: _settingsModifiedAt,
       ),
     );
     _syncReminders();
@@ -225,7 +241,7 @@ class _TodoPageState extends State<TodoPage> {
   /// filtered by startDate <= selectedDate and (deletedDate == null or deletedDate > selectedDate)
   List<Task> get _dailyForDate {
     final selDate = _dateOnly(_selectedDate);
-    return _dailyTemplates
+    final list = _dailyTemplates
         .where((t) {
           final start = _dateOnly(t.startDate ?? t.createdDate);
           return !start.isAfter(selDate) &&
@@ -247,10 +263,169 @@ class _TodoPageState extends State<TodoPage> {
               : t;
         })
         .toList();
+    return _sortTasks(list, TaskType.daily);
   }
 
   /// Strip time from DateTime for comparison
   DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
+
+  String _taskTypeKey(TaskType type) => type.name;
+
+  String _taskSortMode(TaskType type) =>
+      _taskSortModes[_taskTypeKey(type)] ?? _taskSortCreated;
+
+  void _touchSettings() {
+    _settingsModifiedAt = DateTime.now().toUtc();
+  }
+
+  List<Task> _tasksForType(TaskType type) {
+    if (type == TaskType.daily) return List.of(_dailyTemplates);
+    return _oneTimeTasks.where((t) => t.type == type).toList();
+  }
+
+  int _compareText(String a, String b) =>
+      a.toLowerCase().compareTo(b.toLowerCase());
+
+  int _compareNullableDates(DateTime? a, DateTime? b) {
+    if (a == null && b == null) return 0;
+    if (a == null) return 1;
+    if (b == null) return -1;
+    return a.compareTo(b);
+  }
+
+  int _compareTaskFallback(Task a, Task b) {
+    final byCreated = a.createdDate.compareTo(b.createdDate);
+    if (byCreated != 0) return byCreated;
+    return _compareText(a.title, b.title);
+  }
+
+  DateTime? _taskDueSortDate(Task task) =>
+      task.dueDate ?? task.scheduledDate ?? task.startDate;
+
+  List<String> _normalizedTaskOrder(TaskType type) {
+    final key = _taskTypeKey(type);
+    final allIds = _tasksForType(type).map((t) => t.id).toList();
+    final allIdSet = allIds.toSet();
+    final seen = <String>{};
+    final normalized = <String>[
+      for (final id in _taskCustomOrders[key] ?? const <String>[])
+        if (allIdSet.contains(id) && seen.add(id)) id,
+    ];
+    for (final id in allIds) {
+      if (seen.add(id)) normalized.add(id);
+    }
+    return normalized;
+  }
+
+  List<Task> _sortTasksForMode(List<Task> tasks, TaskType type, String mode) {
+    final list = List<Task>.of(tasks);
+    switch (mode) {
+      case _taskSortDue:
+        list.sort((a, b) {
+          final byDate = _compareNullableDates(
+            _taskDueSortDate(a),
+            _taskDueSortDate(b),
+          );
+          return byDate != 0 ? byDate : _compareTaskFallback(a, b);
+        });
+      case _taskSortName:
+        list.sort((a, b) {
+          final byName = _compareText(a.title, b.title);
+          return byName != 0 ? byName : _compareTaskFallback(a, b);
+        });
+      case _taskSortCustom:
+        final order = _normalizedTaskOrder(type);
+        final fallbackIndex = order.length;
+        list.sort((a, b) {
+          final ai = order.indexOf(a.id);
+          final bi = order.indexOf(b.id);
+          final byOrder = (ai == -1 ? fallbackIndex : ai).compareTo(
+            bi == -1 ? fallbackIndex : bi,
+          );
+          return byOrder != 0 ? byOrder : _compareTaskFallback(a, b);
+        });
+      case _taskSortCreated:
+      default:
+        list.sort(_compareTaskFallback);
+    }
+    return list;
+  }
+
+  List<Task> _sortTasks(List<Task> tasks, TaskType type) =>
+      _sortTasksForMode(tasks, type, _taskSortMode(type));
+
+  void _appendTaskToCustomOrderIfNeeded(Task task) {
+    if (_taskSortMode(task.type) != _taskSortCustom) return;
+    _taskCustomOrders[_taskTypeKey(task.type)] = _normalizedTaskOrder(
+      task.type,
+    );
+    _touchSettings();
+  }
+
+  void _removeTaskFromCustomOrders(String taskId) {
+    var changed = false;
+    for (final entry in _taskCustomOrders.entries) {
+      changed = entry.value.remove(taskId) || changed;
+    }
+    if (changed) _touchSettings();
+  }
+
+  void _onTaskSortModeChanged(TaskType type, String mode) {
+    final key = _taskTypeKey(type);
+    setState(() {
+      final currentMode = _taskSortMode(type);
+      if (mode == _taskSortCustom && !_taskCustomOrders.containsKey(key)) {
+        _taskCustomOrders[key] = _sortTasksForMode(
+          _tasksForType(type),
+          type,
+          currentMode,
+        ).map((t) => t.id).toList();
+      }
+      _taskSortModes[key] = mode;
+      if (mode == _taskSortCustom) {
+        _taskCustomOrders[key] = _normalizedTaskOrder(type);
+      }
+      _touchSettings();
+    });
+    _saveData();
+  }
+
+  void _onTaskReorder(
+    TaskType type,
+    List<Task> visibleTasks,
+    int oldIndex,
+    int newIndex,
+  ) {
+    if (newIndex > oldIndex) newIndex--;
+    final key = _taskTypeKey(type);
+    final visibleIds = visibleTasks.map((t) => t.id).toList();
+    if (oldIndex < 0 ||
+        oldIndex >= visibleIds.length ||
+        newIndex < 0 ||
+        newIndex > visibleIds.length) {
+      return;
+    }
+
+    final reorderedVisible = List<String>.of(visibleIds);
+    final moved = reorderedVisible.removeAt(oldIndex);
+    reorderedVisible.insert(newIndex, moved);
+
+    setState(() {
+      final visibleSet = visibleIds.toSet();
+      final order = _normalizedTaskOrder(type);
+      var replacementIndex = 0;
+      _taskCustomOrders[key] = [
+        for (final id in order)
+          if (visibleSet.contains(id))
+            reorderedVisible[replacementIndex++]
+          else
+            id,
+      ];
+      _taskSortModes[key] = _taskSortCustom;
+      _touchSettings();
+    });
+    _saveData();
+  }
 
   /// Whether a one-time task should be visible on the selected date:
   /// - Completed: show on scheduledDate AND completedDate, not in between
@@ -272,18 +447,20 @@ class _TodoPageState extends State<TodoPage> {
 
   /// One-time routine tasks for selected date
   List<Task> get _routineForDate {
-    return _oneTimeTasks
+    final list = _oneTimeTasks
         .where(
           (t) => t.type == TaskType.routineOnce && _oneTimeVisibleOnDate(t),
         )
         .toList();
+    return _sortTasks(list, TaskType.routineOnce);
   }
 
   /// One-time work tasks for selected date
   List<Task> get _workForDate {
-    return _oneTimeTasks
+    final list = _oneTimeTasks
         .where((t) => t.type == TaskType.workOnce && _oneTimeVisibleOnDate(t))
         .toList();
+    return _sortTasks(list, TaskType.workOnce);
   }
 
   // --- Calendar helpers ---
@@ -452,7 +629,10 @@ class _TodoPageState extends State<TodoPage> {
       ),
     );
     if (task != null && mounted) {
-      setState(() => _oneTimeTasks.add(task));
+      setState(() {
+        _oneTimeTasks.add(task);
+        _appendTaskToCustomOrderIfNeeded(task);
+      });
       _saveData();
     }
   }
@@ -467,6 +647,7 @@ class _TodoPageState extends State<TodoPage> {
           final delDate = _dateOnly(_selectedDate);
           if (_isSameDay(start, delDate)) {
             // Same day as start — permanently remove
+            _removeTaskFromCustomOrders(task.id);
             _dailyTemplates.removeAt(index);
           } else {
             // Soft-delete: set deletedDate so it stops showing from this date onward
@@ -474,6 +655,7 @@ class _TodoPageState extends State<TodoPage> {
           }
         }
       } else {
+        _removeTaskFromCustomOrders(task.id);
         _oneTimeTasks.removeWhere((t) => t.id == task.id);
       }
     });
@@ -515,6 +697,7 @@ class _TodoPageState extends State<TodoPage> {
         } else {
           _oneTimeTasks.add(task);
         }
+        _appendTaskToCustomOrderIfNeeded(task);
       });
       _saveData();
     }
@@ -645,6 +828,17 @@ class _TodoPageState extends State<TodoPage> {
                         icon: Icons.repeat,
                         color: theme.colorScheme.primary,
                         tasks: _dailyForDate,
+                        taskType: TaskType.daily,
+                        sortMode: _taskSortMode(TaskType.daily),
+                        onSortModeChanged: (mode) =>
+                            _onTaskSortModeChanged(TaskType.daily, mode),
+                        onReorder: (tasks, oldIndex, newIndex) =>
+                            _onTaskReorder(
+                              TaskType.daily,
+                              tasks,
+                              oldIndex,
+                              newIndex,
+                            ),
                         onToggle: _toggleTask,
                         onDelete: _deleteTask,
                         onEdit: _editTask,
@@ -656,6 +850,17 @@ class _TodoPageState extends State<TodoPage> {
                         icon: Icons.today,
                         color: theme.colorScheme.tertiary,
                         tasks: _routineForDate,
+                        taskType: TaskType.routineOnce,
+                        sortMode: _taskSortMode(TaskType.routineOnce),
+                        onSortModeChanged: (mode) =>
+                            _onTaskSortModeChanged(TaskType.routineOnce, mode),
+                        onReorder: (tasks, oldIndex, newIndex) =>
+                            _onTaskReorder(
+                              TaskType.routineOnce,
+                              tasks,
+                              oldIndex,
+                              newIndex,
+                            ),
                         onToggle: _toggleTask,
                         onDelete: _deleteTask,
                         onEdit: _editTask,
@@ -667,6 +872,17 @@ class _TodoPageState extends State<TodoPage> {
                         icon: Icons.work_outline,
                         color: theme.colorScheme.secondary,
                         tasks: _workForDate,
+                        taskType: TaskType.workOnce,
+                        sortMode: _taskSortMode(TaskType.workOnce),
+                        onSortModeChanged: (mode) =>
+                            _onTaskSortModeChanged(TaskType.workOnce, mode),
+                        onReorder: (tasks, oldIndex, newIndex) =>
+                            _onTaskReorder(
+                              TaskType.workOnce,
+                              tasks,
+                              oldIndex,
+                              newIndex,
+                            ),
                         onToggle: _toggleTask,
                         onDelete: _deleteTask,
                         onEdit: _editTask,

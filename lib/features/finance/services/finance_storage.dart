@@ -15,6 +15,8 @@ class FinanceData {
   final int? subscriptionReminderMinute;
   final String? subscriptionSortMode;
   final List<String>? subscriptionCustomOrder;
+  final Map<String, String> accountSortModes;
+  final Map<String, List<String>> accountCustomOrders;
 
   FinanceData({
     required this.accounts,
@@ -27,47 +29,75 @@ class FinanceData {
     this.subscriptionReminderMinute,
     this.subscriptionSortMode,
     this.subscriptionCustomOrder,
-  }) : settingsModifiedAt = settingsModifiedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+    this.accountSortModes = const {},
+    this.accountCustomOrders = const {},
+  }) : settingsModifiedAt =
+           settingsModifiedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
 
   Map<String, dynamic> toJson() => {
-        'accounts': accounts.map((a) => a.toJson()).toList(),
-        'categories': categories.map((c) => c.toJson()).toList(),
-        'transactions': transactions.map((t) => t.toJson()).toList(),
-        'subscriptions': subscriptions.map((s) => s.toJson()).toList(),
-        'defaultCurrency': defaultCurrency,
-        'settingsModifiedAt': settingsModifiedAt.toIso8601String(),
-        if (subscriptionReminderHour != null) 'subscriptionReminderHour': subscriptionReminderHour,
-        if (subscriptionReminderMinute != null) 'subscriptionReminderMinute': subscriptionReminderMinute,
-        if (subscriptionSortMode != null) 'subscriptionSortMode': subscriptionSortMode,
-        if (subscriptionCustomOrder != null) 'subscriptionCustomOrder': subscriptionCustomOrder,
-      };
+    'accounts': accounts.map((a) => a.toJson()).toList(),
+    'categories': categories.map((c) => c.toJson()).toList(),
+    'transactions': transactions.map((t) => t.toJson()).toList(),
+    'subscriptions': subscriptions.map((s) => s.toJson()).toList(),
+    'defaultCurrency': defaultCurrency,
+    'settingsModifiedAt': settingsModifiedAt.toIso8601String(),
+    if (subscriptionReminderHour != null)
+      'subscriptionReminderHour': subscriptionReminderHour,
+    if (subscriptionReminderMinute != null)
+      'subscriptionReminderMinute': subscriptionReminderMinute,
+    if (subscriptionSortMode != null)
+      'subscriptionSortMode': subscriptionSortMode,
+    if (subscriptionCustomOrder != null)
+      'subscriptionCustomOrder': subscriptionCustomOrder,
+    if (accountSortModes.isNotEmpty) 'accountSortModes': accountSortModes,
+    if (accountCustomOrders.isNotEmpty)
+      'accountCustomOrders': accountCustomOrders,
+  };
 
   factory FinanceData.fromJson(Map<String, dynamic> json) => FinanceData(
-        accounts: (json['accounts'] as List<dynamic>?)
-                ?.map((a) => Account.fromJson(a as Map<String, dynamic>))
-                .toList() ??
-            [],
-        categories: (json['categories'] as List<dynamic>?)
-                ?.map((c) => Category.fromJson(c as Map<String, dynamic>))
-                .toList() ??
-            [],
-        transactions: (json['transactions'] as List<dynamic>?)
-                ?.map((t) => Transaction.fromJson(t as Map<String, dynamic>))
-                .toList() ??
-            [],
-        subscriptions: (json['subscriptions'] as List<dynamic>?)
-                ?.map((s) => Subscription.fromJson(s as Map<String, dynamic>))
-                .toList() ??
-            [],
-        defaultCurrency: json['defaultCurrency'] as String? ?? 'CNY',
-        settingsModifiedAt: json['settingsModifiedAt'] != null
-            ? DateTime.parse(json['settingsModifiedAt'] as String)
-            : DateTime.fromMillisecondsSinceEpoch(0),
-        subscriptionReminderHour: json['subscriptionReminderHour'] as int?,
-        subscriptionReminderMinute: json['subscriptionReminderMinute'] as int?,
-        subscriptionSortMode: json['subscriptionSortMode'] as String?,
-        subscriptionCustomOrder: (json['subscriptionCustomOrder'] as List<dynamic>?)?.cast<String>(),
-      );
+    accounts:
+        (json['accounts'] as List<dynamic>?)
+            ?.map((a) => Account.fromJson(a as Map<String, dynamic>))
+            .toList() ??
+        [],
+    categories:
+        (json['categories'] as List<dynamic>?)
+            ?.map((c) => Category.fromJson(c as Map<String, dynamic>))
+            .toList() ??
+        [],
+    transactions:
+        (json['transactions'] as List<dynamic>?)
+            ?.map((t) => Transaction.fromJson(t as Map<String, dynamic>))
+            .toList() ??
+        [],
+    subscriptions:
+        (json['subscriptions'] as List<dynamic>?)
+            ?.map((s) => Subscription.fromJson(s as Map<String, dynamic>))
+            .toList() ??
+        [],
+    defaultCurrency: json['defaultCurrency'] as String? ?? 'CNY',
+    settingsModifiedAt: json['settingsModifiedAt'] != null
+        ? DateTime.parse(json['settingsModifiedAt'] as String)
+        : DateTime.fromMillisecondsSinceEpoch(0),
+    subscriptionReminderHour: json['subscriptionReminderHour'] as int?,
+    subscriptionReminderMinute: json['subscriptionReminderMinute'] as int?,
+    subscriptionSortMode: json['subscriptionSortMode'] as String?,
+    subscriptionCustomOrder: (json['subscriptionCustomOrder'] as List<dynamic>?)
+        ?.cast<String>(),
+    accountSortModes:
+        (json['accountSortModes'] as Map<String, dynamic>?)?.map(
+          (key, value) => MapEntry(key, value as String),
+        ) ??
+        const {},
+    accountCustomOrders:
+        (json['accountCustomOrders'] as Map<String, dynamic>?)?.map(
+          (key, value) => MapEntry(
+            key,
+            (value as List<dynamic>).map((e) => e as String).toList(),
+          ),
+        ) ??
+        const {},
+  );
 }
 
 class FinanceStorage {

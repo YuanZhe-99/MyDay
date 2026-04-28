@@ -70,17 +70,20 @@ class ImportExportService {
       buf.writeln('Date,Type,Category,Amount,Currency,Account,Note');
       for (final tx in data.transactions) {
         final date = DateFormat('yyyy-MM-dd HH:mm').format(tx.date);
-        final cat = data.categories
+        final cat =
+            data.categories
                 .where((c) => c.id == tx.categoryId)
                 .firstOrNull
                 ?.name ??
             '';
-        final acct =
-            data.accounts.where((a) => a.id == tx.accountId).firstOrNull;
+        final acct = data.accounts
+            .where((a) => a.id == tx.accountId)
+            .firstOrNull;
         final acctName = acct?.name ?? '';
         final note = tx.note.replaceAll('"', '""');
         buf.writeln(
-            '$date,${tx.type.name},"$cat",${tx.amount},${tx.currency},"$acctName","$note"');
+          '$date,${tx.type.name},"$cat",${tx.amount},${tx.currency},"$acctName","$note"',
+        );
       }
 
       final stamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
@@ -100,14 +103,23 @@ class ImportExportService {
       if (data == null) return null;
 
       final buf = StringBuffer();
-      buf.writeln('Date,Type,IsSolo,Partner,Toys,PleasureLevel,Duration(min),HadOrgasm,WatchedPorn,Location,Notes');
+      buf.writeln(
+        'Date,Type,IsSolo,Partner,Toys,PleasureLevel,Duration(min),HadOrgasm,WatchedPorn,Location,Notes',
+      );
       for (final r in data.records) {
         final date = DateFormat('yyyy-MM-dd HH:mm').format(r.datetime);
         final partner = r.partnerId != null
-            ? data.partners.where((p) => p.id == r.partnerId).firstOrNull?.name ?? ''
+            ? data.partners
+                      .where((p) => p.id == r.partnerId)
+                      .firstOrNull
+                      ?.name ??
+                  ''
             : '';
         final toyNames = r.toyIds
-            .map((id) => data.toys.where((t) => t.id == id).firstOrNull?.name ?? '')
+            .map(
+              (id) =>
+                  data.toys.where((t) => t.id == id).firstOrNull?.name ?? '',
+            )
             .where((n) => n.isNotEmpty)
             .join(';');
         final durMin = (r.duration.inSeconds / 60.0).toStringAsFixed(1);
@@ -115,7 +127,8 @@ class ImportExportService {
         final notes = (r.notes ?? '').replaceAll('"', '""');
         final partnerEscaped = partner.replaceAll('"', '""');
         buf.writeln(
-            '$date,${r.type},${r.isSolo},"$partnerEscaped","$toyNames",${r.pleasureLevel},$durMin,${r.hadOrgasm},${r.watchedPorn},"$location","$notes"');
+          '$date,${r.type},${r.isSolo},"$partnerEscaped","$toyNames",${r.pleasureLevel},$durMin,${r.hadOrgasm},${r.watchedPorn},"$location","$notes"',
+        );
       }
 
       final stamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
@@ -285,9 +298,7 @@ class ImportExportService {
         if (amount == null) continue;
 
         // Resolve account by name (must exist)
-        final acct = accounts
-            .where((a) => a.name == acctName)
-            .firstOrNull;
+        final acct = accounts.where((a) => a.name == acctName).firstOrNull;
         if (acct == null) continue; // skip if account not found
 
         // Resolve or create category by name
@@ -310,7 +321,9 @@ class ImportExportService {
         final tx = Transaction(
           type: txType,
           amount: amount,
-          currency: currency.isEmpty ? (data?.defaultCurrency ?? 'CNY') : currency,
+          currency: currency.isEmpty
+              ? (data?.defaultCurrency ?? 'CNY')
+              : currency,
           accountId: acct.id,
           categoryId: categoryId,
           note: note,
@@ -324,17 +337,24 @@ class ImportExportService {
       }
 
       // Save merged data
-      await FinanceStorage.save(FinanceData(
-        accounts: accounts,
-        categories: categories,
-        transactions: transactions,
-        subscriptions: data?.subscriptions ?? [],
-        defaultCurrency: data?.defaultCurrency ?? 'CNY',
-        subscriptionReminderHour: data?.subscriptionReminderHour,
-        subscriptionReminderMinute: data?.subscriptionReminderMinute,
-        subscriptionSortMode: data?.subscriptionSortMode,
-        subscriptionCustomOrder: data?.subscriptionCustomOrder,
-      ));
+      await FinanceStorage.save(
+        FinanceData(
+          accounts: accounts,
+          categories: categories,
+          transactions: transactions,
+          subscriptions: data?.subscriptions ?? [],
+          defaultCurrency: data?.defaultCurrency ?? 'CNY',
+          settingsModifiedAt:
+              data?.settingsModifiedAt ??
+              DateTime.fromMillisecondsSinceEpoch(0),
+          subscriptionReminderHour: data?.subscriptionReminderHour,
+          subscriptionReminderMinute: data?.subscriptionReminderMinute,
+          subscriptionSortMode: data?.subscriptionSortMode,
+          subscriptionCustomOrder: data?.subscriptionCustomOrder,
+          accountSortModes: data?.accountSortModes ?? const {},
+          accountCustomOrders: data?.accountCustomOrders ?? const {},
+        ),
+      );
 
       return (true, imported);
     } catch (_) {
@@ -403,7 +423,9 @@ class ImportExportService {
         // Resolve or create partner
         String? partnerId;
         if (!isSolo && partnerName.isNotEmpty) {
-          var partner = partners.where((p) => p.name == partnerName).firstOrNull;
+          var partner = partners
+              .where((p) => p.name == partnerName)
+              .firstOrNull;
           if (partner == null) {
             partner = Partner(name: partnerName);
             partners.add(partner);
@@ -414,7 +436,11 @@ class ImportExportService {
         // Resolve or create toys (semicolon-separated)
         final toyIds = <String>[];
         if (toysStr.isNotEmpty) {
-          for (final toyName in toysStr.split(';').map((s) => s.trim()).where((s) => s.isNotEmpty)) {
+          for (final toyName
+              in toysStr
+                  .split(';')
+                  .map((s) => s.trim())
+                  .where((s) => s.isNotEmpty)) {
             var toy = toys.where((t) => t.name == toyName).firstOrNull;
             if (toy == null) {
               toy = Toy(name: toyName);
@@ -443,11 +469,23 @@ class ImportExportService {
       }
 
       // Save merged data
-      await IntimacyStorage.save(IntimacyData(
-        partners: partners,
-        toys: toys,
-        records: records,
-      ));
+      await IntimacyStorage.save(
+        IntimacyData(
+          partners: partners,
+          toys: toys,
+          positions: data?.positions ?? const [],
+          records: records,
+          timerHistory: data?.timerHistory ?? const [],
+          timerHistoryRetentionDays: data?.timerHistoryRetentionDays,
+          partnerSortModes: data?.partnerSortModes ?? const {},
+          partnerCustomOrders: data?.partnerCustomOrders ?? const {},
+          toySortModes: data?.toySortModes ?? const {},
+          toyCustomOrders: data?.toyCustomOrders ?? const {},
+          settingsModifiedAt:
+              data?.settingsModifiedAt ??
+              DateTime.fromMillisecondsSinceEpoch(0),
+        ),
+      );
 
       return (true, imported);
     } catch (_) {
@@ -526,10 +564,7 @@ class ImportExportService {
         final weight = double.tryParse(weightStr);
         if (weight == null || weight <= 0) continue;
 
-        final record = WeightRecord(
-          weight: weight,
-          datetime: datetime,
-        );
+        final record = WeightRecord(weight: weight, datetime: datetime);
 
         if (!existingIds.contains(record.id)) {
           records.add(record);
@@ -537,10 +572,9 @@ class ImportExportService {
         }
       }
 
-      await WeightStorage.save(WeightData(
-        height: data?.height,
-        records: records,
-      ));
+      await WeightStorage.save(
+        WeightData(height: data?.height, records: records),
+      );
 
       return (true, imported);
     } catch (_) {

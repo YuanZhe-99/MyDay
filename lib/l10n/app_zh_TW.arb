@@ -350,6 +350,7 @@
   "financeSortBy": "排序",
   "financeSortByRenewal": "按續費日期",
   "financeSortByName": "按名稱",
+  "financeSortByBank": "按銀行 / 應用",
   "financeSortCustom": "自訂",
   "financeSortReorder": "調整順序",
   "financeSortDone": "完成",
@@ -472,6 +473,11 @@
   "todoCompletedAt": "完成：{date}",
   "@todoCompletedAt": { "placeholders": { "date": { "type": "String" } } },
   "todoSetCompletedDate": "設定完成日期",
+  "todoSortBy": "排序",
+  "todoSortByAdded": "按新增時間",
+  "todoSortByDueDate": "按截止日期",
+  "todoSortByName": "按名稱",
+  "todoSortCustom": "自訂",
 
   "weightUnitKg": "kg",
   "weightValueKg": "{value} kg",
@@ -577,5 +583,12 @@
   "@todoRecurrenceMonthlyOnDay": { "placeholders": { "n": { "type": "int" } } },
   "todoRecurrenceYearlyOnDate": "每年 {month}/{day}",
   "@todoRecurrenceYearlyOnDate": { "placeholders": { "month": { "type": "int" }, "day": { "type": "int" } } },
-  "todoNextOccurrence": "安排下次任務"
+  "todoNextOccurrence": "安排下次任務",
+  "intimacyActivePartners": "現役伴侶",
+  "intimacyPastPartners": "已分手伴侶",
+  "intimacyActiveToys": "現役玩具",
+  "intimacyRetiredToys": "退役玩具",
+  "intimacySortByRelationshipDate": "按交往時間",
+  "intimacySortByPurchaseDate": "按購買時間",
+  "intimacySortByUseCount": "按使用次數"
 }

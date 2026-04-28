@@ -1973,6 +1973,12 @@ abstract class AppLocalizations {
   /// **'By Name'**
   String get financeSortByName;
 
+  /// No description provided for @financeSortByBank.
+  ///
+  /// In en, this message translates to:
+  /// **'By Bank / App'**
+  String get financeSortByBank;
+
   /// No description provided for @financeSortCustom.
   ///
   /// In en, this message translates to:
@@ -2585,6 +2591,36 @@ abstract class AppLocalizations {
   /// **'Set completed date'**
   String get todoSetCompletedDate;
 
+  /// No description provided for @todoSortBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort'**
+  String get todoSortBy;
+
+  /// No description provided for @todoSortByAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'By Added Time'**
+  String get todoSortByAdded;
+
+  /// No description provided for @todoSortByDueDate.
+  ///
+  /// In en, this message translates to:
+  /// **'By Due Date'**
+  String get todoSortByDueDate;
+
+  /// No description provided for @todoSortByName.
+  ///
+  /// In en, this message translates to:
+  /// **'By Name'**
+  String get todoSortByName;
+
+  /// No description provided for @todoSortCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get todoSortCustom;
+
   /// No description provided for @weightUnitKg.
   ///
   /// In en, this message translates to:
@@ -3058,6 +3094,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Schedule Next Occurrence'**
   String get todoNextOccurrence;
+
+  /// No description provided for @intimacyActivePartners.
+  ///
+  /// In en, this message translates to:
+  /// **'Active Partners'**
+  String get intimacyActivePartners;
+
+  /// No description provided for @intimacyPastPartners.
+  ///
+  /// In en, this message translates to:
+  /// **'Past Partners'**
+  String get intimacyPastPartners;
+
+  /// No description provided for @intimacyActiveToys.
+  ///
+  /// In en, this message translates to:
+  /// **'Active Toys'**
+  String get intimacyActiveToys;
+
+  /// No description provided for @intimacyRetiredToys.
+  ///
+  /// In en, this message translates to:
+  /// **'Retired Toys'**
+  String get intimacyRetiredToys;
+
+  /// No description provided for @intimacySortByRelationshipDate.
+  ///
+  /// In en, this message translates to:
+  /// **'By Relationship Date'**
+  String get intimacySortByRelationshipDate;
+
+  /// No description provided for @intimacySortByPurchaseDate.
+  ///
+  /// In en, this message translates to:
+  /// **'By Purchase Date'**
+  String get intimacySortByPurchaseDate;
+
+  /// No description provided for @intimacySortByUseCount.
+  ///
+  /// In en, this message translates to:
+  /// **'By Use Count'**
+  String get intimacySortByUseCount;
 }
 
 class _AppLocalizationsDelegate

@@ -978,6 +978,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get financeSortByName => '名前順';
 
   @override
+  String get financeSortByBank => '銀行 / アプリ順';
+
+  @override
   String get financeSortCustom => 'カスタム';
 
   @override
@@ -1297,6 +1300,21 @@ class AppLocalizationsJa extends AppLocalizations {
   String get todoSetCompletedDate => '完了日を設定';
 
   @override
+  String get todoSortBy => '並べ替え';
+
+  @override
+  String get todoSortByAdded => '追加日時順';
+
+  @override
+  String get todoSortByDueDate => '期限順';
+
+  @override
+  String get todoSortByName => '名前順';
+
+  @override
+  String get todoSortCustom => 'カスタム';
+
+  @override
   String get weightUnitKg => 'kg';
 
   @override
@@ -1556,4 +1574,25 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get todoNextOccurrence => '次の発生をスケジュール';
+
+  @override
+  String get intimacyActivePartners => '現役パートナー';
+
+  @override
+  String get intimacyPastPartners => '過去のパートナー';
+
+  @override
+  String get intimacyActiveToys => '現役トイ';
+
+  @override
+  String get intimacyRetiredToys => '引退済みトイ';
+
+  @override
+  String get intimacySortByRelationshipDate => '交際開始日順';
+
+  @override
+  String get intimacySortByPurchaseDate => '購入日順';
+
+  @override
+  String get intimacySortByUseCount => '使用回数順';
 }

@@ -4,11 +4,15 @@ import '../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/delete_confirm.dart';
 import '../models/task.dart';
 
-class TaskSectionWidget extends StatelessWidget {
+class TaskSectionWidget extends StatefulWidget {
   final String title;
   final IconData icon;
   final Color color;
   final List<Task> tasks;
+  final TaskType taskType;
+  final String sortMode;
+  final ValueChanged<String>? onSortModeChanged;
+  final void Function(List<Task> tasks, int oldIndex, int newIndex)? onReorder;
   final void Function(Task task)? onToggle;
   final void Function(Task task)? onDelete;
   final void Function(Task task)? onEdit;
@@ -20,6 +24,10 @@ class TaskSectionWidget extends StatelessWidget {
     required this.icon,
     required this.color,
     required this.tasks,
+    required this.taskType,
+    required this.sortMode,
+    this.onSortModeChanged,
+    this.onReorder,
     this.onToggle,
     this.onDelete,
     this.onEdit,
@@ -27,8 +35,22 @@ class TaskSectionWidget extends StatelessWidget {
   });
 
   @override
+  State<TaskSectionWidget> createState() => _TaskSectionWidgetState();
+}
+
+class _TaskSectionWidgetState extends State<TaskSectionWidget> {
+  bool _reordering = false;
+
+  static const _sortCreated = 'createdDate';
+  static const _sortDue = 'dueDate';
+  static const _sortName = 'name';
+  static const _sortCustom = 'custom';
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final isCustom = widget.sortMode == _sortCustom;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -37,30 +59,55 @@ class TaskSectionWidget extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
           child: Row(
             children: [
-              Icon(icon, size: 20, color: color),
+              Icon(widget.icon, size: 20, color: widget.color),
               const SizedBox(width: 8),
               Text(
-                title,
+                widget.title,
                 style: theme.textTheme.titleMedium?.copyWith(
-                  color: color,
+                  color: widget.color,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(width: 8),
               Text(
-                '${tasks.where((t) => t.isCompleted).length}/${tasks.length}',
+                '${widget.tasks.where((t) => t.isCompleted).length}/${widget.tasks.length}',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
+              const Spacer(),
+              if (isCustom && widget.tasks.length > 1)
+                IconButton(
+                  icon: Icon(_reordering ? Icons.check : Icons.reorder),
+                  tooltip: _reordering
+                      ? l10n.financeSortDone
+                      : l10n.financeSortReorder,
+                  onPressed: () => setState(() => _reordering = !_reordering),
+                ),
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.sort),
+                tooltip: l10n.todoSortBy,
+                onSelected: (mode) {
+                  if (mode != _sortCustom) {
+                    setState(() => _reordering = false);
+                  }
+                  widget.onSortModeChanged?.call(mode);
+                },
+                itemBuilder: (_) => [
+                  _sortItem(value: _sortCreated, label: l10n.todoSortByAdded),
+                  _sortItem(value: _sortDue, label: l10n.todoSortByDueDate),
+                  _sortItem(value: _sortName, label: l10n.todoSortByName),
+                  _sortItem(value: _sortCustom, label: l10n.todoSortCustom),
+                ],
+              ),
             ],
           ),
         ),
-        if (tasks.isEmpty)
+        if (widget.tasks.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Text(
-              AppLocalizations.of(context)?.todoNoTasks ?? 'No tasks yet',
+              l10n.todoNoTasks,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant.withValues(
                   alpha: 0.6,
@@ -68,20 +115,87 @@ class TaskSectionWidget extends StatelessWidget {
               ),
             ),
           )
+        else if (_reordering && isCustom)
+          _TaskReorderList(tasks: widget.tasks, onReorder: widget.onReorder)
         else
-          ...tasks.map(
+          ...widget.tasks.map(
             (task) => _TaskTile(
               key: ValueKey(task.id),
               task: task,
-              onToggle: onToggle != null ? () => onToggle!(task) : null,
-              onDelete: onDelete != null ? () => onDelete!(task) : null,
-              onEdit: onEdit != null ? () => onEdit!(task) : null,
-              onSubtaskToggle: onSubtaskToggle != null
-                  ? (sub) => onSubtaskToggle!(task, sub)
+              onToggle: widget.onToggle != null
+                  ? () => widget.onToggle!(task)
+                  : null,
+              onDelete: widget.onDelete != null
+                  ? () => widget.onDelete!(task)
+                  : null,
+              onEdit: widget.onEdit != null ? () => widget.onEdit!(task) : null,
+              onSubtaskToggle: widget.onSubtaskToggle != null
+                  ? (sub) => widget.onSubtaskToggle!(task, sub)
                   : null,
             ),
           ),
       ],
+    );
+  }
+
+  PopupMenuEntry<String> _sortItem({
+    required String value,
+    required String label,
+  }) {
+    return PopupMenuItem(
+      value: value,
+      child: Row(
+        children: [
+          Icon(
+            widget.sortMode == value
+                ? Icons.radio_button_checked
+                : Icons.radio_button_off,
+            size: 18,
+          ),
+          const SizedBox(width: 8),
+          Text(label),
+        ],
+      ),
+    );
+  }
+}
+
+class _TaskReorderList extends StatelessWidget {
+  final List<Task> tasks;
+  final void Function(List<Task> tasks, int oldIndex, int newIndex)? onReorder;
+
+  const _TaskReorderList({required this.tasks, required this.onReorder});
+
+  @override
+  Widget build(BuildContext context) {
+    return ReorderableListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      buildDefaultDragHandles: false,
+      itemCount: tasks.length,
+      onReorder: (oldIndex, newIndex) =>
+          onReorder?.call(tasks, oldIndex, newIndex),
+      proxyDecorator: (child, index, animation) {
+        return Material(elevation: 4, child: child);
+      },
+      itemBuilder: (context, index) {
+        final task = tasks[index];
+        return ListTile(
+          key: ValueKey('task-reorder-${task.id}'),
+          leading: ReorderableDragStartListener(
+            index: index,
+            child: const Icon(Icons.drag_handle),
+          ),
+          title: Text(
+            task.emoji != null ? '${task.emoji} ${task.title}' : task.title,
+          ),
+          subtitle: task.dueDate != null
+              ? Text(
+                  '${task.dueDate!.year}-${task.dueDate!.month.toString().padLeft(2, '0')}-${task.dueDate!.day.toString().padLeft(2, '0')}',
+                )
+              : null,
+        );
+      },
     );
   }
 }

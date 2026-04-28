@@ -990,6 +990,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get financeSortByName => 'By Name';
 
   @override
+  String get financeSortByBank => 'By Bank / App';
+
+  @override
   String get financeSortCustom => 'Custom';
 
   @override
@@ -1313,6 +1316,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get todoSetCompletedDate => 'Set completed date';
 
   @override
+  String get todoSortBy => 'Sort';
+
+  @override
+  String get todoSortByAdded => 'By Added Time';
+
+  @override
+  String get todoSortByDueDate => 'By Due Date';
+
+  @override
+  String get todoSortByName => 'By Name';
+
+  @override
+  String get todoSortCustom => 'Custom';
+
+  @override
   String get weightUnitKg => 'kg';
 
   @override
@@ -1577,4 +1595,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get todoNextOccurrence => 'Schedule Next Occurrence';
+
+  @override
+  String get intimacyActivePartners => 'Active Partners';
+
+  @override
+  String get intimacyPastPartners => 'Past Partners';
+
+  @override
+  String get intimacyActiveToys => 'Active Toys';
+
+  @override
+  String get intimacyRetiredToys => 'Retired Toys';
+
+  @override
+  String get intimacySortByRelationshipDate => 'By Relationship Date';
+
+  @override
+  String get intimacySortByPurchaseDate => 'By Purchase Date';
+
+  @override
+  String get intimacySortByUseCount => 'By Use Count';
 }

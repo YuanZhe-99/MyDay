@@ -9,12 +9,16 @@ class TodoData {
   final List<Task> dailyTemplates;
   final List<Task> oneTimeTasks;
   final DailyCompletionLog dailyLog;
+
   /// Morning reminder — nudge to plan today's list
   final int? morningReminderHour;
   final int? morningReminderMinute;
+
   /// Completion reminder — alert if tasks remain undone
   final int? completionReminderHour;
   final int? completionReminderMinute;
+  final Map<String, String> taskSortModes;
+  final Map<String, List<String>> taskCustomOrders;
   final DateTime settingsModifiedAt;
 
   TodoData({
@@ -25,23 +29,27 @@ class TodoData {
     this.morningReminderMinute,
     this.completionReminderHour,
     this.completionReminderMinute,
+    this.taskSortModes = const {},
+    this.taskCustomOrders = const {},
     DateTime? settingsModifiedAt,
-  }) : settingsModifiedAt = settingsModifiedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+  }) : settingsModifiedAt =
+           settingsModifiedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
 
   Map<String, dynamic> toJson() => {
-        'dailyTemplates': dailyTemplates.map((t) => t.toJson()).toList(),
-        'oneTimeTasks': oneTimeTasks.map((t) => t.toJson()).toList(),
-        'dailyLog': dailyLog.toJson(),
-        if (morningReminderHour != null)
-          'morningReminderHour': morningReminderHour,
-        if (morningReminderMinute != null)
-          'morningReminderMinute': morningReminderMinute,
-        if (completionReminderHour != null)
-          'completionReminderHour': completionReminderHour,
-        if (completionReminderMinute != null)
-          'completionReminderMinute': completionReminderMinute,
-        'settingsModifiedAt': settingsModifiedAt.toIso8601String(),
-      };
+    'dailyTemplates': dailyTemplates.map((t) => t.toJson()).toList(),
+    'oneTimeTasks': oneTimeTasks.map((t) => t.toJson()).toList(),
+    'dailyLog': dailyLog.toJson(),
+    if (morningReminderHour != null) 'morningReminderHour': morningReminderHour,
+    if (morningReminderMinute != null)
+      'morningReminderMinute': morningReminderMinute,
+    if (completionReminderHour != null)
+      'completionReminderHour': completionReminderHour,
+    if (completionReminderMinute != null)
+      'completionReminderMinute': completionReminderMinute,
+    if (taskSortModes.isNotEmpty) 'taskSortModes': taskSortModes,
+    if (taskCustomOrders.isNotEmpty) 'taskCustomOrders': taskCustomOrders,
+    'settingsModifiedAt': settingsModifiedAt.toIso8601String(),
+  };
 
   factory TodoData.fromJson(Map<String, dynamic> json) {
     // Migrate old single-reminder format
@@ -56,16 +64,26 @@ class TodoData {
           .toList(),
       dailyLog: json['dailyLog'] != null
           ? DailyCompletionLog.fromJson(
-              json['dailyLog'] as Map<String, dynamic>)
+              json['dailyLog'] as Map<String, dynamic>,
+            )
           : DailyCompletionLog(),
-      morningReminderHour:
-          json['morningReminderHour'] as int? ?? oldH,
-      morningReminderMinute:
-          json['morningReminderMinute'] as int? ?? oldM,
-      completionReminderHour:
-          json['completionReminderHour'] as int?,
-      completionReminderMinute:
-          json['completionReminderMinute'] as int?,
+      morningReminderHour: json['morningReminderHour'] as int? ?? oldH,
+      morningReminderMinute: json['morningReminderMinute'] as int? ?? oldM,
+      completionReminderHour: json['completionReminderHour'] as int?,
+      completionReminderMinute: json['completionReminderMinute'] as int?,
+      taskSortModes:
+          (json['taskSortModes'] as Map<String, dynamic>?)?.map(
+            (key, value) => MapEntry(key, value as String),
+          ) ??
+          const {},
+      taskCustomOrders:
+          (json['taskCustomOrders'] as Map<String, dynamic>?)?.map(
+            (key, value) => MapEntry(
+              key,
+              (value as List<dynamic>).map((e) => e as String).toList(),
+            ),
+          ) ??
+          const {},
       settingsModifiedAt: json['settingsModifiedAt'] != null
           ? DateTime.parse(json['settingsModifiedAt'] as String)
           : DateTime.fromMillisecondsSinceEpoch(0),
@@ -79,14 +97,19 @@ class TodoStorage {
 
   /// Custom storage directory path override.
   static String? _customPath;
+
   /// Whether config has been loaded.
   static bool _configLoaded = false;
+
   /// Cached intimacy visible state.
   static bool _intimacyVisible = false;
+
   /// Cached theme mode string.
   static String? _themeMode;
+
   /// Cached locale tag string.
   static String? _localeTag;
+
   /// Cached tray settings.
   static bool _minimizeToTray = false;
   static bool _closeToTray = false;
@@ -144,9 +167,11 @@ class TodoStorage {
     try {
       final file = await _getConfigFile();
       if (await file.exists()) {
-        final json = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+        final json =
+            jsonDecode(await file.readAsString()) as Map<String, dynamic>;
         _customPath = json['storagePath'] as String?;
-        _intimacyVisible = (json['intimacyVisible'] as bool? ?? false) ||
+        _intimacyVisible =
+            (json['intimacyVisible'] as bool? ?? false) ||
             (json['intimacyEverUnlocked'] as bool? ?? false);
         _themeMode = json['themeMode'] as String?;
         _localeTag = json['localeTag'] as String?;

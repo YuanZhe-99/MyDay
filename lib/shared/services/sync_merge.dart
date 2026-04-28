@@ -216,6 +216,8 @@ String? mergeTodoJson(String localJson, String remoteJson, String? baseJson) {
       morningReminderMinute: settingsSource.morningReminderMinute,
       completionReminderHour: settingsSource.completionReminderHour,
       completionReminderMinute: settingsSource.completionReminderMinute,
+      taskSortModes: settingsSource.taskSortModes,
+      taskCustomOrders: settingsSource.taskCustomOrders,
       settingsModifiedAt: settingsSource.settingsModifiedAt,
     );
 
@@ -310,6 +312,8 @@ class TodoMergeResult {
       morningReminderMinute: settingsSource.morningReminderMinute,
       completionReminderHour: settingsSource.completionReminderHour,
       completionReminderMinute: settingsSource.completionReminderMinute,
+      taskSortModes: settingsSource.taskSortModes,
+      taskCustomOrders: settingsSource.taskCustomOrders,
       settingsModifiedAt: settingsSource.settingsModifiedAt,
     );
   }
@@ -458,6 +462,8 @@ class FinanceMergeResult {
       subscriptionReminderMinute: settingsSource.subscriptionReminderMinute,
       subscriptionSortMode: settingsSource.subscriptionSortMode,
       subscriptionCustomOrder: settingsSource.subscriptionCustomOrder,
+      accountSortModes: settingsSource.accountSortModes,
+      accountCustomOrders: settingsSource.accountCustomOrders,
     );
   }
 
@@ -535,18 +541,20 @@ IntimacyMergeResult mergeIntimacyData(
   );
 
   // Timer history: union by start time (simple dedup, no conflicts)
-  final localStarts =
-      local.timerHistory.map((e) => e.start.toIso8601String()).toSet();
+  final localStarts = local.timerHistory
+      .map((e) => e.start.toIso8601String())
+      .toSet();
   final mergedTimerHistory = [
     ...local.timerHistory,
-    ...remote.timerHistory
-        .where((e) => !localStarts.contains(e.start.toIso8601String())),
+    ...remote.timerHistory.where(
+      (e) => !localStarts.contains(e.start.toIso8601String()),
+    ),
   ];
 
   // Settings: use the side with newer settingsModifiedAt
   final useLocalSettings =
       local.settingsModifiedAt.isAfter(remote.settingsModifiedAt) ||
-          local.settingsModifiedAt == remote.settingsModifiedAt;
+      local.settingsModifiedAt == remote.settingsModifiedAt;
 
   return IntimacyMergeResult(
     partnersMerged: partnerResult.merged,
@@ -557,6 +565,16 @@ IntimacyMergeResult mergeIntimacyData(
     timerHistoryRetentionDays: useLocalSettings
         ? local.timerHistoryRetentionDays
         : remote.timerHistoryRetentionDays,
+    partnerSortModes: useLocalSettings
+        ? local.partnerSortModes
+        : remote.partnerSortModes,
+    partnerCustomOrders: useLocalSettings
+        ? local.partnerCustomOrders
+        : remote.partnerCustomOrders,
+    toySortModes: useLocalSettings ? local.toySortModes : remote.toySortModes,
+    toyCustomOrders: useLocalSettings
+        ? local.toyCustomOrders
+        : remote.toyCustomOrders,
     settingsModifiedAt: useLocalSettings
         ? local.settingsModifiedAt
         : remote.settingsModifiedAt,
@@ -574,6 +592,10 @@ class IntimacyMergeResult {
   final List<IntimacyRecord> recordsMerged;
   final List<TimerHistoryEntry> timerHistoryMerged;
   final int? timerHistoryRetentionDays;
+  final Map<String, String> partnerSortModes;
+  final Map<String, List<String>> partnerCustomOrders;
+  final Map<String, String> toySortModes;
+  final Map<String, List<String>> toyCustomOrders;
   final DateTime settingsModifiedAt;
   final List<RecordConflict<Partner>> partnerConflicts;
   final List<RecordConflict<Toy>> toyConflicts;
@@ -587,6 +609,10 @@ class IntimacyMergeResult {
     required this.recordsMerged,
     required this.timerHistoryMerged,
     required this.timerHistoryRetentionDays,
+    required this.partnerSortModes,
+    required this.partnerCustomOrders,
+    required this.toySortModes,
+    required this.toyCustomOrders,
     required this.settingsModifiedAt,
     required this.partnerConflicts,
     required this.toyConflicts,
@@ -608,6 +634,10 @@ class IntimacyMergeResult {
       records: _resolveList(recordsMerged, recordConflicts, resolutions),
       timerHistory: timerHistoryMerged,
       timerHistoryRetentionDays: timerHistoryRetentionDays,
+      partnerSortModes: partnerSortModes,
+      partnerCustomOrders: partnerCustomOrders,
+      toySortModes: toySortModes,
+      toyCustomOrders: toyCustomOrders,
       settingsModifiedAt: settingsModifiedAt,
     );
   }
@@ -705,7 +735,8 @@ WeightMergeResult mergeWeightData(
   final height = local.height ?? remote.height;
 
   // Settings: LWW via settingsModifiedAt
-  final WeightData settingsSrc = local.settingsModifiedAt.isAfter(remote.settingsModifiedAt)
+  final WeightData settingsSrc =
+      local.settingsModifiedAt.isAfter(remote.settingsModifiedAt)
       ? local
       : remote;
 
@@ -744,7 +775,7 @@ class WeightMergeResult {
     this.eveningMinute,
     DateTime? settingsModifiedAt,
   }) : settingsModifiedAt =
-            settingsModifiedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+           settingsModifiedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
 
   bool get hasConflicts => recordConflicts.isNotEmpty;
 

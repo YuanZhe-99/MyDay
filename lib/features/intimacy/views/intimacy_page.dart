@@ -15,8 +15,17 @@ import '../widgets/add_record_dialog.dart';
 import '../widgets/timer_page.dart';
 
 enum _SortMode { dateDesc, dateAsc, pleasureDesc, durationDesc }
+
 enum _FilterMode { all, solo, partnered, orgasm, noOrgasm }
-enum _IntimacyChartRange { oneWeek, oneMonth, threeMonths, sixMonths, oneYear, all }
+
+enum _IntimacyChartRange {
+  oneWeek,
+  oneMonth,
+  threeMonths,
+  sixMonths,
+  oneYear,
+  all,
+}
 
 class IntimacyPage extends StatefulWidget {
   const IntimacyPage({super.key});
@@ -35,6 +44,10 @@ class _IntimacyPageState extends State<IntimacyPage> {
   List<IntimacyRecord> _records = [];
   List<TimerHistoryEntry> _timerHistory = [];
   int? _timerHistoryRetentionDays;
+  Map<String, String> _partnerSortModes = {};
+  Map<String, List<String>> _partnerCustomOrders = {};
+  Map<String, String> _toySortModes = {};
+  Map<String, List<String>> _toyCustomOrders = {};
   DateTime _settingsModifiedAt = DateTime.fromMillisecondsSinceEpoch(0);
   bool _loaded = false;
 
@@ -66,6 +79,14 @@ class _IntimacyPageState extends State<IntimacyPage> {
         _records = data.records;
         _timerHistory = data.timerHistory;
         _timerHistoryRetentionDays = data.timerHistoryRetentionDays;
+        _partnerSortModes = Map.of(data.partnerSortModes);
+        _partnerCustomOrders = data.partnerCustomOrders.map(
+          (key, value) => MapEntry(key, List<String>.of(value)),
+        );
+        _toySortModes = Map.of(data.toySortModes);
+        _toyCustomOrders = data.toyCustomOrders.map(
+          (key, value) => MapEntry(key, List<String>.of(value)),
+        );
         _settingsModifiedAt = data.settingsModifiedAt;
       }
       _loaded = true;
@@ -73,15 +94,21 @@ class _IntimacyPageState extends State<IntimacyPage> {
   }
 
   Future<void> _saveData() async {
-    await IntimacyStorage.save(IntimacyData(
-      partners: _partners,
-      toys: _toys,
-      positions: _positions,
-      records: _records,
-      timerHistory: _timerHistory,
-      timerHistoryRetentionDays: _timerHistoryRetentionDays,
-      settingsModifiedAt: _settingsModifiedAt,
-    ));
+    await IntimacyStorage.save(
+      IntimacyData(
+        partners: _partners,
+        toys: _toys,
+        positions: _positions,
+        records: _records,
+        timerHistory: _timerHistory,
+        timerHistoryRetentionDays: _timerHistoryRetentionDays,
+        partnerSortModes: _partnerSortModes,
+        partnerCustomOrders: _partnerCustomOrders,
+        toySortModes: _toySortModes,
+        toyCustomOrders: _toyCustomOrders,
+        settingsModifiedAt: _settingsModifiedAt,
+      ),
+    );
     AutoSyncService.instance.notifySaved();
   }
 
@@ -138,7 +165,11 @@ class _IntimacyPageState extends State<IntimacyPage> {
     final activeToys = _toys.where((t) => t.retiredDate == null).toList();
     final record = await showDialog<IntimacyRecord>(
       context: context,
-      builder: (_) => AddRecordDialog(partners: activePartners, toys: activeToys, positions: _positions),
+      builder: (_) => AddRecordDialog(
+        partners: activePartners,
+        toys: activeToys,
+        positions: _positions,
+      ),
     );
     if (record != null) {
       setState(() => _records.insert(0, record));
@@ -156,8 +187,12 @@ class _IntimacyPageState extends State<IntimacyPage> {
     final activeToys = _toys.where((t) => t.retiredDate == null).toList();
     final updated = await showDialog<IntimacyRecord>(
       context: context,
-      builder: (_) =>
-          AddRecordDialog(record: record, partners: activePartners, toys: activeToys, positions: _positions),
+      builder: (_) => AddRecordDialog(
+        record: record,
+        partners: activePartners,
+        toys: activeToys,
+        positions: _positions,
+      ),
     );
     if (updated != null) {
       setState(() {
@@ -183,14 +218,16 @@ class _IntimacyPageState extends State<IntimacyPage> {
               final result = await Navigator.push<TimerPageResult>(
                 context,
                 MaterialPageRoute(
-                    builder: (_) => TimerPage(
-                          partners: _partners.where((p) => p.endDate == null).toList(),
-                          toys: _toys.where((t) => t.retiredDate == null).toList(),
-                          positions: _positions,
-                          timerHistory: _timerHistory,
-                          timerHistoryRetentionDays:
-                              _timerHistoryRetentionDays,
-                        )),
+                  builder: (_) => TimerPage(
+                    partners: _partners
+                        .where((p) => p.endDate == null)
+                        .toList(),
+                    toys: _toys.where((t) => t.retiredDate == null).toList(),
+                    positions: _positions,
+                    timerHistory: _timerHistory,
+                    timerHistoryRetentionDays: _timerHistoryRetentionDays,
+                  ),
+                ),
               );
               if (result != null) {
                 bool needSave = false;
@@ -199,14 +236,12 @@ class _IntimacyPageState extends State<IntimacyPage> {
                   needSave = true;
                 }
                 if (result.updatedHistory != null) {
-                  setState(
-                      () => _timerHistory = result.updatedHistory!);
+                  setState(() => _timerHistory = result.updatedHistory!);
                   needSave = true;
                 }
                 if (result.retentionChanged) {
                   setState(() {
-                    _timerHistoryRetentionDays =
-                        result.updatedRetentionDays;
+                    _timerHistoryRetentionDays = result.updatedRetentionDays;
                     _settingsModifiedAt = DateTime.now().toUtc();
                   });
                   needSave = true;
@@ -236,8 +271,9 @@ class _IntimacyPageState extends State<IntimacyPage> {
                   },
                   onDateSelected: (date) {
                     setState(() {
-                      _selectedDate =
-                          _selectedDate == date ? null : date; // toggle
+                      _selectedDate = _selectedDate == date
+                          ? null
+                          : date; // toggle
                     });
                   },
                 ),
@@ -263,9 +299,10 @@ class _IntimacyPageState extends State<IntimacyPage> {
                       if (_selectedDate != null) ...[
                         const Spacer(),
                         TextButton(
-                          onPressed: () =>
-                              setState(() => _selectedDate = null),
-                          child: Text(AppLocalizations.of(context)!.intimacyShowAll),
+                          onPressed: () => setState(() => _selectedDate = null),
+                          child: Text(
+                            AppLocalizations.of(context)!.intimacyShowAll,
+                          ),
                         ),
                       ],
                     ],
@@ -275,7 +312,10 @@ class _IntimacyPageState extends State<IntimacyPage> {
                 // Sort & filter chips
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
                   child: Row(
                     children: [
                       _buildSortChip(context),
@@ -299,46 +339,64 @@ class _IntimacyPageState extends State<IntimacyPage> {
                     ),
                   )
                 else
-                  ..._filteredRecords.map((record) => Dismissible(
-                    key: ValueKey(record.id),
-                    direction: DismissDirection.horizontal,
-                    background: Container(
-                      alignment: Alignment.centerLeft,
-                      padding: const EdgeInsets.only(left: 20),
-                      color: theme.colorScheme.primary,
-                      child: Icon(Icons.edit_outlined,
-                          color: theme.colorScheme.onPrimary),
+                  ..._filteredRecords.map(
+                    (record) => Dismissible(
+                      key: ValueKey(record.id),
+                      direction: DismissDirection.horizontal,
+                      background: Container(
+                        alignment: Alignment.centerLeft,
+                        padding: const EdgeInsets.only(left: 20),
+                        color: theme.colorScheme.primary,
+                        child: Icon(
+                          Icons.edit_outlined,
+                          color: theme.colorScheme.onPrimary,
+                        ),
+                      ),
+                      secondaryBackground: Container(
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.only(right: 20),
+                        color: theme.colorScheme.error,
+                        child: Icon(
+                          Icons.delete_outline,
+                          color: theme.colorScheme.onError,
+                        ),
+                      ),
+                      confirmDismiss: (direction) async {
+                        if (direction == DismissDirection.startToEnd) {
+                          _editRecord(record);
+                          return false;
+                        }
+                        return confirmDelete(
+                          context,
+                          AppLocalizations.of(context)!.commonThisRecord,
+                        );
+                      },
+                      onDismissed: (_) => _deleteRecord(record),
+                      child: _RecordTile(
+                        record: record,
+                        partner: record.partnerId != null
+                            ? _partners
+                                  .where((p) => p.id == record.partnerId)
+                                  .firstOrNull
+                            : null,
+                        toys: record.toyIds
+                            .map(
+                              (id) =>
+                                  _toys.where((t) => t.id == id).firstOrNull,
+                            )
+                            .whereType<Toy>()
+                            .toList(),
+                        positions: record.positionIds
+                            .map(
+                              (id) => _positions
+                                  .where((p) => p.id == id)
+                                  .firstOrNull,
+                            )
+                            .whereType<Position>()
+                            .toList(),
+                      ),
                     ),
-                    secondaryBackground: Container(
-                      alignment: Alignment.centerRight,
-                      padding: const EdgeInsets.only(right: 20),
-                      color: theme.colorScheme.error,
-                      child: Icon(Icons.delete_outline,
-                          color: theme.colorScheme.onError),
-                    ),
-                    confirmDismiss: (direction) async {
-                      if (direction == DismissDirection.startToEnd) {
-                        _editRecord(record);
-                        return false;
-                      }
-                      return confirmDelete(context, AppLocalizations.of(context)!.commonThisRecord);
-                    },
-                    onDismissed: (_) => _deleteRecord(record),
-                    child: _RecordTile(
-                      record: record,
-                      partner: record.partnerId != null
-                          ? _partners.where((p) => p.id == record.partnerId).firstOrNull
-                          : null,
-                      toys: record.toyIds
-                          .map((id) => _toys.where((t) => t.id == id).firstOrNull)
-                          .whereType<Toy>()
-                          .toList(),
-                      positions: record.positionIds
-                          .map((id) => _positions.where((p) => p.id == id).firstOrNull)
-                          .whereType<Position>()
-                          .toList(),
-                    ),
-                  )),
+                  ),
 
                 // FAB clearance
                 const SizedBox(height: 80),
@@ -402,15 +460,25 @@ class _IntimacyPageState extends State<IntimacyPage> {
     final now = DateTime.now();
     final cutoff = switch (_chartRange) {
       _IntimacyChartRange.oneWeek => now.subtract(const Duration(days: 7)),
-      _IntimacyChartRange.oneMonth => DateTime(now.year, now.month - 1, now.day),
-      _IntimacyChartRange.threeMonths => DateTime(now.year, now.month - 3, now.day),
-      _IntimacyChartRange.sixMonths => DateTime(now.year, now.month - 6, now.day),
+      _IntimacyChartRange.oneMonth => DateTime(
+        now.year,
+        now.month - 1,
+        now.day,
+      ),
+      _IntimacyChartRange.threeMonths => DateTime(
+        now.year,
+        now.month - 3,
+        now.day,
+      ),
+      _IntimacyChartRange.sixMonths => DateTime(
+        now.year,
+        now.month - 6,
+        now.day,
+      ),
       _IntimacyChartRange.oneYear => DateTime(now.year - 1, now.month, now.day),
       _IntimacyChartRange.all => DateTime(2000),
     };
-    return _records
-        .where((r) => r.datetime.isAfter(cutoff))
-        .toList()
+    return _records.where((r) => r.datetime.isAfter(cutoff)).toList()
       ..sort((a, b) => a.datetime.compareTo(b.datetime));
   }
 
@@ -434,10 +502,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
       final durationMin = r.duration.inSeconds / 60.0;
       ewma = alpha * durationMin + (1 - alpha) * ewma;
       if (!r.datetime.isBefore(visibleFrom)) {
-        spots.add(FlSpot(
-          r.datetime.millisecondsSinceEpoch.toDouble(),
-          ewma,
-        ));
+        spots.add(FlSpot(r.datetime.millisecondsSinceEpoch.toDouble(), ewma));
       }
       prevTime = r.datetime;
     }
@@ -491,10 +556,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
       final alpha = 1.0 - math.exp(-dtMs / tau);
       ewma = alpha * r.pleasureLevel + (1 - alpha) * ewma;
       if (!r.datetime.isBefore(visibleFrom)) {
-        spots.add(FlSpot(
-          r.datetime.millisecondsSinceEpoch.toDouble(),
-          ewma,
-        ));
+        spots.add(FlSpot(r.datetime.millisecondsSinceEpoch.toDouble(), ewma));
       }
       prevTime = r.datetime;
     }
@@ -524,10 +586,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
         ewma = alpha * rate + (1 - alpha) * ewma;
       }
       if (!r.datetime.isBefore(visibleFrom)) {
-        spots.add(FlSpot(
-          r.datetime.millisecondsSinceEpoch.toDouble(),
-          ewma,
-        ));
+        spots.add(FlSpot(r.datetime.millisecondsSinceEpoch.toDouble(), ewma));
       }
       prevTime = r.datetime;
     }
@@ -554,13 +613,21 @@ class _IntimacyPageState extends State<IntimacyPage> {
     final durationSpots = _buildEwmaDurationSpots(allSorted, cutoff);
     // Raw (actual) spots — no EWMA smoothing
     final rawPleasureSpots = data
-        .map((r) => FlSpot(r.datetime.millisecondsSinceEpoch.toDouble(),
-            r.pleasureLevel.toDouble()))
+        .map(
+          (r) => FlSpot(
+            r.datetime.millisecondsSinceEpoch.toDouble(),
+            r.pleasureLevel.toDouble(),
+          ),
+        )
         .toList();
     final rawFrequencySpots = _buildRawFrequencySpots(allSorted, cutoff);
     final rawDurationSpots = data
-        .map((r) => FlSpot(r.datetime.millisecondsSinceEpoch.toDouble(),
-            r.duration.inSeconds / 60.0))
+        .map(
+          (r) => FlSpot(
+            r.datetime.millisecondsSinceEpoch.toDouble(),
+            r.duration.inSeconds / 60.0,
+          ),
+        )
         .toList();
 
     return Padding(
@@ -570,57 +637,95 @@ class _IntimacyPageState extends State<IntimacyPage> {
         children: [
           Row(
             children: [
-              Text(l10n.intimacyTrend,
-                  style: theme.textTheme.titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w600)),
+              Text(
+                l10n.intimacyTrend,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               const Spacer(),
-              ...labels.entries.map((e) => Padding(
-                    padding: const EdgeInsets.only(left: 4),
-                    child: ChoiceChip(
-                      label: Text(e.value,
-                          style: const TextStyle(fontSize: 11)),
-                      selected: _chartRange == e.key,
-                      onSelected: (_) =>
-                          setState(() => _chartRange = e.key),
-                      visualDensity: VisualDensity.compact,
-                      padding: EdgeInsets.zero,
-                      labelPadding:
-                          const EdgeInsets.symmetric(horizontal: 6),
-                    ),
-                  )),
+              ...labels.entries.map(
+                (e) => Padding(
+                  padding: const EdgeInsets.only(left: 4),
+                  child: ChoiceChip(
+                    label: Text(e.value, style: const TextStyle(fontSize: 11)),
+                    selected: _chartRange == e.key,
+                    onSelected: (_) => setState(() => _chartRange = e.key),
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    labelPadding: const EdgeInsets.symmetric(horizontal: 6),
+                  ),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
           // Legend — pleasure & frequency
           Row(
             children: [
-              _legendItem(theme.colorScheme.primary, theme.textTheme.labelSmall, l10n.intimacyPleasure),
+              _legendItem(
+                theme.colorScheme.primary,
+                theme.textTheme.labelSmall,
+                l10n.intimacyPleasure,
+              ),
               const SizedBox(width: 16),
-              _legendItem(theme.colorScheme.tertiary, theme.textTheme.labelSmall, l10n.intimacyFrequency),
+              _legendItem(
+                theme.colorScheme.tertiary,
+                theme.textTheme.labelSmall,
+                l10n.intimacyFrequency,
+              ),
             ],
           ),
           const SizedBox(height: 8),
           SizedBox(
             height: 180,
             child: data.length < 2
-                ? Center(child: Text(l10n.intimacyChartNoData,
-                    style: TextStyle(color: theme.colorScheme.onSurfaceVariant)))
-                : _buildChart(theme, rawPleasureSpots, pleasureSpots, rawFrequencySpots, frequencySpots, data),
+                ? Center(
+                    child: Text(
+                      l10n.intimacyChartNoData,
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  )
+                : _buildChart(
+                    theme,
+                    rawPleasureSpots,
+                    pleasureSpots,
+                    rawFrequencySpots,
+                    frequencySpots,
+                    data,
+                  ),
           ),
           const SizedBox(height: 12),
           // Legend — duration
           Row(
             children: [
-              _legendItem(theme.colorScheme.secondary, theme.textTheme.labelSmall, l10n.intimacyDuration),
+              _legendItem(
+                theme.colorScheme.secondary,
+                theme.textTheme.labelSmall,
+                l10n.intimacyDuration,
+              ),
             ],
           ),
           const SizedBox(height: 8),
           SizedBox(
             height: 150,
             child: data.length < 2
-                ? Center(child: Text(l10n.intimacyChartNoData,
-                    style: TextStyle(color: theme.colorScheme.onSurfaceVariant)))
-                : _buildDurationChart(theme, rawDurationSpots, durationSpots, data),
+                ? Center(
+                    child: Text(
+                      l10n.intimacyChartNoData,
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  )
+                : _buildDurationChart(
+                    theme,
+                    rawDurationSpots,
+                    durationSpots,
+                    data,
+                  ),
           ),
           const Divider(height: 16),
         ],
@@ -649,6 +754,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
       }
       return (v / 5).ceil() * 5.0;
     }
+
     final freqMax = freqCeil(math.max(maxFreq * 1.1, 1.0));
 
     return LineChart(
@@ -676,12 +782,14 @@ class _IntimacyPageState extends State<IntimacyPage> {
               maxIncluded: false,
               getTitlesWidget: (value, meta) {
                 final date = DateTime.fromMillisecondsSinceEpoch(value.toInt());
-                final spanDays = data.last.datetime.difference(data.first.datetime).inDays;
+                final spanDays = data.last.datetime
+                    .difference(data.first.datetime)
+                    .inDays;
                 final fmt = spanDays > 730
                     ? DateFormat('yyyy')
                     : spanDays > 365
-                        ? DateFormat('M/yy')
-                        : DateFormat('M/d');
+                    ? DateFormat('M/yy')
+                    : DateFormat('M/d');
                 return SideTitleWidget(
                   meta: meta,
                   child: Text(
@@ -698,11 +806,14 @@ class _IntimacyPageState extends State<IntimacyPage> {
               reservedSize: 24,
               interval: 1,
               getTitlesWidget: (value, meta) {
-                if (value != value.roundToDouble()) return const SizedBox.shrink();
+                if (value != value.roundToDouble())
+                  return const SizedBox.shrink();
                 return SideTitleWidget(
                   meta: meta,
-                  child: Text('${value.toInt()}',
-                      style: theme.textTheme.labelSmall?.copyWith(fontSize: 10)),
+                  child: Text(
+                    '${value.toInt()}',
+                    style: theme.textTheme.labelSmall?.copyWith(fontSize: 10),
+                  ),
                 );
               },
             ),
@@ -713,7 +824,8 @@ class _IntimacyPageState extends State<IntimacyPage> {
               reservedSize: 28,
               interval: 1,
               getTitlesWidget: (value, meta) {
-                if (value != value.roundToDouble()) return const SizedBox.shrink();
+                if (value != value.roundToDouble())
+                  return const SizedBox.shrink();
                 final actualFreq = value / 5 * freqMax;
                 final label = freqMax <= 3
                     ? actualFreq.toStringAsFixed(1)
@@ -731,12 +843,15 @@ class _IntimacyPageState extends State<IntimacyPage> {
               },
             ),
           ),
-          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
         ),
         borderData: FlBorderData(
           show: true,
           border: Border.all(
-              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+          ),
         ),
         minY: 0,
         maxY: 5.5,
@@ -806,10 +921,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
                   final actualFreq = s.y / 5 * freqMax;
                   return LineTooltipItem(
                     '${AppLocalizations.of(context)!.intimacyFrequency}: ${actualFreq.toStringAsFixed(1)}/wk',
-                    TextStyle(
-                      color: theme.colorScheme.onPrimary,
-                      fontSize: 11,
-                    ),
+                    TextStyle(color: theme.colorScheme.onPrimary, fontSize: 11),
                   );
                 }
                 return null;
@@ -839,6 +951,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
       }
       return (v / 30).ceil() * 30.0;
     }
+
     final yMax = minCeil(math.max(maxMin * 1.15, 5.0));
 
     return LineChart(
@@ -871,8 +984,8 @@ class _IntimacyPageState extends State<IntimacyPage> {
                 final fmt = spanDays > 730
                     ? DateFormat('yyyy')
                     : spanDays > 365
-                        ? DateFormat('M/yy')
-                        : DateFormat('M/d');
+                    ? DateFormat('M/yy')
+                    : DateFormat('M/d');
                 return SideTitleWidget(
                   meta: meta,
                   child: Text(
@@ -914,7 +1027,8 @@ class _IntimacyPageState extends State<IntimacyPage> {
         borderData: FlBorderData(
           show: true,
           border: Border.all(
-              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+          ),
         ),
         minY: 0,
         maxY: yMax,
@@ -988,13 +1102,13 @@ class _IntimacyPageState extends State<IntimacyPage> {
         .toDouble();
     final spanDays = spanMs / (86400 * 1000);
     const day = 86400 * 1000.0;
-    if (spanDays <= 7) return 2 * day;      // every-other-day labels
-    if (spanDays <= 30) return 7 * day;     // weekly labels
-    if (spanDays <= 90) return 21 * day;    // tri-weekly labels
-    if (spanDays <= 180) return 45 * day;   // ~6-week labels
-    if (spanDays <= 365) return 90 * day;   // quarterly labels
-    if (spanDays <= 730) return 180 * day;  // semi-annual labels
-    return 365 * day;                       // annual labels
+    if (spanDays <= 7) return 2 * day; // every-other-day labels
+    if (spanDays <= 30) return 7 * day; // weekly labels
+    if (spanDays <= 90) return 21 * day; // tri-weekly labels
+    if (spanDays <= 180) return 45 * day; // ~6-week labels
+    if (spanDays <= 365) return 90 * day; // quarterly labels
+    if (spanDays <= 730) return 180 * day; // semi-annual labels
+    return 365 * day; // annual labels
   }
 
   void _showManageMenu(BuildContext context) {
@@ -1045,8 +1159,20 @@ class _IntimacyPageState extends State<IntimacyPage> {
           partners: _partners,
           records: _records,
           toys: _toys,
+          sortModes: _partnerSortModes,
+          customOrders: _partnerCustomOrders,
           onChanged: (updated) {
             setState(() => _partners = updated);
+            _saveData();
+          },
+          onSortChanged: (modes, orders) {
+            setState(() {
+              _partnerSortModes = Map.of(modes);
+              _partnerCustomOrders = orders.map(
+                (key, value) => MapEntry(key, List<String>.of(value)),
+              );
+              _settingsModifiedAt = DateTime.now().toUtc();
+            });
             _saveData();
           },
         ),
@@ -1062,8 +1188,20 @@ class _IntimacyPageState extends State<IntimacyPage> {
           toys: _toys,
           records: _records,
           partners: _partners,
+          sortModes: _toySortModes,
+          customOrders: _toyCustomOrders,
           onChanged: (updated) {
             setState(() => _toys = updated);
+            _saveData();
+          },
+          onSortChanged: (modes, orders) {
+            setState(() {
+              _toySortModes = Map.of(modes);
+              _toyCustomOrders = orders.map(
+                (key, value) => MapEntry(key, List<String>.of(value)),
+              );
+              _settingsModifiedAt = DateTime.now().toUtc();
+            });
             _saveData();
           },
         ),
@@ -1123,9 +1261,7 @@ class _CalendarWidget extends StatelessWidget {
             children: [
               IconButton(
                 icon: const Icon(Icons.chevron_left),
-                onPressed: () => onMonthChanged(
-                  DateTime(year, month - 1, 1),
-                ),
+                onPressed: () => onMonthChanged(DateTime(year, month - 1, 1)),
               ),
               Text(
                 DateFormat('yyyy MMMM').format(focusedMonth),
@@ -1135,9 +1271,7 @@ class _CalendarWidget extends StatelessWidget {
               ),
               IconButton(
                 icon: const Icon(Icons.chevron_right),
-                onPressed: () => onMonthChanged(
-                  DateTime(year, month + 1, 1),
-                ),
+                onPressed: () => onMonthChanged(DateTime(year, month + 1, 1)),
               ),
             ],
           ),
@@ -1148,17 +1282,19 @@ class _CalendarWidget extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 8),
           child: Row(
             children: ['S', 'M', 'T', 'W', 'T', 'F', 'S']
-                .map((d) => Expanded(
-                      child: Center(
-                        child: Text(
-                          d,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w600,
-                          ),
+                .map(
+                  (d) => Expanded(
+                    child: Center(
+                      child: Text(
+                        d,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                    ))
+                    ),
+                  ),
+                )
                 .toList(),
           ),
         ),
@@ -1175,7 +1311,12 @@ class _CalendarWidget extends StatelessWidget {
   }
 
   Widget _buildDayGrid(
-      BuildContext context, int startWeekday, int daysInMonth, int year, int month) {
+    BuildContext context,
+    int startWeekday,
+    int daysInMonth,
+    int year,
+    int month,
+  ) {
     final theme = Theme.of(context);
     final today = DateTime.now();
     final rows = <Widget>[];
@@ -1190,42 +1331,50 @@ class _CalendarWidget extends StatelessWidget {
           final date = DateTime(year, month, day);
           final isMarked = markedDates.contains(date);
           final isSelected = selectedDate == date;
-          final isToday = date.year == today.year &&
+          final isToday =
+              date.year == today.year &&
               date.month == today.month &&
               date.day == today.day;
 
-          cells.add(Expanded(
-            child: GestureDetector(
-              onTap: () => onDateSelected(date),
-              child: Container(
-                height: 36,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isSelected
-                      ? theme.colorScheme.primary
-                      : isMarked
-                          ? theme.colorScheme.primaryContainer
-                          : null,
-                  border: isToday && !isSelected
-                      ? Border.all(color: theme.colorScheme.primary, width: 1.5)
-                      : null,
-                ),
-                child: Center(
-                  child: Text(
-                    day.toString(),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: isSelected
-                          ? theme.colorScheme.onPrimary
-                          : isMarked
-                              ? theme.colorScheme.onPrimaryContainer
-                              : null,
-                      fontWeight: isMarked || isToday ? FontWeight.w600 : null,
+          cells.add(
+            Expanded(
+              child: GestureDetector(
+                onTap: () => onDateSelected(date),
+                child: Container(
+                  height: 36,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isSelected
+                        ? theme.colorScheme.primary
+                        : isMarked
+                        ? theme.colorScheme.primaryContainer
+                        : null,
+                    border: isToday && !isSelected
+                        ? Border.all(
+                            color: theme.colorScheme.primary,
+                            width: 1.5,
+                          )
+                        : null,
+                  ),
+                  child: Center(
+                    child: Text(
+                      day.toString(),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: isSelected
+                            ? theme.colorScheme.onPrimary
+                            : isMarked
+                            ? theme.colorScheme.onPrimaryContainer
+                            : null,
+                        fontWeight: isMarked || isToday
+                            ? FontWeight.w600
+                            : null,
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
-          ));
+          );
         }
         day++;
       }
@@ -1253,11 +1402,12 @@ class _RecordTile extends StatelessWidget {
     final theme = Theme.of(context);
     final dateStr = DateFormat('MMM d, HH:mm').format(record.datetime);
     final durationStr = '${record.duration.inMinutes}min';
-    final stars =
-        '★' * record.pleasureLevel + '☆' * (5 - record.pleasureLevel);
+    final stars = '★' * record.pleasureLevel + '☆' * (5 - record.pleasureLevel);
 
     final partnerLabel = partner != null
-        ? (partner!.emoji != null ? '${partner!.emoji} ${partner!.name}' : partner!.name)
+        ? (partner!.emoji != null
+              ? '${partner!.emoji} ${partner!.name}'
+              : partner!.name)
         : '';
 
     return Card(
@@ -1279,7 +1429,11 @@ class _RecordTile extends StatelessWidget {
                           backgroundImage: FileImage(snap.data!),
                         );
                       }
-                      return Icon(Icons.favorite, size: 18, color: theme.colorScheme.primary);
+                      return Icon(
+                        Icons.favorite,
+                        size: 18,
+                        color: theme.colorScheme.primary,
+                      );
                     },
                   )
                 else
@@ -1290,7 +1444,9 @@ class _RecordTile extends StatelessWidget {
                   ),
                 const SizedBox(width: 8),
                 Text(
-                  record.isSolo ? AppLocalizations.of(context)!.intimacySolo : partnerLabel,
+                  record.isSolo
+                      ? AppLocalizations.of(context)!.intimacySolo
+                      : partnerLabel,
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
@@ -1315,20 +1471,34 @@ class _RecordTile extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Icon(Icons.timer_outlined,
-                    size: 14, color: theme.colorScheme.onSurfaceVariant),
+                Icon(
+                  Icons.timer_outlined,
+                  size: 14,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
                 const SizedBox(width: 4),
                 Text(durationStr, style: theme.textTheme.bodySmall),
                 if (record.hadOrgasm)
-                  Icon(Icons.favorite, size: 14, color: theme.colorScheme.tertiary),
+                  Icon(
+                    Icons.favorite,
+                    size: 14,
+                    color: theme.colorScheme.tertiary,
+                  ),
                 if (record.watchedPorn) ...[
                   const SizedBox(width: 4),
-                  Icon(Icons.ondemand_video, size: 14, color: theme.colorScheme.onSurfaceVariant),
+                  Icon(
+                    Icons.ondemand_video,
+                    size: 14,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ],
                 if (record.location != null) ...[
                   const SizedBox(width: 12),
-                  Icon(Icons.location_on_outlined,
-                      size: 14, color: theme.colorScheme.onSurfaceVariant),
+                  Icon(
+                    Icons.location_on_outlined,
+                    size: 14,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                   const SizedBox(width: 4),
                   Text(record.location!, style: theme.textTheme.bodySmall),
                 ],
@@ -1339,7 +1509,9 @@ class _RecordTile extends StatelessWidget {
               Wrap(
                 spacing: 6,
                 children: toys.map((t) {
-                  final label = t.emoji != null ? '${t.emoji} ${t.name}' : t.name;
+                  final label = t.emoji != null
+                      ? '${t.emoji} ${t.name}'
+                      : t.name;
                   if (t.imagePath != null) {
                     return FutureBuilder<File>(
                       future: ImageService.resolve(t.imagePath!),
@@ -1353,16 +1525,22 @@ class _RecordTile extends StatelessWidget {
                             label: Text(t.name),
                             visualDensity: VisualDensity.compact,
                             padding: EdgeInsets.zero,
-                            labelPadding: const EdgeInsets.symmetric(horizontal: 6),
-                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            labelPadding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                            ),
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
                           );
                         }
                         return Chip(
                           label: Text(label),
                           visualDensity: VisualDensity.compact,
                           padding: EdgeInsets.zero,
-                          labelPadding: const EdgeInsets.symmetric(horizontal: 6),
-                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          labelPadding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                          ),
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
                         );
                       },
                     );
@@ -1382,7 +1560,9 @@ class _RecordTile extends StatelessWidget {
               Wrap(
                 spacing: 6,
                 children: positions.map((p) {
-                  final label = p.emoji != null ? '${p.emoji} ${p.name}' : p.name;
+                  final label = p.emoji != null
+                      ? '${p.emoji} ${p.name}'
+                      : p.name;
                   return Chip(
                     label: Text(label),
                     visualDensity: VisualDensity.compact,
@@ -1414,32 +1594,198 @@ class _PartnerManagementPage extends StatefulWidget {
   final List<Partner> partners;
   final List<IntimacyRecord> records;
   final List<Toy> toys;
+  final Map<String, String> sortModes;
+  final Map<String, List<String>> customOrders;
   final ValueChanged<List<Partner>> onChanged;
+  final void Function(
+    Map<String, String> sortModes,
+    Map<String, List<String>> customOrders,
+  )
+  onSortChanged;
 
   const _PartnerManagementPage({
     required this.partners,
     required this.records,
     required this.toys,
+    required this.sortModes,
+    required this.customOrders,
     required this.onChanged,
+    required this.onSortChanged,
   });
 
   @override
-  State<_PartnerManagementPage> createState() =>
-      _PartnerManagementPageState();
+  State<_PartnerManagementPage> createState() => _PartnerManagementPageState();
 }
 
 class _PartnerManagementPageState extends State<_PartnerManagementPage> {
   late List<Partner> _partners;
+  late Map<String, String> _sortModes;
+  late Map<String, List<String>> _customOrders;
+  final Map<String, bool> _reordering = {};
+
+  static const _statusActive = 'active';
+  static const _statusInactive = 'inactive';
+  static const _sortDate = 'date';
+  static const _sortCount = 'count';
+  static const _sortName = 'name';
+  static const _sortCustom = 'custom';
 
   static const _commonEmojis = [
-    '👩', '👨', '👩‍🦰', '👨‍🦰', '👱‍♀️', '👱', '🧑', '👧',
-    '💑', '❤️', '💕', '😍', '🥰', '💋', '🌹', '✨',
+    '👩',
+    '👨',
+    '👩‍🦰',
+    '👨‍🦰',
+    '👱‍♀️',
+    '👱',
+    '🧑',
+    '👧',
+    '💑',
+    '❤️',
+    '💕',
+    '😍',
+    '🥰',
+    '💋',
+    '🌹',
+    '✨',
   ];
 
   @override
   void initState() {
     super.initState();
     _partners = List.of(widget.partners);
+    _sortModes = Map.of(widget.sortModes);
+    _customOrders = widget.customOrders.map(
+      (key, value) => MapEntry(key, List<String>.of(value)),
+    );
+  }
+
+  void _notifySort() => widget.onSortChanged(_sortModes, _customOrders);
+
+  String _statusKey(bool isInactive) =>
+      isInactive ? _statusInactive : _statusActive;
+
+  String _sortMode(String statusKey) => _sortModes[statusKey] ?? _sortCustom;
+
+  int _compareText(String a, String b) =>
+      a.toLowerCase().compareTo(b.toLowerCase());
+
+  int _compareNullableDates(DateTime? a, DateTime? b) {
+    if (a == null && b == null) return 0;
+    if (a == null) return 1;
+    if (b == null) return -1;
+    return a.compareTo(b);
+  }
+
+  int _partnerRecordCount(Partner partner) =>
+      widget.records.where((r) => r.partnerId == partner.id).length;
+
+  List<String> _normalizedOrder(String statusKey) {
+    final isInactive = statusKey == _statusInactive;
+    final allIds = _partners
+        .where((p) => (p.endDate != null) == isInactive)
+        .map((p) => p.id)
+        .toList();
+    final allIdSet = allIds.toSet();
+    final seen = <String>{};
+    final normalized = <String>[
+      for (final id in _customOrders[statusKey] ?? const <String>[])
+        if (allIdSet.contains(id) && seen.add(id)) id,
+    ];
+    for (final id in allIds) {
+      if (seen.add(id)) normalized.add(id);
+    }
+    return normalized;
+  }
+
+  List<Partner> _sortPartners(String statusKey, List<Partner> partners) {
+    final list = List<Partner>.of(partners);
+    switch (_sortMode(statusKey)) {
+      case _sortDate:
+        list.sort((a, b) {
+          final byDate = _compareNullableDates(a.startDate, b.startDate);
+          return byDate != 0 ? byDate : _compareText(a.name, b.name);
+        });
+      case _sortCount:
+        list.sort((a, b) {
+          final byCount = _partnerRecordCount(
+            b,
+          ).compareTo(_partnerRecordCount(a));
+          return byCount != 0 ? byCount : _compareText(a.name, b.name);
+        });
+      case _sortName:
+        list.sort((a, b) => _compareText(a.name, b.name));
+      case _sortCustom:
+      default:
+        final order = _normalizedOrder(statusKey);
+        final fallbackIndex = order.length;
+        list.sort((a, b) {
+          final ai = order.indexOf(a.id);
+          final bi = order.indexOf(b.id);
+          final byOrder = (ai == -1 ? fallbackIndex : ai).compareTo(
+            bi == -1 ? fallbackIndex : bi,
+          );
+          return byOrder != 0 ? byOrder : _compareText(a.name, b.name);
+        });
+    }
+    return list;
+  }
+
+  void _setSortMode(String statusKey, String mode) {
+    setState(() {
+      if (mode == _sortCustom && !_customOrders.containsKey(statusKey)) {
+        final isInactive = statusKey == _statusInactive;
+        final current = _partners
+            .where((p) => (p.endDate != null) == isInactive)
+            .toList();
+        _customOrders[statusKey] = _sortPartners(
+          statusKey,
+          current,
+        ).map((p) => p.id).toList();
+      }
+      _sortModes[statusKey] = mode;
+      if (mode == _sortCustom) {
+        _customOrders[statusKey] = _normalizedOrder(statusKey);
+      } else {
+        _reordering[statusKey] = false;
+      }
+    });
+    _notifySort();
+  }
+
+  void _appendPartnerToCustomOrderIfNeeded(Partner partner) {
+    final statusKey = _statusKey(partner.endDate != null);
+    if (_sortMode(statusKey) != _sortCustom) return;
+    _customOrders[statusKey] = _normalizedOrder(statusKey);
+  }
+
+  void _removePartnerFromCustomOrders(String partnerId) {
+    for (final entry in _customOrders.entries) {
+      entry.value.remove(partnerId);
+    }
+  }
+
+  void _reorderPartners(
+    String statusKey,
+    List<Partner> partners,
+    int oldIndex,
+    int newIndex,
+  ) {
+    if (newIndex > oldIndex) newIndex--;
+    final ids = partners.map((p) => p.id).toList();
+    if (oldIndex < 0 ||
+        oldIndex >= ids.length ||
+        newIndex < 0 ||
+        newIndex > ids.length) {
+      return;
+    }
+    final reordered = List<String>.of(ids);
+    final moved = reordered.removeAt(oldIndex);
+    reordered.insert(newIndex, moved);
+    setState(() {
+      _customOrders[statusKey] = reordered;
+      _sortModes[statusKey] = _sortCustom;
+    });
+    _notifySort();
   }
 
   void _addPartner() => _showEditDialog(null);
@@ -1448,7 +1794,9 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
 
   void _deletePartner(Partner p) {
     setState(() => _partners.removeWhere((x) => x.id == p.id));
+    _removePartnerFromCustomOrders(p.id);
     widget.onChanged(_partners);
+    _notifySort();
   }
 
   void _breakUpPartner(Partner p) {
@@ -1456,22 +1804,27 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
     // Remove from list, re-add at end with endDate set
     setState(() {
       _partners.removeWhere((x) => x.id == p.id);
-      _partners.add(Partner(
-        id: p.id,
-        name: p.name,
-        emoji: p.emoji,
-        imagePath: p.imagePath,
-        startDate: p.startDate,
-        endDate: now,
-      ));
+      _partners.add(
+        Partner(
+          id: p.id,
+          name: p.name,
+          emoji: p.emoji,
+          imagePath: p.imagePath,
+          startDate: p.startDate,
+          endDate: now,
+        ),
+      );
     });
+    _removePartnerFromCustomOrders(p.id);
+    _appendPartnerToCustomOrderIfNeeded(
+      _partners.firstWhere((x) => x.id == p.id),
+    );
     widget.onChanged(_partners);
+    _notifySort();
   }
 
   void _showPartnerRecords(Partner p) {
-    final related = widget.records
-        .where((r) => r.partnerId == p.id)
-        .toList();
+    final related = widget.records.where((r) => r.partnerId == p.id).toList();
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -1496,7 +1849,11 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: Text(existing == null ? l10n.intimacyAddPartner : l10n.intimacyEditPartner),
+          title: Text(
+            existing == null
+                ? l10n.intimacyAddPartner
+                : l10n.intimacyEditPartner,
+          ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -1508,8 +1865,10 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
                   autofocus: true,
                 ),
                 const SizedBox(height: 12),
-                Text(l10n.commonEmojiOptional,
-                    style: Theme.of(context).textTheme.bodySmall),
+                Text(
+                  l10n.commonEmojiOptional,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
                 const SizedBox(height: 8),
                 _buildImageRow(imagePath, Theme.of(context), (path) {
                   setDialogState(() {
@@ -1541,13 +1900,18 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
                                 : null,
                             border: isSelected
                                 ? Border.all(
-                                    color: Theme.of(context).colorScheme.primary,
-                                    width: 2)
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                    width: 2,
+                                  )
                                 : null,
                           ),
                           child: Center(
-                            child: Text(emoji,
-                                style: const TextStyle(fontSize: 20)),
+                            child: Text(
+                              emoji,
+                              style: const TextStyle(fontSize: 20),
+                            ),
                           ),
                         ),
                       );
@@ -1565,7 +1929,9 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
                       firstDate: DateTime(1990),
                       lastDate: DateTime.now().add(const Duration(days: 365)),
                     );
-                    if (picked != null) setDialogState(() => startDate = picked);
+                    if (picked != null) {
+                      setDialogState(() => startDate = picked);
+                    }
                   },
                   onClear: () => setDialogState(() => startDate = null),
                 ),
@@ -1579,7 +1945,9 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
                       firstDate: DateTime(1990),
                       lastDate: DateTime.now().add(const Duration(days: 365)),
                     );
-                    if (picked != null) setDialogState(() => endDate = picked);
+                    if (picked != null) {
+                      setDialogState(() => endDate = picked);
+                    }
                   },
                   onClear: () => setDialogState(() => endDate = null),
                 ),
@@ -1588,21 +1956,27 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
           ),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: Text(l10n.commonCancel)),
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l10n.commonCancel),
+            ),
             FilledButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: Text(l10n.commonSave)),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(l10n.commonSave),
+            ),
           ],
         ),
       ),
     );
     if (result == true && nameCtrl.text.trim().isNotEmpty) {
+      Partner? savedPartner;
+      final oldStatusKey = existing != null
+          ? _statusKey(existing.endDate != null)
+          : null;
       setState(() {
         if (existing != null) {
           final idx = _partners.indexWhere((p) => p.id == existing.id);
           if (idx != -1) {
-            _partners[idx] = Partner(
+            savedPartner = Partner(
               id: existing.id,
               name: nameCtrl.text.trim(),
               emoji: selectedEmoji,
@@ -1610,22 +1984,38 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
               startDate: startDate,
               endDate: endDate,
             );
+            _partners[idx] = savedPartner!;
           }
         } else {
-          _partners.add(Partner(
+          savedPartner = Partner(
             name: nameCtrl.text.trim(),
             emoji: selectedEmoji,
             imagePath: imagePath,
             startDate: startDate,
             endDate: endDate,
-          ));
+          );
+          _partners.add(savedPartner!);
         }
       });
+      if (savedPartner != null) {
+        final newStatusKey = _statusKey(savedPartner!.endDate != null);
+        if (oldStatusKey != null && oldStatusKey != newStatusKey) {
+          _removePartnerFromCustomOrders(savedPartner!.id);
+        }
+        if (oldStatusKey == null || oldStatusKey != newStatusKey) {
+          _appendPartnerToCustomOrderIfNeeded(savedPartner!);
+        }
+      }
       widget.onChanged(_partners);
+      _notifySort();
     }
   }
 
-  Widget _buildImageRow(String? imagePath, ThemeData theme, ValueChanged<String?> onChanged) {
+  Widget _buildImageRow(
+    String? imagePath,
+    ThemeData theme,
+    ValueChanged<String?> onChanged,
+  ) {
     return Row(
       children: [
         if (imagePath != null)
@@ -1637,7 +2027,12 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: Image.file(snap.data!, width: 40, height: 40, fit: BoxFit.cover),
+                    child: Image.file(
+                      snap.data!,
+                      width: 40,
+                      height: 40,
+                      fit: BoxFit.cover,
+                    ),
                   ),
                   Positioned(
                     top: -4,
@@ -1650,7 +2045,11 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
                           color: theme.colorScheme.error,
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(Icons.close, size: 12, color: theme.colorScheme.onError),
+                        child: Icon(
+                          Icons.close,
+                          size: 12,
+                          color: theme.colorScheme.onError,
+                        ),
                       ),
                     ),
                   ),
@@ -1661,7 +2060,11 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
         if (imagePath != null) const SizedBox(width: 8),
         OutlinedButton.icon(
           icon: const Icon(Icons.image_outlined, size: 16),
-          label: Text(imagePath != null ? AppLocalizations.of(context)!.commonChange : AppLocalizations.of(context)!.commonPickImage),
+          label: Text(
+            imagePath != null
+                ? AppLocalizations.of(context)!.commonChange
+                : AppLocalizations.of(context)!.commonPickImage,
+          ),
           onPressed: () async {
             final path = await ImageService.pickAndSaveImage();
             if (path != null) onChanged(path);
@@ -1685,119 +2088,275 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
     return parts.join(' · ');
   }
 
-  /// Returns partners sorted: active (no endDate) first, broken-up at end.
-  List<Partner> get _sortedPartners {
-    final active = _partners.where((p) => p.endDate == null).toList();
-    final broken = _partners.where((p) => p.endDate != null).toList();
-    return [...active, ...broken];
-  }
+  List<Partner> get _activePartners => _sortPartners(
+    _statusActive,
+    _partners.where((p) => p.endDate == null).toList(),
+  );
+
+  List<Partner> get _inactivePartners => _sortPartners(
+    _statusInactive,
+    _partners.where((p) => p.endDate != null).toList(),
+  );
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final sorted = _sortedPartners;
+    final active = _activePartners;
+    final inactive = _inactivePartners;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.intimacyPartners),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: Text(l10n.intimacyPartners), centerTitle: true),
       body: _partners.isEmpty
           ? Center(child: Text(l10n.intimacyNoPartners))
-          : ListView.builder(
-              itemCount: sorted.length,
-              itemBuilder: (context, index) {
-                final p = sorted[index];
-                final isInactive = p.endDate != null;
-                final recordCount = widget.records
-                    .where((r) => r.partnerId == p.id)
-                    .length;
-                return Dismissible(
-                  key: ValueKey(p.id),
-                  direction: DismissDirection.horizontal,
-                  background: Container(
-                    alignment: Alignment.centerLeft,
-                    padding: const EdgeInsets.only(left: 20),
-                    color: Theme.of(context).colorScheme.primary,
-                    child: Icon(Icons.edit_outlined,
-                        color: Theme.of(context).colorScheme.onPrimary),
+          : ListView(
+              children: [
+                if (active.isNotEmpty)
+                  _buildPartnerSection(
+                    title: l10n.intimacyActivePartners,
+                    statusKey: _statusActive,
+                    partners: active,
                   ),
-                  secondaryBackground: Container(
-                    alignment: Alignment.centerRight,
-                    padding: const EdgeInsets.only(right: 20),
-                    color: isInactive
-                        ? Theme.of(context).colorScheme.error
-                        : Theme.of(context).colorScheme.tertiary,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Icon(
-                          isInactive ? Icons.delete_outline : Icons.heart_broken_outlined,
-                          color: Theme.of(context).colorScheme.onTertiary,
-                        ),
-                        const SizedBox(width: 8),
-                        if (!isInactive)
-                          Text(
-                            l10n.intimacyBreakUp,
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.onTertiary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        const SizedBox(width: 20),
-                      ],
-                    ),
+                if (inactive.isNotEmpty)
+                  _buildPartnerSection(
+                    title: l10n.intimacyPastPartners,
+                    statusKey: _statusInactive,
+                    partners: inactive,
                   ),
-                  confirmDismiss: (direction) async {
-                    if (direction == DismissDirection.startToEnd) {
-                      _editPartner(p);
-                      return false;
-                    }
-                    if (isInactive) {
-                      return confirmDelete(context, p.name);
-                    }
-                    // Break up confirmation
-                    final confirm = await showDialog<bool>(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        title: Text(l10n.intimacyBreakUp),
-                        content: Text(p.name),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(ctx, false),
-                            child: Text(l10n.commonCancel),
-                          ),
-                          FilledButton(
-                            onPressed: () => Navigator.pop(ctx, true),
-                            child: Text(l10n.intimacyBreakUp),
-                          ),
-                        ],
-                      ),
-                    );
-                    if (confirm == true) {
-                      _breakUpPartner(p);
-                    }
-                    return false;
-                  },
-                  onDismissed: (_) => _deletePartner(p),
-                  child: ListTile(
-                    leading: _buildPartnerAvatar(p),
-                    title: Text(
-                      p.name,
-                      style: isInactive
-                          ? TextStyle(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            )
-                          : null,
-                    ),
-                    subtitle: Text(_partnerSubtitle(p, recordCount)),
-                    onTap: () => _showPartnerRecords(p),
-                  ),
-                );
-              },
+                const SizedBox(height: 80),
+              ],
             ),
       floatingActionButton: FloatingActionButton(
         onPressed: _addPartner,
         child: const Icon(Icons.add),
+      ),
+    );
+  }
+
+  Widget _buildPartnerSection({
+    required String title,
+    required String statusKey,
+    required List<Partner> partners,
+  }) {
+    final isReordering =
+        _reordering[statusKey] == true && _sortMode(statusKey) == _sortCustom;
+    return Column(
+      children: [
+        _buildManagedSectionHeader(
+          title: title,
+          count: partners.length,
+          statusKey: statusKey,
+        ),
+        if (isReordering)
+          _buildPartnerReorderList(statusKey, partners)
+        else
+          ...partners.map(_buildPartnerTile),
+      ],
+    );
+  }
+
+  Widget _buildManagedSectionHeader({
+    required String title,
+    required int count,
+    required String statusKey,
+  }) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final isCustom = _sortMode(statusKey) == _sortCustom;
+    final isReordering = _reordering[statusKey] == true;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 10, 8, 4),
+      color: theme.colorScheme.surfaceContainerLow,
+      child: Row(
+        children: [
+          Text(
+            title,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '$count',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const Spacer(),
+          if (isCustom && count > 1)
+            IconButton(
+              icon: Icon(isReordering ? Icons.check : Icons.reorder),
+              tooltip: isReordering
+                  ? l10n.financeSortDone
+                  : l10n.financeSortReorder,
+              onPressed: () => setState(() {
+                _reordering[statusKey] = !isReordering;
+              }),
+            ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.sort),
+            tooltip: l10n.financeSortBy,
+            onSelected: (mode) => _setSortMode(statusKey, mode),
+            itemBuilder: (_) => [
+              _managedSortItem(
+                statusKey: statusKey,
+                value: _sortDate,
+                label: l10n.intimacySortByRelationshipDate,
+              ),
+              _managedSortItem(
+                statusKey: statusKey,
+                value: _sortCount,
+                label: l10n.intimacySortByUseCount,
+              ),
+              _managedSortItem(
+                statusKey: statusKey,
+                value: _sortName,
+                label: l10n.financeSortByName,
+              ),
+              _managedSortItem(
+                statusKey: statusKey,
+                value: _sortCustom,
+                label: l10n.financeSortCustom,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  PopupMenuEntry<String> _managedSortItem({
+    required String statusKey,
+    required String value,
+    required String label,
+  }) {
+    return PopupMenuItem(
+      value: value,
+      child: Row(
+        children: [
+          Icon(
+            _sortMode(statusKey) == value
+                ? Icons.radio_button_checked
+                : Icons.radio_button_off,
+            size: 18,
+          ),
+          const SizedBox(width: 8),
+          Text(label),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPartnerReorderList(String statusKey, List<Partner> partners) {
+    return ReorderableListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      buildDefaultDragHandles: false,
+      itemCount: partners.length,
+      onReorder: (oldIndex, newIndex) =>
+          _reorderPartners(statusKey, partners, oldIndex, newIndex),
+      proxyDecorator: (child, index, animation) {
+        return Material(elevation: 4, child: child);
+      },
+      itemBuilder: (context, index) {
+        final partner = partners[index];
+        return ListTile(
+          key: ValueKey('partner-reorder-${partner.id}'),
+          leading: ReorderableDragStartListener(
+            index: index,
+            child: const Icon(Icons.drag_handle),
+          ),
+          title: Text(partner.name),
+          subtitle: Text(
+            _partnerSubtitle(partner, _partnerRecordCount(partner)),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPartnerTile(Partner p) {
+    final l10n = AppLocalizations.of(context)!;
+    final isInactive = p.endDate != null;
+    final recordCount = _partnerRecordCount(p);
+    return Dismissible(
+      key: ValueKey(p.id),
+      direction: DismissDirection.horizontal,
+      background: Container(
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.only(left: 20),
+        color: Theme.of(context).colorScheme.primary,
+        child: Icon(
+          Icons.edit_outlined,
+          color: Theme.of(context).colorScheme.onPrimary,
+        ),
+      ),
+      secondaryBackground: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        color: isInactive
+            ? Theme.of(context).colorScheme.error
+            : Theme.of(context).colorScheme.tertiary,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Icon(
+              isInactive ? Icons.delete_outline : Icons.heart_broken_outlined,
+              color: Theme.of(context).colorScheme.onTertiary,
+            ),
+            const SizedBox(width: 8),
+            if (!isInactive)
+              Text(
+                l10n.intimacyBreakUp,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onTertiary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            const SizedBox(width: 20),
+          ],
+        ),
+      ),
+      confirmDismiss: (direction) async {
+        if (direction == DismissDirection.startToEnd) {
+          _editPartner(p);
+          return false;
+        }
+        if (isInactive) {
+          return confirmDelete(context, p.name);
+        }
+        final confirm = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: Text(l10n.intimacyBreakUp),
+            content: Text(p.name),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(l10n.commonCancel),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text(l10n.intimacyBreakUp),
+              ),
+            ],
+          ),
+        );
+        if (confirm == true) {
+          _breakUpPartner(p);
+        }
+        return false;
+      },
+      onDismissed: (_) => _deletePartner(p),
+      child: ListTile(
+        leading: _buildPartnerAvatar(p),
+        title: Text(
+          p.name,
+          style: isInactive
+              ? TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)
+              : null,
+        ),
+        subtitle: Text(_partnerSubtitle(p, recordCount)),
+        onTap: () => _showPartnerRecords(p),
       ),
     );
   }
@@ -1823,13 +2382,23 @@ class _ToyManagementPage extends StatefulWidget {
   final List<Toy> toys;
   final List<IntimacyRecord> records;
   final List<Partner> partners;
+  final Map<String, String> sortModes;
+  final Map<String, List<String>> customOrders;
   final ValueChanged<List<Toy>> onChanged;
+  final void Function(
+    Map<String, String> sortModes,
+    Map<String, List<String>> customOrders,
+  )
+  onSortChanged;
 
   const _ToyManagementPage({
     required this.toys,
     required this.records,
     required this.partners,
+    required this.sortModes,
+    required this.customOrders,
     required this.onChanged,
+    required this.onSortChanged,
   });
 
   @override
@@ -1838,16 +2407,171 @@ class _ToyManagementPage extends StatefulWidget {
 
 class _ToyManagementPageState extends State<_ToyManagementPage> {
   late List<Toy> _toys;
+  late Map<String, String> _sortModes;
+  late Map<String, List<String>> _customOrders;
+  final Map<String, bool> _reordering = {};
+
+  static const _statusActive = 'active';
+  static const _statusInactive = 'inactive';
+  static const _sortDate = 'date';
+  static const _sortCount = 'count';
+  static const _sortName = 'name';
+  static const _sortCustom = 'custom';
 
   static const _commonEmojis = [
-    '🎀', '🧸', '💎', '🔮', '🎯', '🪄', '🌡️', '💫',
-    '🎁', '🦋', '🌸', '🍭', '⭐', '🔥', '💜', '✨',
+    '🎀',
+    '🧸',
+    '💎',
+    '🔮',
+    '🎯',
+    '🪄',
+    '🌡️',
+    '💫',
+    '🎁',
+    '🦋',
+    '🌸',
+    '🍭',
+    '⭐',
+    '🔥',
+    '💜',
+    '✨',
   ];
 
   @override
   void initState() {
     super.initState();
     _toys = List.of(widget.toys);
+    _sortModes = Map.of(widget.sortModes);
+    _customOrders = widget.customOrders.map(
+      (key, value) => MapEntry(key, List<String>.of(value)),
+    );
+  }
+
+  void _notifySort() => widget.onSortChanged(_sortModes, _customOrders);
+
+  String _statusKey(bool isRetired) =>
+      isRetired ? _statusInactive : _statusActive;
+
+  String _sortMode(String statusKey) => _sortModes[statusKey] ?? _sortCustom;
+
+  int _compareText(String a, String b) =>
+      a.toLowerCase().compareTo(b.toLowerCase());
+
+  int _compareNullableDates(DateTime? a, DateTime? b) {
+    if (a == null && b == null) return 0;
+    if (a == null) return 1;
+    if (b == null) return -1;
+    return a.compareTo(b);
+  }
+
+  int _toyRecordCount(Toy toy) =>
+      widget.records.where((r) => r.toyIds.contains(toy.id)).length;
+
+  List<String> _normalizedOrder(String statusKey) {
+    final isRetired = statusKey == _statusInactive;
+    final allIds = _toys
+        .where((t) => (t.retiredDate != null) == isRetired)
+        .map((t) => t.id)
+        .toList();
+    final allIdSet = allIds.toSet();
+    final seen = <String>{};
+    final normalized = <String>[
+      for (final id in _customOrders[statusKey] ?? const <String>[])
+        if (allIdSet.contains(id) && seen.add(id)) id,
+    ];
+    for (final id in allIds) {
+      if (seen.add(id)) normalized.add(id);
+    }
+    return normalized;
+  }
+
+  List<Toy> _sortToys(String statusKey, List<Toy> toys) {
+    final list = List<Toy>.of(toys);
+    switch (_sortMode(statusKey)) {
+      case _sortDate:
+        list.sort((a, b) {
+          final byDate = _compareNullableDates(a.purchaseDate, b.purchaseDate);
+          return byDate != 0 ? byDate : _compareText(a.name, b.name);
+        });
+      case _sortCount:
+        list.sort((a, b) {
+          final byCount = _toyRecordCount(b).compareTo(_toyRecordCount(a));
+          return byCount != 0 ? byCount : _compareText(a.name, b.name);
+        });
+      case _sortName:
+        list.sort((a, b) => _compareText(a.name, b.name));
+      case _sortCustom:
+      default:
+        final order = _normalizedOrder(statusKey);
+        final fallbackIndex = order.length;
+        list.sort((a, b) {
+          final ai = order.indexOf(a.id);
+          final bi = order.indexOf(b.id);
+          final byOrder = (ai == -1 ? fallbackIndex : ai).compareTo(
+            bi == -1 ? fallbackIndex : bi,
+          );
+          return byOrder != 0 ? byOrder : _compareText(a.name, b.name);
+        });
+    }
+    return list;
+  }
+
+  void _setSortMode(String statusKey, String mode) {
+    setState(() {
+      if (mode == _sortCustom && !_customOrders.containsKey(statusKey)) {
+        final isRetired = statusKey == _statusInactive;
+        final current = _toys
+            .where((t) => (t.retiredDate != null) == isRetired)
+            .toList();
+        _customOrders[statusKey] = _sortToys(
+          statusKey,
+          current,
+        ).map((t) => t.id).toList();
+      }
+      _sortModes[statusKey] = mode;
+      if (mode == _sortCustom) {
+        _customOrders[statusKey] = _normalizedOrder(statusKey);
+      } else {
+        _reordering[statusKey] = false;
+      }
+    });
+    _notifySort();
+  }
+
+  void _appendToyToCustomOrderIfNeeded(Toy toy) {
+    final statusKey = _statusKey(toy.retiredDate != null);
+    if (_sortMode(statusKey) != _sortCustom) return;
+    _customOrders[statusKey] = _normalizedOrder(statusKey);
+  }
+
+  void _removeToyFromCustomOrders(String toyId) {
+    for (final entry in _customOrders.entries) {
+      entry.value.remove(toyId);
+    }
+  }
+
+  void _reorderToys(
+    String statusKey,
+    List<Toy> toys,
+    int oldIndex,
+    int newIndex,
+  ) {
+    if (newIndex > oldIndex) newIndex--;
+    final ids = toys.map((t) => t.id).toList();
+    if (oldIndex < 0 ||
+        oldIndex >= ids.length ||
+        newIndex < 0 ||
+        newIndex > ids.length) {
+      return;
+    }
+    final reordered = List<String>.of(ids);
+    final moved = reordered.removeAt(oldIndex);
+    reordered.insert(newIndex, moved);
+    setState(() {
+      _customOrders[statusKey] = reordered;
+      _sortModes[statusKey] = _sortCustom;
+    });
+    _notifySort();
   }
 
   void _addToy() => _showEditDialog(null);
@@ -1856,25 +2580,32 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
 
   void _deleteToy(Toy t) {
     setState(() => _toys.removeWhere((x) => x.id == t.id));
+    _removeToyFromCustomOrders(t.id);
     widget.onChanged(_toys);
+    _notifySort();
   }
 
   void _retireToy(Toy t) {
     final now = DateTime.now();
     setState(() {
       _toys.removeWhere((x) => x.id == t.id);
-      _toys.add(Toy(
-        id: t.id,
-        name: t.name,
-        emoji: t.emoji,
-        imagePath: t.imagePath,
-        purchaseDate: t.purchaseDate,
-        retiredDate: now,
-        purchaseLink: t.purchaseLink,
-        price: t.price,
-      ));
+      _toys.add(
+        Toy(
+          id: t.id,
+          name: t.name,
+          emoji: t.emoji,
+          imagePath: t.imagePath,
+          purchaseDate: t.purchaseDate,
+          retiredDate: now,
+          purchaseLink: t.purchaseLink,
+          price: t.price,
+        ),
+      );
     });
+    _removeToyFromCustomOrders(t.id);
+    _appendToyToCustomOrderIfNeeded(_toys.firstWhere((x) => x.id == t.id));
     widget.onChanged(_toys);
+    _notifySort();
   }
 
   void _showToyRecords(Toy t) {
@@ -1909,7 +2640,9 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: Text(existing == null ? l10n.intimacyAddToy : l10n.intimacyEditToy),
+          title: Text(
+            existing == null ? l10n.intimacyAddToy : l10n.intimacyEditToy,
+          ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -1921,8 +2654,10 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
                   autofocus: true,
                 ),
                 const SizedBox(height: 12),
-                Text(l10n.commonEmojiOptional,
-                    style: Theme.of(context).textTheme.bodySmall),
+                Text(
+                  l10n.commonEmojiOptional,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
                 const SizedBox(height: 8),
                 _buildImageRow(imagePath, Theme.of(context), (path) {
                   setDialogState(() {
@@ -1954,13 +2689,18 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
                                 : null,
                             border: isSelected
                                 ? Border.all(
-                                    color: Theme.of(context).colorScheme.primary,
-                                    width: 2)
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                    width: 2,
+                                  )
                                 : null,
                           ),
                           child: Center(
-                            child: Text(emoji,
-                                style: const TextStyle(fontSize: 20)),
+                            child: Text(
+                              emoji,
+                              style: const TextStyle(fontSize: 20),
+                            ),
                           ),
                         ),
                       );
@@ -1978,7 +2718,9 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
                       firstDate: DateTime(1990),
                       lastDate: DateTime.now().add(const Duration(days: 365)),
                     );
-                    if (picked != null) setDialogState(() => purchaseDate = picked);
+                    if (picked != null) {
+                      setDialogState(() => purchaseDate = picked);
+                    }
                   },
                   onClear: () => setDialogState(() => purchaseDate = null),
                 ),
@@ -1992,7 +2734,9 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
                       firstDate: DateTime(1990),
                       lastDate: DateTime.now().add(const Duration(days: 365)),
                     );
-                    if (picked != null) setDialogState(() => retiredDate = picked);
+                    if (picked != null) {
+                      setDialogState(() => retiredDate = picked);
+                    }
                   },
                   onClear: () => setDialogState(() => retiredDate = null),
                 ),
@@ -2012,18 +2756,22 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
                     labelText: l10n.intimacyPrice,
                     prefixIcon: const Icon(Icons.attach_money, size: 20),
                   ),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                 ),
               ],
             ),
           ),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: Text(l10n.commonCancel)),
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l10n.commonCancel),
+            ),
             FilledButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: Text(l10n.commonSave)),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(l10n.commonSave),
+            ),
           ],
         ),
       ),
@@ -2031,11 +2779,15 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
     if (result == true && nameCtrl.text.trim().isNotEmpty) {
       final link = linkCtrl.text.trim().isEmpty ? null : linkCtrl.text.trim();
       final price = double.tryParse(priceCtrl.text.trim());
+      Toy? savedToy;
+      final oldStatusKey = existing != null
+          ? _statusKey(existing.retiredDate != null)
+          : null;
       setState(() {
         if (existing != null) {
           final idx = _toys.indexWhere((t) => t.id == existing.id);
           if (idx != -1) {
-            _toys[idx] = Toy(
+            savedToy = Toy(
               id: existing.id,
               name: nameCtrl.text.trim(),
               emoji: selectedEmoji,
@@ -2045,9 +2797,10 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
               purchaseLink: link,
               price: price,
             );
+            _toys[idx] = savedToy!;
           }
         } else {
-          _toys.add(Toy(
+          savedToy = Toy(
             name: nameCtrl.text.trim(),
             emoji: selectedEmoji,
             imagePath: imagePath,
@@ -2055,14 +2808,29 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
             retiredDate: retiredDate,
             purchaseLink: link,
             price: price,
-          ));
+          );
+          _toys.add(savedToy!);
         }
       });
+      if (savedToy != null) {
+        final newStatusKey = _statusKey(savedToy!.retiredDate != null);
+        if (oldStatusKey != null && oldStatusKey != newStatusKey) {
+          _removeToyFromCustomOrders(savedToy!.id);
+        }
+        if (oldStatusKey == null || oldStatusKey != newStatusKey) {
+          _appendToyToCustomOrderIfNeeded(savedToy!);
+        }
+      }
       widget.onChanged(_toys);
+      _notifySort();
     }
   }
 
-  Widget _buildImageRow(String? imagePath, ThemeData theme, ValueChanged<String?> onChanged) {
+  Widget _buildImageRow(
+    String? imagePath,
+    ThemeData theme,
+    ValueChanged<String?> onChanged,
+  ) {
     return Row(
       children: [
         if (imagePath != null)
@@ -2074,7 +2842,12 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: Image.file(snap.data!, width: 40, height: 40, fit: BoxFit.cover),
+                    child: Image.file(
+                      snap.data!,
+                      width: 40,
+                      height: 40,
+                      fit: BoxFit.cover,
+                    ),
                   ),
                   Positioned(
                     top: -4,
@@ -2087,7 +2860,11 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
                           color: theme.colorScheme.error,
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(Icons.close, size: 12, color: theme.colorScheme.onError),
+                        child: Icon(
+                          Icons.close,
+                          size: 12,
+                          color: theme.colorScheme.onError,
+                        ),
                       ),
                     ),
                   ),
@@ -2098,7 +2875,11 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
         if (imagePath != null) const SizedBox(width: 8),
         OutlinedButton.icon(
           icon: const Icon(Icons.image_outlined, size: 16),
-          label: Text(imagePath != null ? AppLocalizations.of(context)!.commonChange : AppLocalizations.of(context)!.commonPickImage),
+          label: Text(
+            imagePath != null
+                ? AppLocalizations.of(context)!.commonChange
+                : AppLocalizations.of(context)!.commonPickImage,
+          ),
           onPressed: () async {
             final path = await ImageService.pickAndSaveImage();
             if (path != null) onChanged(path);
@@ -2128,119 +2909,273 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
     return parts.join(' · ');
   }
 
-  /// Returns toys sorted: active (no retiredDate) first, retired at end.
-  List<Toy> get _sortedToys {
-    final active = _toys.where((t) => t.retiredDate == null).toList();
-    final retired = _toys.where((t) => t.retiredDate != null).toList();
-    return [...active, ...retired];
-  }
+  List<Toy> get _activeToys => _sortToys(
+    _statusActive,
+    _toys.where((t) => t.retiredDate == null).toList(),
+  );
+
+  List<Toy> get _retiredToys => _sortToys(
+    _statusInactive,
+    _toys.where((t) => t.retiredDate != null).toList(),
+  );
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final sorted = _sortedToys;
+    final active = _activeToys;
+    final retired = _retiredToys;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.intimacyToys),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: Text(l10n.intimacyToys), centerTitle: true),
       body: _toys.isEmpty
           ? Center(child: Text(l10n.intimacyNoToys))
-          : ListView.builder(
-              itemCount: sorted.length,
-              itemBuilder: (context, index) {
-                final t = sorted[index];
-                final isRetired = t.retiredDate != null;
-                final recordCount = widget.records
-                    .where((r) => r.toyIds.contains(t.id))
-                    .length;
-                return Dismissible(
-                  key: ValueKey(t.id),
-                  direction: DismissDirection.horizontal,
-                  background: Container(
-                    alignment: Alignment.centerLeft,
-                    padding: const EdgeInsets.only(left: 20),
-                    color: Theme.of(context).colorScheme.primary,
-                    child: Icon(Icons.edit_outlined,
-                        color: Theme.of(context).colorScheme.onPrimary),
+          : ListView(
+              children: [
+                if (active.isNotEmpty)
+                  _buildToySection(
+                    title: l10n.intimacyActiveToys,
+                    statusKey: _statusActive,
+                    toys: active,
                   ),
-                  secondaryBackground: Container(
-                    alignment: Alignment.centerRight,
-                    padding: const EdgeInsets.only(right: 20),
-                    color: isRetired
-                        ? Theme.of(context).colorScheme.error
-                        : Theme.of(context).colorScheme.tertiary,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Icon(
-                          isRetired ? Icons.delete_outline : Icons.archive_outlined,
-                          color: Theme.of(context).colorScheme.onTertiary,
-                        ),
-                        const SizedBox(width: 8),
-                        if (!isRetired)
-                          Text(
-                            l10n.intimacyRetire,
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.onTertiary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        const SizedBox(width: 20),
-                      ],
-                    ),
+                if (retired.isNotEmpty)
+                  _buildToySection(
+                    title: l10n.intimacyRetiredToys,
+                    statusKey: _statusInactive,
+                    toys: retired,
                   ),
-                  confirmDismiss: (direction) async {
-                    if (direction == DismissDirection.startToEnd) {
-                      _editToy(t);
-                      return false;
-                    }
-                    if (isRetired) {
-                      return confirmDelete(context, t.name);
-                    }
-                    // Retire confirmation
-                    final confirm = await showDialog<bool>(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        title: Text(l10n.intimacyRetire),
-                        content: Text(t.name),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(ctx, false),
-                            child: Text(l10n.commonCancel),
-                          ),
-                          FilledButton(
-                            onPressed: () => Navigator.pop(ctx, true),
-                            child: Text(l10n.intimacyRetire),
-                          ),
-                        ],
-                      ),
-                    );
-                    if (confirm == true) {
-                      _retireToy(t);
-                    }
-                    return false;
-                  },
-                  onDismissed: (_) => _deleteToy(t),
-                  child: ListTile(
-                    leading: _buildToyAvatar(t),
-                    title: Text(
-                      t.name,
-                      style: isRetired
-                          ? TextStyle(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            )
-                          : null,
-                    ),
-                    subtitle: Text(_toySubtitle(t, recordCount)),
-                    onTap: () => _showToyRecords(t),
-                  ),
-                );
-              },
+                const SizedBox(height: 80),
+              ],
             ),
       floatingActionButton: FloatingActionButton(
         onPressed: _addToy,
         child: const Icon(Icons.add),
+      ),
+    );
+  }
+
+  Widget _buildToySection({
+    required String title,
+    required String statusKey,
+    required List<Toy> toys,
+  }) {
+    final isReordering =
+        _reordering[statusKey] == true && _sortMode(statusKey) == _sortCustom;
+    return Column(
+      children: [
+        _buildManagedSectionHeader(
+          title: title,
+          count: toys.length,
+          statusKey: statusKey,
+        ),
+        if (isReordering)
+          _buildToyReorderList(statusKey, toys)
+        else
+          ...toys.map(_buildToyTile),
+      ],
+    );
+  }
+
+  Widget _buildManagedSectionHeader({
+    required String title,
+    required int count,
+    required String statusKey,
+  }) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final isCustom = _sortMode(statusKey) == _sortCustom;
+    final isReordering = _reordering[statusKey] == true;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 10, 8, 4),
+      color: theme.colorScheme.surfaceContainerLow,
+      child: Row(
+        children: [
+          Text(
+            title,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '$count',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const Spacer(),
+          if (isCustom && count > 1)
+            IconButton(
+              icon: Icon(isReordering ? Icons.check : Icons.reorder),
+              tooltip: isReordering
+                  ? l10n.financeSortDone
+                  : l10n.financeSortReorder,
+              onPressed: () => setState(() {
+                _reordering[statusKey] = !isReordering;
+              }),
+            ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.sort),
+            tooltip: l10n.financeSortBy,
+            onSelected: (mode) => _setSortMode(statusKey, mode),
+            itemBuilder: (_) => [
+              _managedSortItem(
+                statusKey: statusKey,
+                value: _sortDate,
+                label: l10n.intimacySortByPurchaseDate,
+              ),
+              _managedSortItem(
+                statusKey: statusKey,
+                value: _sortCount,
+                label: l10n.intimacySortByUseCount,
+              ),
+              _managedSortItem(
+                statusKey: statusKey,
+                value: _sortName,
+                label: l10n.financeSortByName,
+              ),
+              _managedSortItem(
+                statusKey: statusKey,
+                value: _sortCustom,
+                label: l10n.financeSortCustom,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  PopupMenuEntry<String> _managedSortItem({
+    required String statusKey,
+    required String value,
+    required String label,
+  }) {
+    return PopupMenuItem(
+      value: value,
+      child: Row(
+        children: [
+          Icon(
+            _sortMode(statusKey) == value
+                ? Icons.radio_button_checked
+                : Icons.radio_button_off,
+            size: 18,
+          ),
+          const SizedBox(width: 8),
+          Text(label),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildToyReorderList(String statusKey, List<Toy> toys) {
+    return ReorderableListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      buildDefaultDragHandles: false,
+      itemCount: toys.length,
+      onReorder: (oldIndex, newIndex) =>
+          _reorderToys(statusKey, toys, oldIndex, newIndex),
+      proxyDecorator: (child, index, animation) {
+        return Material(elevation: 4, child: child);
+      },
+      itemBuilder: (context, index) {
+        final toy = toys[index];
+        return ListTile(
+          key: ValueKey('toy-reorder-${toy.id}'),
+          leading: ReorderableDragStartListener(
+            index: index,
+            child: const Icon(Icons.drag_handle),
+          ),
+          title: Text(toy.name),
+          subtitle: Text(_toySubtitle(toy, _toyRecordCount(toy))),
+        );
+      },
+    );
+  }
+
+  Widget _buildToyTile(Toy t) {
+    final l10n = AppLocalizations.of(context)!;
+    final isRetired = t.retiredDate != null;
+    final recordCount = _toyRecordCount(t);
+    return Dismissible(
+      key: ValueKey(t.id),
+      direction: DismissDirection.horizontal,
+      background: Container(
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.only(left: 20),
+        color: Theme.of(context).colorScheme.primary,
+        child: Icon(
+          Icons.edit_outlined,
+          color: Theme.of(context).colorScheme.onPrimary,
+        ),
+      ),
+      secondaryBackground: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        color: isRetired
+            ? Theme.of(context).colorScheme.error
+            : Theme.of(context).colorScheme.tertiary,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Icon(
+              isRetired ? Icons.delete_outline : Icons.archive_outlined,
+              color: Theme.of(context).colorScheme.onTertiary,
+            ),
+            const SizedBox(width: 8),
+            if (!isRetired)
+              Text(
+                l10n.intimacyRetire,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onTertiary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            const SizedBox(width: 20),
+          ],
+        ),
+      ),
+      confirmDismiss: (direction) async {
+        if (direction == DismissDirection.startToEnd) {
+          _editToy(t);
+          return false;
+        }
+        if (isRetired) {
+          return confirmDelete(context, t.name);
+        }
+        final confirm = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: Text(l10n.intimacyRetire),
+            content: Text(t.name),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(l10n.commonCancel),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text(l10n.intimacyRetire),
+              ),
+            ],
+          ),
+        );
+        if (confirm == true) {
+          _retireToy(t);
+        }
+        return false;
+      },
+      onDismissed: (_) => _deleteToy(t),
+      child: ListTile(
+        leading: _buildToyAvatar(t),
+        title: Text(
+          t.name,
+          style: isRetired
+              ? TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)
+              : null,
+        ),
+        subtitle: Text(_toySubtitle(t, recordCount)),
+        onTap: () => _showToyRecords(t),
       ),
     );
   }
@@ -2282,8 +3217,22 @@ class _PositionManagementPageState extends State<_PositionManagementPage> {
   late List<Position> _positions;
 
   static const _commonEmojis = [
-    '🔝', '🔄', '🐕', '🪑', '🦋', '🌙', '🌟', '💫',
-    '🔀', '🎯', '🧘', '🤸', '🏋️', '🧗', '💃', '✨',
+    '🔝',
+    '🔄',
+    '🐕',
+    '🪑',
+    '🦋',
+    '🌙',
+    '🌟',
+    '💫',
+    '🔀',
+    '🎯',
+    '🧘',
+    '🤸',
+    '🏋️',
+    '🧗',
+    '💃',
+    '✨',
   ];
 
   @override
@@ -2318,10 +3267,12 @@ class _PositionManagementPageState extends State<_PositionManagementPage> {
     var added = 0;
     for (final preset in defaultPositions) {
       if (!existingNames.contains((preset['name'] as String).toLowerCase())) {
-        _positions.add(Position(
-          name: preset['name'] as String,
-          emoji: preset['emoji'] as String,
-        ));
+        _positions.add(
+          Position(
+            name: preset['name'] as String,
+            emoji: preset['emoji'] as String,
+          ),
+        );
         added++;
       }
     }
@@ -2339,9 +3290,11 @@ class _PositionManagementPageState extends State<_PositionManagementPage> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: Text(existing == null
-              ? l10n.intimacyAddPosition
-              : l10n.intimacyEditPosition),
+          title: Text(
+            existing == null
+                ? l10n.intimacyAddPosition
+                : l10n.intimacyEditPosition,
+          ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -2353,8 +3306,10 @@ class _PositionManagementPageState extends State<_PositionManagementPage> {
                   autofocus: true,
                 ),
                 const SizedBox(height: 12),
-                Text(l10n.commonEmojiOptional,
-                    style: Theme.of(context).textTheme.bodySmall),
+                Text(
+                  l10n.commonEmojiOptional,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
                 const SizedBox(height: 8),
                 SizedBox(
                   width: double.maxFinite,
@@ -2374,20 +3329,22 @@ class _PositionManagementPageState extends State<_PositionManagementPage> {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(8),
                             color: isSelected
-                                ? Theme.of(context)
-                                    .colorScheme
-                                    .primaryContainer
+                                ? Theme.of(context).colorScheme.primaryContainer
                                 : null,
                             border: isSelected
                                 ? Border.all(
-                                    color:
-                                        Theme.of(context).colorScheme.primary,
-                                    width: 2)
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                    width: 2,
+                                  )
                                 : null,
                           ),
                           child: Center(
-                            child: Text(emoji,
-                                style: const TextStyle(fontSize: 20)),
+                            child: Text(
+                              emoji,
+                              style: const TextStyle(fontSize: 20),
+                            ),
                           ),
                         ),
                       );
@@ -2399,11 +3356,13 @@ class _PositionManagementPageState extends State<_PositionManagementPage> {
           ),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: Text(l10n.commonCancel)),
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l10n.commonCancel),
+            ),
             FilledButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: Text(l10n.commonSave)),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(l10n.commonSave),
+            ),
           ],
         ),
       ),
@@ -2420,10 +3379,9 @@ class _PositionManagementPageState extends State<_PositionManagementPage> {
             );
           }
         } else {
-          _positions.add(Position(
-            name: nameCtrl.text.trim(),
-            emoji: selectedEmoji,
-          ));
+          _positions.add(
+            Position(name: nameCtrl.text.trim(), emoji: selectedEmoji),
+          );
         }
       });
       widget.onChanged(_positions);
@@ -2486,15 +3444,19 @@ class _PositionManagementPageState extends State<_PositionManagementPage> {
                     alignment: Alignment.centerLeft,
                     padding: const EdgeInsets.only(left: 20),
                     color: Theme.of(context).colorScheme.primary,
-                    child: Icon(Icons.edit_outlined,
-                        color: Theme.of(context).colorScheme.onPrimary),
+                    child: Icon(
+                      Icons.edit_outlined,
+                      color: Theme.of(context).colorScheme.onPrimary,
+                    ),
                   ),
                   secondaryBackground: Container(
                     alignment: Alignment.centerRight,
                     padding: const EdgeInsets.only(right: 20),
                     color: Theme.of(context).colorScheme.error,
-                    child: Icon(Icons.delete_outline,
-                        color: Theme.of(context).colorScheme.onError),
+                    child: Icon(
+                      Icons.delete_outline,
+                      color: Theme.of(context).colorScheme.onError,
+                    ),
                   ),
                   confirmDismiss: (direction) async {
                     if (direction == DismissDirection.startToEnd) {
@@ -2505,8 +3467,7 @@ class _PositionManagementPageState extends State<_PositionManagementPage> {
                   },
                   onDismissed: (_) => _deletePosition(p),
                   child: ListTile(
-                    leading: CircleAvatar(
-                        child: Text(p.emoji ?? p.name[0])),
+                    leading: CircleAvatar(child: Text(p.emoji ?? p.name[0])),
                     title: Text(p.name),
                     subtitle: Text(l10n.intimacyRecordCount(recordCount)),
                   ),
@@ -2539,10 +3500,7 @@ class _FilteredRecordsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(title),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: Text(title), centerTitle: true),
       body: records.isEmpty
           ? Center(child: Text(l10n.intimacyNoRecords))
           : ListView.builder(
@@ -2551,8 +3509,8 @@ class _FilteredRecordsPage extends StatelessWidget {
                 final record = records[index];
                 final partner = record.partnerId != null
                     ? partners
-                        .where((p) => p.id == record.partnerId)
-                        .firstOrNull
+                          .where((p) => p.id == record.partnerId)
+                          .firstOrNull
                     : null;
                 final recordToys = record.toyIds
                     .map((id) => toys.where((t) => t.id == id).firstOrNull)

@@ -39,7 +39,8 @@ class IntimacyStorage {
 
   /// Migrate old timer_history.json entries into IntimacyData, then delete old file.
   static Future<IntimacyData> _migrateLegacyTimerHistory(
-      IntimacyData data) async {
+    IntimacyData data,
+  ) async {
     try {
       final appDir = await TodoStorage.getAppDir();
       final legacyFile = File('${appDir.path}/$_legacyTimerFileName');
@@ -48,17 +49,16 @@ class IntimacyStorage {
       final raw = await legacyFile.readAsString();
       final list = jsonDecode(raw) as List;
       final legacyEntries = list
-          .map((e) =>
-              TimerHistoryEntry.fromJson(e as Map<String, dynamic>))
+          .map((e) => TimerHistoryEntry.fromJson(e as Map<String, dynamic>))
           .toList();
 
       if (legacyEntries.isNotEmpty) {
         // Merge: keep existing + legacy, dedup by start time
-        final existingStarts =
-            data.timerHistory.map((e) => e.start.toIso8601String()).toSet();
+        final existingStarts = data.timerHistory
+            .map((e) => e.start.toIso8601String())
+            .toSet();
         final newEntries = legacyEntries
-            .where(
-                (e) => !existingStarts.contains(e.start.toIso8601String()))
+            .where((e) => !existingStarts.contains(e.start.toIso8601String()))
             .toList();
         if (newEntries.isNotEmpty) {
           data = IntimacyData(
@@ -68,6 +68,10 @@ class IntimacyStorage {
             records: data.records,
             timerHistory: [...data.timerHistory, ...newEntries],
             timerHistoryRetentionDays: data.timerHistoryRetentionDays,
+            partnerSortModes: data.partnerSortModes,
+            partnerCustomOrders: data.partnerCustomOrders,
+            toySortModes: data.toySortModes,
+            toyCustomOrders: data.toyCustomOrders,
             settingsModifiedAt: data.settingsModifiedAt,
           );
           await save(data);

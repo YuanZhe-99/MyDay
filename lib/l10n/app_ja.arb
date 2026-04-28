@@ -352,6 +352,7 @@
   "financeSortBy": "並べ替え",
   "financeSortByRenewal": "更新日順",
   "financeSortByName": "名前順",
+  "financeSortByBank": "銀行 / アプリ順",
   "financeSortCustom": "カスタム",
   "financeSortReorder": "並べ替え",
   "financeSortDone": "完了",
@@ -474,6 +475,11 @@
   "todoCompletedAt": "完了：{date}",
   "@todoCompletedAt": { "placeholders": { "date": { "type": "String" } } },
   "todoSetCompletedDate": "完了日を設定",
+  "todoSortBy": "並べ替え",
+  "todoSortByAdded": "追加日時順",
+  "todoSortByDueDate": "期限順",
+  "todoSortByName": "名前順",
+  "todoSortCustom": "カスタム",
 
   "weightUnitKg": "kg",
   "weightValueKg": "{value} kg",
@@ -579,5 +585,12 @@
   "@todoRecurrenceMonthlyOnDay": { "placeholders": { "n": { "type": "int" } } },
   "todoRecurrenceYearlyOnDate": "毎年{month}/{day}",
   "@todoRecurrenceYearlyOnDate": { "placeholders": { "month": { "type": "int" }, "day": { "type": "int" } } },
-  "todoNextOccurrence": "次の発生をスケジュール"
+  "todoNextOccurrence": "次の発生をスケジュール",
+  "intimacyActivePartners": "現役パートナー",
+  "intimacyPastPartners": "過去のパートナー",
+  "intimacyActiveToys": "現役トイ",
+  "intimacyRetiredToys": "引退済みトイ",
+  "intimacySortByRelationshipDate": "交際開始日順",
+  "intimacySortByPurchaseDate": "購入日順",
+  "intimacySortByUseCount": "使用回数順"
 }

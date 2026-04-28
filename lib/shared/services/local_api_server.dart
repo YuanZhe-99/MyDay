@@ -258,6 +258,8 @@ class LocalApiServer {
           morningReminderMinute: data.morningReminderMinute,
           completionReminderHour: data.completionReminderHour,
           completionReminderMinute: data.completionReminderMinute,
+          taskSortModes: data.taskSortModes,
+          taskCustomOrders: data.taskCustomOrders,
           settingsModifiedAt: data.settingsModifiedAt,
         ),
       );
@@ -271,6 +273,8 @@ class LocalApiServer {
           morningReminderMinute: data.morningReminderMinute,
           completionReminderHour: data.completionReminderHour,
           completionReminderMinute: data.completionReminderMinute,
+          taskSortModes: data.taskSortModes,
+          taskCustomOrders: data.taskCustomOrders,
           settingsModifiedAt: data.settingsModifiedAt,
         ),
       );
@@ -321,6 +325,8 @@ class LocalApiServer {
         morningReminderMinute: data.morningReminderMinute,
         completionReminderHour: data.completionReminderHour,
         completionReminderMinute: data.completionReminderMinute,
+        taskSortModes: data.taskSortModes,
+        taskCustomOrders: data.taskCustomOrders,
         settingsModifiedAt: data.settingsModifiedAt,
       ),
     );
@@ -567,6 +573,8 @@ class LocalApiServer {
         subscriptionReminderMinute: finData.subscriptionReminderMinute,
         subscriptionSortMode: finData.subscriptionSortMode,
         subscriptionCustomOrder: finData.subscriptionCustomOrder,
+        accountSortModes: finData.accountSortModes,
+        accountCustomOrders: finData.accountCustomOrders,
       ),
     );
     return _json({'success': true, 'id': tx.id});

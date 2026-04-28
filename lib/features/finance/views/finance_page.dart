@@ -34,11 +34,17 @@ class _FinancePageState extends State<FinancePage> {
   List<Transaction> _transactions = [];
   List<Subscription> _subscriptions = [];
   String _defaultCurrency = 'CNY';
-  ExchangeRateData _rateData = ExchangeRateData(currentSnapshotId: '', snapshots: {});
+  ExchangeRateData _rateData = ExchangeRateData(
+    currentSnapshotId: '',
+    snapshots: {},
+  );
   int? _subscriptionReminderHour;
   int? _subscriptionReminderMinute;
   String? _subscriptionSortMode;
   List<String>? _subscriptionCustomOrder;
+  Map<String, String> _accountSortModes = {};
+  Map<String, List<String>> _accountCustomOrders = {};
+  DateTime _settingsModifiedAt = DateTime.fromMillisecondsSinceEpoch(0);
   bool _loaded = false;
 
   @override
@@ -70,6 +76,11 @@ class _FinancePageState extends State<FinancePage> {
         _subscriptionReminderMinute = data.subscriptionReminderMinute;
         _subscriptionSortMode = data.subscriptionSortMode;
         _subscriptionCustomOrder = data.subscriptionCustomOrder;
+        _accountSortModes = Map.of(data.accountSortModes);
+        _accountCustomOrders = data.accountCustomOrders.map(
+          (key, value) => MapEntry(key, List<String>.of(value)),
+        );
+        _settingsModifiedAt = data.settingsModifiedAt;
       }
       _rateData = rateData;
       _loaded = true;
@@ -115,17 +126,22 @@ class _FinancePageState extends State<FinancePage> {
   }
 
   Future<void> _saveData() async {
-    await FinanceStorage.save(FinanceData(
-      accounts: _accounts,
-      categories: _categories,
-      transactions: _transactions,
-      subscriptions: _subscriptions,
-      defaultCurrency: _defaultCurrency,
-      subscriptionReminderHour: _subscriptionReminderHour,
-      subscriptionReminderMinute: _subscriptionReminderMinute,
-      subscriptionSortMode: _subscriptionSortMode,
-      subscriptionCustomOrder: _subscriptionCustomOrder,
-    ));
+    await FinanceStorage.save(
+      FinanceData(
+        accounts: _accounts,
+        categories: _categories,
+        transactions: _transactions,
+        subscriptions: _subscriptions,
+        defaultCurrency: _defaultCurrency,
+        settingsModifiedAt: _settingsModifiedAt,
+        subscriptionReminderHour: _subscriptionReminderHour,
+        subscriptionReminderMinute: _subscriptionReminderMinute,
+        subscriptionSortMode: _subscriptionSortMode,
+        subscriptionCustomOrder: _subscriptionCustomOrder,
+        accountSortModes: _accountSortModes,
+        accountCustomOrders: _accountCustomOrders,
+      ),
+    );
     AutoSyncService.instance.notifySaved();
     _updateReminderService();
   }
@@ -193,18 +209,42 @@ class _FinancePageState extends State<FinancePage> {
 
     final monthExpense = _transactions
         .where((t) => t.type == TransactionType.expense)
-        .fold(0.0, (sum, t) => sum + convertCurrency(
-            _rateData.ratesAt(t.rateSnapshotId), t.amount, t.currency, _defaultCurrency));
+        .fold(
+          0.0,
+          (sum, t) =>
+              sum +
+              convertCurrency(
+                _rateData.ratesAt(t.rateSnapshotId),
+                t.amount,
+                t.currency,
+                _defaultCurrency,
+              ),
+        );
     final monthIncome = _transactions
         .where((t) => t.type == TransactionType.income)
-        .fold(0.0, (sum, t) => sum + convertCurrency(
-            _rateData.ratesAt(t.rateSnapshotId), t.amount, t.currency, _defaultCurrency));
+        .fold(
+          0.0,
+          (sum, t) =>
+              sum +
+              convertCurrency(
+                _rateData.ratesAt(t.rateSnapshotId),
+                t.amount,
+                t.currency,
+                _defaultCurrency,
+              ),
+        );
     // Total assets = sum of all account balances converted to default currency
     final totalAssets = _accounts.isEmpty
         ? monthIncome - monthExpense
         : _accounts.fold(0.0, (sum, a) {
             final bal = accountBalance(a, _transactions, _rateData);
-            return sum + convertCurrency(currentRates, bal, a.currency, _defaultCurrency);
+            return sum +
+                convertCurrency(
+                  currentRates,
+                  bal,
+                  a.currency,
+                  _defaultCurrency,
+                );
           });
 
     // Upcoming renewals (within 3 days)
@@ -241,127 +281,156 @@ class _FinancePageState extends State<FinancePage> {
       body: !_loaded
           ? const Center(child: CircularProgressIndicator())
           : Column(
-        children: [
-          // L1: Summary cards
-          _SummaryHeader(
-            monthLabel: monthLabel,
-            monthExpense: monthExpense,
-            monthIncome: monthIncome,
-            totalAssets: totalAssets,
-            currencyCode: _defaultCurrency,
-          ),
-          const Divider(height: 1),
+              children: [
+                // L1: Summary cards
+                _SummaryHeader(
+                  monthLabel: monthLabel,
+                  monthExpense: monthExpense,
+                  monthIncome: monthIncome,
+                  totalAssets: totalAssets,
+                  currencyCode: _defaultCurrency,
+                ),
+                const Divider(height: 1),
 
-          // Upcoming renewals
-          if (upcomingSubs.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 2),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+                // Upcoming renewals
+                if (upcomingSubs.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 2),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.notifications_active,
+                              size: 16,
+                              color: theme.colorScheme.error,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              l10n.financeUpcomingRenewals,
+                              style: theme.textTheme.labelMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: theme.colorScheme.error,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        SizedBox(
+                          height: 40,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: upcomingSubs.length,
+                            separatorBuilder: (context, index) =>
+                                const SizedBox(width: 8),
+                            itemBuilder: (context, index) {
+                              final (sub, _) = upcomingSubs[index];
+                              final cat = sub.categoryId != null
+                                  ? _categories
+                                        .where((c) => c.id == sub.categoryId)
+                                        .firstOrNull
+                                  : null;
+                              final icon = sub.emoji ?? cat?.emoji;
+                              return Chip(
+                                avatar: icon != null
+                                    ? Text(
+                                        icon,
+                                        style: const TextStyle(fontSize: 14),
+                                      )
+                                    : const Icon(Icons.repeat, size: 14),
+                                label: Text(
+                                  sub.name,
+                                  style: theme.textTheme.bodySmall,
+                                ),
+                                visualDensity: VisualDensity.compact,
+                                materialTapTargetSize:
+                                    MaterialTapTargetSize.shrinkWrap,
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                if (upcomingSubs.isNotEmpty) const Divider(height: 1),
+
+                // L1: Transaction flow
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                  child: Row(
                     children: [
-                      Icon(Icons.notifications_active, size: 16, color: theme.colorScheme.error),
-                      const SizedBox(width: 6),
+                      Icon(
+                        Icons.receipt_long,
+                        size: 20,
+                        color: theme.colorScheme.primary,
+                      ),
+                      const SizedBox(width: 8),
                       Text(
-                        l10n.financeUpcomingRenewals,
-                        style: theme.textTheme.labelMedium?.copyWith(
+                        l10n.financeTitle,
+                        style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w600,
-                          color: theme.colorScheme.error,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
-                  SizedBox(
-                    height: 40,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: upcomingSubs.length,
-                      separatorBuilder: (context, index) => const SizedBox(width: 8),
-                      itemBuilder: (context, index) {
-                        final (sub, _) = upcomingSubs[index];
-                        final cat = sub.categoryId != null
-                            ? _categories.where((c) => c.id == sub.categoryId).firstOrNull
-                            : null;
-                        final icon = sub.emoji ?? cat?.emoji;
-                        return Chip(
-                          avatar: icon != null
-                              ? Text(icon, style: const TextStyle(fontSize: 14))
-                              : const Icon(Icons.repeat, size: 14),
-                          label: Text(sub.name, style: theme.textTheme.bodySmall),
-                          visualDensity: VisualDensity.compact,
-                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          if (upcomingSubs.isNotEmpty) const Divider(height: 1),
-
-          // L1: Transaction flow
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-            child: Row(
-              children: [
-                Icon(Icons.receipt_long, size: 20, color: theme.colorScheme.primary),
-                const SizedBox(width: 8),
-                Text(
-                  l10n.financeTitle,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                ),
+                Expanded(
+                  child: _transactions.isEmpty
+                      ? Center(
+                          child: Text(
+                            l10n.financeNoTransactions,
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        )
+                      : buildGroupedTransactionList(
+                          context,
+                          List.of(_transactions)
+                            ..sort((a, b) => b.date.compareTo(a.date)),
+                          (tx) => Dismissible(
+                            key: ValueKey(tx.id),
+                            direction: DismissDirection.horizontal,
+                            background: Container(
+                              alignment: Alignment.centerLeft,
+                              padding: const EdgeInsets.only(left: 20),
+                              color: theme.colorScheme.primary,
+                              child: Icon(
+                                Icons.edit_outlined,
+                                color: theme.colorScheme.onPrimary,
+                              ),
+                            ),
+                            secondaryBackground: Container(
+                              alignment: Alignment.centerRight,
+                              padding: const EdgeInsets.only(right: 20),
+                              color: theme.colorScheme.error,
+                              child: Icon(
+                                Icons.delete_outline,
+                                color: theme.colorScheme.onError,
+                              ),
+                            ),
+                            confirmDismiss: (direction) async {
+                              if (direction == DismissDirection.startToEnd) {
+                                _editTransaction(tx);
+                                return false;
+                              }
+                              return confirmDelete(
+                                context,
+                                l10n.financeThisTransaction,
+                              );
+                            },
+                            onDismissed: (_) => _deleteTransaction(tx),
+                            child: _TransactionTile(
+                              transaction: tx,
+                              categories: _categories,
+                              accounts: _accounts,
+                            ),
+                          ),
+                        ),
                 ),
               ],
             ),
-          ),
-          Expanded(
-            child: _transactions.isEmpty
-                ? Center(
-                    child: Text(
-                      l10n.financeNoTransactions,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  )
-                : buildGroupedTransactionList(
-                    context,
-                    List.of(_transactions)..sort((a, b) => b.date.compareTo(a.date)),
-                    (tx) => Dismissible(
-                      key: ValueKey(tx.id),
-                      direction: DismissDirection.horizontal,
-                      background: Container(
-                        alignment: Alignment.centerLeft,
-                        padding: const EdgeInsets.only(left: 20),
-                        color: theme.colorScheme.primary,
-                        child: Icon(Icons.edit_outlined,
-                            color: theme.colorScheme.onPrimary),
-                      ),
-                      secondaryBackground: Container(
-                        alignment: Alignment.centerRight,
-                        padding: const EdgeInsets.only(right: 20),
-                        color: theme.colorScheme.error,
-                        child: Icon(Icons.delete_outline,
-                            color: theme.colorScheme.onError),
-                      ),
-                      confirmDismiss: (direction) async {
-                        if (direction == DismissDirection.startToEnd) {
-                          _editTransaction(tx);
-                          return false;
-                        }
-                        return confirmDelete(context, l10n.financeThisTransaction);
-                      },
-                      onDismissed: (_) => _deleteTransaction(tx),
-                      child: _TransactionTile(
-                          transaction: tx, categories: _categories, accounts: _accounts),
-                    ),
-                  ),
-          ),
-        ],
-      ),
       floatingActionButton: FloatingActionButton(
         onPressed: _addTransaction,
         child: const Icon(Icons.add),
@@ -371,21 +440,39 @@ class _FinancePageState extends State<FinancePage> {
 
   void _pickDefaultCurrency() {
     final l10n = AppLocalizations.of(context)!;
-    const currencies = ['CNY', 'USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'TWD', 'HKD', 'SGD', 'KRW', 'CHF', 'NZD', 'INR'];
+    const currencies = [
+      'CNY',
+      'USD',
+      'EUR',
+      'GBP',
+      'JPY',
+      'CAD',
+      'AUD',
+      'TWD',
+      'HKD',
+      'SGD',
+      'KRW',
+      'CHF',
+      'NZD',
+      'INR',
+    ];
     showDialog(
       context: context,
       builder: (context) => SimpleDialog(
         title: Text(l10n.financeCurrency),
         children: currencies
-            .map((c) => SimpleDialogOption(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    setState(() => _defaultCurrency = c);
-                    _saveData();
-                  },
-                  child: Text(
-                      '${currencySymbol(c)}  $c${c == _defaultCurrency ? '  ✓' : ''}'),
-                ))
+            .map(
+              (c) => SimpleDialogOption(
+                onPressed: () {
+                  Navigator.pop(context);
+                  setState(() => _defaultCurrency = c);
+                  _saveData();
+                },
+                child: Text(
+                  '${currencySymbol(c)}  $c${c == _defaultCurrency ? '  ✓' : ''}',
+                ),
+              ),
+            )
             .toList(),
       ),
     );
@@ -400,12 +487,24 @@ class _FinancePageState extends State<FinancePage> {
           transactions: _transactions,
           categories: _categories,
           rateData: _rateData,
+          sortModes: _accountSortModes,
+          customOrders: _accountCustomOrders,
           onChanged: (a) {
             setState(() => _accounts = a);
             _saveData();
           },
           onTransactionsChanged: (t) {
             setState(() => _transactions = t);
+            _saveData();
+          },
+          onSortChanged: (modes, orders) {
+            setState(() {
+              _accountSortModes = Map.of(modes);
+              _accountCustomOrders = orders.map(
+                (key, value) => MapEntry(key, List<String>.of(value)),
+              );
+              _settingsModifiedAt = DateTime.now().toUtc();
+            });
             _saveData();
           },
         ),
@@ -462,6 +561,7 @@ class _FinancePageState extends State<FinancePage> {
             setState(() {
               _subscriptionSortMode = mode;
               _subscriptionCustomOrder = order;
+              _settingsModifiedAt = DateTime.now().toUtc();
             });
             _saveData();
           },
@@ -512,9 +612,7 @@ class _FinancePageState extends State<FinancePage> {
                 Navigator.pop(context);
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => const ExchangeRatesPage(),
-                  ),
+                  MaterialPageRoute(builder: (_) => const ExchangeRatesPage()),
                 );
               },
             ),
@@ -595,12 +693,17 @@ class _SummaryHeader extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(l10n.financeTotalAssets, style: theme.textTheme.titleSmall),
+                  Text(
+                    l10n.financeTotalAssets,
+                    style: theme.textTheme.titleSmall,
+                  ),
                   Text(
                     '$sym${numberFormat.format(totalAssets)}',
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: totalAssets >= 0 ? Colors.green : theme.colorScheme.error,
+                      color: totalAssets >= 0
+                          ? Colors.green
+                          : theme.colorScheme.error,
                     ),
                   ),
                 ],
@@ -687,9 +790,7 @@ class _TransactionTile extends StatelessWidget {
 
     // Resolve account name
     final account = accounts.isNotEmpty
-        ? accounts
-            .where((a) => a.id == transaction.accountId)
-            .firstOrNull
+        ? accounts.where((a) => a.id == transaction.accountId).firstOrNull
         : null;
 
     String? accountLabel;
@@ -730,7 +831,13 @@ class _TransactionTile extends StatelessWidget {
   }
 
   Widget _buildLeading(
-      Account? account, Category? cat, bool isExpense, bool isTransfer, Color color, ThemeData theme) {
+    Account? account,
+    Category? cat,
+    bool isExpense,
+    bool isTransfer,
+    Color color,
+    ThemeData theme,
+  ) {
     Widget defaultAvatar() => CircleAvatar(
       backgroundColor: color.withValues(alpha: 0.1),
       child: cat?.emoji != null
@@ -739,8 +846,8 @@ class _TransactionTile extends StatelessWidget {
               isExpense
                   ? Icons.remove
                   : isTransfer
-                      ? Icons.swap_horiz
-                      : Icons.add,
+                  ? Icons.swap_horiz
+                  : Icons.add,
               color: color,
               size: 20,
             ),
@@ -763,4 +870,3 @@ class _TransactionTile extends StatelessWidget {
     return defaultAvatar();
   }
 }
-

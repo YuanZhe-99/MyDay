@@ -145,7 +145,11 @@ class ReminderService {
         final nextDay = DateTime(next.year, next.month, next.day);
         if (!nextDay.isAfter(limit)) {
           final days = nextDay.difference(todayDate).inDays;
-          upcoming.add(days == 0 ? _l10n.notifSubscriptionToday(sub.name) : _l10n.notifSubscriptionDays(sub.name, days));
+          upcoming.add(
+            days == 0
+                ? _l10n.notifSubscriptionToday(sub.name)
+                : _l10n.notifSubscriptionDays(sub.name, days),
+          );
         }
       }
     }
@@ -229,7 +233,9 @@ class ReminderService {
     for (final task in _dailyTemplates) {
       if (task.reminderTime == null || task.deletedDate != null) continue;
       final nid = _taskNotificationId(task.id);
-      final label = task.emoji != null ? '${task.emoji} ${task.title}' : task.title;
+      final label = task.emoji != null
+          ? '${task.emoji} ${task.title}'
+          : task.title;
       mns.scheduleDaily(
         id: nid,
         title: 'MyDay!!!!!',
@@ -242,7 +248,9 @@ class ReminderService {
     for (final task in _oneTimeTasks) {
       if (task.reminderTime == null || task.isCompleted) continue;
       final nid = _taskNotificationId(task.id);
-      final label = task.emoji != null ? '${task.emoji} ${task.title}' : task.title;
+      final label = task.emoji != null
+          ? '${task.emoji} ${task.title}'
+          : task.title;
       mns.scheduleAt(
         id: nid,
         title: 'MyDay!!!!!',
@@ -290,9 +298,7 @@ class ReminderService {
         if (!_notifiedIds.contains(key)) {
           _notifiedIds.add(key);
           _notify(
-            task.emoji != null
-                ? '${task.emoji} ${task.title}'
-                : task.title,
+            task.emoji != null ? '${task.emoji} ${task.title}' : task.title,
           );
         }
       }
@@ -316,7 +322,8 @@ class ReminderService {
       final key = 'completion_$todayKey';
       if (!_notifiedIds.contains(key)) {
         _notifiedIds.add(key);
-        final uncompleted = _dailyTemplates
+        final uncompleted =
+            _dailyTemplates
                 .where((t) => !_dailyLog.isCompleted(DateTime.now(), t.id))
                 .length +
             _oneTimeTasks.where((t) => !t.isCompleted).length;
@@ -372,7 +379,11 @@ class ReminderService {
             final nextDay = DateTime(next.year, next.month, next.day);
             if (!nextDay.isAfter(limit)) {
               final days = nextDay.difference(todayDate).inDays;
-              upcoming.add(days == 0 ? _l10n.notifSubscriptionToday(sub.name) : _l10n.notifSubscriptionDays(sub.name, days));
+              upcoming.add(
+                days == 0
+                    ? _l10n.notifSubscriptionToday(sub.name)
+                    : _l10n.notifSubscriptionDays(sub.name, days),
+              );
             }
           }
         }
@@ -396,20 +407,28 @@ class ReminderService {
     final data = await FinanceStorage.load();
     if (data == null || data.subscriptions.isEmpty) return;
 
-    final result = SubscriptionProcessor.process(data.subscriptions, data.transactions);
+    final result = SubscriptionProcessor.process(
+      data.subscriptions,
+      data.transactions,
+    );
     if (!result.changed) return;
 
-    await FinanceStorage.save(FinanceData(
-      accounts: data.accounts,
-      categories: data.categories,
-      transactions: [...data.transactions, ...result.txs],
-      subscriptions: result.subs,
-      defaultCurrency: data.defaultCurrency,
-      subscriptionReminderHour: data.subscriptionReminderHour,
-      subscriptionReminderMinute: data.subscriptionReminderMinute,
-      subscriptionSortMode: data.subscriptionSortMode,
-      subscriptionCustomOrder: data.subscriptionCustomOrder,
-    ));
+    await FinanceStorage.save(
+      FinanceData(
+        accounts: data.accounts,
+        categories: data.categories,
+        transactions: [...data.transactions, ...result.txs],
+        subscriptions: result.subs,
+        defaultCurrency: data.defaultCurrency,
+        settingsModifiedAt: data.settingsModifiedAt,
+        subscriptionReminderHour: data.subscriptionReminderHour,
+        subscriptionReminderMinute: data.subscriptionReminderMinute,
+        subscriptionSortMode: data.subscriptionSortMode,
+        subscriptionCustomOrder: data.subscriptionCustomOrder,
+        accountSortModes: data.accountSortModes,
+        accountCustomOrders: data.accountCustomOrders,
+      ),
+    );
 
     // Notify finance page to reload if it's open
     onRenewalsProcessed?.call();
