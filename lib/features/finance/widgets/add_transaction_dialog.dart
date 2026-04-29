@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/services/image_service.dart';
+import '../../../shared/widgets/unsaved_changes_guard.dart';
 import '../models/finance.dart';
 import '../services/balance_util.dart';
 
@@ -37,6 +38,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
   Category? _selectedCategory;
   Account? _selectedAccount;
   Account? _selectedToAccount;
+  late final String _initialSignature;
 
   bool get _isEditing => widget.transaction != null;
   bool get _isCrossCurrency =>
@@ -46,16 +48,47 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
       _selectedAccount!.currency != _selectedToAccount!.currency;
 
   static const _symbols = <String, String>{
-    'CNY': '¥', 'USD': '\$', 'EUR': '€', 'GBP': '£', 'JPY': '¥',
-    'CAD': 'C\$', 'AUD': 'A\$', 'TWD': 'NT\$', 'HKD': 'HK\$',
-    'SGD': 'S\$', 'KRW': '₩', 'CHF': 'Fr', 'NZD': 'NZ\$', 'INR': '₹',
+    'CNY': '¥',
+    'USD': '\$',
+    'EUR': '€',
+    'GBP': '£',
+    'JPY': '¥',
+    'CAD': 'C\$',
+    'AUD': 'A\$',
+    'TWD': 'NT\$',
+    'HKD': 'HK\$',
+    'SGD': 'S\$',
+    'KRW': '₩',
+    'CHF': 'Fr',
+    'NZD': 'NZ\$',
+    'INR': '₹',
   };
 
   List<DropdownMenuItem<String>> get _currencyItems {
-    final codes = ['CNY', 'USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'TWD', 'HKD', 'SGD', 'KRW', 'CHF', 'NZD', 'INR'];
+    final codes = [
+      'CNY',
+      'USD',
+      'EUR',
+      'GBP',
+      'JPY',
+      'CAD',
+      'AUD',
+      'TWD',
+      'HKD',
+      'SGD',
+      'KRW',
+      'CHF',
+      'NZD',
+      'INR',
+    ];
     if (!codes.contains(_currency)) codes.insert(0, _currency);
     return codes
-        .map((c) => DropdownMenuItem(value: c, child: Text('$c ${_symbols[c] ?? ''}')))
+        .map(
+          (c) => DropdownMenuItem(
+            value: c,
+            child: Text('$c ${_symbols[c] ?? ''}'),
+          ),
+        )
         .toList();
   }
 
@@ -72,7 +105,10 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
     _noteController = TextEditingController(text: tx?.note ?? '');
     _type = tx?.type ?? TransactionType.expense;
     _date = tx?.date ?? DateTime.now();
-    _currency = tx?.currency ?? widget.accounts.firstOrNull?.currency ?? widget.defaultCurrency;
+    _currency =
+        tx?.currency ??
+        widget.accounts.firstOrNull?.currency ??
+        widget.defaultCurrency;
     if (tx?.categoryId != null) {
       _selectedCategory = widget.categories
           .where((c) => c.id == tx!.categoryId)
@@ -89,6 +125,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
           .firstOrNull;
     }
     _selectedAccount ??= widget.accounts.firstOrNull;
+    _initialSignature = _signature();
   }
 
   @override
@@ -99,7 +136,10 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
     super.dispose();
   }
 
-  Future<void> _openCalcKeyboard(TextEditingController controller, String label) async {
+  Future<void> _openCalcKeyboard(
+    TextEditingController controller,
+    String label,
+  ) async {
     final result = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
@@ -114,166 +154,179 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
 
-    return Dialog(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(_isEditing ? l10n.financeEditTransaction : l10n.financeAddTransaction,
-                style: theme.textTheme.titleLarge),
-            const SizedBox(height: 16),
-
-            // Type selector
-            SegmentedButton<TransactionType>(
-              segments: [
-                ButtonSegment(
-                  value: TransactionType.expense,
-                  label: Text(l10n.financeExpense),
-                  icon: const Icon(Icons.remove, size: 16),
-                ),
-                ButtonSegment(
-                  value: TransactionType.income,
-                  label: Text(l10n.financeIncome),
-                  icon: const Icon(Icons.add, size: 16),
-                ),
-                ButtonSegment(
-                  value: TransactionType.transfer,
-                  label: Text(l10n.financeTransfer),
-                  icon: const Icon(Icons.swap_horiz, size: 16),
-                ),
-              ],
-              selected: {_type},
-              onSelectionChanged: (set) {
-                setState(() => _type = set.first);
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // Amount
-            TextField(
-              controller: _amountController,
-              readOnly: true,
-              onTap: () => _openCalcKeyboard(_amountController, l10n.financeAmount),
-              decoration: InputDecoration(
-                labelText: l10n.financeAmount,
-                prefixText: '${currencySymbol(_currency)} ',
-                prefixStyle: TextStyle(color: theme.colorScheme.onSurface),
-                suffixIcon: const Icon(Icons.calculate_outlined, size: 18),
+    return UnsavedChangesGuard(
+      hasUnsavedChanges: _hasUnsavedChanges,
+      builder: (context, guard) => Dialog(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                _isEditing
+                    ? l10n.financeEditTransaction
+                    : l10n.financeAddTransaction,
+                style: theme.textTheme.titleLarge,
               ),
-            ),
-            const SizedBox(height: 12),
+              const SizedBox(height: 16),
 
-            // Currency picker
-            DropdownButtonFormField<String>(
-              initialValue: _currency,
-              decoration: InputDecoration(
-                labelText: l10n.financeCurrency,
-                isDense: true,
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              // Type selector
+              SegmentedButton<TransactionType>(
+                segments: [
+                  ButtonSegment(
+                    value: TransactionType.expense,
+                    label: Text(l10n.financeExpense),
+                    icon: const Icon(Icons.remove, size: 16),
+                  ),
+                  ButtonSegment(
+                    value: TransactionType.income,
+                    label: Text(l10n.financeIncome),
+                    icon: const Icon(Icons.add, size: 16),
+                  ),
+                  ButtonSegment(
+                    value: TransactionType.transfer,
+                    label: Text(l10n.financeTransfer),
+                    icon: const Icon(Icons.swap_horiz, size: 16),
+                  ),
+                ],
+                selected: {_type},
+                onSelectionChanged: (set) {
+                  setState(() => _type = set.first);
+                },
               ),
-              items: _currencyItems,
-              onChanged: (v) {
-                if (v != null) setState(() => _currency = v);
-              },
-            ),
-            const SizedBox(height: 12),
+              const SizedBox(height: 16),
 
-            // Account picker
-            if (widget.accounts.isNotEmpty) ...[
-              _buildAccountPicker(theme, l10n),
-              const SizedBox(height: 12),
-            ],
-
-            // Cross-currency received amount
-            if (_isCrossCurrency) ...[
+              // Amount
               TextField(
-                controller: _toAmountController,
+                controller: _amountController,
                 readOnly: true,
-                onTap: () => _openCalcKeyboard(
-                  _toAmountController,
-                  l10n.financeReceivedAmount(_selectedToAccount!.currency),
-                ),
+                onTap: () =>
+                    _openCalcKeyboard(_amountController, l10n.financeAmount),
                 decoration: InputDecoration(
-                  labelText: l10n.financeReceivedAmount(_selectedToAccount!.currency),
-                  prefixText: '${currencySymbol(_selectedToAccount!.currency)} ',
+                  labelText: l10n.financeAmount,
+                  prefixText: '${currencySymbol(_currency)} ',
                   prefixStyle: TextStyle(color: theme.colorScheme.onSurface),
-                  helperText: l10n.financeReceivedAmountHelper,
                   suffixIcon: const Icon(Icons.calculate_outlined, size: 18),
                 ),
               ),
               const SizedBox(height: 12),
-            ],
 
-            // Note
-            TextField(
-              controller: _noteController,
-              decoration: InputDecoration(
-                labelText: l10n.financeNote,
-                hintText: l10n.financeNoteHint,
-              ),
-              textInputAction: TextInputAction.done,
-              onSubmitted: (_) => _submit(),
-            ),
-            const SizedBox(height: 12),
-
-            // Category picker
-            _buildCategoryPicker(theme, l10n),
-            const SizedBox(height: 12),
-
-            // Date & time picker
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.calendar_today),
-              title: Text(
-                '${_date.year}-${_date.month.toString().padLeft(2, '0')}-${_date.day.toString().padLeft(2, '0')}  ${_date.hour.toString().padLeft(2, '0')}:${_date.minute.toString().padLeft(2, '0')}',
-              ),
-              onTap: () async {
-                final pickedDate = await showDatePicker(
-                  context: context,
-                  initialDate: _date,
-                  firstDate: DateTime(2020),
-                  lastDate: DateTime.now().add(const Duration(days: 365)),
-                );
-                if (pickedDate != null && mounted) {
-                  final pickedTime = await showTimePicker(
-                    // ignore: use_build_context_synchronously
-                    context: context,
-                    initialTime: TimeOfDay.fromDateTime(_date),
-                  );
-                  setState(() {
-                    final time = pickedTime ?? TimeOfDay.fromDateTime(_date);
-                    _date = DateTime(
-                      pickedDate.year,
-                      pickedDate.month,
-                      pickedDate.day,
-                      time.hour,
-                      time.minute,
-                    );
-                  });
-                }
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // Actions
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(l10n.commonCancel),
+              // Currency picker
+              DropdownButtonFormField<String>(
+                initialValue: _currency,
+                decoration: InputDecoration(
+                  labelText: l10n.financeCurrency,
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                 ),
-                const SizedBox(width: 8),
-                FilledButton(
-                  onPressed: _submit,
-                  child: Text(_isEditing ? l10n.commonSave : l10n.commonAdd),
-                ),
+                items: _currencyItems,
+                onChanged: (v) {
+                  if (v != null) setState(() => _currency = v);
+                },
+              ),
+              const SizedBox(height: 12),
+
+              // Account picker
+              if (widget.accounts.isNotEmpty) ...[
+                _buildAccountPicker(theme, l10n),
+                const SizedBox(height: 12),
               ],
-            ),
-          ],
+
+              // Cross-currency received amount
+              if (_isCrossCurrency) ...[
+                TextField(
+                  controller: _toAmountController,
+                  readOnly: true,
+                  onTap: () => _openCalcKeyboard(
+                    _toAmountController,
+                    l10n.financeReceivedAmount(_selectedToAccount!.currency),
+                  ),
+                  decoration: InputDecoration(
+                    labelText: l10n.financeReceivedAmount(
+                      _selectedToAccount!.currency,
+                    ),
+                    prefixText:
+                        '${currencySymbol(_selectedToAccount!.currency)} ',
+                    prefixStyle: TextStyle(color: theme.colorScheme.onSurface),
+                    helperText: l10n.financeReceivedAmountHelper,
+                    suffixIcon: const Icon(Icons.calculate_outlined, size: 18),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+
+              // Note
+              TextField(
+                controller: _noteController,
+                decoration: InputDecoration(
+                  labelText: l10n.financeNote,
+                  hintText: l10n.financeNoteHint,
+                ),
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => _submit(guard),
+              ),
+              const SizedBox(height: 12),
+
+              // Category picker
+              _buildCategoryPicker(theme, l10n),
+              const SizedBox(height: 12),
+
+              // Date & time picker
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.calendar_today),
+                title: Text(
+                  '${_date.year}-${_date.month.toString().padLeft(2, '0')}-${_date.day.toString().padLeft(2, '0')}  ${_date.hour.toString().padLeft(2, '0')}:${_date.minute.toString().padLeft(2, '0')}',
+                ),
+                onTap: () async {
+                  final pickedDate = await showDatePicker(
+                    context: context,
+                    initialDate: _date,
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime.now().add(const Duration(days: 365)),
+                  );
+                  if (pickedDate != null && mounted) {
+                    final pickedTime = await showTimePicker(
+                      // ignore: use_build_context_synchronously
+                      context: context,
+                      initialTime: TimeOfDay.fromDateTime(_date),
+                    );
+                    setState(() {
+                      final time = pickedTime ?? TimeOfDay.fromDateTime(_date);
+                      _date = DateTime(
+                        pickedDate.year,
+                        pickedDate.month,
+                        pickedDate.day,
+                        time.hour,
+                        time.minute,
+                      );
+                    });
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // Actions
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => guard.maybeDiscardAndPop(),
+                    child: Text(l10n.commonCancel),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    onPressed: () => _submit(guard),
+                    child: Text(_isEditing ? l10n.commonSave : l10n.commonAdd),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -290,9 +343,17 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
           if (snap.hasData && snap.data!.existsSync()) {
             return Row(
               children: [
-                CircleAvatar(backgroundImage: FileImage(snap.data!), radius: 12),
+                CircleAvatar(
+                  backgroundImage: FileImage(snap.data!),
+                  radius: 12,
+                ),
                 const SizedBox(width: 8),
-                Expanded(child: Text('${a.name} (${a.bankOrApp})', overflow: TextOverflow.ellipsis)),
+                Expanded(
+                  child: Text(
+                    '${a.name} (${a.bankOrApp})',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ],
             );
           }
@@ -303,13 +364,26 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
     return Text(label, overflow: TextOverflow.ellipsis);
   }
 
-  void _submit() {
+  bool _hasUnsavedChanges() => _signature() != _initialSignature;
+
+  String _signature() => formSignature([
+    _amountController.text.trim(),
+    _toAmountController.text.trim(),
+    _noteController.text.trim(),
+    _type.name,
+    _date,
+    _currency,
+    _selectedCategory?.id,
+    _selectedAccount?.id,
+    _selectedToAccount?.id,
+  ]);
+
+  void _submit(UnsavedChangesController guard) {
     final amount = double.tryParse(_amountController.text.trim());
     if (amount == null || amount <= 0) return;
 
-    final accountId = _selectedAccount?.id ??
-        widget.transaction?.accountId ??
-        '';
+    final accountId =
+        _selectedAccount?.id ?? widget.transaction?.accountId ?? '';
     final toAccountId = _type == TransactionType.transfer
         ? _selectedToAccount?.id
         : null;
@@ -335,12 +409,11 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
       note: _noteController.text.trim(),
       date: _date,
     );
-    Navigator.pop(context, tx);
+    guard.pop(tx);
   }
 
-  List<Category> get _filteredCategories => widget.categories
-      .where((c) => c.type == _type)
-      .toList();
+  List<Category> get _filteredCategories =>
+      widget.categories.where((c) => c.type == _type).toList();
 
   Widget _buildCategoryPicker(ThemeData theme, AppLocalizations l10n) {
     final cats = _filteredCategories;
@@ -372,7 +445,9 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          _type == TransactionType.transfer ? l10n.financeFromAccount : l10n.financeAccount,
+          _type == TransactionType.transfer
+              ? l10n.financeFromAccount
+              : l10n.financeAccount,
           style: theme.textTheme.bodySmall,
         ),
         const SizedBox(height: 8),
@@ -384,15 +459,16 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
             contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           ),
           items: widget.accounts
-              .map((a) => DropdownMenuItem(
-                    value: a.id,
-                    child: _buildAccountLabel(a),
-                  ))
+              .map(
+                (a) =>
+                    DropdownMenuItem(value: a.id, child: _buildAccountLabel(a)),
+              )
               .toList(),
           onChanged: (id) {
             setState(() {
-              _selectedAccount =
-                  widget.accounts.where((a) => a.id == id).firstOrNull;
+              _selectedAccount = widget.accounts
+                  .where((a) => a.id == id)
+                  .firstOrNull;
               if (_selectedAccount != null) {
                 _currency = _selectedAccount!.currency;
               }
@@ -408,19 +484,24 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
             isExpanded: true,
             decoration: const InputDecoration(
               isDense: true,
-              contentPadding:
-                  EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 10,
+              ),
             ),
             items: widget.accounts
-                .map((a) => DropdownMenuItem(
-                      value: a.id,
-                      child: _buildAccountLabel(a),
-                    ))
+                .map(
+                  (a) => DropdownMenuItem(
+                    value: a.id,
+                    child: _buildAccountLabel(a),
+                  ),
+                )
                 .toList(),
             onChanged: (id) {
               setState(() {
-                _selectedToAccount =
-                    widget.accounts.where((a) => a.id == id).firstOrNull;
+                _selectedToAccount = widget.accounts
+                    .where((a) => a.id == id)
+                    .firstOrNull;
               });
             },
           ),
@@ -454,8 +535,8 @@ class _CalcKeyboardState extends State<_CalcKeyboard> {
   void _append(String s) => setState(() => _expr += s);
 
   void _backspace() => setState(() {
-        if (_expr.isNotEmpty) _expr = _expr.substring(0, _expr.length - 1);
-      });
+    if (_expr.isNotEmpty) _expr = _expr.substring(0, _expr.length - 1);
+  });
 
   void _clear() => setState(() => _expr = '');
 
@@ -475,7 +556,9 @@ class _CalcKeyboardState extends State<_CalcKeyboard> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final preview = _evalExpr(_expr);
-    final showPreview = preview != null && _expr.isNotEmpty &&
+    final showPreview =
+        preview != null &&
+        _expr.isNotEmpty &&
         double.tryParse(_expr) == null; // only when it's an expression
 
     return Padding(
@@ -485,7 +568,8 @@ class _CalcKeyboardState extends State<_CalcKeyboard> {
         children: [
           // Handle bar
           Container(
-            width: 40, height: 4,
+            width: 40,
+            height: 4,
             decoration: BoxDecoration(
               color: theme.colorScheme.outlineVariant,
               borderRadius: BorderRadius.circular(2),
@@ -534,46 +618,54 @@ class _CalcKeyboardState extends State<_CalcKeyboard> {
             ['4', '5', '6', '×'],
             ['1', '2', '3', '-'],
             ['.', '0', '⌫', '+'],
-          ].map((row) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  children: row.asMap().entries.map((e) {
-                    final label = e.value;
-                    final isOp = '÷×-+'.contains(label);
-                    return Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.only(left: e.key == 0 ? 0 : 8),
-                        child: SizedBox(
-                          height: 56,
-                          child: OutlinedButton(
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: isOp
-                                  ? theme.colorScheme.primary
-                                  : theme.colorScheme.onSurface,
-                              side: BorderSide(
-                                color: isOp
-                                    ? theme.colorScheme.primary.withValues(alpha: 0.4)
-                                    : theme.colorScheme.outlineVariant,
-                              ),
+          ].map(
+            (row) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: row.asMap().entries.map((e) {
+                  final label = e.value;
+                  final isOp = '÷×-+'.contains(label);
+                  return Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.only(left: e.key == 0 ? 0 : 8),
+                      child: SizedBox(
+                        height: 56,
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: isOp
+                                ? theme.colorScheme.primary
+                                : theme.colorScheme.onSurface,
+                            side: BorderSide(
+                              color: isOp
+                                  ? theme.colorScheme.primary.withValues(
+                                      alpha: 0.4,
+                                    )
+                                  : theme.colorScheme.outlineVariant,
                             ),
-                            onPressed: () {
-                              if (label == '⌫') {
-                                _backspace();
-                              } else {
-                                _append(label);
-                              }
-                            },
-                            child: Text(label,
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: isOp ? FontWeight.w600 : FontWeight.normal,
-                                )),
+                          ),
+                          onPressed: () {
+                            if (label == '⌫') {
+                              _backspace();
+                            } else {
+                              _append(label);
+                            }
+                          },
+                          child: Text(
+                            label,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: isOp
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                            ),
                           ),
                         ),
                       ),
-                    );
-                  }).toList(),
-                ),
-              )),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
           // Bottom row: clear + confirm
           Row(
             children: [
@@ -583,10 +675,15 @@ class _CalcKeyboardState extends State<_CalcKeyboard> {
                   child: OutlinedButton(
                     style: OutlinedButton.styleFrom(
                       foregroundColor: theme.colorScheme.error,
-                      side: BorderSide(color: theme.colorScheme.error.withValues(alpha: 0.4)),
+                      side: BorderSide(
+                        color: theme.colorScheme.error.withValues(alpha: 0.4),
+                      ),
                     ),
                     onPressed: _clear,
-                    child: const Text('C', style: TextStyle(fontWeight: FontWeight.w600)),
+                    child: const Text(
+                      'C',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
                   ),
                 ),
               ),
@@ -597,8 +694,13 @@ class _CalcKeyboardState extends State<_CalcKeyboard> {
                   height: 56,
                   child: FilledButton(
                     onPressed: _confirm,
-                    child: const Text('=',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+                    child: const Text(
+                      '=',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ),
               ),

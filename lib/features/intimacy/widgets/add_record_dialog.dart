@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/widgets/unsaved_changes_guard.dart';
 import '../models/intimacy_record.dart';
 
 class AddRecordDialog extends StatefulWidget {
@@ -37,6 +38,7 @@ class _AddRecordDialogState extends State<AddRecordDialog> {
   late DateTime _datetime;
   late bool _hadOrgasm;
   late bool _watchedPorn;
+  late final String _initialSignature;
 
   bool get _isEditing => widget.record != null;
 
@@ -68,6 +70,7 @@ class _AddRecordDialogState extends State<AddRecordDialog> {
     if (!_isSolo && _selectedPartnerId == null && widget.partners.isNotEmpty) {
       _selectedPartnerId = widget.partners.first.id;
     }
+    _initialSignature = _signature();
   }
 
   @override
@@ -84,280 +87,315 @@ class _AddRecordDialogState extends State<AddRecordDialog> {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
 
-    return Dialog(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              _isEditing ? l10n.intimacyEditRecord : l10n.intimacyNewRecord,
-              style: theme.textTheme.titleLarge,
-            ),
-            const SizedBox(height: 16),
-
-            // Solo toggle
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text(l10n.intimacySolo),
-              value: _isSolo,
-              onChanged: (v) => setState(() {
-                _isSolo = v;
-                if (!v &&
-                    _selectedPartnerId == null &&
-                    widget.partners.isNotEmpty) {
-                  _selectedPartnerId = widget.partners.first.id;
-                }
-              }),
-            ),
-
-            // Partner picker (hidden if solo)
-            if (!_isSolo) ...[
-              if (widget.partners.isEmpty)
-                Text(
-                  l10n.intimacyNoPartnersHint,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.error,
-                  ),
-                )
-              else
-                DropdownButtonFormField<String>(
-                  initialValue: _selectedPartnerId,
-                  decoration: InputDecoration(labelText: l10n.intimacyPartner),
-                  items: widget.partners
-                      .map(
-                        (p) => DropdownMenuItem(
-                          value: p.id,
-                          child: Text(
-                            p.emoji != null ? '${p.emoji} ${p.name}' : p.name,
-                          ),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (v) => setState(() => _selectedPartnerId = v),
-                ),
-              const SizedBox(height: 12),
-            ],
-
-            // Toy multi-select
-            if (widget.toys.isNotEmpty) ...[
-              Text('${AppLocalizations.of(context)!.intimacyToys}:', style: theme.textTheme.bodyMedium),
-              const SizedBox(height: 4),
-              Wrap(
-                spacing: 8,
-                runSpacing: 4,
-                children: widget.toys.map((toy) {
-                  final selected = _selectedToyIds.contains(toy.id);
-                  return FilterChip(
-                    label: Text(
-                      toy.emoji != null ? '${toy.emoji} ${toy.name}' : toy.name,
-                    ),
-                    selected: selected,
-                    onSelected: (v) {
-                      setState(() {
-                        if (v) {
-                          _selectedToyIds.add(toy.id);
-                        } else {
-                          _selectedToyIds.remove(toy.id);
-                        }
-                      });
-                    },
-                  );
-                }).toList(),
+    return UnsavedChangesGuard(
+      hasUnsavedChanges: _hasUnsavedChanges,
+      builder: (context, guard) => Dialog(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                _isEditing ? l10n.intimacyEditRecord : l10n.intimacyNewRecord,
+                style: theme.textTheme.titleLarge,
               ),
-              const SizedBox(height: 12),
-            ],
+              const SizedBox(height: 16),
 
-            // Position multi-select
-            if (widget.positions.isNotEmpty) ...[
-              Text('${l10n.intimacyPositions}:', style: theme.textTheme.bodyMedium),
-              const SizedBox(height: 4),
-              Wrap(
-                spacing: 8,
-                runSpacing: 4,
-                children: widget.positions.map((pos) {
-                  final selected = _selectedPositionIds.contains(pos.id);
-                  return FilterChip(
-                    label: Text(
-                      pos.emoji != null ? '${pos.emoji} ${pos.name}' : pos.name,
-                    ),
-                    selected: selected,
-                    onSelected: (v) {
-                      setState(() {
-                        if (v) {
-                          _selectedPositionIds.add(pos.id);
-                        } else {
-                          _selectedPositionIds.remove(pos.id);
-                        }
-                      });
-                    },
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 12),
-            ],
-
-            // Pleasure level
-            Row(
-              children: [
-                Text(
-                  '${l10n.intimacyPleasure}:',
-                  style: theme.textTheme.bodyMedium,
-                ),
-                const SizedBox(width: 8),
-                ...List.generate(5, (i) {
-                  final level = i + 1;
-                  return GestureDetector(
-                    onTap: () => setState(() => _pleasureLevel = level),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 2),
-                      child: Icon(
-                        level <= _pleasureLevel
-                            ? Icons.star
-                            : Icons.star_border,
-                        color: theme.colorScheme.primary,
-                        size: 28,
-                      ),
-                    ),
-                  );
+              // Solo toggle
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(l10n.intimacySolo),
+                value: _isSolo,
+                onChanged: (v) => setState(() {
+                  _isSolo = v;
+                  if (!v &&
+                      _selectedPartnerId == null &&
+                      widget.partners.isNotEmpty) {
+                    _selectedPartnerId = widget.partners.first.id;
+                  }
                 }),
-              ],
-            ),
-            const SizedBox(height: 12),
+              ),
 
-            // Duration input (hours + minutes)
-            Row(
-              children: [
+              // Partner picker (hidden if solo)
+              if (!_isSolo) ...[
+                if (widget.partners.isEmpty)
+                  Text(
+                    l10n.intimacyNoPartnersHint,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.error,
+                    ),
+                  )
+                else
+                  DropdownButtonFormField<String>(
+                    initialValue: _selectedPartnerId,
+                    decoration: InputDecoration(
+                      labelText: l10n.intimacyPartner,
+                    ),
+                    items: widget.partners
+                        .map(
+                          (p) => DropdownMenuItem(
+                            value: p.id,
+                            child: Text(
+                              p.emoji != null ? '${p.emoji} ${p.name}' : p.name,
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (v) => setState(() => _selectedPartnerId = v),
+                  ),
+                const SizedBox(height: 12),
+              ],
+
+              // Toy multi-select
+              if (widget.toys.isNotEmpty) ...[
                 Text(
-                  '${l10n.intimacyDuration}:',
+                  '${AppLocalizations.of(context)!.intimacyToys}:',
                   style: theme.textTheme.bodyMedium,
                 ),
-                const SizedBox(width: 12),
-                SizedBox(
-                  width: 56,
-                  child: TextField(
-                    controller: _hoursController,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    textAlign: TextAlign.center,
-                    decoration: const InputDecoration(
-                      isDense: true,
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 10,
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: widget.toys.map((toy) {
+                    final selected = _selectedToyIds.contains(toy.id);
+                    return FilterChip(
+                      label: Text(
+                        toy.emoji != null
+                            ? '${toy.emoji} ${toy.name}'
+                            : toy.name,
                       ),
-                      suffixText: 'h',
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                SizedBox(
-                  width: 56,
-                  child: TextField(
-                    controller: _minutesController,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    textAlign: TextAlign.center,
-                    decoration: const InputDecoration(
-                      isDense: true,
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 10,
-                      ),
-                      suffixText: 'm',
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            // Orgasm toggle
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text(l10n.intimacyOrgasm),
-              value: _hadOrgasm,
-              onChanged: (v) => setState(() => _hadOrgasm = v),
-            ),
-
-            // Watched porn toggle
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text(l10n.intimacyWatchedPorn),
-              value: _watchedPorn,
-              onChanged: (v) => setState(() => _watchedPorn = v),
-            ),
-
-            // Location
-            TextField(
-              controller: _locationController,
-              decoration: InputDecoration(labelText: l10n.intimacyLocation),
-            ),
-            const SizedBox(height: 12),
-
-            // Notes
-            TextField(
-              controller: _notesController,
-              decoration: InputDecoration(labelText: l10n.intimacyNotes),
-              maxLines: 2,
-            ),
-            const SizedBox(height: 12),
-
-            // Date/time picker
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.calendar_today),
-              title: Text(
-                '${_datetime.year}-${_datetime.month.toString().padLeft(2, '0')}-${_datetime.day.toString().padLeft(2, '0')} '
-                '${_datetime.hour.toString().padLeft(2, '0')}:${_datetime.minute.toString().padLeft(2, '0')}',
-              ),
-              onTap: () async {
-                final date = await showDatePicker(
-                  context: context,
-                  initialDate: _datetime,
-                  firstDate: DateTime(2020),
-                  lastDate: DateTime.now().add(const Duration(days: 1)),
-                );
-                if (date == null || !mounted) return;
-                if (!context.mounted) return;
-                final time = await showTimePicker(
-                  context: context,
-                  initialTime: TimeOfDay.fromDateTime(_datetime),
-                );
-                if (time != null) {
-                  setState(() {
-                    _datetime = DateTime(
-                      date.year,
-                      date.month,
-                      date.day,
-                      time.hour,
-                      time.minute,
+                      selected: selected,
+                      onSelected: (v) {
+                        setState(() {
+                          if (v) {
+                            _selectedToyIds.add(toy.id);
+                          } else {
+                            _selectedToyIds.remove(toy.id);
+                          }
+                        });
+                      },
                     );
-                  });
-                }
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // Actions
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(l10n.commonCancel),
+                  }).toList(),
                 ),
-                const SizedBox(width: 8),
-                FilledButton(onPressed: _submit, child: Text(l10n.commonSave)),
+                const SizedBox(height: 12),
               ],
-            ),
-          ],
+
+              // Position multi-select
+              if (widget.positions.isNotEmpty) ...[
+                Text(
+                  '${l10n.intimacyPositions}:',
+                  style: theme.textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: widget.positions.map((pos) {
+                    final selected = _selectedPositionIds.contains(pos.id);
+                    return FilterChip(
+                      label: Text(
+                        pos.emoji != null
+                            ? '${pos.emoji} ${pos.name}'
+                            : pos.name,
+                      ),
+                      selected: selected,
+                      onSelected: (v) {
+                        setState(() {
+                          if (v) {
+                            _selectedPositionIds.add(pos.id);
+                          } else {
+                            _selectedPositionIds.remove(pos.id);
+                          }
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 12),
+              ],
+
+              // Pleasure level
+              Row(
+                children: [
+                  Text(
+                    '${l10n.intimacyPleasure}:',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                  const SizedBox(width: 8),
+                  ...List.generate(5, (i) {
+                    final level = i + 1;
+                    return GestureDetector(
+                      onTap: () => setState(() => _pleasureLevel = level),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 2),
+                        child: Icon(
+                          level <= _pleasureLevel
+                              ? Icons.star
+                              : Icons.star_border,
+                          color: theme.colorScheme.primary,
+                          size: 28,
+                        ),
+                      ),
+                    );
+                  }),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // Duration input (hours + minutes)
+              Row(
+                children: [
+                  Text(
+                    '${l10n.intimacyDuration}:',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                  const SizedBox(width: 12),
+                  SizedBox(
+                    width: 56,
+                    child: TextField(
+                      controller: _hoursController,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      textAlign: TextAlign.center,
+                      decoration: const InputDecoration(
+                        isDense: true,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 10,
+                        ),
+                        suffixText: 'h',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 56,
+                    child: TextField(
+                      controller: _minutesController,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      textAlign: TextAlign.center,
+                      decoration: const InputDecoration(
+                        isDense: true,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 10,
+                        ),
+                        suffixText: 'm',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              // Orgasm toggle
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(l10n.intimacyOrgasm),
+                value: _hadOrgasm,
+                onChanged: (v) => setState(() => _hadOrgasm = v),
+              ),
+
+              // Watched porn toggle
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(l10n.intimacyWatchedPorn),
+                value: _watchedPorn,
+                onChanged: (v) => setState(() => _watchedPorn = v),
+              ),
+
+              // Location
+              TextField(
+                controller: _locationController,
+                decoration: InputDecoration(labelText: l10n.intimacyLocation),
+              ),
+              const SizedBox(height: 12),
+
+              // Notes
+              TextField(
+                controller: _notesController,
+                decoration: InputDecoration(labelText: l10n.intimacyNotes),
+                maxLines: 2,
+              ),
+              const SizedBox(height: 12),
+
+              // Date/time picker
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.calendar_today),
+                title: Text(
+                  '${_datetime.year}-${_datetime.month.toString().padLeft(2, '0')}-${_datetime.day.toString().padLeft(2, '0')} '
+                  '${_datetime.hour.toString().padLeft(2, '0')}:${_datetime.minute.toString().padLeft(2, '0')}',
+                ),
+                onTap: () async {
+                  final date = await showDatePicker(
+                    context: context,
+                    initialDate: _datetime,
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime.now().add(const Duration(days: 1)),
+                  );
+                  if (date == null || !mounted) return;
+                  if (!context.mounted) return;
+                  final time = await showTimePicker(
+                    context: context,
+                    initialTime: TimeOfDay.fromDateTime(_datetime),
+                  );
+                  if (time != null) {
+                    setState(() {
+                      _datetime = DateTime(
+                        date.year,
+                        date.month,
+                        date.day,
+                        time.hour,
+                        time.minute,
+                      );
+                    });
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // Actions
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => guard.maybeDiscardAndPop(),
+                    child: Text(l10n.commonCancel),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    onPressed: () => _submit(guard),
+                    child: Text(l10n.commonSave),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  void _submit() {
+  bool _hasUnsavedChanges() => _signature() != _initialSignature;
+
+  String _signature() => formSignature([
+    _isSolo,
+    _selectedPartnerId,
+    _selectedToyIds.toList()..sort(),
+    _selectedPositionIds.toList()..sort(),
+    _locationController.text.trim(),
+    _notesController.text.trim(),
+    _hoursController.text.trim(),
+    _minutesController.text.trim(),
+    _pleasureLevel,
+    _datetime,
+    _hadOrgasm,
+    _watchedPorn,
+  ]);
+
+  void _submit(UnsavedChangesController guard) {
     final hours = int.tryParse(_hoursController.text) ?? 0;
     final minutes = int.tryParse(_minutesController.text) ?? 0;
     final totalMinutes = (hours * 60 + minutes).clamp(0, 5999);
@@ -380,6 +418,6 @@ class _AddRecordDialogState extends State<AddRecordDialog> {
           ? null
           : _notesController.text.trim(),
     );
-    Navigator.pop(context, record);
+    guard.pop(record);
   }
 }

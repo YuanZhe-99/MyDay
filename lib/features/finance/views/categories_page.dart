@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/delete_confirm.dart';
+import '../../../shared/widgets/unsaved_changes_guard.dart';
 import '../models/finance.dart';
 import '../services/exchange_rate_storage.dart';
 import 'category_detail_page.dart';
@@ -25,11 +26,27 @@ final _defaultIncomeCategories = <Map<String, dynamic>>[
 ];
 
 final _defaultTransferCategories = <Map<String, dynamic>>[
-  {'key': 'financeCatCreditCardPayment', 'emoji': '💳', 'icon': Icons.credit_card},
-  {'key': 'financeCatFixedDeposit', 'emoji': '🏦', 'icon': Icons.account_balance},
-  {'key': 'financeCatInternalTransfer', 'emoji': '🔄', 'icon': Icons.swap_horiz},
+  {
+    'key': 'financeCatCreditCardPayment',
+    'emoji': '💳',
+    'icon': Icons.credit_card,
+  },
+  {
+    'key': 'financeCatFixedDeposit',
+    'emoji': '🏦',
+    'icon': Icons.account_balance,
+  },
+  {
+    'key': 'financeCatInternalTransfer',
+    'emoji': '🔄',
+    'icon': Icons.swap_horiz,
+  },
   {'key': 'financeCatLoanRepayment', 'emoji': '📝', 'icon': Icons.receipt_long},
-  {'key': 'financeCatInvestmentTransfer', 'emoji': '📈', 'icon': Icons.trending_up},
+  {
+    'key': 'financeCatInvestmentTransfer',
+    'emoji': '📈',
+    'icon': Icons.trending_up,
+  },
   {'key': 'financeCatReimburse', 'emoji': '🧱', 'icon': Icons.receipt},
 ];
 
@@ -141,37 +158,39 @@ class _CategoriesPageState extends State<CategoriesPage>
       TransactionType.income => _defaultIncomeCategories,
       TransactionType.transfer => _defaultTransferCategories,
     };
-    final toAdd = defaults.map((d) => Category(
-          name: _resolveKey(l10n, d['key'] as String),
-          type: type,
-          emoji: d['emoji'] as String,
-          icon: IconRef(codePoint: (d['icon'] as IconData).codePoint),
-        ));
+    final toAdd = defaults.map(
+      (d) => Category(
+        name: _resolveKey(l10n, d['key'] as String),
+        type: type,
+        emoji: d['emoji'] as String,
+        icon: IconRef(codePoint: (d['icon'] as IconData).codePoint),
+      ),
+    );
     setState(() => _categories.addAll(toAdd));
     _notify();
   }
 
   String _resolveKey(AppLocalizations l10n, String key) => switch (key) {
-        'financeCatFood' => l10n.financeCatFood,
-        'financeCatTransport' => l10n.financeCatTransport,
-        'financeCatShopping' => l10n.financeCatShopping,
-        'financeCatRent' => l10n.financeCatRent,
-        'financeCatDigital' => l10n.financeCatDigital,
-        'financeCatEntertainment' => l10n.financeCatEntertainment,
-        'financeCatHealthcare' => l10n.financeCatHealthcare,
-        'financeCatEducation' => l10n.financeCatEducation,
-        'financeCatSalary' => l10n.financeCatSalary,
-        'financeCatBonus' => l10n.financeCatBonus,
-        'financeCatInvestment' => l10n.financeCatInvestment,
-        'financeCatFreelance' => l10n.financeCatFreelance,
-        'financeCatCreditCardPayment' => l10n.financeCatCreditCardPayment,
-        'financeCatFixedDeposit' => l10n.financeCatFixedDeposit,
-        'financeCatInternalTransfer' => l10n.financeCatInternalTransfer,
-        'financeCatLoanRepayment' => l10n.financeCatLoanRepayment,
-        'financeCatInvestmentTransfer' => l10n.financeCatInvestmentTransfer,
-        'financeCatReimburse' => l10n.financeCatReimburse,
-        _ => key,
-      };
+    'financeCatFood' => l10n.financeCatFood,
+    'financeCatTransport' => l10n.financeCatTransport,
+    'financeCatShopping' => l10n.financeCatShopping,
+    'financeCatRent' => l10n.financeCatRent,
+    'financeCatDigital' => l10n.financeCatDigital,
+    'financeCatEntertainment' => l10n.financeCatEntertainment,
+    'financeCatHealthcare' => l10n.financeCatHealthcare,
+    'financeCatEducation' => l10n.financeCatEducation,
+    'financeCatSalary' => l10n.financeCatSalary,
+    'financeCatBonus' => l10n.financeCatBonus,
+    'financeCatInvestment' => l10n.financeCatInvestment,
+    'financeCatFreelance' => l10n.financeCatFreelance,
+    'financeCatCreditCardPayment' => l10n.financeCatCreditCardPayment,
+    'financeCatFixedDeposit' => l10n.financeCatFixedDeposit,
+    'financeCatInternalTransfer' => l10n.financeCatInternalTransfer,
+    'financeCatLoanRepayment' => l10n.financeCatLoanRepayment,
+    'financeCatInvestmentTransfer' => l10n.financeCatInvestmentTransfer,
+    'financeCatReimburse' => l10n.financeCatReimburse,
+    _ => key,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -192,11 +211,20 @@ class _CategoriesPageState extends State<CategoriesPage>
         controller: _tabController,
         children: [
           _buildCategoryList(
-              context, _ofType(TransactionType.expense), TransactionType.expense),
+            context,
+            _ofType(TransactionType.expense),
+            TransactionType.expense,
+          ),
           _buildCategoryList(
-              context, _ofType(TransactionType.income), TransactionType.income),
+            context,
+            _ofType(TransactionType.income),
+            TransactionType.income,
+          ),
           _buildCategoryList(
-              context, _ofType(TransactionType.transfer), TransactionType.transfer),
+            context,
+            _ofType(TransactionType.transfer),
+            TransactionType.transfer,
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -214,7 +242,10 @@ class _CategoriesPageState extends State<CategoriesPage>
   }
 
   Widget _buildCategoryList(
-      BuildContext context, List<Category> cats, TransactionType type) {
+    BuildContext context,
+    List<Category> cats,
+    TransactionType type,
+  ) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     if (cats.isEmpty) {
@@ -227,8 +258,11 @@ class _CategoriesPageState extends State<CategoriesPage>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.category,
-                size: 48, color: theme.colorScheme.onSurfaceVariant),
+            Icon(
+              Icons.category,
+              size: 48,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
             const SizedBox(height: 12),
             Text(
               l10n.financeNoCategoriesOfType(typeLabel),
@@ -258,22 +292,26 @@ class _CategoriesPageState extends State<CategoriesPage>
             alignment: Alignment.centerLeft,
             padding: const EdgeInsets.only(left: 20),
             color: theme.colorScheme.primary,
-            child: Icon(Icons.edit_outlined,
-                color: theme.colorScheme.onPrimary),
+            child: Icon(
+              Icons.edit_outlined,
+              color: theme.colorScheme.onPrimary,
+            ),
           ),
           secondaryBackground: Container(
             alignment: Alignment.centerRight,
             padding: const EdgeInsets.only(right: 20),
             color: theme.colorScheme.error,
-            child:
-                Icon(Icons.delete_outline, color: theme.colorScheme.onError),
+            child: Icon(Icons.delete_outline, color: theme.colorScheme.onError),
           ),
           confirmDismiss: (direction) async {
             if (direction == DismissDirection.startToEnd) {
               _editCategory(cat);
               return false;
             }
-            return confirmDelete(context, AppLocalizations.of(context)!.financeThisCategory);
+            return confirmDelete(
+              context,
+              AppLocalizations.of(context)!.financeThisCategory,
+            );
           },
           onDismissed: (_) => _deleteCategory(cat),
           child: ListTile(
@@ -349,12 +387,41 @@ class _CategoryDialogState extends State<_CategoryDialog> {
   final _nameController = TextEditingController();
   late IconData _selectedIcon;
   String? _selectedEmoji;
+  late final String _initialSignature;
 
   static const _commonEmojis = [
-    '🍜', '🍔', '☕', '🍺', '🚌', '🚗', '⛽', '💰',
-    '🛍️', '👕', '🏠', '💡', '📱', '💻', '🎬', '🎵',
-    '🎮', '🏃', '💊', '🐶', '👶', '🎓', '✈️', '🏥',
-    '💇', '📚', '🔧', '🎁', '💳', '📊', '🤝', '❤️',
+    '🍜',
+    '🍔',
+    '☕',
+    '🍺',
+    '🚌',
+    '🚗',
+    '⛽',
+    '💰',
+    '🛍️',
+    '👕',
+    '🏠',
+    '💡',
+    '📱',
+    '💻',
+    '🎬',
+    '🎵',
+    '🎮',
+    '🏃',
+    '💊',
+    '🐶',
+    '👶',
+    '🎓',
+    '✈️',
+    '🏥',
+    '💇',
+    '📚',
+    '🔧',
+    '🎁',
+    '💳',
+    '📊',
+    '🤝',
+    '❤️',
   ];
 
   @override
@@ -369,6 +436,7 @@ class _CategoryDialogState extends State<_CategoryDialog> {
           ? Icons.shopping_cart
           : Icons.attach_money;
     }
+    _initialSignature = _signature();
   }
 
   @override
@@ -383,137 +451,157 @@ class _CategoryDialogState extends State<_CategoryDialog> {
     final isEditing = widget.category != null;
     final l10n = AppLocalizations.of(context)!;
 
-    return Dialog(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              isEditing ? l10n.financeEditCategory : l10n.financeAddCategory,
-              style: theme.textTheme.titleLarge,
-            ),
-            const SizedBox(height: 16),
-
-            TextField(
-              controller: _nameController,
-              autofocus: true,
-              decoration: InputDecoration(
-                labelText: l10n.financeName,
-                hintText: widget.type == TransactionType.expense
-                    ? l10n.financeCategoryHintExpense
-                    : l10n.financeCategoryHintIncome,
+    return UnsavedChangesGuard(
+      hasUnsavedChanges: _hasUnsavedChanges,
+      builder: (context, guard) => Dialog(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                isEditing ? l10n.financeEditCategory : l10n.financeAddCategory,
+                style: theme.textTheme.titleLarge,
               ),
-            ),
-            const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-            // Emoji picker
-            Text(l10n.financeEmoji, style: theme.textTheme.bodySmall),
-            const SizedBox(height: 8),
-            SizedBox(
-              height: 110,
-              child: GridView.builder(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 8,
-                  mainAxisSpacing: 4,
-                  crossAxisSpacing: 4,
+              TextField(
+                controller: _nameController,
+                autofocus: true,
+                decoration: InputDecoration(
+                  labelText: l10n.financeName,
+                  hintText: widget.type == TransactionType.expense
+                      ? l10n.financeCategoryHintExpense
+                      : l10n.financeCategoryHintIncome,
                 ),
-                itemCount: _commonEmojis.length,
-                itemBuilder: (context, index) {
-                  final emoji = _commonEmojis[index];
-                  final isSelected = emoji == _selectedEmoji;
-                  return InkWell(
-                    borderRadius: BorderRadius.circular(8),
-                    onTap: () => setState(() {
-                      _selectedEmoji = isSelected ? null : emoji;
-                    }),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        color: isSelected
-                            ? theme.colorScheme.primaryContainer
-                            : null,
-                        border: isSelected
-                            ? Border.all(
-                                color: theme.colorScheme.primary, width: 2)
-                            : null,
-                      ),
-                      child: Center(
-                        child: Text(emoji, style: const TextStyle(fontSize: 20)),
-                      ),
-                    ),
-                  );
-                },
               ),
-            ),
-            const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-            Text(l10n.financeIcon, style: theme.textTheme.bodySmall),
-            const SizedBox(height: 8),
-
-            // Icon grid
-            SizedBox(
-              height: 200,
-              child: GridView.builder(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 6,
-                  mainAxisSpacing: 4,
-                  crossAxisSpacing: 4,
+              // Emoji picker
+              Text(l10n.financeEmoji, style: theme.textTheme.bodySmall),
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 110,
+                child: GridView.builder(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 8,
+                    mainAxisSpacing: 4,
+                    crossAxisSpacing: 4,
+                  ),
+                  itemCount: _commonEmojis.length,
+                  itemBuilder: (context, index) {
+                    final emoji = _commonEmojis[index];
+                    final isSelected = emoji == _selectedEmoji;
+                    return InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: () => setState(() {
+                        _selectedEmoji = isSelected ? null : emoji;
+                      }),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          color: isSelected
+                              ? theme.colorScheme.primaryContainer
+                              : null,
+                          border: isSelected
+                              ? Border.all(
+                                  color: theme.colorScheme.primary,
+                                  width: 2,
+                                )
+                              : null,
+                        ),
+                        child: Center(
+                          child: Text(
+                            emoji,
+                            style: const TextStyle(fontSize: 20),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
                 ),
-                itemCount: _categoryIcons.length,
-                itemBuilder: (context, index) {
-                  final icon = _categoryIcons[index];
-                  final isSelected = icon.codePoint == _selectedIcon.codePoint;
-                  return InkWell(
-                    borderRadius: BorderRadius.circular(8),
-                    onTap: () => setState(() => _selectedIcon = icon),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        color: isSelected
-                            ? theme.colorScheme.primaryContainer
-                            : null,
-                        border: isSelected
-                            ? Border.all(
-                                color: theme.colorScheme.primary, width: 2)
-                            : null,
-                      ),
-                      child: Icon(
-                        icon,
-                        size: 22,
-                        color: isSelected
-                            ? theme.colorScheme.primary
-                            : theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  );
-                },
               ),
-            ),
-            const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(l10n.commonCancel),
+              Text(l10n.financeIcon, style: theme.textTheme.bodySmall),
+              const SizedBox(height: 8),
+
+              // Icon grid
+              SizedBox(
+                height: 200,
+                child: GridView.builder(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 6,
+                    mainAxisSpacing: 4,
+                    crossAxisSpacing: 4,
+                  ),
+                  itemCount: _categoryIcons.length,
+                  itemBuilder: (context, index) {
+                    final icon = _categoryIcons[index];
+                    final isSelected =
+                        icon.codePoint == _selectedIcon.codePoint;
+                    return InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: () => setState(() => _selectedIcon = icon),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          color: isSelected
+                              ? theme.colorScheme.primaryContainer
+                              : null,
+                          border: isSelected
+                              ? Border.all(
+                                  color: theme.colorScheme.primary,
+                                  width: 2,
+                                )
+                              : null,
+                        ),
+                        child: Icon(
+                          icon,
+                          size: 22,
+                          color: isSelected
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    );
+                  },
                 ),
-                const SizedBox(width: 8),
-                FilledButton(
-                  onPressed: _submit,
-                  child: Text(isEditing ? l10n.commonSave : l10n.commonAdd),
-                ),
-              ],
-            ),
-          ],
+              ),
+              const SizedBox(height: 16),
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => guard.maybeDiscardAndPop(),
+                    child: Text(l10n.commonCancel),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    onPressed: () => _submit(guard),
+                    child: Text(isEditing ? l10n.commonSave : l10n.commonAdd),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  void _submit() {
+  bool _hasUnsavedChanges() => _signature() != _initialSignature;
+
+  String _signature() => formSignature([
+    _nameController.text.trim(),
+    _selectedIcon.codePoint,
+    _selectedIcon.fontFamily,
+    _selectedEmoji,
+  ]);
+
+  void _submit(UnsavedChangesController guard) {
     final name = _nameController.text.trim();
     if (name.isEmpty) return;
 
@@ -527,6 +615,6 @@ class _CategoryDialogState extends State<_CategoryDialog> {
       emoji: _selectedEmoji,
       type: widget.type,
     );
-    Navigator.pop(context, category);
+    guard.pop(category);
   }
 }

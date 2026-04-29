@@ -695,6 +695,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get commonSave => '保存';
 
   @override
+  String get commonDiscard => '破棄';
+
+  @override
+  String get commonDiscardChangesTitle => '変更を破棄しますか？';
+
+  @override
+  String get commonDiscardChangesMessage => '保存されていない変更があります。破棄して閉じますか？';
+
+  @override
   String get commonCancel => 'キャンセル';
 
   @override

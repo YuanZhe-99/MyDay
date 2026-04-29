@@ -9,6 +9,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../shared/services/auto_sync_service.dart';
 import '../../../shared/services/reminder_service.dart';
 import '../../../shared/widgets/delete_confirm.dart';
+import '../../../shared/widgets/unsaved_changes_guard.dart';
 import '../models/weight_record.dart';
 import '../services/weight_storage.dart';
 
@@ -52,10 +53,12 @@ class _WeightPageState extends State<WeightPage> {
         _height = data.height;
         _records = data.records;
         _reminderMode = data.reminderMode;
-        _weightMorningReminder = data.morningHour != null && data.morningMinute != null
+        _weightMorningReminder =
+            data.morningHour != null && data.morningMinute != null
             ? TimeOfDay(hour: data.morningHour!, minute: data.morningMinute!)
             : null;
-        _weightEveningReminder = data.eveningHour != null && data.eveningMinute != null
+        _weightEveningReminder =
+            data.eveningHour != null && data.eveningMinute != null
             ? TimeOfDay(hour: data.eveningHour!, minute: data.eveningMinute!)
             : null;
       }
@@ -70,16 +73,18 @@ class _WeightPageState extends State<WeightPage> {
   }
 
   Future<void> _saveData() async {
-    await WeightStorage.save(WeightData(
-      height: _height,
-      records: _records,
-      reminderMode: _reminderMode,
-      morningHour: _weightMorningReminder?.hour,
-      morningMinute: _weightMorningReminder?.minute,
-      eveningHour: _weightEveningReminder?.hour,
-      eveningMinute: _weightEveningReminder?.minute,
-      settingsModifiedAt: DateTime.now().toUtc(),
-    ));
+    await WeightStorage.save(
+      WeightData(
+        height: _height,
+        records: _records,
+        reminderMode: _reminderMode,
+        morningHour: _weightMorningReminder?.hour,
+        morningMinute: _weightMorningReminder?.minute,
+        eveningHour: _weightEveningReminder?.hour,
+        eveningMinute: _weightEveningReminder?.minute,
+        settingsModifiedAt: DateTime.now().toUtc(),
+      ),
+    );
     ReminderService.instance.updateWeightData(
       morningHour: _weightMorningReminder?.hour,
       morningMinute: _weightMorningReminder?.minute,
@@ -154,8 +159,8 @@ class _WeightPageState extends State<WeightPage> {
       body: !_loaded
           ? const Center(child: CircularProgressIndicator())
           : _records.isEmpty
-              ? _buildEmptyState(theme, l10n)
-              : _buildContent(theme, l10n),
+          ? _buildEmptyState(theme, l10n)
+          : _buildContent(theme, l10n),
       floatingActionButton: FloatingActionButton(
         onPressed: _addRecord,
         child: const Icon(Icons.add),
@@ -168,13 +173,18 @@ class _WeightPageState extends State<WeightPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.monitor_weight_outlined,
-              size: 64, color: theme.colorScheme.onSurfaceVariant),
+          Icon(
+            Icons.monitor_weight_outlined,
+            size: 64,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
           const SizedBox(height: 16),
-          Text(l10n.weightNoRecords,
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              )),
+          Text(
+            l10n.weightNoRecords,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
           const SizedBox(height: 8),
           if (_height == null)
             TextButton(
@@ -197,7 +207,16 @@ class _WeightPageState extends State<WeightPage> {
     return ListView(
       children: [
         // ── Summary card (like the reference UI) ──
-        _buildSummaryCard(theme, l10n, latest, bmi, change, days, range, timeSince),
+        _buildSummaryCard(
+          theme,
+          l10n,
+          latest,
+          bmi,
+          change,
+          days,
+          range,
+          timeSince,
+        ),
         const SizedBox(height: 16),
 
         // ── Chart section ──
@@ -234,21 +253,30 @@ class _WeightPageState extends State<WeightPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(timeSince,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant)),
+                      Text(
+                        timeSince,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
                       const SizedBox(height: 4),
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.baseline,
                         textBaseline: TextBaseline.alphabetic,
                         children: [
-                          Text(latest.weight.toStringAsFixed(1),
-                              style: theme.textTheme.displaySmall?.copyWith(
-                                  fontWeight: FontWeight.bold)),
+                          Text(
+                            latest.weight.toStringAsFixed(1),
+                            style: theme.textTheme.displaySmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                           const SizedBox(width: 4),
-                          Text(l10n.weightUnitKg,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant)),
+                          Text(
+                            l10n.weightUnitKg,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
                         ],
                       ),
                     ],
@@ -258,9 +286,12 @@ class _WeightPageState extends State<WeightPage> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text('$days ${l10n.weightDays}',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant)),
+                      Text(
+                        '$days ${l10n.weightDays}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
                       const SizedBox(height: 4),
                       Row(
                         mainAxisSize: MainAxisSize.min,
@@ -269,13 +300,13 @@ class _WeightPageState extends State<WeightPage> {
                             change < 0
                                 ? Icons.arrow_downward
                                 : change > 0
-                                    ? Icons.arrow_upward
-                                    : Icons.remove,
+                                ? Icons.arrow_upward
+                                : Icons.remove,
                             color: change < 0
                                 ? Colors.blue
                                 : change > 0
-                                    ? Colors.red
-                                    : theme.colorScheme.onSurfaceVariant,
+                                ? Colors.red
+                                : theme.colorScheme.onSurfaceVariant,
                             size: 20,
                           ),
                           const SizedBox(width: 4),
@@ -286,8 +317,8 @@ class _WeightPageState extends State<WeightPage> {
                               color: change < 0
                                   ? Colors.blue
                                   : change > 0
-                                      ? Colors.red
-                                      : null,
+                                  ? Colors.red
+                                  : null,
                             ),
                           ),
                         ],
@@ -328,22 +359,31 @@ class _WeightPageState extends State<WeightPage> {
     );
   }
 
-  Widget _buildStatLabel(ThemeData theme, String label, String value,
-      {Widget? trailing}) {
+  Widget _buildStatLabel(
+    ThemeData theme,
+    String label,
+    String value, {
+    Widget? trailing,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: theme.textTheme.labelSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: theme.colorScheme.onSurfaceVariant,
-            )),
+        Text(
+          label,
+          style: theme.textTheme.labelSmall?.copyWith(
+            fontWeight: FontWeight.w600,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
         const SizedBox(height: 2),
         Row(
           children: [
-            Text(value,
-                style: theme.textTheme.bodyMedium
-                    ?.copyWith(fontWeight: FontWeight.w600)),
+            Text(
+              value,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             if (trailing != null) ...[const SizedBox(width: 6), trailing],
           ],
         ),
@@ -362,20 +402,24 @@ class _WeightPageState extends State<WeightPage> {
         children: [
           Row(
             children: colors
-                .map((c) => Expanded(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: c.withValues(alpha: 0.6),
-                          borderRadius: colors.indexOf(c) == 0
-                              ? const BorderRadius.horizontal(
-                                  left: Radius.circular(4))
-                              : colors.indexOf(c) == 3
-                                  ? const BorderRadius.horizontal(
-                                      right: Radius.circular(4))
-                                  : null,
-                        ),
+                .map(
+                  (c) => Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: c.withValues(alpha: 0.6),
+                        borderRadius: colors.indexOf(c) == 0
+                            ? const BorderRadius.horizontal(
+                                left: Radius.circular(4),
+                              )
+                            : colors.indexOf(c) == 3
+                            ? const BorderRadius.horizontal(
+                                right: Radius.circular(4),
+                              )
+                            : null,
                       ),
-                    ))
+                    ),
+                  ),
+                )
                 .toList(),
           ),
           Positioned(
@@ -414,25 +458,27 @@ class _WeightPageState extends State<WeightPage> {
         children: [
           Row(
             children: [
-              Text(l10n.weightChart,
-                  style: theme.textTheme.titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w600)),
+              Text(
+                l10n.weightChart,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               const Spacer(),
               // Range picker chips
-              ...labels.entries.map((e) => Padding(
-                    padding: const EdgeInsets.only(left: 4),
-                    child: ChoiceChip(
-                      label: Text(e.value,
-                          style: const TextStyle(fontSize: 11)),
-                      selected: _chartRange == e.key,
-                      onSelected: (_) =>
-                          setState(() => _chartRange = e.key),
-                      visualDensity: VisualDensity.compact,
-                      padding: EdgeInsets.zero,
-                      labelPadding:
-                          const EdgeInsets.symmetric(horizontal: 6),
-                    ),
-                  )),
+              ...labels.entries.map(
+                (e) => Padding(
+                  padding: const EdgeInsets.only(left: 4),
+                  child: ChoiceChip(
+                    label: Text(e.value, style: const TextStyle(fontSize: 11)),
+                    selected: _chartRange == e.key,
+                    onSelected: (_) => setState(() => _chartRange = e.key),
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    labelPadding: const EdgeInsets.symmetric(horizontal: 6),
+                  ),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -443,13 +489,16 @@ class _WeightPageState extends State<WeightPage> {
               Text(l10n.weightRaw, style: theme.textTheme.labelSmall),
               const SizedBox(width: 16),
               Container(
-                width: 16, height: 2,
+                width: 16,
+                height: 2,
                 decoration: BoxDecoration(
-                  border: Border(bottom: BorderSide(
-                    color: theme.colorScheme.tertiary,
-                    width: 2,
-                    strokeAlign: BorderSide.strokeAlignCenter,
-                  )),
+                  border: Border(
+                    bottom: BorderSide(
+                      color: theme.colorScheme.tertiary,
+                      width: 2,
+                      strokeAlign: BorderSide.strokeAlignCenter,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: 4),
@@ -457,10 +506,7 @@ class _WeightPageState extends State<WeightPage> {
             ],
           ),
           const SizedBox(height: 8),
-          SizedBox(
-            height: 220,
-            child: _buildChart(theme, l10n),
-          ),
+          SizedBox(height: 220, child: _buildChart(theme, l10n)),
         ],
       ),
     );
@@ -476,9 +522,7 @@ class _WeightPageState extends State<WeightPage> {
       _ChartRange.oneYear => DateTime(now.year - 1, now.month, now.day),
       _ChartRange.all => DateTime(2000),
     };
-    final filtered = _records
-        .where((r) => r.datetime.isAfter(cutoff))
-        .toList()
+    final filtered = _records.where((r) => r.datetime.isAfter(cutoff)).toList()
       ..sort((a, b) => a.datetime.compareTo(b.datetime));
     return filtered;
   }
@@ -487,8 +531,11 @@ class _WeightPageState extends State<WeightPage> {
     final data = _chartRecords;
     if (data.isEmpty) {
       return Center(
-          child: Text(l10n.commonNoData,
-              style: TextStyle(color: theme.colorScheme.onSurfaceVariant)));
+        child: Text(
+          l10n.commonNoData,
+          style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+        ),
+      );
     }
 
     final spots = data.asMap().entries.map((e) {
@@ -529,14 +576,15 @@ class _WeightPageState extends State<WeightPage> {
               reservedSize: 28,
               interval: _dateInterval(data),
               getTitlesWidget: (value, meta) {
-                final date =
-                    DateTime.fromMillisecondsSinceEpoch(value.toInt());
-                final spanDays = data.last.datetime.difference(data.first.datetime).inDays;
+                final date = DateTime.fromMillisecondsSinceEpoch(value.toInt());
+                final spanDays = data.last.datetime
+                    .difference(data.first.datetime)
+                    .inDays;
                 final fmt = spanDays > 730
                     ? DateFormat('yyyy')
                     : spanDays > 365
-                        ? DateFormat('M/yy')
-                        : DateFormat('M/d');
+                    ? DateFormat('M/yy')
+                    : DateFormat('M/d');
                 return SideTitleWidget(
                   meta: meta,
                   child: Text(
@@ -553,20 +601,25 @@ class _WeightPageState extends State<WeightPage> {
               reservedSize: 36,
               getTitlesWidget: (value, meta) => SideTitleWidget(
                 meta: meta,
-                child: Text(value.toStringAsFixed(0),
-                    style: theme.textTheme.labelSmall?.copyWith(fontSize: 10)),
+                child: Text(
+                  value.toStringAsFixed(0),
+                  style: theme.textTheme.labelSmall?.copyWith(fontSize: 10),
+                ),
               ),
             ),
           ),
-          topTitles:
-              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          leftTitles:
-              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          leftTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
         ),
         borderData: FlBorderData(
           show: true,
           border: Border.all(
-              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+          ),
         ),
         minY: minW - yPad,
         maxY: maxW + yPad,
@@ -581,10 +634,10 @@ class _WeightPageState extends State<WeightPage> {
               show: data.length <= 30,
               getDotPainter: (spot, percent, barData, index) =>
                   FlDotCirclePainter(
-                radius: 3,
-                color: theme.colorScheme.primary,
-                strokeWidth: 0,
-              ),
+                    radius: 3,
+                    color: theme.colorScheme.primary,
+                    strokeWidth: 0,
+                  ),
             ),
             belowBarData: BarAreaData(
               show: true,
@@ -619,10 +672,7 @@ class _WeightPageState extends State<WeightPage> {
               } else {
                 return LineTooltipItem(
                   '${AppLocalizations.of(context)!.weightTrend}: ${s.y.toStringAsFixed(1)} ${AppLocalizations.of(context)!.weightUnitKg}',
-                  TextStyle(
-                    color: theme.colorScheme.onPrimary,
-                    fontSize: 11,
-                  ),
+                  TextStyle(color: theme.colorScheme.onPrimary, fontSize: 11),
                 );
               }
             }).toList(),
@@ -635,7 +685,11 @@ class _WeightPageState extends State<WeightPage> {
   /// EWMA smoothed weight trend. τ = 7 days half-life.
   /// [allData] must include all records sorted oldest→newest for warm-up accuracy.
   /// Only emits spots for records on or after [visibleFrom].
-  List<FlSpot> _buildWeightEwmaSpots(List<WeightRecord> allData, DateTime visibleFrom, {double halfLifeDays = 7}) {
+  List<FlSpot> _buildWeightEwmaSpots(
+    List<WeightRecord> allData,
+    DateTime visibleFrom, {
+    double halfLifeDays = 7,
+  }) {
     if (allData.isEmpty) return [];
     final tau = halfLifeDays * 86400 * 1000; // in ms
     double ewma = allData.first.weight;
@@ -669,14 +723,14 @@ class _WeightPageState extends State<WeightPage> {
     final spanDays = spanMs / (86400 * 1000);
     // Choose a clean interval in milliseconds based on total span
     const day = 86400 * 1000.0;
-    if (spanDays <= 7) return 2 * day;       // every-other-day labels
-    if (spanDays <= 30) return 7 * day;      // weekly labels
-    if (spanDays <= 90) return 21 * day;     // tri-weekly labels
-    if (spanDays <= 180) return 45 * day;    // ~6-week labels
-    if (spanDays <= 365) return 90 * day;    // quarterly labels
-    if (spanDays <= 730) return 180 * day;   // semi-annual labels
-    if (spanDays <= 1825) return 365 * day;  // annual labels
-    return 730 * day;                        // 2-year labels
+    if (spanDays <= 7) return 2 * day; // every-other-day labels
+    if (spanDays <= 30) return 7 * day; // weekly labels
+    if (spanDays <= 90) return 21 * day; // tri-weekly labels
+    if (spanDays <= 180) return 45 * day; // ~6-week labels
+    if (spanDays <= 365) return 90 * day; // quarterly labels
+    if (spanDays <= 730) return 180 * day; // semi-annual labels
+    if (spanDays <= 1825) return 365 * day; // annual labels
+    return 730 * day; // 2-year labels
   }
 
   // ── Records list ──
@@ -690,9 +744,12 @@ class _WeightPageState extends State<WeightPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(l10n.weightHistory,
-              style: theme.textTheme.titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w600)),
+          Text(
+            l10n.weightHistory,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const SizedBox(height: 8),
           ...sorted.take(20).map((r) => _buildRecordTile(theme, l10n, r)),
           if (sorted.length > 20)
@@ -707,7 +764,11 @@ class _WeightPageState extends State<WeightPage> {
     );
   }
 
-  Widget _buildRecordTile(ThemeData theme, AppLocalizations l10n, WeightRecord record) {
+  Widget _buildRecordTile(
+    ThemeData theme,
+    AppLocalizations l10n,
+    WeightRecord record,
+  ) {
     final bmi = WeightData.calculateBMI(_height, record.weight);
     return Dismissible(
       key: ValueKey(record.id),
@@ -716,10 +777,12 @@ class _WeightPageState extends State<WeightPage> {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
         color: theme.colorScheme.error,
-        child:
-            Icon(Icons.delete_outline, color: theme.colorScheme.onError),
+        child: Icon(Icons.delete_outline, color: theme.colorScheme.onError),
       ),
-      confirmDismiss: (_) => confirmDelete(context, AppLocalizations.of(context)!.commonThisRecord),
+      confirmDismiss: (_) => confirmDelete(
+        context,
+        AppLocalizations.of(context)!.commonThisRecord,
+      ),
       onDismissed: (_) {
         setState(() => _records.removeWhere((r) => r.id == record.id));
         _saveData();
@@ -728,11 +791,16 @@ class _WeightPageState extends State<WeightPage> {
         contentPadding: EdgeInsets.zero,
         leading: CircleAvatar(
           backgroundColor: theme.colorScheme.primaryContainer,
-          child: Icon(Icons.monitor_weight_outlined,
-              color: theme.colorScheme.onPrimaryContainer, size: 20),
+          child: Icon(
+            Icons.monitor_weight_outlined,
+            color: theme.colorScheme.onPrimaryContainer,
+            size: 20,
+          ),
         ),
-        title: Text('${record.weight.toStringAsFixed(1)} ${l10n.weightUnitKg}',
-            style: const TextStyle(fontWeight: FontWeight.w600)),
+        title: Text(
+          '${record.weight.toStringAsFixed(1)} ${l10n.weightUnitKg}',
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
         subtitle: Text(
           [
             DateFormat('MMM d, yyyy  HH:mm').format(record.datetime),
@@ -762,8 +830,7 @@ class _WeightPageState extends State<WeightPage> {
         builder: (context, controller) => ListView.builder(
           controller: controller,
           itemCount: sorted.length,
-          itemBuilder: (context, i) =>
-              _buildRecordTile(theme, l10n, sorted[i]),
+          itemBuilder: (context, i) => _buildRecordTile(theme, l10n, sorted[i]),
         ),
       ),
     );
@@ -812,7 +879,10 @@ class _WeightPageState extends State<WeightPage> {
                     onChanged: (v) {
                       setState(() {
                         _reminderMode = v!;
-                        _weightMorningReminder ??= const TimeOfDay(hour: 8, minute: 0);
+                        _weightMorningReminder ??= const TimeOfDay(
+                          hour: 8,
+                          minute: 0,
+                        );
                         _weightEveningReminder = null;
                       });
                       setSheetState(() {});
@@ -828,8 +898,14 @@ class _WeightPageState extends State<WeightPage> {
                     onChanged: (v) {
                       setState(() {
                         _reminderMode = v!;
-                        _weightMorningReminder ??= const TimeOfDay(hour: 8, minute: 0);
-                        _weightEveningReminder ??= const TimeOfDay(hour: 21, minute: 0);
+                        _weightMorningReminder ??= const TimeOfDay(
+                          hour: 8,
+                          minute: 0,
+                        );
+                        _weightEveningReminder ??= const TimeOfDay(
+                          hour: 21,
+                          minute: 0,
+                        );
                       });
                       setSheetState(() {});
                       _saveData();
@@ -847,7 +923,8 @@ class _WeightPageState extends State<WeightPage> {
                       onTap: () async {
                         final picked = await showTimePicker(
                           context: ctx,
-                          initialTime: _weightMorningReminder ??
+                          initialTime:
+                              _weightMorningReminder ??
                               const TimeOfDay(hour: 8, minute: 0),
                         );
                         if (picked != null) {
@@ -862,11 +939,14 @@ class _WeightPageState extends State<WeightPage> {
                       ListTile(
                         leading: const Icon(Icons.nightlight_outlined),
                         title: Text(l10n.weightReminderEvening),
-                        subtitle: Text(_weightEveningReminder?.format(ctx) ?? ''),
+                        subtitle: Text(
+                          _weightEveningReminder?.format(ctx) ?? '',
+                        ),
                         onTap: () async {
                           final picked = await showTimePicker(
                             context: ctx,
-                            initialTime: _weightEveningReminder ??
+                            initialTime:
+                                _weightEveningReminder ??
                                 const TimeOfDay(hour: 21, minute: 0),
                           );
                           if (picked != null) {
@@ -890,10 +970,8 @@ class _WeightPageState extends State<WeightPage> {
   Future<void> _addRecord() async {
     final result = await showDialog<WeightRecord>(
       context: context,
-      builder: (_) => _AddWeightDialog(
-        height: _height,
-        lastWeight: _latestRecord?.weight,
-      ),
+      builder: (_) =>
+          _AddWeightDialog(height: _height, lastWeight: _latestRecord?.weight),
     );
     if (result != null) {
       setState(() => _records.add(result));
@@ -903,50 +981,51 @@ class _WeightPageState extends State<WeightPage> {
 
   void _setHeight() {
     final l10n = AppLocalizations.of(context)!;
-    final controller =
-        TextEditingController(text: _height?.toStringAsFixed(1) ?? '');
+    final controller = TextEditingController(
+      text: _height?.toStringAsFixed(1) ?? '',
+    );
+    final initialHeightText = controller.text.trim();
+    void saveHeight(UnsavedChangesController guard) {
+      final val = double.tryParse(controller.text.trim());
+      if (val != null && val > 0) {
+        guard.pop();
+        setState(() => _height = val);
+        _saveData();
+      }
+    }
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.weightSetHeight),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          keyboardType:
-              const TextInputType.numberWithOptions(decimal: true),
-          inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,1}')),
-          ],
-          decoration: InputDecoration(
-            labelText: l10n.weightHeightCm,
-            suffixText: 'cm',
-          ),
-          onSubmitted: (_) {
-            final val = double.tryParse(controller.text.trim());
-            if (val != null && val > 0) {
-              Navigator.pop(context);
-              setState(() => _height = val);
-              _saveData();
-            }
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(l10n.commonCancel),
-          ),
-          FilledButton(
-            onPressed: () {
-              final val = double.tryParse(controller.text.trim());
-              if (val != null && val > 0) {
-                Navigator.pop(context);
-                setState(() => _height = val);
-                _saveData();
-              }
+      builder: (context) => UnsavedChangesGuard(
+        hasUnsavedChanges: () => controller.text.trim() != initialHeightText,
+        builder: (context, guard) => AlertDialog(
+          title: Text(l10n.weightSetHeight),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,1}')),
+            ],
+            decoration: InputDecoration(
+              labelText: l10n.weightHeightCm,
+              suffixText: 'cm',
+            ),
+            onSubmitted: (_) {
+              saveHeight(guard);
             },
-            child: Text(l10n.commonSave),
           ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: () => guard.maybeDiscardAndPop(),
+              child: Text(l10n.commonCancel),
+            ),
+            FilledButton(
+              onPressed: () => saveHeight(guard),
+              child: Text(l10n.commonSave),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -977,14 +1056,17 @@ class _AddWeightDialogState extends State<_AddWeightDialog> {
   late final TextEditingController _weightController;
   late final TextEditingController _noteController;
   late DateTime _date;
+  late final String _initialSignature;
 
   @override
   void initState() {
     super.initState();
     _weightController = TextEditingController(
-        text: widget.lastWeight?.toStringAsFixed(1) ?? '');
+      text: widget.lastWeight?.toStringAsFixed(1) ?? '',
+    );
     _noteController = TextEditingController();
     _date = DateTime.now();
+    _initialSignature = _signature();
   }
 
   @override
@@ -1000,103 +1082,114 @@ class _AddWeightDialogState extends State<_AddWeightDialog> {
     final l10n = AppLocalizations.of(context)!;
     final bmi = _previewBMI;
 
-    return Dialog(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(l10n.weightAddRecord,
-                style: theme.textTheme.titleLarge),
-            const SizedBox(height: 16),
+    return UnsavedChangesGuard(
+      hasUnsavedChanges: _hasUnsavedChanges,
+      builder: (context, guard) => Dialog(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(l10n.weightAddRecord, style: theme.textTheme.titleLarge),
+              const SizedBox(height: 16),
 
-            // Weight input
-            TextField(
-              controller: _weightController,
-              autofocus: true,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(
-                    RegExp(r'^\d*\.?\d{0,1}')),
-              ],
-              decoration: InputDecoration(
-                labelText: l10n.weightKg,
-                suffixText: l10n.weightUnitKg,
-                helperText:
-                    bmi != null ? 'BMI: ${bmi.toStringAsFixed(1)}' : null,
+              // Weight input
+              TextField(
+                controller: _weightController,
+                autofocus: true,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,1}')),
+                ],
+                decoration: InputDecoration(
+                  labelText: l10n.weightKg,
+                  suffixText: l10n.weightUnitKg,
+                  helperText: bmi != null
+                      ? 'BMI: ${bmi.toStringAsFixed(1)}'
+                      : null,
+                ),
+                onChanged: (_) => setState(() {}),
+                onSubmitted: (_) => _submit(guard),
               ),
-              onChanged: (_) => setState(() {}),
-              onSubmitted: (_) => _submit(),
-            ),
-            const SizedBox(height: 12),
+              const SizedBox(height: 12),
 
-            // Note
-            TextField(
-              controller: _noteController,
-              decoration: InputDecoration(
-                labelText: l10n.weightNote,
-                hintText: l10n.weightNoteHint,
+              // Note
+              TextField(
+                controller: _noteController,
+                decoration: InputDecoration(
+                  labelText: l10n.weightNote,
+                  hintText: l10n.weightNoteHint,
+                ),
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => _submit(guard),
               ),
-              textInputAction: TextInputAction.done,
-              onSubmitted: (_) => _submit(),
-            ),
-            const SizedBox(height: 12),
+              const SizedBox(height: 12),
 
-            // Date picker
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.calendar_today),
-              title: Text(DateFormat('yyyy-MM-dd  HH:mm').format(_date)),
-              onTap: () async {
-                final pickedDate = await showDatePicker(
-                  context: context,
-                  initialDate: _date,
-                  firstDate: DateTime(2020),
-                  lastDate: DateTime.now().add(const Duration(days: 1)),
-                );
-                if (pickedDate != null && mounted) {
-                  final pickedTime = await showTimePicker(
-                    // ignore: use_build_context_synchronously
+              // Date picker
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.calendar_today),
+                title: Text(DateFormat('yyyy-MM-dd  HH:mm').format(_date)),
+                onTap: () async {
+                  final pickedDate = await showDatePicker(
                     context: context,
-                    initialTime: TimeOfDay.fromDateTime(_date),
+                    initialDate: _date,
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime.now().add(const Duration(days: 1)),
                   );
-                  setState(() {
-                    final time = pickedTime ?? TimeOfDay.fromDateTime(_date);
-                    _date = DateTime(
-                      pickedDate.year,
-                      pickedDate.month,
-                      pickedDate.day,
-                      time.hour,
-                      time.minute,
+                  if (pickedDate != null && mounted) {
+                    final pickedTime = await showTimePicker(
+                      // ignore: use_build_context_synchronously
+                      context: context,
+                      initialTime: TimeOfDay.fromDateTime(_date),
                     );
-                  });
-                }
-              },
-            ),
-            const SizedBox(height: 16),
+                    setState(() {
+                      final time = pickedTime ?? TimeOfDay.fromDateTime(_date);
+                      _date = DateTime(
+                        pickedDate.year,
+                        pickedDate.month,
+                        pickedDate.day,
+                        time.hour,
+                        time.minute,
+                      );
+                    });
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
 
-            // Actions
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(l10n.commonCancel),
-                ),
-                const SizedBox(width: 8),
-                FilledButton(
-                  onPressed: _submit,
-                  child: Text(l10n.commonAdd),
-                ),
-              ],
-            ),
-          ],
+              // Actions
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => guard.maybeDiscardAndPop(),
+                    child: Text(l10n.commonCancel),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    onPressed: () => _submit(guard),
+                    child: Text(l10n.commonAdd),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
+
+  bool _hasUnsavedChanges() => _signature() != _initialSignature;
+
+  String _signature() => formSignature([
+    _weightController.text.trim(),
+    _noteController.text.trim(),
+    _date,
+  ]);
 
   double? get _previewBMI {
     final w = double.tryParse(_weightController.text.trim());
@@ -1104,7 +1197,7 @@ class _AddWeightDialogState extends State<_AddWeightDialog> {
     return WeightData.calculateBMI(widget.height, w);
   }
 
-  void _submit() {
+  void _submit(UnsavedChangesController guard) {
     final weight = double.tryParse(_weightController.text.trim());
     if (weight == null || weight <= 0) return;
 
@@ -1115,6 +1208,6 @@ class _AddWeightDialogState extends State<_AddWeightDialog> {
           ? _noteController.text.trim()
           : null,
     );
-    Navigator.pop(context, record);
+    guard.pop(record);
   }
 }

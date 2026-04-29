@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/services/image_service.dart';
+import '../../../shared/widgets/unsaved_changes_guard.dart';
 import '../models/finance.dart';
 import '../services/balance_util.dart';
 
@@ -37,10 +38,25 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
   String? _imagePath;
   Category? _selectedCategory;
   Account? _selectedAccount;
+  late final String _initialSignature;
 
   static const _commonEmojis = [
-    '🎵', '🎬', '📺', '🎮', '☁️', '📱', '💻', '🏋️',
-    '📚', '🎧', '🔒', '📦', '🚗', '🏠', '💊', '🍔',
+    '🎵',
+    '🎬',
+    '📺',
+    '🎮',
+    '☁️',
+    '📱',
+    '💻',
+    '🏋️',
+    '📚',
+    '🎧',
+    '🔒',
+    '📦',
+    '🚗',
+    '🏠',
+    '💊',
+    '🍔',
   ];
 
   static const _presets = [
@@ -67,7 +83,8 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
   ];
 
   bool get _isEditing => widget.subscription != null;
-  bool get _isCancelled => widget.subscription != null && !widget.subscription!.isActive;
+  bool get _isCancelled =>
+      widget.subscription != null && !widget.subscription!.isActive;
 
   @override
   void initState() {
@@ -89,14 +106,17 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
     _currency = sub?.currency ?? widget.accounts.firstOrNull?.currency ?? 'CNY';
 
     if (sub?.categoryId != null) {
-      _selectedCategory =
-          widget.categories.where((c) => c.id == sub!.categoryId).firstOrNull;
+      _selectedCategory = widget.categories
+          .where((c) => c.id == sub!.categoryId)
+          .firstOrNull;
     }
     if (sub?.accountId != null) {
-      _selectedAccount =
-          widget.accounts.where((a) => a.id == sub!.accountId).firstOrNull;
+      _selectedAccount = widget.accounts
+          .where((a) => a.id == sub!.accountId)
+          .firstOrNull;
     }
     _selectedAccount ??= widget.accounts.firstOrNull;
+    _initialSignature = _signature();
   }
 
   @override
@@ -113,288 +133,345 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
 
-    return Dialog(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              _isEditing ? l10n.financeEditSubscription : l10n.financeAddSubscription,
-              style: theme.textTheme.titleLarge,
-            ),
-            const SizedBox(height: 16),
+    return UnsavedChangesGuard(
+      hasUnsavedChanges: _hasUnsavedChanges,
+      builder: (context, guard) => Dialog(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                _isEditing
+                    ? l10n.financeEditSubscription
+                    : l10n.financeAddSubscription,
+                style: theme.textTheme.titleLarge,
+              ),
+              const SizedBox(height: 16),
 
-            // Quick-fill presets (only when adding)
-            if (!_isEditing) ...[
-              Text(l10n.financeSubscriptionPresets, style: theme.textTheme.bodySmall),
+              // Quick-fill presets (only when adding)
+              if (!_isEditing) ...[
+                Text(
+                  l10n.financeSubscriptionPresets,
+                  style: theme.textTheme.bodySmall,
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: _presets.map((p) {
+                    final (name, emoji) = p;
+                    return ActionChip(
+                      avatar: Text(emoji, style: const TextStyle(fontSize: 14)),
+                      label: Text(name, style: const TextStyle(fontSize: 12)),
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () => setState(() {
+                        _nameController.text = name;
+                        _selectedEmoji = emoji;
+                        _imagePath = null;
+                      }),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 12),
+              ],
+
+              // Name
+              TextField(
+                controller: _nameController,
+                autofocus: true,
+                decoration: InputDecoration(labelText: l10n.financeName),
+                textInputAction: TextInputAction.next,
+              ),
+              const SizedBox(height: 12),
+
+              // Emoji
+              Text(l10n.financeEmoji, style: theme.textTheme.bodySmall),
+              const SizedBox(height: 8),
+              _buildImagePreview(theme),
               const SizedBox(height: 8),
               Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: _presets.map((p) {
-                  final (name, emoji) = p;
-                  return ActionChip(
-                    avatar: Text(emoji, style: const TextStyle(fontSize: 14)),
-                    label: Text(name, style: const TextStyle(fontSize: 12)),
-                    visualDensity: VisualDensity.compact,
-                    onPressed: () => setState(() {
-                      _nameController.text = name;
-                      _selectedEmoji = emoji;
-                      _imagePath = null;
+                spacing: 4,
+                runSpacing: 4,
+                children: _commonEmojis.map((emoji) {
+                  final isSelected = emoji == _selectedEmoji;
+                  return InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: () => setState(() {
+                      _selectedEmoji = isSelected ? null : emoji;
+                      if (!isSelected) _imagePath = null;
                     }),
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        color: isSelected
+                            ? theme.colorScheme.primaryContainer
+                            : null,
+                        border: isSelected
+                            ? Border.all(
+                                color: theme.colorScheme.primary,
+                                width: 2,
+                              )
+                            : null,
+                      ),
+                      child: Center(
+                        child: Text(
+                          emoji,
+                          style: const TextStyle(fontSize: 18),
+                        ),
+                      ),
+                    ),
                   );
                 }).toList(),
               ),
               const SizedBox(height: 12),
-            ],
 
-            // Name
-            TextField(
-              controller: _nameController,
-              autofocus: true,
-              decoration: InputDecoration(labelText: l10n.financeName),
-              textInputAction: TextInputAction.next,
-            ),
-            const SizedBox(height: 12),
-
-            // Emoji
-            Text(l10n.financeEmoji, style: theme.textTheme.bodySmall),
-            const SizedBox(height: 8),
-            _buildImagePreview(theme),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 4,
-              runSpacing: 4,
-              children: _commonEmojis.map((emoji) {
-                final isSelected = emoji == _selectedEmoji;
-                return InkWell(
-                  borderRadius: BorderRadius.circular(8),
-                  onTap: () => setState(() {
-                    _selectedEmoji = isSelected ? null : emoji;
-                    if (!isSelected) _imagePath = null;
-                  }),
-                  child: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      color: isSelected
-                          ? theme.colorScheme.primaryContainer
-                          : null,
-                      border: isSelected
-                          ? Border.all(
-                              color: theme.colorScheme.primary, width: 2)
-                          : null,
-                    ),
-                    child: Center(
-                      child: Text(emoji, style: const TextStyle(fontSize: 18)),
+              // Amount + Currency
+              Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: TextField(
+                      controller: _amountController,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'^\d*\.?\d{0,2}'),
+                        ),
+                      ],
+                      decoration: InputDecoration(
+                        labelText: l10n.financeAmount,
+                        prefixText: '${currencySymbol(_currency)} ',
+                        prefixStyle: TextStyle(
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
                     ),
                   ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 12),
-
-            // Amount + Currency
-            Row(
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: TextField(
-                    controller: _amountController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
-                    ],
-                    decoration: InputDecoration(
-                      labelText: l10n.financeAmount,
-                      prefixText: '${currencySymbol(_currency)} ',
-                      prefixStyle: TextStyle(color: theme.colorScheme.onSurface),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      initialValue: _currency,
+                      decoration: InputDecoration(
+                        labelText: l10n.financeCurrency,
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 10,
+                        ),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'CNY', child: Text('CNY')),
+                        DropdownMenuItem(value: 'USD', child: Text('USD')),
+                        DropdownMenuItem(value: 'EUR', child: Text('EUR')),
+                        DropdownMenuItem(value: 'GBP', child: Text('GBP')),
+                        DropdownMenuItem(value: 'JPY', child: Text('JPY')),
+                        DropdownMenuItem(value: 'CAD', child: Text('CAD')),
+                        DropdownMenuItem(value: 'AUD', child: Text('AUD')),
+                      ],
+                      onChanged: (v) {
+                        if (v != null) setState(() => _currency = v);
+                      },
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    initialValue: _currency,
-                    decoration: InputDecoration(
-                      labelText: l10n.financeCurrency,
-                      isDense: true,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 'CNY', child: Text('CNY')),
-                      DropdownMenuItem(value: 'USD', child: Text('USD')),
-                      DropdownMenuItem(value: 'EUR', child: Text('EUR')),
-                      DropdownMenuItem(value: 'GBP', child: Text('GBP')),
-                      DropdownMenuItem(value: 'JPY', child: Text('JPY')),
-                      DropdownMenuItem(value: 'CAD', child: Text('CAD')),
-                      DropdownMenuItem(value: 'AUD', child: Text('AUD')),
-                    ],
-                    onChanged: (v) {
-                      if (v != null) setState(() => _currency = v);
-                    },
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-
-            // Account picker
-            if (widget.accounts.isNotEmpty)
-              DropdownButtonFormField<String>(
-                initialValue: _selectedAccount?.id,
-                decoration: InputDecoration(
-                  labelText: l10n.financeAccount,
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                ),
-                items: widget.accounts.map((a) {
-                  final label = a.emoji != null
-                      ? '${a.emoji} ${a.name}'
-                      : a.name;
-                  return DropdownMenuItem(value: a.id, child: Text(label));
-                }).toList(),
-                onChanged: (id) {
-                  setState(() {
-                    _selectedAccount =
-                        widget.accounts.where((a) => a.id == id).firstOrNull;
-                  });
-                },
-              ),
-            const SizedBox(height: 12),
-
-            // Category picker
-            if (widget.categories.isNotEmpty)
-              DropdownButtonFormField<String>(
-                initialValue: _selectedCategory?.id,
-                decoration: InputDecoration(
-                  labelText: l10n.financeCategory,
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                ),
-                items: [
-                  const DropdownMenuItem(value: null, child: Text('—')),
-                  ...widget.categories
-                      .where((c) => c.type == TransactionType.expense)
-                      .map((cat) {
-                    final label = cat.emoji != null ? '${cat.emoji} ${cat.name}' : cat.name;
-                    return DropdownMenuItem(value: cat.id, child: Text(label));
-                  }),
                 ],
-                onChanged: (id) {
-                  setState(() {
-                    _selectedCategory = id != null
-                        ? widget.categories.where((c) => c.id == id).firstOrNull
-                        : null;
-                  });
+              ),
+              const SizedBox(height: 12),
+
+              // Account picker
+              if (widget.accounts.isNotEmpty)
+                DropdownButtonFormField<String>(
+                  initialValue: _selectedAccount?.id,
+                  decoration: InputDecoration(
+                    labelText: l10n.financeAccount,
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                  ),
+                  items: widget.accounts.map((a) {
+                    final label = a.emoji != null
+                        ? '${a.emoji} ${a.name}'
+                        : a.name;
+                    return DropdownMenuItem(value: a.id, child: Text(label));
+                  }).toList(),
+                  onChanged: (id) {
+                    setState(() {
+                      _selectedAccount = widget.accounts
+                          .where((a) => a.id == id)
+                          .firstOrNull;
+                    });
+                  },
+                ),
+              const SizedBox(height: 12),
+
+              // Category picker
+              if (widget.categories.isNotEmpty)
+                DropdownButtonFormField<String>(
+                  initialValue: _selectedCategory?.id,
+                  decoration: InputDecoration(
+                    labelText: l10n.financeCategory,
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                  ),
+                  items: [
+                    const DropdownMenuItem(value: null, child: Text('—')),
+                    ...widget.categories
+                        .where((c) => c.type == TransactionType.expense)
+                        .map((cat) {
+                          final label = cat.emoji != null
+                              ? '${cat.emoji} ${cat.name}'
+                              : cat.name;
+                          return DropdownMenuItem(
+                            value: cat.id,
+                            child: Text(label),
+                          );
+                        }),
+                  ],
+                  onChanged: (id) {
+                    setState(() {
+                      _selectedCategory = id != null
+                          ? widget.categories
+                                .where((c) => c.id == id)
+                                .firstOrNull
+                          : null;
+                    });
+                  },
+                ),
+              const SizedBox(height: 12),
+
+              // Start date
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.calendar_today),
+                title: Text(l10n.financeStartDate),
+                trailing: Text(
+                  '${_startDate.year}-${_startDate.month.toString().padLeft(2, '0')}-${_startDate.day.toString().padLeft(2, '0')}',
+                ),
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: _startDate,
+                    firstDate: DateTime(2000),
+                    lastDate: DateTime.now().add(const Duration(days: 3650)),
+                  );
+                  if (picked != null) {
+                    setState(() => _startDate = picked);
+                  }
                 },
               ),
-            const SizedBox(height: 12),
 
-            // Start date
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.calendar_today),
-              title: Text(l10n.financeStartDate),
-              trailing: Text(
-                '${_startDate.year}-${_startDate.month.toString().padLeft(2, '0')}-${_startDate.day.toString().padLeft(2, '0')}',
-              ),
-              onTap: () async {
-                final picked = await showDatePicker(
-                  context: context,
-                  initialDate: _startDate,
-                  firstDate: DateTime(2000),
-                  lastDate: DateTime.now().add(const Duration(days: 3650)),
-                );
-                if (picked != null) {
-                  setState(() => _startDate = picked);
-                }
-              },
-            ),
-
-            // Trial days
-            TextField(
-              controller: _trialDaysController,
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              decoration: InputDecoration(
-                labelText: l10n.financeTrialDays,
-                hintText: '0',
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // Billing cycle type
-            SegmentedButton<BillingCycleType>(
-              segments: [
-                ButtonSegment(
-                  value: BillingCycleType.monthly,
-                  label: Text(l10n.financeBillingCycleMonthly),
+              // Trial days
+              TextField(
+                controller: _trialDaysController,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                decoration: InputDecoration(
+                  labelText: l10n.financeTrialDays,
+                  hintText: '0',
                 ),
-                ButtonSegment(
-                  value: BillingCycleType.yearly,
-                  label: Text(l10n.financeBillingCycleYearly),
-                ),
-              ],
-              selected: {_cycleType},
-              onSelectionChanged: (set) => setState(() => _cycleType = set.first),
-            ),
-            const SizedBox(height: 12),
-
-            // Interval
-            DropdownButtonFormField<int>(
-              initialValue: _billingInterval,
-              decoration: InputDecoration(
-                labelText: l10n.financeInterval,
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               ),
-              items: List.generate(12, (i) => i + 1)
-                  .map((n) => DropdownMenuItem(value: n, child: Text('$n')))
-                  .toList(),
-              onChanged: (v) {
-                if (v != null) setState(() => _billingInterval = v);
-              },
-            ),
-            const SizedBox(height: 12),
+              const SizedBox(height: 12),
 
-            // Note
-            TextField(
-              controller: _noteController,
-              decoration: InputDecoration(
-                labelText: l10n.financeNote,
+              // Billing cycle type
+              SegmentedButton<BillingCycleType>(
+                segments: [
+                  ButtonSegment(
+                    value: BillingCycleType.monthly,
+                    label: Text(l10n.financeBillingCycleMonthly),
+                  ),
+                  ButtonSegment(
+                    value: BillingCycleType.yearly,
+                    label: Text(l10n.financeBillingCycleYearly),
+                  ),
+                ],
+                selected: {_cycleType},
+                onSelectionChanged: (set) =>
+                    setState(() => _cycleType = set.first),
               ),
-              textInputAction: TextInputAction.done,
-            ),
-            const SizedBox(height: 16),
+              const SizedBox(height: 12),
 
-            // Actions
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(l10n.commonCancel),
+              // Interval
+              DropdownButtonFormField<int>(
+                initialValue: _billingInterval,
+                decoration: InputDecoration(
+                  labelText: l10n.financeInterval,
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                 ),
-                const SizedBox(width: 8),
-                FilledButton(
-                  onPressed: _submit,
-                  child: Text(_isCancelled
-                      ? l10n.financeRestoreSubscription
-                      : (_isEditing ? l10n.commonSave : l10n.commonAdd)),
-                ),
-              ],
-            ),
-          ],
+                items: List.generate(12, (i) => i + 1)
+                    .map((n) => DropdownMenuItem(value: n, child: Text('$n')))
+                    .toList(),
+                onChanged: (v) {
+                  if (v != null) setState(() => _billingInterval = v);
+                },
+              ),
+              const SizedBox(height: 12),
+
+              // Note
+              TextField(
+                controller: _noteController,
+                decoration: InputDecoration(labelText: l10n.financeNote),
+                textInputAction: TextInputAction.done,
+              ),
+              const SizedBox(height: 16),
+
+              // Actions
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => guard.maybeDiscardAndPop(),
+                    child: Text(l10n.commonCancel),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    onPressed: () => _submit(guard),
+                    child: Text(
+                      _isCancelled
+                          ? l10n.financeRestoreSubscription
+                          : (_isEditing ? l10n.commonSave : l10n.commonAdd),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  void _submit() {
+  bool _hasUnsavedChanges() => _signature() != _initialSignature;
+
+  String _signature() => formSignature([
+    _nameController.text.trim(),
+    _amountController.text.trim(),
+    _noteController.text.trim(),
+    _trialDaysController.text.trim(),
+    _startDate,
+    _cycleType.name,
+    _billingInterval,
+    _currency,
+    _selectedEmoji,
+    _imagePath,
+    _selectedCategory?.id,
+    _selectedAccount?.id,
+  ]);
+
+  void _submit(UnsavedChangesController guard) {
     final amount = double.tryParse(_amountController.text.trim());
     if (amount == null || amount <= 0) return;
     final name = _nameController.text.trim();
@@ -423,19 +500,23 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
     );
 
     // Restoring a cancelled subscription: ask about adding first transaction
-    if (_isCancelled && sub.firstBillingDate.isBefore(DateTime.now().add(const Duration(days: 1)))) {
-      _askImportHistory(sub);
+    if (_isCancelled &&
+        sub.firstBillingDate.isBefore(
+          DateTime.now().add(const Duration(days: 1)),
+        )) {
+      _askImportHistory(sub, guard);
       return;
     }
 
     // Check if we should ask about historical import
     // Only ask if first billing date (start + trial) is in the past
-    final shouldAskImport = !_isEditing && sub.firstBillingDate.isBefore(DateTime.now());
+    final shouldAskImport =
+        !_isEditing && sub.firstBillingDate.isBefore(DateTime.now());
 
     if (shouldAskImport) {
-      _askImportHistory(sub);
+      _askImportHistory(sub, guard);
     } else {
-      Navigator.pop(context, (sub: sub, importHistory: false));
+      guard.pop((sub: sub, importHistory: false));
     }
   }
 
@@ -455,7 +536,12 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: Image.file(snap.data!, width: 48, height: 48, fit: BoxFit.cover),
+                      child: Image.file(
+                        snap.data!,
+                        width: 48,
+                        height: 48,
+                        fit: BoxFit.cover,
+                      ),
                     ),
                     Positioned(
                       top: -4,
@@ -468,7 +554,11 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
                             color: theme.colorScheme.error,
                             shape: BoxShape.circle,
                           ),
-                          child: Icon(Icons.close, size: 12, color: theme.colorScheme.onError),
+                          child: Icon(
+                            Icons.close,
+                            size: 12,
+                            color: theme.colorScheme.onError,
+                          ),
                         ),
                       ),
                     ),
@@ -479,9 +569,11 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
           ),
         OutlinedButton.icon(
           icon: const Icon(Icons.image_outlined, size: 16),
-          label: Text(_imagePath != null
-              ? AppLocalizations.of(context)!.financeChangeImage
-              : AppLocalizations.of(context)!.financePickImage),
+          label: Text(
+            _imagePath != null
+                ? AppLocalizations.of(context)!.financeChangeImage
+                : AppLocalizations.of(context)!.financePickImage,
+          ),
           onPressed: () async {
             final path = await ImageService.pickAndSaveImage();
             if (path != null) {
@@ -496,7 +588,7 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
     );
   }
 
-  void _askImportHistory(Subscription sub) {
+  void _askImportHistory(Subscription sub, UnsavedChangesController guard) {
     final l10n = AppLocalizations.of(context)!;
     showDialog<bool>(
       context: context,
@@ -516,7 +608,7 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
       ),
     ).then((doImport) {
       if (mounted) {
-        Navigator.pop(context, (sub: sub, importHistory: doImport ?? false));
+        guard.pop((sub: sub, importHistory: doImport ?? false));
       }
     });
   }

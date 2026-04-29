@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/services/image_service.dart';
 import '../../../shared/widgets/delete_confirm.dart';
+import '../../../shared/widgets/unsaved_changes_guard.dart';
 import '../models/finance.dart';
 import '../services/balance_util.dart';
 import '../services/bank_preset_service.dart';
@@ -810,6 +811,7 @@ class _AccountDialogState extends State<_AccountDialog> {
   String? _imagePath;
   DateTime? _forcedBalanceDate;
   BankPreset? _selectedBank;
+  late final String _initialSignature;
 
   static const _baseCurrencies = [
     'CNY',
@@ -870,6 +872,7 @@ class _AccountDialogState extends State<_AccountDialog> {
         _forcedBalanceDate = a.forcedBalanceDate ?? DateTime.now();
       }
     }
+    _initialSignature = _signature();
   }
 
   @override
@@ -887,212 +890,232 @@ class _AccountDialogState extends State<_AccountDialog> {
     final l10n = AppLocalizations.of(context)!;
     final isEditing = widget.account != null;
 
-    return Dialog(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              isEditing ? l10n.financeEditAccount : l10n.financeNewAccount,
-              style: theme.textTheme.titleLarge,
-            ),
-            const SizedBox(height: 16),
-
-            // Type selector
-            SegmentedButton<AccountType>(
-              segments: [
-                ButtonSegment(
-                  value: AccountType.fund,
-                  label: Text(l10n.financeAccountTypeFund),
-                  icon: const Icon(Icons.savings, size: 16),
-                ),
-                ButtonSegment(
-                  value: AccountType.credit,
-                  label: Text(l10n.financeAccountTypeCredit),
-                  icon: const Icon(Icons.credit_card, size: 16),
-                ),
-              ],
-              selected: {_type},
-              onSelectionChanged: (s) => setState(() => _type = s.first),
-            ),
-            const SizedBox(height: 4),
-            SegmentedButton<AccountType>(
-              segments: [
-                ButtonSegment(
-                  value: AccountType.recharge,
-                  label: Text(l10n.financeAccountTypeRecharge),
-                  icon: const Icon(Icons.phone_android, size: 16),
-                ),
-                ButtonSegment(
-                  value: AccountType.financial,
-                  label: Text(l10n.financeAccountTypeFinancial),
-                  icon: const Icon(Icons.trending_up, size: 16),
-                ),
-              ],
-              selected: {_type},
-              onSelectionChanged: (s) => setState(() => _type = s.first),
-            ),
-            const SizedBox(height: 16),
-
-            TextField(
-              controller: _nameController,
-              autofocus: true,
-              decoration: InputDecoration(labelText: l10n.financeAccountName),
-            ),
-            const SizedBox(height: 12),
-
-            TextField(
-              controller: _bankController,
-              decoration: InputDecoration(
-                labelText: l10n.financeBankApp,
-                hintText: l10n.financeBankAppHint,
+    return UnsavedChangesGuard(
+      hasUnsavedChanges: _hasUnsavedChanges,
+      builder: (context, guard) => Dialog(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                isEditing ? l10n.financeEditAccount : l10n.financeNewAccount,
+                style: theme.textTheme.titleLarge,
               ),
-            ),
-            const SizedBox(height: 12),
+              const SizedBox(height: 16),
 
-            // Currency dropdown
-            DropdownButtonFormField<String>(
-              initialValue: _currency,
-              decoration: InputDecoration(labelText: l10n.financeCurrency),
-              items: _currencies
-                  .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                  .toList(),
-              onChanged: (v) {
-                if (v != null) setState(() => _currency = v);
-              },
-            ),
-            const SizedBox(height: 12),
-
-            TextField(
-              controller: _cardController,
-              decoration: InputDecoration(
-                labelText: l10n.financeCardNumber,
-                hintText: l10n.financeCardNumberHint,
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Emoji picker
-            Text(l10n.financeIcon, style: theme.textTheme.bodySmall),
-            const SizedBox(height: 8),
-            _buildImagePreview(theme, l10n),
-            if (_downloadingLogo)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 4),
-                child: LinearProgressIndicator(),
-              ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 4,
-              runSpacing: 4,
-              children: _commonEmojis.map((emoji) {
-                final isSelected = emoji == _selectedEmoji;
-                return InkWell(
-                  borderRadius: BorderRadius.circular(8),
-                  onTap: () => setState(() {
-                    _selectedEmoji = isSelected ? null : emoji;
-                    if (!isSelected) _imagePath = null;
-                  }),
-                  child: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      color: isSelected
-                          ? theme.colorScheme.primaryContainer
-                          : null,
-                      border: isSelected
-                          ? Border.all(
-                              color: theme.colorScheme.primary,
-                              width: 2,
-                            )
-                          : null,
-                    ),
-                    child: Center(
-                      child: Text(emoji, style: const TextStyle(fontSize: 18)),
-                    ),
+              // Type selector
+              SegmentedButton<AccountType>(
+                segments: [
+                  ButtonSegment(
+                    value: AccountType.fund,
+                    label: Text(l10n.financeAccountTypeFund),
+                    icon: const Icon(Icons.savings, size: 16),
                   ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 16),
+                  ButtonSegment(
+                    value: AccountType.credit,
+                    label: Text(l10n.financeAccountTypeCredit),
+                    icon: const Icon(Icons.credit_card, size: 16),
+                  ),
+                ],
+                selected: {_type},
+                onSelectionChanged: (s) => setState(() => _type = s.first),
+              ),
+              const SizedBox(height: 4),
+              SegmentedButton<AccountType>(
+                segments: [
+                  ButtonSegment(
+                    value: AccountType.recharge,
+                    label: Text(l10n.financeAccountTypeRecharge),
+                    icon: const Icon(Icons.phone_android, size: 16),
+                  ),
+                  ButtonSegment(
+                    value: AccountType.financial,
+                    label: Text(l10n.financeAccountTypeFinancial),
+                    icon: const Icon(Icons.trending_up, size: 16),
+                  ),
+                ],
+                selected: {_type},
+                onSelectionChanged: (s) => setState(() => _type = s.first),
+              ),
+              const SizedBox(height: 16),
 
-            // Forced balance override
-            Text(
-              l10n.financeForceBalance,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.primary,
+              TextField(
+                controller: _nameController,
+                autofocus: true,
+                decoration: InputDecoration(labelText: l10n.financeAccountName),
               ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _balanceController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-                signed: true,
-              ),
-              decoration: InputDecoration(
-                labelText: l10n.financeCurrentBalance,
-                hintText: l10n.financeCurrentBalanceHint,
-                prefixText: '$_currency ',
-                prefixStyle: TextStyle(color: theme.colorScheme.onSurface),
-              ),
-              onChanged: (_) {
-                if (_balanceController.text.trim().isNotEmpty &&
-                    _forcedBalanceDate == null) {
-                  setState(() => _forcedBalanceDate = DateTime.now());
-                }
-              },
-            ),
-            if (_balanceController.text.trim().isNotEmpty) ...[
-              const SizedBox(height: 8),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                dense: true,
-                leading: const Icon(Icons.calendar_today, size: 18),
-                title: Text(
-                  _forcedBalanceDate != null
-                      ? '${_forcedBalanceDate!.year}-${_forcedBalanceDate!.month.toString().padLeft(2, '0')}-${_forcedBalanceDate!.day.toString().padLeft(2, '0')}'
-                      : l10n.financeAsOfToday,
-                  style: theme.textTheme.bodySmall,
+              const SizedBox(height: 12),
+
+              TextField(
+                controller: _bankController,
+                decoration: InputDecoration(
+                  labelText: l10n.financeBankApp,
+                  hintText: l10n.financeBankAppHint,
                 ),
-                subtitle: Text(l10n.financeBalanceEffectiveDate),
-                onTap: () async {
-                  final picked = await showDatePicker(
-                    context: context,
-                    initialDate: _forcedBalanceDate ?? DateTime.now(),
-                    firstDate: DateTime(2020),
-                    lastDate: DateTime.now(),
+              ),
+              const SizedBox(height: 12),
+
+              // Currency dropdown
+              DropdownButtonFormField<String>(
+                initialValue: _currency,
+                decoration: InputDecoration(labelText: l10n.financeCurrency),
+                items: _currencies
+                    .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                    .toList(),
+                onChanged: (v) {
+                  if (v != null) setState(() => _currency = v);
+                },
+              ),
+              const SizedBox(height: 12),
+
+              TextField(
+                controller: _cardController,
+                decoration: InputDecoration(
+                  labelText: l10n.financeCardNumber,
+                  hintText: l10n.financeCardNumberHint,
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Emoji picker
+              Text(l10n.financeIcon, style: theme.textTheme.bodySmall),
+              const SizedBox(height: 8),
+              _buildImagePreview(theme, l10n),
+              if (_downloadingLogo)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 4),
+                  child: LinearProgressIndicator(),
+                ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 4,
+                runSpacing: 4,
+                children: _commonEmojis.map((emoji) {
+                  final isSelected = emoji == _selectedEmoji;
+                  return InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: () => setState(() {
+                      _selectedEmoji = isSelected ? null : emoji;
+                      if (!isSelected) _imagePath = null;
+                    }),
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        color: isSelected
+                            ? theme.colorScheme.primaryContainer
+                            : null,
+                        border: isSelected
+                            ? Border.all(
+                                color: theme.colorScheme.primary,
+                                width: 2,
+                              )
+                            : null,
+                      ),
+                      child: Center(
+                        child: Text(
+                          emoji,
+                          style: const TextStyle(fontSize: 18),
+                        ),
+                      ),
+                    ),
                   );
-                  if (picked != null) {
-                    setState(() => _forcedBalanceDate = picked);
+                }).toList(),
+              ),
+              const SizedBox(height: 16),
+
+              // Forced balance override
+              Text(
+                l10n.financeForceBalance,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _balanceController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                  signed: true,
+                ),
+                decoration: InputDecoration(
+                  labelText: l10n.financeCurrentBalance,
+                  hintText: l10n.financeCurrentBalanceHint,
+                  prefixText: '$_currency ',
+                  prefixStyle: TextStyle(color: theme.colorScheme.onSurface),
+                ),
+                onChanged: (_) {
+                  if (_balanceController.text.trim().isNotEmpty &&
+                      _forcedBalanceDate == null) {
+                    setState(() => _forcedBalanceDate = DateTime.now());
                   }
                 },
               ),
-            ],
-            const SizedBox(height: 20),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(l10n.commonCancel),
-                ),
-                const SizedBox(width: 8),
-                FilledButton(
-                  onPressed: _submit,
-                  child: Text(isEditing ? l10n.commonSave : l10n.commonAdd),
+              if (_balanceController.text.trim().isNotEmpty) ...[
+                const SizedBox(height: 8),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  leading: const Icon(Icons.calendar_today, size: 18),
+                  title: Text(
+                    _forcedBalanceDate != null
+                        ? '${_forcedBalanceDate!.year}-${_forcedBalanceDate!.month.toString().padLeft(2, '0')}-${_forcedBalanceDate!.day.toString().padLeft(2, '0')}'
+                        : l10n.financeAsOfToday,
+                    style: theme.textTheme.bodySmall,
+                  ),
+                  subtitle: Text(l10n.financeBalanceEffectiveDate),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: _forcedBalanceDate ?? DateTime.now(),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime.now(),
+                    );
+                    if (picked != null) {
+                      setState(() => _forcedBalanceDate = picked);
+                    }
+                  },
                 ),
               ],
-            ),
-          ],
+              const SizedBox(height: 20),
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => guard.maybeDiscardAndPop(),
+                    child: Text(l10n.commonCancel),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    onPressed: () => _submit(guard),
+                    child: Text(isEditing ? l10n.commonSave : l10n.commonAdd),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
+
+  bool _hasUnsavedChanges() => _signature() != _initialSignature;
+
+  String _signature() => formSignature([
+    _nameController.text.trim(),
+    _bankController.text.trim(),
+    _cardController.text.trim(),
+    _balanceController.text.trim(),
+    _type.name,
+    _currency,
+    _selectedEmoji,
+    _imagePath,
+    _forcedBalanceDate,
+  ]);
 
   Widget _buildImagePreview(ThemeData theme, AppLocalizations l10n) {
     return Column(
@@ -1219,7 +1242,7 @@ class _AccountDialogState extends State<_AccountDialog> {
     }
   }
 
-  void _submit() {
+  void _submit(UnsavedChangesController guard) {
     final name = _nameController.text.trim();
     final bank = _bankController.text.trim();
     if (name.isEmpty || bank.isEmpty) return;
@@ -1245,6 +1268,6 @@ class _AccountDialogState extends State<_AccountDialog> {
           ? (_forcedBalanceDate ?? DateTime.now())
           : null,
     );
-    Navigator.pop(context, account);
+    guard.pop(account);
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/widgets/unsaved_changes_guard.dart';
 import '../models/task.dart';
 import 'recurrence_picker.dart';
 
@@ -32,6 +33,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   DateTime? _dueDate;
   TaskRecurrence? _recurrence;
   final List<String> _subtaskTitles = [];
+  late final String _initialSignature;
 
   @override
   void initState() {
@@ -43,6 +45,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
       _noteController.text = t.note ?? '';
       _selectedType = t.type;
       _selectedEmoji = t.emoji;
+      _dueDate = t.dueDate;
       _recurrence = t.recurrence;
       if (t.reminderTime != null) {
         _reminderTime = TimeOfDay.fromDateTime(t.reminderTime!);
@@ -51,6 +54,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
         _subtaskTitles.add(s.title);
       }
     }
+    _initialSignature = _signature();
   }
 
   @override
@@ -66,262 +70,272 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
 
-    return Dialog(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              widget.dialogTitle ?? l10n.todoAddTask,
-              style: theme.textTheme.titleLarge,
-            ),
-            const SizedBox(height: 16),
+    return UnsavedChangesGuard(
+      hasUnsavedChanges: _hasUnsavedChanges,
+      builder: (context, guard) => Dialog(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                widget.dialogTitle ?? l10n.todoAddTask,
+                style: theme.textTheme.titleLarge,
+              ),
+              const SizedBox(height: 16),
 
-            // Title + Emoji
-            Row(
-              children: [
-                GestureDetector(
-                  onTap: () => _showEmojiPicker(context),
-                  child: Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: theme.colorScheme.outline),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Center(
-                      child: _selectedEmoji != null
-                          ? Text(
-                              _selectedEmoji!,
-                              style: const TextStyle(fontSize: 22),
-                            )
-                          : Icon(
-                              Icons.add_reaction_outlined,
-                              color: theme.colorScheme.outline,
-                            ),
+              // Title + Emoji
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => _showEmojiPicker(context),
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: theme.colorScheme.outline),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Center(
+                        child: _selectedEmoji != null
+                            ? Text(
+                                _selectedEmoji!,
+                                style: const TextStyle(fontSize: 22),
+                              )
+                            : Icon(
+                                Icons.add_reaction_outlined,
+                                color: theme.colorScheme.outline,
+                              ),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextField(
-                    controller: _titleController,
-                    autofocus: true,
-                    decoration: InputDecoration(
-                      labelText: l10n.todoTitle,
-                      hintText: l10n.todoWhatNeedsDone,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: _titleController,
+                      autofocus: true,
+                      decoration: InputDecoration(
+                        labelText: l10n.todoTitle,
+                        hintText: l10n.todoWhatNeedsDone,
+                      ),
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: (_) => _submit(guard),
                     ),
-                    textInputAction: TextInputAction.done,
-                    onSubmitted: (_) => _submit(),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            TextField(
-              controller: _noteController,
-              decoration: InputDecoration(
-                labelText: l10n.todoNote,
-                hintText: l10n.todoNoteHint,
+                ],
               ),
-              minLines: 1,
-              maxLines: 3,
-              textInputAction: TextInputAction.newline,
-            ),
-            const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-            // Type selector
-            SegmentedButton<TaskType>(
-              segments: [
-                ButtonSegment(
-                  value: TaskType.daily,
-                  label: Text(l10n.todoDailyTask),
-                  icon: const Icon(Icons.repeat, size: 16),
+              TextField(
+                controller: _noteController,
+                decoration: InputDecoration(
+                  labelText: l10n.todoNote,
+                  hintText: l10n.todoNoteHint,
                 ),
-                ButtonSegment(
-                  value: TaskType.routineOnce,
-                  label: Text(l10n.todoRoutineTask),
-                  icon: const Icon(Icons.today, size: 16),
-                ),
-                ButtonSegment(
-                  value: TaskType.workOnce,
-                  label: Text(l10n.todoWorkTask),
-                  icon: const Icon(Icons.work_outline, size: 16),
-                ),
-              ],
-              selected: {_selectedType},
-              onSelectionChanged: (set) {
-                setState(() => _selectedType = set.first);
-              },
-            ),
-            const SizedBox(height: 12),
-
-            // Reminder time (optional)
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(
-                _reminderTime != null
-                    ? Icons.notifications_active
-                    : Icons.notifications_none,
-                color: _reminderTime != null ? theme.colorScheme.primary : null,
+                minLines: 1,
+                maxLines: 3,
+                textInputAction: TextInputAction.newline,
               ),
-              title: Text(
-                _reminderTime != null
-                    ? l10n.todoReminderAt(_reminderTime!.format(context))
-                    : l10n.todoAddReminder,
-              ),
-              trailing: _reminderTime != null
-                  ? IconButton(
-                      icon: const Icon(Icons.clear, size: 18),
-                      onPressed: () => setState(() => _reminderTime = null),
-                    )
-                  : null,
-              onTap: () async {
-                final time = await showTimePicker(
-                  context: context,
-                  initialTime: _reminderTime ?? TimeOfDay.now(),
-                );
-                if (time != null) {
-                  setState(() => _reminderTime = time);
-                }
-              },
-            ),
-            const SizedBox(height: 12),
+              const SizedBox(height: 16),
 
-            // Scheduled date (for one-time tasks)
-            if (_selectedType != TaskType.daily)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.event),
-                title: Text(
-                  _scheduledDate != null
-                      ? l10n.todoScheduledAt(_fmtDate(_scheduledDate!))
-                      : l10n.todoSetScheduledDate,
-                ),
-                onTap: () async {
-                  final picked = await showDatePicker(
-                    context: context,
-                    initialDate: _scheduledDate ?? DateTime.now(),
-                    firstDate: DateTime(2020),
-                    lastDate: DateTime.now().add(const Duration(days: 3650)),
-                  );
-                  if (picked != null) setState(() => _scheduledDate = picked);
+              // Type selector
+              SegmentedButton<TaskType>(
+                segments: [
+                  ButtonSegment(
+                    value: TaskType.daily,
+                    label: Text(l10n.todoDailyTask),
+                    icon: const Icon(Icons.repeat, size: 16),
+                  ),
+                  ButtonSegment(
+                    value: TaskType.routineOnce,
+                    label: Text(l10n.todoRoutineTask),
+                    icon: const Icon(Icons.today, size: 16),
+                  ),
+                  ButtonSegment(
+                    value: TaskType.workOnce,
+                    label: Text(l10n.todoWorkTask),
+                    icon: const Icon(Icons.work_outline, size: 16),
+                  ),
+                ],
+                selected: {_selectedType},
+                onSelectionChanged: (set) {
+                  setState(() => _selectedType = set.first);
                 },
               ),
+              const SizedBox(height: 12),
 
-            // Due date (optional, for one-time tasks)
-            if (_selectedType != TaskType.daily)
+              // Reminder time (optional)
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: Icon(
-                  _dueDate != null ? Icons.flag : Icons.flag_outlined,
-                  color: _dueDate != null ? theme.colorScheme.error : null,
+                  _reminderTime != null
+                      ? Icons.notifications_active
+                      : Icons.notifications_none,
+                  color: _reminderTime != null
+                      ? theme.colorScheme.primary
+                      : null,
                 ),
                 title: Text(
-                  _dueDate != null
-                      ? '${l10n.todoDueDate}: ${_fmtDate(_dueDate!)}'
-                      : l10n.todoSetDueDate,
+                  _reminderTime != null
+                      ? l10n.todoReminderAt(_reminderTime!.format(context))
+                      : l10n.todoAddReminder,
                 ),
-                trailing: _dueDate != null
+                trailing: _reminderTime != null
                     ? IconButton(
                         icon: const Icon(Icons.clear, size: 18),
-                        onPressed: () => setState(() => _dueDate = null),
+                        onPressed: () => setState(() => _reminderTime = null),
                       )
                     : null,
                 onTap: () async {
-                  final picked = await showDatePicker(
+                  final time = await showTimePicker(
                     context: context,
-                    initialDate: _dueDate ?? DateTime.now(),
-                    firstDate: DateTime(2020),
-                    lastDate: DateTime.now().add(const Duration(days: 3650)),
+                    initialTime: _reminderTime ?? TimeOfDay.now(),
                   );
-                  if (picked != null) setState(() => _dueDate = picked);
+                  if (time != null) {
+                    setState(() => _reminderTime = time);
+                  }
                 },
               ),
+              const SizedBox(height: 12),
 
-            // Recurrence (for one-time tasks)
-            if (_selectedType != TaskType.daily)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: Icon(
-                  Icons.repeat,
-                  color: _recurrence != null ? theme.colorScheme.primary : null,
+              // Scheduled date (for one-time tasks)
+              if (_selectedType != TaskType.daily)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.event),
+                  title: Text(
+                    _scheduledDate != null
+                        ? l10n.todoScheduledAt(_fmtDate(_scheduledDate!))
+                        : l10n.todoSetScheduledDate,
+                  ),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: _scheduledDate ?? DateTime.now(),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime.now().add(const Duration(days: 3650)),
+                    );
+                    if (picked != null) setState(() => _scheduledDate = picked);
+                  },
                 ),
-                title: Text(
-                  _recurrence != null
-                      ? _recurrenceLabel(_recurrence!, l10n)
-                      : l10n.todoRecurrence,
-                ),
-                trailing: _recurrence != null
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, size: 18),
-                        onPressed: () => setState(() => _recurrence = null),
-                      )
-                    : null,
-                onTap: () => _showRecurrencePicker(l10n),
-              ),
 
-            // Subtasks
-            if (_subtaskTitles.isNotEmpty) ...[
-              Text(l10n.todoSubtasks, style: theme.textTheme.bodySmall),
-              const SizedBox(height: 4),
-              ..._subtaskTitles.asMap().entries.map(
-                (entry) => Row(
-                  children: [
-                    const Icon(Icons.check_box_outline_blank, size: 18),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text(entry.value)),
-                    IconButton(
-                      icon: const Icon(Icons.close, size: 16),
-                      onPressed: () {
-                        setState(() => _subtaskTitles.removeAt(entry.key));
-                      },
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
+              // Due date (optional, for one-time tasks)
+              if (_selectedType != TaskType.daily)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(
+                    _dueDate != null ? Icons.flag : Icons.flag_outlined,
+                    color: _dueDate != null ? theme.colorScheme.error : null,
+                  ),
+                  title: Text(
+                    _dueDate != null
+                        ? '${l10n.todoDueDate}: ${_fmtDate(_dueDate!)}'
+                        : l10n.todoSetDueDate,
+                  ),
+                  trailing: _dueDate != null
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, size: 18),
+                          onPressed: () => setState(() => _dueDate = null),
+                        )
+                      : null,
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: _dueDate ?? DateTime.now(),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime.now().add(const Duration(days: 3650)),
+                    );
+                    if (picked != null) setState(() => _dueDate = picked);
+                  },
+                ),
+
+              // Recurrence (for one-time tasks)
+              if (_selectedType != TaskType.daily)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(
+                    Icons.repeat,
+                    color: _recurrence != null
+                        ? theme.colorScheme.primary
+                        : null,
+                  ),
+                  title: Text(
+                    _recurrence != null
+                        ? _recurrenceLabel(_recurrence!, l10n)
+                        : l10n.todoRecurrence,
+                  ),
+                  trailing: _recurrence != null
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, size: 18),
+                          onPressed: () => setState(() => _recurrence = null),
+                        )
+                      : null,
+                  onTap: () => _showRecurrencePicker(l10n),
+                ),
+
+              // Subtasks
+              if (_subtaskTitles.isNotEmpty) ...[
+                Text(l10n.todoSubtasks, style: theme.textTheme.bodySmall),
+                const SizedBox(height: 4),
+                ..._subtaskTitles.asMap().entries.map(
+                  (entry) => Row(
+                    children: [
+                      const Icon(Icons.check_box_outline_blank, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(entry.value)),
+                      IconButton(
+                        icon: const Icon(Icons.close, size: 16),
+                        onPressed: () {
+                          setState(() => _subtaskTitles.removeAt(entry.key));
+                        },
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 4),
+              ],
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _subtaskController,
+                      decoration: InputDecoration(
+                        hintText: l10n.todoAddSubtask,
+                        isDense: true,
+                        border: InputBorder.none,
+                      ),
+                      style: theme.textTheme.bodyMedium,
+                      onSubmitted: (_) => _addSubtask(),
                     ),
-                  ],
-                ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add_circle_outline, size: 20),
+                    onPressed: _addSubtask,
+                  ),
+                ],
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 16),
+
+              // Actions
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => guard.maybeDiscardAndPop(),
+                    child: Text(l10n.commonCancel),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    onPressed: () => _submit(guard),
+                    child: Text(l10n.commonAdd),
+                  ),
+                ],
+              ),
             ],
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _subtaskController,
-                    decoration: InputDecoration(
-                      hintText: l10n.todoAddSubtask,
-                      isDense: true,
-                      border: InputBorder.none,
-                    ),
-                    style: theme.textTheme.bodyMedium,
-                    onSubmitted: (_) => _addSubtask(),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.add_circle_outline, size: 20),
-                  onPressed: _addSubtask,
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // Actions
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(l10n.commonCancel),
-                ),
-                const SizedBox(width: 8),
-                FilledButton(onPressed: _submit, child: Text(l10n.commonAdd)),
-              ],
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -484,10 +498,40 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
     );
   }
 
-  void _submit() {
+  bool _hasUnsavedChanges() => _signature() != _initialSignature;
+
+  String _signature() => formSignature([
+    _titleController.text.trim(),
+    _noteController.text.trim(),
+    _subtaskController.text.trim(),
+    _selectedType.name,
+    _reminderTime,
+    _selectedEmoji,
+    _scheduledDate,
+    _dueDate,
+    _recurrenceSignature(_recurrence),
+    _subtaskTitles,
+  ]);
+
+  String _recurrenceSignature(TaskRecurrence? recurrence) {
+    if (recurrence == null) return '';
+    return formSignature([
+      recurrence.type.name,
+      recurrence.intervalDays,
+      recurrence.dayOfMonth,
+      recurrence.monthOfYear,
+    ]);
+  }
+
+  void _submit(UnsavedChangesController guard) {
     final title = _titleController.text.trim();
     if (title.isEmpty) return;
     final note = _noteController.text.trim();
+    final pendingSubtask = _subtaskController.text.trim();
+    final subtaskTitles = [
+      ..._subtaskTitles,
+      if (pendingSubtask.isNotEmpty) pendingSubtask,
+    ];
 
     DateTime? reminder;
     if (_reminderTime != null) {
@@ -507,7 +551,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
       emoji: _selectedEmoji,
       type: _selectedType,
       reminderTime: reminder,
-      subtasks: _subtaskTitles.map((t) => SubTask(title: t)).toList(),
+      subtasks: subtaskTitles.map((t) => SubTask(title: t)).toList(),
       scheduledDate: _selectedType != TaskType.daily
           ? _scheduledDate ?? widget.defaultDate ?? DateTime.now()
           : null,
@@ -517,7 +561,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
       dueDate: _selectedType != TaskType.daily ? _dueDate : null,
       recurrence: _selectedType != TaskType.daily ? _recurrence : null,
     );
-    Navigator.pop(context, task);
+    guard.pop(task);
   }
 
   String _fmtDate(DateTime d) =>

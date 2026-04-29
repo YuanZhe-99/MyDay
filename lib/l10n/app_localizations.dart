@@ -1439,6 +1439,24 @@ abstract class AppLocalizations {
   /// **'Save'**
   String get commonSave;
 
+  /// No description provided for @commonDiscard.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get commonDiscard;
+
+  /// No description provided for @commonDiscardChangesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard changes?'**
+  String get commonDiscardChangesTitle;
+
+  /// No description provided for @commonDiscardChangesMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'You have unsaved changes. Discard them and close?'**
+  String get commonDiscardChangesMessage;
+
   /// No description provided for @commonCancel.
   ///
   /// In en, this message translates to:

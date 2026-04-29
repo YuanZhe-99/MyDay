@@ -694,6 +694,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get commonSave => '保存';
 
   @override
+  String get commonDiscard => '舍弃';
+
+  @override
+  String get commonDiscardChangesTitle => '舍弃修改？';
+
+  @override
+  String get commonDiscardChangesMessage => '当前更改尚未保存，确定要舍弃并关闭吗？';
+
+  @override
   String get commonCancel => '取消';
 
   @override
@@ -2283,6 +2292,15 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get commonSave => '儲存';
+
+  @override
+  String get commonDiscard => '捨棄';
+
+  @override
+  String get commonDiscardChangesTitle => '捨棄修改？';
+
+  @override
+  String get commonDiscardChangesMessage => '目前變更尚未儲存，確定要捨棄並關閉嗎？';
 
   @override
   String get commonCancel => '取消';

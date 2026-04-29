@@ -13,6 +13,7 @@ import '../../../shared/providers/intimacy_visibility.dart';
 import '../../../shared/services/local_api_server.dart';
 import '../../../shared/services/tray_service.dart';
 import '../../../shared/services/webdav_service.dart';
+import '../../../shared/widgets/unsaved_changes_guard.dart';
 import '../../../shared/views/backup_page.dart';
 import '../../../shared/views/import_export_page.dart';
 import '../../../shared/views/webdav_config_page.dart';
@@ -120,53 +121,71 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final addrCtrl = TextEditingController(text: _apiListenAddress);
     final userCtrl = TextEditingController(text: _apiUsername);
     final passCtrl = TextEditingController(text: _apiPassword);
+    String signature() => formSignature([
+      addrCtrl.text.trim(),
+      portCtrl.text.trim(),
+      userCtrl.text.trim(),
+      passCtrl.text.trim(),
+    ]);
+    final initialSignature = signature();
 
     final saved = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.settingsApiServer),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: addrCtrl,
-              decoration: InputDecoration(labelText: l10n.settingsApiListenAddress),
+      builder: (ctx) => UnsavedChangesGuard(
+        hasUnsavedChanges: () => signature() != initialSignature,
+        builder: (ctx, guard) => AlertDialog(
+          title: Text(l10n.settingsApiServer),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: addrCtrl,
+                decoration: InputDecoration(
+                  labelText: l10n.settingsApiListenAddress,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: portCtrl,
+                decoration: InputDecoration(labelText: l10n.settingsApiPort),
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: userCtrl,
+                decoration: InputDecoration(
+                  labelText: l10n.settingsApiUsername,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: passCtrl,
+                decoration: InputDecoration(
+                  labelText: l10n.settingsApiPassword,
+                ),
+                obscureText: true,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => guard.maybeDiscardAndPop<bool>(),
+              child: Text(l10n.commonCancel),
             ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: portCtrl,
-              decoration: InputDecoration(labelText: l10n.settingsApiPort),
-              keyboardType: TextInputType.number,
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: userCtrl,
-              decoration: InputDecoration(labelText: l10n.settingsApiUsername),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: passCtrl,
-              decoration: InputDecoration(labelText: l10n.settingsApiPassword),
-              obscureText: true,
+            FilledButton(
+              onPressed: () => guard.pop(true),
+              child: Text(l10n.commonSave),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(l10n.commonCancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(l10n.commonSave),
-          ),
-        ],
       ),
     );
     if (saved != true || !mounted) return;
 
     final newPort = int.tryParse(portCtrl.text.trim()) ?? 7790;
-    final newAddr = addrCtrl.text.trim().isEmpty ? 'localhost' : addrCtrl.text.trim();
+    final newAddr = addrCtrl.text.trim().isEmpty
+        ? 'localhost'
+        : addrCtrl.text.trim();
     final newUser = userCtrl.text.trim();
     final newPass = passCtrl.text.trim();
     await TodoStorage.writeConfig({
@@ -214,9 +233,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     };
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.settingsTitle),
-      ),
+      appBar: AppBar(title: Text(l10n.settingsTitle)),
       body: ListView(
         children: [
           _buildSection(context, l10n.settingsGeneral, [
@@ -240,7 +257,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             SwitchListTile(
               secondary: const Icon(Icons.favorite_border),
               title: Text(l10n.settingsIntimacyModule),
-              subtitle: Text(visibility.visible ? l10n.intimacyModuleVisible : l10n.intimacyModuleHidden),
+              subtitle: Text(
+                visibility.visible
+                    ? l10n.intimacyModuleVisible
+                    : l10n.intimacyModuleHidden,
+              ),
               value: visibility.visible,
               onChanged: (value) async {
                 if (!value) {
@@ -263,9 +284,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   );
                   if (confirmed != true) return;
                 }
-                ref
-                    .read(intimacyVisibilityProvider.notifier)
-                    .setVisible(value);
+                ref.read(intimacyVisibilityProvider.notifier).setVisible(value);
               },
             ),
           ]),
@@ -312,11 +331,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   LocalApiServer.isRunning
                       ? l10n.settingsApiRunning(LocalApiServer.port)
                       : LocalApiServer.lastError == 'credentials_required'
-                          ? l10n.settingsApiNeedCredentials
-                          : LocalApiServer.lastError != null
-                              ? '${l10n.settingsApiStopped} (${LocalApiServer.lastError})'
-                              : l10n.settingsApiStopped,
-                  style: !LocalApiServer.isRunning && LocalApiServer.lastError != null
+                      ? l10n.settingsApiNeedCredentials
+                      : LocalApiServer.lastError != null
+                      ? '${l10n.settingsApiStopped} (${LocalApiServer.lastError})'
+                      : l10n.settingsApiStopped,
+                  style:
+                      !LocalApiServer.isRunning &&
+                          LocalApiServer.lastError != null
                       ? TextStyle(color: Theme.of(context).colorScheme.error)
                       : null,
                 ),
@@ -364,7 +385,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ListTile(
               leading: const Icon(Icons.sync),
               title: Text(l10n.settingsWebDAVSync),
-              subtitle: Text(_webdavConfigured ? l10n.settingsWebDAVConfigured : l10n.settingsWebDAVNotConfigured),
+              subtitle: Text(
+                _webdavConfigured
+                    ? l10n.settingsWebDAVConfigured
+                    : l10n.settingsWebDAVNotConfigured,
+              ),
               trailing: const Icon(Icons.chevron_right),
               onTap: () async {
                 await Navigator.push(
@@ -402,7 +427,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ListTile(
               leading: const Icon(Icons.tag),
               title: Text(_appVersion.isNotEmpty ? _appVersion : '...'),
-
             ),
             ListTile(
               leading: const Icon(Icons.gavel_outlined),
@@ -411,7 +435,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                    builder: (_) => const app_license.LicensePage()),
+                  builder: (_) => const app_license.LicensePage(),
+                ),
               ),
             ),
             ListTile(
@@ -442,7 +467,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 title: const Text('Date Override'),
                 subtitle: Text(
                   SubscriptionProcessor.debugNowOverride != null
-                      ? DateFormat('yyyy-MM-dd').format(SubscriptionProcessor.debugNowOverride!)
+                      ? DateFormat(
+                          'yyyy-MM-dd',
+                        ).format(SubscriptionProcessor.debugNowOverride!)
                       : 'Using system date',
                 ),
                 trailing: SubscriptionProcessor.debugNowOverride != null
@@ -456,7 +483,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 onTap: () async {
                   final picked = await showDatePicker(
                     context: context,
-                    initialDate: SubscriptionProcessor.debugNowOverride ?? DateTime.now(),
+                    initialDate:
+                        SubscriptionProcessor.debugNowOverride ??
+                        DateTime.now(),
                     firstDate: DateTime(2020),
                     lastDate: DateTime(2030),
                   );
@@ -474,7 +503,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   Widget _buildSection(
-      BuildContext context, String title, List<Widget> children) {
+    BuildContext context,
+    String title,
+    List<Widget> children,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -483,8 +515,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           child: Text(
             title,
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+              color: Theme.of(context).colorScheme.primary,
+            ),
           ),
         ),
         ...children,
@@ -495,41 +527,45 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   Future<void> _showStoragePathDialog(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
     final controller = TextEditingController(text: _storagePath);
+    final initialPath = controller.text.trim();
 
     final newPath = await showDialog<String?>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.settingsStorageLocation),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(l10n.settingsStoragePathHint),
-            const SizedBox(height: 16),
-            TextField(
-              controller: controller,
-              autofocus: true,
-              decoration: InputDecoration(
-                labelText: l10n.settingsDirectoryPath,
-                hintText: 'C:\\Users\\...\\MyDay',
+      builder: (ctx) => UnsavedChangesGuard(
+        hasUnsavedChanges: () => controller.text.trim() != initialPath,
+        builder: (ctx, guard) => AlertDialog(
+          title: Text(l10n.settingsStorageLocation),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(l10n.settingsStoragePathHint),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                autofocus: true,
+                decoration: InputDecoration(
+                  labelText: l10n.settingsDirectoryPath,
+                  hintText: 'C:\\Users\\...\\MyDay',
+                ),
+                maxLines: 2,
               ),
-              maxLines: 2,
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => guard.maybeDiscardAndPop<String?>(),
+              child: Text(l10n.commonCancel),
+            ),
+            TextButton(
+              onPressed: () => guard.pop(''),
+              child: Text(l10n.settingsResetDefault),
+            ),
+            FilledButton(
+              onPressed: () => guard.pop(controller.text.trim()),
+              child: Text(l10n.commonSave),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(l10n.commonCancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, ''),
-            child: Text(l10n.settingsResetDefault),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-            child: Text(l10n.commonSave),
-          ),
-        ],
       ),
     );
 
@@ -540,7 +576,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       await _loadStoragePath();
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(pathToSet == null ? l10n.settingsResetDefaultLocation : l10n.settingsStoragePathUpdated)),
+          SnackBar(
+            content: Text(
+              pathToSet == null
+                  ? l10n.settingsResetDefaultLocation
+                  : l10n.settingsStoragePathUpdated,
+            ),
+          ),
         );
       }
     }
@@ -563,7 +605,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               for (final entry in {
-                ThemeMode.system: (l10n.settingsThemeSystem, Icons.brightness_auto),
+                ThemeMode.system: (
+                  l10n.settingsThemeSystem,
+                  Icons.brightness_auto,
+                ),
                 ThemeMode.light: (l10n.settingsThemeLight, Icons.light_mode),
                 ThemeMode.dark: (l10n.settingsThemeDark, Icons.dark_mode),
               }.entries)
