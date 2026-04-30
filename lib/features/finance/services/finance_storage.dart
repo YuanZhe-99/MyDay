@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import '../../../shared/utils/json_preservation.dart';
 import '../../todo/services/todo_storage.dart';
 import '../models/finance.dart';
 
@@ -123,7 +124,11 @@ class FinanceStorage {
 
   static Future<void> save(FinanceData data) async {
     final file = await _getFile();
-    final jsonStr = jsonEncode(data.toJson());
+    final jsonStr = await JsonPreservation.encodeForFile(
+      file: file,
+      next: data.toJson(),
+      schema: dataFilePreservationSchemas[_fileName]!,
+    );
     await file.writeAsString(jsonStr);
   }
 }

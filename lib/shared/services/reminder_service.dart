@@ -10,6 +10,8 @@ import '../../features/finance/services/finance_storage.dart';
 import '../../features/finance/services/subscription_processor.dart';
 import '../../features/todo/models/task.dart';
 import '../../features/todo/services/todo_storage.dart';
+import '../../features/weight/models/weight_record.dart';
+import '../../features/weight/services/weight_storage.dart';
 import '../../l10n/app_localizations.dart';
 import 'backup_service.dart';
 import 'mobile_notification_service.dart';
@@ -38,8 +40,11 @@ class ReminderService {
   TimeOfDay? _subscriptionReminderTime;
 
   // Weight reminder data
+  List<WeightRecord> _weightRecords = [];
   TimeOfDay? _weightMorningReminder;
   TimeOfDay? _weightEveningReminder;
+  int _weightReminderGraceMinutes = 180;
+  bool _weightDataLoaded = false;
 
   /// Optional callback to show an in-app snackbar. Set by the shell scaffold.
   void Function(String message)? onShowSnackbar;
@@ -97,17 +102,25 @@ class ReminderService {
 
   /// Call this whenever weight reminder settings change.
   void updateWeightData({
+    List<WeightRecord>? records,
     int? morningHour,
     int? morningMinute,
     int? eveningHour,
     int? eveningMinute,
+    int? reminderGraceMinutes,
   }) {
+    if (records != null) {
+      _weightRecords = records;
+      _weightDataLoaded = true;
+    }
     _weightMorningReminder = morningHour != null && morningMinute != null
         ? TimeOfDay(hour: morningHour, minute: morningMinute)
         : null;
     _weightEveningReminder = eveningHour != null && eveningMinute != null
         ? TimeOfDay(hour: eveningHour, minute: eveningMinute)
         : null;
+    _weightReminderGraceMinutes =
+        reminderGraceMinutes ?? _weightReminderGraceMinutes;
     _scheduleMobileWeightReminders();
   }
 
@@ -170,25 +183,51 @@ class ReminderService {
     if (!MobileNotificationService.isMobile) return;
     final mns = MobileNotificationService.instance;
     if (_weightMorningReminder != null) {
-      mns.scheduleDaily(
-        id: _mobileWeightMorningId,
-        title: 'MyDay!!!!!',
-        body: _l10n.notifWeightReminder,
-        time: _weightMorningReminder!,
+      _scheduleMobileWeightReminder(
+        _mobileWeightMorningId,
+        _weightMorningReminder!,
       );
     } else {
       mns.cancel(_mobileWeightMorningId);
     }
     if (_weightEveningReminder != null) {
-      mns.scheduleDaily(
-        id: _mobileWeightEveningId,
-        title: 'MyDay!!!!!',
-        body: _l10n.notifWeightReminder,
-        time: _weightEveningReminder!,
+      _scheduleMobileWeightReminder(
+        _mobileWeightEveningId,
+        _weightEveningReminder!,
       );
     } else {
       mns.cancel(_mobileWeightEveningId);
     }
+  }
+
+  void _scheduleMobileWeightReminder(int id, TimeOfDay time) {
+    final mns = MobileNotificationService.instance;
+    final now = DateTime.now();
+    var candidate = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      time.hour,
+      time.minute,
+    );
+    if (candidate.isBefore(now)) {
+      candidate = candidate.add(const Duration(days: 1));
+    }
+    if (_shouldSkipWeightReminder(candidate)) {
+      mns.scheduleAt(
+        id: id,
+        title: 'MyDay!!!!!',
+        body: _l10n.notifWeightReminder,
+        dateTime: candidate.add(const Duration(days: 1)),
+      );
+      return;
+    }
+    mns.scheduleDaily(
+      id: id,
+      title: 'MyDay!!!!!',
+      body: _l10n.notifWeightReminder,
+      time: time,
+    );
   }
 
   /// Schedule todo reminder notifications on mobile.
@@ -339,14 +378,22 @@ class ReminderService {
     // Auto-backup (once per day)
     await BackupService.runAutoBackupIfNeeded();
 
+    if (!_weightDataLoaded) {
+      await _refreshWeightDataFromStorage();
+    }
+
     // Weight morning reminder
     if (_weightMorningReminder != null &&
         _weightMorningReminder!.hour == now.hour &&
         _weightMorningReminder!.minute == now.minute) {
+      await _refreshWeightDataFromStorage();
       final key = 'weight_morning_$todayKey';
       if (!_notifiedIds.contains(key)) {
         _notifiedIds.add(key);
-        _notify(_l10n.notifWeightReminder);
+        final reminderAt = _todayAt(_weightMorningReminder!);
+        if (!_shouldSkipWeightReminder(reminderAt)) {
+          _notify(_l10n.notifWeightReminder);
+        }
       }
     }
 
@@ -354,10 +401,14 @@ class ReminderService {
     if (_weightEveningReminder != null &&
         _weightEveningReminder!.hour == now.hour &&
         _weightEveningReminder!.minute == now.minute) {
+      await _refreshWeightDataFromStorage();
       final key = 'weight_evening_$todayKey';
       if (!_notifiedIds.contains(key)) {
         _notifiedIds.add(key);
-        _notify(_l10n.notifWeightReminder);
+        final reminderAt = _todayAt(_weightEveningReminder!);
+        if (!_shouldSkipWeightReminder(reminderAt)) {
+          _notify(_l10n.notifWeightReminder);
+        }
       }
     }
 
@@ -392,6 +443,47 @@ class ReminderService {
         }
       }
     }
+  }
+
+  DateTime _todayAt(TimeOfDay time) {
+    final today = DateTime.now();
+    return DateTime(today.year, today.month, today.day, time.hour, time.minute);
+  }
+
+  bool _shouldSkipWeightReminder(DateTime reminderAt) {
+    if (_weightReminderGraceMinutes <= 0) return false;
+    final windowStart = reminderAt.subtract(
+      Duration(minutes: _weightReminderGraceMinutes),
+    );
+    final windowEnd = reminderAt.add(const Duration(minutes: 1));
+    return _weightRecords.any((record) {
+      return !record.datetime.isBefore(windowStart) &&
+          record.datetime.isBefore(windowEnd);
+    });
+  }
+
+  Future<void> _refreshWeightDataFromStorage() async {
+    final data = await WeightStorage.load();
+    if (data == null) {
+      _weightDataLoaded = true;
+      return;
+    }
+
+    _weightRecords = data.records;
+    _weightReminderGraceMinutes = data.reminderGraceMinutes;
+    _weightMorningReminder =
+        data.reminderMode != 'none' &&
+            data.morningHour != null &&
+            data.morningMinute != null
+        ? TimeOfDay(hour: data.morningHour!, minute: data.morningMinute!)
+        : null;
+    _weightEveningReminder =
+        data.reminderMode == 'twice' &&
+            data.eveningHour != null &&
+            data.eveningMinute != null
+        ? TimeOfDay(hour: data.eveningHour!, minute: data.eveningMinute!)
+        : null;
+    _weightDataLoaded = true;
   }
 
   /// Process subscription renewals: generate transactions for overdue billing

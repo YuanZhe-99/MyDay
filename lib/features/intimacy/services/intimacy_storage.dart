@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import '../../../shared/utils/json_preservation.dart';
 import '../../todo/services/todo_storage.dart';
 import '../models/intimacy_record.dart';
 
@@ -33,7 +34,11 @@ class IntimacyStorage {
 
   static Future<void> save(IntimacyData data) async {
     final file = await _getFile();
-    final jsonStr = jsonEncode(data.toJson());
+    final jsonStr = await JsonPreservation.encodeForFile(
+      file: file,
+      next: data.toJson(),
+      schema: dataFilePreservationSchemas[_fileName]!,
+    );
     await file.writeAsString(jsonStr);
   }
 

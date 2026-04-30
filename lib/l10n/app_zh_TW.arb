@@ -444,12 +444,18 @@
   "weightReminderTwice": "每天兩次（早晚）",
   "weightReminderMorning": "早晨",
   "weightReminderEvening": "晚間",
+  "weightReminderSkipWindow": "已有記錄則跳過",
+  "weightReminderSkipWindowValue": "提醒前 {hours} 小時內",
+  "@weightReminderSkipWindowValue": { "placeholders": { "hours": { "type": "String" } } },
+  "weightReminderSkipWindowHours": "提醒前小時數",
 
   "commonChange": "更換",
   "commonPickImage": "選擇圖片",
   "commonRemoveIcon": "移除圖示",
   "commonPickIcon": "選擇圖示",
   "commonNoData": "無資料",
+  "commonWeekGroup": "{year} 第{week}週（{range}）",
+  "@commonWeekGroup": { "placeholders": { "year": { "type": "int" }, "week": { "type": "int" }, "range": { "type": "String" } } },
 
   "todoDailyReminders": "每日提醒",
   "todoRemindReviewHint": "提醒查看今日待辦事項",

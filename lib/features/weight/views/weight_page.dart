@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/services/auto_sync_service.dart';
 import '../../../shared/services/reminder_service.dart';
+import '../../../shared/utils/week_grouping.dart';
 import '../../../shared/widgets/delete_confirm.dart';
 import '../../../shared/widgets/unsaved_changes_guard.dart';
 import '../models/weight_record.dart';
@@ -32,6 +33,7 @@ class _WeightPageState extends State<WeightPage> {
   String _reminderMode = 'none'; // 'none' | 'once' | 'twice'
   TimeOfDay? _weightMorningReminder;
   TimeOfDay? _weightEveningReminder;
+  int _reminderGraceMinutes = 180;
 
   @override
   void initState() {
@@ -61,14 +63,17 @@ class _WeightPageState extends State<WeightPage> {
             data.eveningHour != null && data.eveningMinute != null
             ? TimeOfDay(hour: data.eveningHour!, minute: data.eveningMinute!)
             : null;
+        _reminderGraceMinutes = data.reminderGraceMinutes;
       }
       _loaded = true;
     });
     ReminderService.instance.updateWeightData(
+      records: _records,
       morningHour: _weightMorningReminder?.hour,
       morningMinute: _weightMorningReminder?.minute,
       eveningHour: _weightEveningReminder?.hour,
       eveningMinute: _weightEveningReminder?.minute,
+      reminderGraceMinutes: _reminderGraceMinutes,
     );
   }
 
@@ -82,14 +87,17 @@ class _WeightPageState extends State<WeightPage> {
         morningMinute: _weightMorningReminder?.minute,
         eveningHour: _weightEveningReminder?.hour,
         eveningMinute: _weightEveningReminder?.minute,
+        reminderGraceMinutes: _reminderGraceMinutes,
         settingsModifiedAt: DateTime.now().toUtc(),
       ),
     );
     ReminderService.instance.updateWeightData(
+      records: _records,
       morningHour: _weightMorningReminder?.hour,
       morningMinute: _weightMorningReminder?.minute,
       eveningHour: _weightEveningReminder?.hour,
       eveningMinute: _weightEveningReminder?.minute,
+      reminderGraceMinutes: _reminderGraceMinutes,
     );
     AutoSyncService.instance.notifySaved();
   }
@@ -751,7 +759,7 @@ class _WeightPageState extends State<WeightPage> {
             ),
           ),
           const SizedBox(height: 8),
-          ...sorted.take(20).map((r) => _buildRecordTile(theme, l10n, r)),
+          ..._buildGroupedRecordTiles(theme, l10n, sorted.take(20).toList()),
           if (sorted.length > 20)
             Center(
               child: TextButton(
@@ -760,6 +768,41 @@ class _WeightPageState extends State<WeightPage> {
               ),
             ),
         ],
+      ),
+    );
+  }
+
+  List<Widget> _buildGroupedRecordTiles(
+    ThemeData theme,
+    AppLocalizations l10n,
+    List<WeightRecord> records,
+  ) {
+    final groups = groupByIsoWeek(records, (record) => record.datetime);
+    return [
+      for (final group in groups) ...[
+        _buildWeekHeader(theme, l10n, group),
+        ...group.items.map((record) => _buildRecordTile(theme, l10n, record)),
+      ],
+    ];
+  }
+
+  Widget _buildWeekHeader(
+    ThemeData theme,
+    AppLocalizations l10n,
+    WeekGroup<WeightRecord> group,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 12, bottom: 4),
+      child: Text(
+        l10n.commonWeekGroup(
+          group.year,
+          group.week,
+          formatMonthDayRange(group.start, group.end),
+        ),
+        style: theme.textTheme.labelLarge?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
@@ -827,10 +870,10 @@ class _WeightPageState extends State<WeightPage> {
         expand: false,
         initialChildSize: 0.7,
         maxChildSize: 0.9,
-        builder: (context, controller) => ListView.builder(
+        builder: (context, controller) => ListView(
           controller: controller,
-          itemCount: sorted.length,
-          itemBuilder: (context, i) => _buildRecordTile(theme, l10n, sorted[i]),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          children: _buildGroupedRecordTiles(theme, l10n, sorted),
         ),
       ),
     );
@@ -956,6 +999,17 @@ class _WeightPageState extends State<WeightPage> {
                           }
                         },
                       ),
+
+                    ListTile(
+                      leading: const Icon(Icons.timer_off_outlined),
+                      title: Text(l10n.weightReminderSkipWindow),
+                      subtitle: Text(
+                        l10n.weightReminderSkipWindowValue(
+                          _formatReminderGraceHours(),
+                        ),
+                      ),
+                      onTap: () => _editReminderGrace(ctx, setSheetState),
+                    ),
                   ],
                   const SizedBox(height: 8),
                 ],
@@ -965,6 +1019,68 @@ class _WeightPageState extends State<WeightPage> {
         );
       },
     );
+  }
+
+  String _formatReminderGraceHours() {
+    final hours = _reminderGraceMinutes / 60;
+    return hours == hours.roundToDouble()
+        ? hours.toInt().toString()
+        : hours.toStringAsFixed(1);
+  }
+
+  Future<void> _editReminderGrace(
+    BuildContext context,
+    StateSetter setSheetState,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+    final controller = TextEditingController(text: _formatReminderGraceHours());
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.weightReminderSkipWindow),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,1}')),
+          ],
+          decoration: InputDecoration(
+            labelText: l10n.weightReminderSkipWindowHours,
+            suffixText: 'h',
+          ),
+          onSubmitted: (_) {
+            _saveReminderGrace(dialogContext, controller, setSheetState);
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            onPressed: () {
+              _saveReminderGrace(dialogContext, controller, setSheetState);
+            },
+            child: Text(l10n.commonSave),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+  }
+
+  void _saveReminderGrace(
+    BuildContext dialogContext,
+    TextEditingController controller,
+    StateSetter setSheetState,
+  ) {
+    final hours = double.tryParse(controller.text.trim());
+    if (hours == null || hours < 0 || hours > 24) return;
+    Navigator.pop(dialogContext);
+    setState(() => _reminderGraceMinutes = (hours * 60).round());
+    setSheetState(() {});
+    _saveData();
   }
 
   Future<void> _addRecord() async {

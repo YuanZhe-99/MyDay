@@ -1220,6 +1220,17 @@ class AppLocalizationsZh extends AppLocalizations {
   String get weightReminderEvening => '晚间';
 
   @override
+  String get weightReminderSkipWindow => '已有记录则跳过';
+
+  @override
+  String weightReminderSkipWindowValue(String hours) {
+    return '提醒前 $hours 小时内';
+  }
+
+  @override
+  String get weightReminderSkipWindowHours => '提醒前小时数';
+
+  @override
   String get commonChange => '更换';
 
   @override
@@ -1233,6 +1244,11 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get commonNoData => '暂无数据';
+
+  @override
+  String commonWeekGroup(int year, int week, String range) {
+    return '$year 第$week周（$range）';
+  }
 
   @override
   String get todoDailyReminders => '每日提醒';
@@ -2820,6 +2836,17 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get weightReminderEvening => '晚間';
 
   @override
+  String get weightReminderSkipWindow => '已有記錄則跳過';
+
+  @override
+  String weightReminderSkipWindowValue(String hours) {
+    return '提醒前 $hours 小時內';
+  }
+
+  @override
+  String get weightReminderSkipWindowHours => '提醒前小時數';
+
+  @override
   String get commonChange => '更換';
 
   @override
@@ -2833,6 +2860,11 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get commonNoData => '無資料';
+
+  @override
+  String commonWeekGroup(int year, int week, String range) {
+    return '$year 第$week週（$range）';
+  }
 
   @override
   String get todoDailyReminders => '每日提醒';

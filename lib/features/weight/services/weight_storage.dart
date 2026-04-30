@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import '../../../shared/utils/json_preservation.dart';
 import '../../todo/services/todo_storage.dart';
 import '../models/weight_record.dart';
 
@@ -27,7 +28,11 @@ class WeightStorage {
 
   static Future<void> save(WeightData data) async {
     final file = await _getFile();
-    final jsonStr = jsonEncode(data.toJson());
+    final jsonStr = await JsonPreservation.encodeForFile(
+      file: file,
+      next: data.toJson(),
+      schema: dataFilePreservationSchemas[fileName]!,
+    );
     await file.writeAsString(jsonStr);
   }
 }

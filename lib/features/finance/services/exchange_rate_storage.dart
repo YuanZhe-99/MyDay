@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:uuid/uuid.dart';
 
+import '../../../shared/utils/json_preservation.dart';
 import '../../todo/services/todo_storage.dart';
 
 /// A snapshot of all exchange rates at a point in time.
@@ -11,25 +12,23 @@ class RateSnapshot {
   final Map<String, double> rates;
   final DateTime createdAt;
 
-  RateSnapshot({
-    String? id,
-    required this.rates,
-    DateTime? createdAt,
-  })  : id = id ?? const Uuid().v4(),
-        createdAt = createdAt ?? DateTime.now();
+  RateSnapshot({String? id, required this.rates, DateTime? createdAt})
+    : id = id ?? const Uuid().v4(),
+      createdAt = createdAt ?? DateTime.now();
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'rates': rates,
-        'createdAt': createdAt.toIso8601String(),
-      };
+    'id': id,
+    'rates': rates,
+    'createdAt': createdAt.toIso8601String(),
+  };
 
   factory RateSnapshot.fromJson(Map<String, dynamic> json) => RateSnapshot(
-        id: json['id'] as String,
-        rates: (json['rates'] as Map<String, dynamic>)
-            .map((k, v) => MapEntry(k, (v as num).toDouble())),
-        createdAt: DateTime.parse(json['createdAt'] as String),
-      );
+    id: json['id'] as String,
+    rates: (json['rates'] as Map<String, dynamic>).map(
+      (k, v) => MapEntry(k, (v as num).toDouble()),
+    ),
+    createdAt: DateTime.parse(json['createdAt'] as String),
+  );
 }
 
 /// Holds all rate snapshots and a pointer to the current one.
@@ -53,17 +52,15 @@ class ExchangeRateData {
       snapshots[snapshotId]?.rates ?? currentRates;
 
   Map<String, dynamic> toJson() => {
-        'currentSnapshotId': currentSnapshotId,
-        'snapshots':
-            snapshots.map((k, v) => MapEntry(k, v.toJson())),
-        if (lastFetchedAt != null)
-          'lastFetchedAt': lastFetchedAt!.toIso8601String(),
-      };
+    'currentSnapshotId': currentSnapshotId,
+    'snapshots': snapshots.map((k, v) => MapEntry(k, v.toJson())),
+    if (lastFetchedAt != null)
+      'lastFetchedAt': lastFetchedAt!.toIso8601String(),
+  };
 
   factory ExchangeRateData.fromJson(Map<String, dynamic> json) {
     final snapshotsMap = (json['snapshots'] as Map<String, dynamic>).map(
-      (k, v) =>
-          MapEntry(k, RateSnapshot.fromJson(v as Map<String, dynamic>)),
+      (k, v) => MapEntry(k, RateSnapshot.fromJson(v as Map<String, dynamic>)),
     );
     return ExchangeRateData(
       currentSnapshotId: json['currentSnapshotId'] as String,
@@ -93,8 +90,9 @@ class ExchangeRateStorage {
 
       // Migration: old format is a flat map without "snapshots" key
       if (!json.containsKey('snapshots')) {
-        final flatRates =
-            json.map((k, v) => MapEntry(k, (v as num).toDouble()));
+        final flatRates = json.map(
+          (k, v) => MapEntry(k, (v as num).toDouble()),
+        );
         return _createInitialData(flatRates);
       }
 
@@ -106,7 +104,24 @@ class ExchangeRateStorage {
 
   static Future<void> save(ExchangeRateData data) async {
     final file = await _getFile();
-    await file.writeAsString(jsonEncode(data.toJson()));
+    var preserveUnknown = true;
+    try {
+      if (await file.exists()) {
+        final existing =
+            jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+        preserveUnknown = existing.containsKey('snapshots');
+      }
+    } catch (_) {}
+    if (!preserveUnknown) {
+      await file.writeAsString(jsonEncode(data.toJson()));
+      return;
+    }
+    final jsonStr = await JsonPreservation.encodeForFile(
+      file: file,
+      next: data.toJson(),
+      schema: dataFilePreservationSchemas[_fileName]!,
+    );
+    await file.writeAsString(jsonStr);
   }
 
   /// Update rates. Creates a new snapshot only if rates differ from current.
@@ -134,8 +149,7 @@ class ExchangeRateStorage {
     return true;
   }
 
-  static ExchangeRateData _defaultData() =>
-      _createInitialData(_defaultRates);
+  static ExchangeRateData _defaultData() => _createInitialData(_defaultRates);
 
   static ExchangeRateData _createInitialData(Map<String, double> rates) {
     final snapshot = RateSnapshot(rates: rates);

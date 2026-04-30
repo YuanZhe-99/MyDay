@@ -1239,6 +1239,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get weightReminderEvening => 'Evening';
 
   @override
+  String get weightReminderSkipWindow => 'Skip if already logged';
+
+  @override
+  String weightReminderSkipWindowValue(String hours) {
+    return '$hours h before reminder';
+  }
+
+  @override
+  String get weightReminderSkipWindowHours => 'Hours before reminder';
+
+  @override
   String get commonChange => 'Change';
 
   @override
@@ -1252,6 +1263,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get commonNoData => 'No data';
+
+  @override
+  String commonWeekGroup(int year, int week, String range) {
+    return '$year Week $week ($range)';
+  }
 
   @override
   String get todoDailyReminders => 'Daily Reminders';

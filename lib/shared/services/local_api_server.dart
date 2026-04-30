@@ -647,6 +647,7 @@ class LocalApiServer {
         morningMinute: data.morningMinute,
         eveningHour: data.eveningHour,
         eveningMinute: data.eveningMinute,
+        reminderGraceMinutes: data.reminderGraceMinutes,
         settingsModifiedAt: data.settingsModifiedAt,
       ),
     );

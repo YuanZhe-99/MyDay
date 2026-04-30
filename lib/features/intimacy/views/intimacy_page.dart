@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/services/auto_sync_service.dart';
 import '../../../shared/services/image_service.dart';
+import '../../../shared/utils/week_grouping.dart';
 import '../../../shared/widgets/delete_confirm.dart';
 import '../../../shared/widgets/unsaved_changes_guard.dart';
 import '../models/intimacy_record.dart';
@@ -207,6 +208,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final filteredRecords = _filteredRecords;
 
     return Scaffold(
       appBar: AppBar(
@@ -327,7 +329,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
                 ),
 
                 // Records list (inline, no nested ListView)
-                if (_filteredRecords.isEmpty)
+                if (filteredRecords.isEmpty)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 48),
                     child: Center(
@@ -340,64 +342,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
                     ),
                   )
                 else
-                  ..._filteredRecords.map(
-                    (record) => Dismissible(
-                      key: ValueKey(record.id),
-                      direction: DismissDirection.horizontal,
-                      background: Container(
-                        alignment: Alignment.centerLeft,
-                        padding: const EdgeInsets.only(left: 20),
-                        color: theme.colorScheme.primary,
-                        child: Icon(
-                          Icons.edit_outlined,
-                          color: theme.colorScheme.onPrimary,
-                        ),
-                      ),
-                      secondaryBackground: Container(
-                        alignment: Alignment.centerRight,
-                        padding: const EdgeInsets.only(right: 20),
-                        color: theme.colorScheme.error,
-                        child: Icon(
-                          Icons.delete_outline,
-                          color: theme.colorScheme.onError,
-                        ),
-                      ),
-                      confirmDismiss: (direction) async {
-                        if (direction == DismissDirection.startToEnd) {
-                          _editRecord(record);
-                          return false;
-                        }
-                        return confirmDelete(
-                          context,
-                          AppLocalizations.of(context)!.commonThisRecord,
-                        );
-                      },
-                      onDismissed: (_) => _deleteRecord(record),
-                      child: _RecordTile(
-                        record: record,
-                        partner: record.partnerId != null
-                            ? _partners
-                                  .where((p) => p.id == record.partnerId)
-                                  .firstOrNull
-                            : null,
-                        toys: record.toyIds
-                            .map(
-                              (id) =>
-                                  _toys.where((t) => t.id == id).firstOrNull,
-                            )
-                            .whereType<Toy>()
-                            .toList(),
-                        positions: record.positionIds
-                            .map(
-                              (id) => _positions
-                                  .where((p) => p.id == id)
-                                  .firstOrNull,
-                            )
-                            .whereType<Position>()
-                            .toList(),
-                      ),
-                    ),
-                  ),
+                  ..._buildRecordListWidgets(theme, filteredRecords),
 
                 // FAB clearance
                 const SizedBox(height: 80),
@@ -406,6 +351,90 @@ class _IntimacyPageState extends State<IntimacyPage> {
       floatingActionButton: FloatingActionButton(
         onPressed: _addRecord,
         child: const Icon(Icons.add),
+      ),
+    );
+  }
+
+  List<Widget> _buildRecordListWidgets(
+    ThemeData theme,
+    List<IntimacyRecord> records,
+  ) {
+    if (_selectedDate != null) {
+      return records.map(_buildRecordDismissible).toList();
+    }
+
+    final groups = groupByIsoWeek(
+      records,
+      (record) => record.datetime,
+      descending: _sortMode != _SortMode.dateAsc,
+    );
+    return [
+      for (final group in groups) ...[
+        _buildWeekHeader(theme, group),
+        ...group.items.map(_buildRecordDismissible),
+      ],
+    ];
+  }
+
+  Widget _buildWeekHeader(ThemeData theme, WeekGroup<IntimacyRecord> group) {
+    final l10n = AppLocalizations.of(context)!;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
+      child: Text(
+        l10n.commonWeekGroup(
+          group.year,
+          group.week,
+          formatMonthDayRange(group.start, group.end),
+        ),
+        style: theme.textTheme.labelLarge?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecordDismissible(IntimacyRecord record) {
+    final theme = Theme.of(context);
+    return Dismissible(
+      key: ValueKey(record.id),
+      direction: DismissDirection.horizontal,
+      background: Container(
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.only(left: 20),
+        color: theme.colorScheme.primary,
+        child: Icon(Icons.edit_outlined, color: theme.colorScheme.onPrimary),
+      ),
+      secondaryBackground: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        color: theme.colorScheme.error,
+        child: Icon(Icons.delete_outline, color: theme.colorScheme.onError),
+      ),
+      confirmDismiss: (direction) async {
+        if (direction == DismissDirection.startToEnd) {
+          _editRecord(record);
+          return false;
+        }
+        return confirmDelete(
+          context,
+          AppLocalizations.of(context)!.commonThisRecord,
+        );
+      },
+      onDismissed: (_) => _deleteRecord(record),
+      child: _RecordTile(
+        record: record,
+        partner: record.partnerId != null
+            ? _partners.where((p) => p.id == record.partnerId).firstOrNull
+            : null,
+        toys: record.toyIds
+            .map((id) => _toys.where((t) => t.id == id).firstOrNull)
+            .whereType<Toy>()
+            .toList(),
+        positions: record.positionIds
+            .map((id) => _positions.where((p) => p.id == id).firstOrNull)
+            .whereType<Position>()
+            .toList(),
       ),
     );
   }
@@ -490,14 +519,17 @@ class _IntimacyPageState extends State<IntimacyPage> {
     DateTime visibleFrom, {
     double halfLifeDays = 7,
   }) {
-    if (allData.isEmpty) return [];
+    final validData = allData
+        .where((record) => record.duration.inSeconds > 0)
+        .toList();
+    if (validData.isEmpty) return [];
     final tau = halfLifeDays * 86400 * 1000;
     final spots = <FlSpot>[];
-    final firstMin = allData.first.duration.inSeconds / 60.0;
+    final firstMin = validData.first.duration.inSeconds / 60.0;
     double ewma = firstMin;
-    DateTime prevTime = allData.first.datetime;
+    DateTime prevTime = validData.first.datetime;
 
-    for (final r in allData) {
+    for (final r in validData) {
       final dtMs = r.datetime.difference(prevTime).inMilliseconds.toDouble();
       final alpha = 1.0 - math.exp(-dtMs / tau);
       final durationMin = r.duration.inSeconds / 60.0;
@@ -546,13 +578,16 @@ class _IntimacyPageState extends State<IntimacyPage> {
     DateTime visibleFrom, {
     double halfLifeDays = 7,
   }) {
-    if (allData.isEmpty) return [];
+    final validData = allData
+        .where((record) => record.pleasureLevel > 0)
+        .toList();
+    if (validData.isEmpty) return [];
     final tau = halfLifeDays * 86400 * 1000; // half-life in ms
     final spots = <FlSpot>[];
-    double ewma = allData.first.pleasureLevel.toDouble();
-    DateTime prevTime = allData.first.datetime;
+    double ewma = validData.first.pleasureLevel.toDouble();
+    DateTime prevTime = validData.first.datetime;
 
-    for (final r in allData) {
+    for (final r in validData) {
       final dtMs = r.datetime.difference(prevTime).inMilliseconds.toDouble();
       final alpha = 1.0 - math.exp(-dtMs / tau);
       ewma = alpha * r.pleasureLevel + (1 - alpha) * ewma;
@@ -608,12 +643,18 @@ class _IntimacyPageState extends State<IntimacyPage> {
     final data = _chartRecords;
     final allSorted = List<IntimacyRecord>.from(_records)
       ..sort((a, b) => a.datetime.compareTo(b.datetime));
+    final pleasureData = data
+        .where((record) => record.pleasureLevel > 0)
+        .toList();
+    final durationData = data
+        .where((record) => record.duration.inSeconds > 0)
+        .toList();
     final cutoff = data.isNotEmpty ? data.first.datetime : DateTime.now();
     final pleasureSpots = _buildEwmaPleasureSpots(allSorted, cutoff);
     final frequencySpots = _buildEwmaFrequencySpots(allSorted, cutoff);
     final durationSpots = _buildEwmaDurationSpots(allSorted, cutoff);
     // Raw (actual) spots — no EWMA smoothing
-    final rawPleasureSpots = data
+    final rawPleasureSpots = pleasureData
         .map(
           (r) => FlSpot(
             r.datetime.millisecondsSinceEpoch.toDouble(),
@@ -622,7 +663,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
         )
         .toList();
     final rawFrequencySpots = _buildRawFrequencySpots(allSorted, cutoff);
-    final rawDurationSpots = data
+    final rawDurationSpots = durationData
         .map(
           (r) => FlSpot(
             r.datetime.millisecondsSinceEpoch.toDouble(),
@@ -630,6 +671,8 @@ class _IntimacyPageState extends State<IntimacyPage> {
           ),
         )
         .toList();
+    final hasDurationData =
+        rawDurationSpots.length >= 2 || durationSpots.length >= 2;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -712,7 +755,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
           const SizedBox(height: 8),
           SizedBox(
             height: 150,
-            child: data.length < 2
+            child: !hasDurationData
                 ? Center(
                     child: Text(
                       l10n.intimacyChartNoData,
@@ -725,7 +768,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
                     theme,
                     rawDurationSpots,
                     durationSpots,
-                    data,
+                    durationData,
                   ),
           ),
           const Divider(height: 16),
@@ -807,8 +850,9 @@ class _IntimacyPageState extends State<IntimacyPage> {
               reservedSize: 24,
               interval: 1,
               getTitlesWidget: (value, meta) {
-                if (value != value.roundToDouble())
+                if (value != value.roundToDouble()) {
                   return const SizedBox.shrink();
+                }
                 return SideTitleWidget(
                   meta: meta,
                   child: Text(
@@ -825,8 +869,9 @@ class _IntimacyPageState extends State<IntimacyPage> {
               reservedSize: 28,
               interval: 1,
               getTitlesWidget: (value, meta) {
-                if (value != value.roundToDouble())
+                if (value != value.roundToDouble()) {
                   return const SizedBox.shrink();
+                }
                 final actualFreq = value / 5 * freqMax;
                 final label = freqMax <= 3
                     ? actualFreq.toStringAsFixed(1)

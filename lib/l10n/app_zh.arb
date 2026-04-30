@@ -446,12 +446,18 @@
   "weightReminderTwice": "每天两次（早晚）",
   "weightReminderMorning": "早晨",
   "weightReminderEvening": "晚间",
+  "weightReminderSkipWindow": "已有记录则跳过",
+  "weightReminderSkipWindowValue": "提醒前 {hours} 小时内",
+  "@weightReminderSkipWindowValue": { "placeholders": { "hours": { "type": "String" } } },
+  "weightReminderSkipWindowHours": "提醒前小时数",
 
   "commonChange": "更换",
   "commonPickImage": "选择图片",
   "commonRemoveIcon": "移除图标",
   "commonPickIcon": "选择图标",
   "commonNoData": "暂无数据",
+  "commonWeekGroup": "{year} 第{week}周（{range}）",
+  "@commonWeekGroup": { "placeholders": { "year": { "type": "int" }, "week": { "type": "int" }, "range": { "type": "String" } } },
 
   "todoDailyReminders": "每日提醒",
   "todoRemindReviewHint": "提醒查看今天的待办事项",

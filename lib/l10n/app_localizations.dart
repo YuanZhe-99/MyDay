@@ -2447,6 +2447,24 @@ abstract class AppLocalizations {
   /// **'Evening'**
   String get weightReminderEvening;
 
+  /// No description provided for @weightReminderSkipWindow.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip if already logged'**
+  String get weightReminderSkipWindow;
+
+  /// No description provided for @weightReminderSkipWindowValue.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours} h before reminder'**
+  String weightReminderSkipWindowValue(String hours);
+
+  /// No description provided for @weightReminderSkipWindowHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Hours before reminder'**
+  String get weightReminderSkipWindowHours;
+
   /// No description provided for @commonChange.
   ///
   /// In en, this message translates to:
@@ -2476,6 +2494,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No data'**
   String get commonNoData;
+
+  /// No description provided for @commonWeekGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'{year} Week {week} ({range})'**
+  String commonWeekGroup(int year, int week, String range);
 
   /// No description provided for @todoDailyReminders.
   ///

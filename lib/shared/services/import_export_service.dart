@@ -573,7 +573,19 @@ class ImportExportService {
       }
 
       await WeightStorage.save(
-        WeightData(height: data?.height, records: records),
+        WeightData(
+          height: data?.height,
+          records: records,
+          reminderMode: data?.reminderMode ?? 'none',
+          morningHour: data?.morningHour,
+          morningMinute: data?.morningMinute,
+          eveningHour: data?.eveningHour,
+          eveningMinute: data?.eveningMinute,
+          reminderGraceMinutes: data?.reminderGraceMinutes ?? 180,
+          settingsModifiedAt:
+              data?.settingsModifiedAt ??
+              DateTime.fromMillisecondsSinceEpoch(0),
+        ),
       );
 
       return (true, imported);

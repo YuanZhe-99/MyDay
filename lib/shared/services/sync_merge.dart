@@ -749,6 +749,7 @@ WeightMergeResult mergeWeightData(
     morningMinute: settingsSrc.morningMinute,
     eveningHour: settingsSrc.eveningHour,
     eveningMinute: settingsSrc.eveningMinute,
+    reminderGraceMinutes: settingsSrc.reminderGraceMinutes,
     settingsModifiedAt: settingsSrc.settingsModifiedAt,
   );
 }
@@ -762,6 +763,7 @@ class WeightMergeResult {
   final int? morningMinute;
   final int? eveningHour;
   final int? eveningMinute;
+  final int reminderGraceMinutes;
   final DateTime settingsModifiedAt;
 
   WeightMergeResult({
@@ -773,6 +775,7 @@ class WeightMergeResult {
     this.morningMinute,
     this.eveningHour,
     this.eveningMinute,
+    this.reminderGraceMinutes = 180,
     DateTime? settingsModifiedAt,
   }) : settingsModifiedAt =
            settingsModifiedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
@@ -793,6 +796,7 @@ class WeightMergeResult {
       morningMinute: morningMinute,
       eveningHour: eveningHour,
       eveningMinute: eveningMinute,
+      reminderGraceMinutes: reminderGraceMinutes,
       settingsModifiedAt: settingsModifiedAt,
     );
   }

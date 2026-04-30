@@ -446,12 +446,18 @@
   "weightReminderTwice": "1日２回（朝・夜）",
   "weightReminderMorning": "朝",
   "weightReminderEvening": "夜",
+  "weightReminderSkipWindow": "記録済みならスキップ",
+  "weightReminderSkipWindowValue": "リマインダー前 {hours} 時間以内",
+  "@weightReminderSkipWindowValue": { "placeholders": { "hours": { "type": "String" } } },
+  "weightReminderSkipWindowHours": "リマインダー前の時間",
 
   "commonChange": "変更",
   "commonPickImage": "画像を選択",
   "commonRemoveIcon": "アイコンを削除",
   "commonPickIcon": "アイコンを選択",
   "commonNoData": "データなし",
+  "commonWeekGroup": "{year} 第{week}週（{range}）",
+  "@commonWeekGroup": { "placeholders": { "year": { "type": "int" }, "week": { "type": "int" }, "range": { "type": "String" } } },
 
   "todoDailyReminders": "毎日リマインダー",
   "todoRemindReviewHint": "Todoリストを確認するリマインダー",

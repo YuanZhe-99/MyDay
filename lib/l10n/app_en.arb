@@ -467,12 +467,18 @@
   "weightReminderTwice": "Twice Daily (Morning & Evening)",
   "weightReminderMorning": "Morning",
   "weightReminderEvening": "Evening",
+  "weightReminderSkipWindow": "Skip if already logged",
+  "weightReminderSkipWindowValue": "{hours} h before reminder",
+  "@weightReminderSkipWindowValue": { "placeholders": { "hours": { "type": "String" } } },
+  "weightReminderSkipWindowHours": "Hours before reminder",
 
   "commonChange": "Change",
   "commonPickImage": "Pick Image",
   "commonRemoveIcon": "Remove icon",
   "commonPickIcon": "Pick an icon",
   "commonNoData": "No data",
+  "commonWeekGroup": "{year} Week {week} ({range})",
+  "@commonWeekGroup": { "placeholders": { "year": { "type": "int" }, "week": { "type": "int" }, "range": { "type": "String" } } },
 
   "todoDailyReminders": "Daily Reminders",
   "todoRemindReviewHint": "Remind to review today's Todo list",

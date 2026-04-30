@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:path_provider/path_provider.dart';
 
+import '../../../shared/utils/json_preservation.dart';
 import '../models/task.dart';
 
 class TodoData {
@@ -308,7 +309,11 @@ class TodoStorage {
   /// Save data.
   static Future<void> save(TodoData data) async {
     final file = await _getFile();
-    final jsonStr = jsonEncode(data.toJson());
+    final jsonStr = await JsonPreservation.encodeForFile(
+      file: file,
+      next: data.toJson(),
+      schema: dataFilePreservationSchemas[_fileName]!,
+    );
     await file.writeAsString(jsonStr);
   }
 
