@@ -3,22 +3,22 @@ import 'exchange_rate_storage.dart';
 
 /// Currency symbols for display.
 String currencySymbol(String code) => switch (code) {
-      'CNY' => '¥',
-      'USD' => '\$',
-      'EUR' => '€',
-      'GBP' => '£',
-      'JPY' => '¥',
-      'CAD' => 'C\$',
-      'AUD' => 'A\$',
-      'TWD' => 'NT\$',
-      'HKD' => 'HK\$',
-      'SGD' => 'S\$',
-      'KRW' => '₩',
-      'CHF' => 'Fr',
-      'NZD' => 'NZ\$',
-      'INR' => '₹',
-      _ => code,
-    };
+  'CNY' => '¥',
+  'USD' => '\$',
+  'EUR' => '€',
+  'GBP' => '£',
+  'JPY' => '¥',
+  'CAD' => 'C\$',
+  'AUD' => 'A\$',
+  'TWD' => 'NT\$',
+  'HKD' => 'HK\$',
+  'SGD' => 'S\$',
+  'KRW' => '₩',
+  'CHF' => 'Fr',
+  'NZD' => 'NZ\$',
+  'INR' => '₹',
+  _ => code,
+};
 
 /// Find a direct or reverse rate between two currencies.
 double? _findRate(Map<String, double> rates, String from, String to) {
@@ -60,38 +60,82 @@ double accountBalance(
 ) {
   final base = account.forcedBalance ?? 0.0;
   final cutoff = account.forcedBalanceDate;
-  final target = account.currency;
 
   var net = 0.0;
   for (final tx in transactions) {
     if (cutoff != null && !tx.date.isAfter(cutoff)) continue;
-    final rates = rateData.ratesAt(tx.rateSnapshotId);
+    net += _accountTransactionDelta(account, tx, rateData);
+  }
 
-    if (tx.accountId == account.id) {
-      final converted =
-          convertCurrency(rates, tx.amount, tx.currency, target);
-      switch (tx.type) {
-        case TransactionType.expense:
-          net -= converted;
-        case TransactionType.income:
-          net += converted;
-        case TransactionType.transfer:
-          net -= converted;
-      }
+  return base + net;
+}
+
+/// Calculate account balance immediately before [before].
+///
+/// If an account has a forced balance, that balance is treated as an anchor at
+/// [Account.forcedBalanceDate]. Samples after the anchor walk forward from it;
+/// samples before the anchor walk backward by reversing known transactions.
+double accountBalanceBefore(
+  Account account,
+  List<Transaction> transactions,
+  ExchangeRateData rateData,
+  DateTime before,
+) {
+  final base = account.forcedBalance ?? 0.0;
+  final cutoff = account.forcedBalanceDate;
+
+  var net = 0.0;
+  for (final tx in transactions) {
+    final delta = _accountTransactionDelta(account, tx, rateData);
+    if (delta == 0) continue;
+
+    if (cutoff == null) {
+      if (tx.date.isBefore(before)) net += delta;
+      continue;
     }
-    if (tx.toAccountId == account.id &&
-        tx.type == TransactionType.transfer) {
-      if (tx.toAmount != null && tx.toCurrency != null) {
-        final converted =
-            convertCurrency(rates, tx.toAmount!, tx.toCurrency!, target);
-        net += converted;
-      } else {
-        final converted =
-            convertCurrency(rates, tx.amount, tx.currency, target);
-        net += converted;
+
+    if (before.isAfter(cutoff)) {
+      if (tx.date.isAfter(cutoff) && tx.date.isBefore(before)) {
+        net += delta;
+      }
+    } else {
+      if (!tx.date.isBefore(before) && !tx.date.isAfter(cutoff)) {
+        net -= delta;
       }
     }
   }
 
   return base + net;
+}
+
+double _accountTransactionDelta(
+  Account account,
+  Transaction tx,
+  ExchangeRateData rateData,
+) {
+  final rates = rateData.ratesAt(tx.rateSnapshotId);
+  final target = account.currency;
+  var delta = 0.0;
+
+  if (tx.accountId == account.id) {
+    final converted = convertCurrency(rates, tx.amount, tx.currency, target);
+    switch (tx.type) {
+      case TransactionType.expense:
+        delta -= converted;
+      case TransactionType.income:
+        delta += converted;
+      case TransactionType.transfer:
+        delta -= converted;
+    }
+  }
+
+  if (tx.toAccountId == account.id && tx.type == TransactionType.transfer) {
+    if (tx.toAmount != null && tx.toCurrency != null) {
+      delta += convertCurrency(rates, tx.toAmount!, tx.toCurrency!, target);
+    } else {
+      delta += convertCurrency(rates, tx.amount, tx.currency, target);
+    }
+  }
+
+  return delta;
 }

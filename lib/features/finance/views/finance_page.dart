@@ -206,8 +206,17 @@ class _FinancePageState extends State<FinancePage> {
 
     // Calculate summaries with currency conversion
     final currentRates = _rateData.currentRates;
+    final startOfMonth = DateTime(now.year, now.month);
+    final startOfNextMonth = DateTime(now.year, now.month + 1);
+    final monthTransactions = _transactions
+        .where(
+          (t) =>
+              !t.date.isBefore(startOfMonth) &&
+              t.date.isBefore(startOfNextMonth),
+        )
+        .toList();
 
-    final monthExpense = _transactions
+    final monthExpense = monthTransactions
         .where((t) => t.type == TransactionType.expense)
         .fold(
           0.0,
@@ -220,7 +229,7 @@ class _FinancePageState extends State<FinancePage> {
                 _defaultCurrency,
               ),
         );
-    final monthIncome = _transactions
+    final monthIncome = monthTransactions
         .where((t) => t.type == TransactionType.income)
         .fold(
           0.0,
@@ -519,6 +528,7 @@ class _FinancePageState extends State<FinancePage> {
         builder: (_) => AnalysisPage(
           transactions: _transactions,
           categories: _categories,
+          accounts: _accounts,
           rateData: _rateData,
           defaultCurrency: _defaultCurrency,
         ),
