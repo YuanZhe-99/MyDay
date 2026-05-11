@@ -13,7 +13,7 @@ This file is the operating guide for agents working on **MyDay!!!!!**. Read it b
 - **Latest tag at the time this guide was written:** `v0.6.5`.
 - **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.41.6`.
 - **Primary platforms:** Windows x64/ARM64, Android APK/AAB, iOS sideload IPA, and macOS DMG. Linux project support exists for desktop runtime features but is not a primary release artifact.
-- **Repository:** `C:\Users\yuanzhe\src\MyDay`.
+- **Repository:** Use the current environment's workspace root / repository path instead of hard-coding an absolute local path.
 - **Remotes:**
   - `origin` -> `<local_gitea_address>`
   - `github` -> `git@github.com:YuanZhe-99/MyDay.git`
