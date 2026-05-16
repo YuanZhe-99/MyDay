@@ -14,12 +14,14 @@ class Account {
   final String? securityCode;
   final String? emoji;
   final String? imagePath;
+  final double? feeWaiverMinimumBalance;
+  final double? feeWaiverMonthlyDeposit;
   final double? forcedBalance;
   final DateTime? forcedBalanceDate;
   final DateTime modifiedAt;
 
   /// Purpose: Create a account instance.
-  /// Inputs: `currency`.
+  /// Inputs: `currency`, optional fee waiver amounts.
   /// Returns: A new `Account` instance.
   /// Side effects: None.
   /// Notes: None.
@@ -34,6 +36,8 @@ class Account {
     this.securityCode,
     this.emoji,
     this.imagePath,
+    this.feeWaiverMinimumBalance,
+    this.feeWaiverMonthlyDeposit,
     this.forcedBalance,
     this.forcedBalanceDate,
     DateTime? modifiedAt,
@@ -56,6 +60,10 @@ class Account {
         if (securityCode != null) 'securityCode': securityCode,
         if (emoji != null) 'emoji': emoji,
         if (imagePath != null) 'imagePath': imagePath,
+        if (feeWaiverMinimumBalance != null)
+          'feeWaiverMinimumBalance': feeWaiverMinimumBalance,
+        if (feeWaiverMonthlyDeposit != null)
+          'feeWaiverMonthlyDeposit': feeWaiverMonthlyDeposit,
         if (forcedBalance != null) 'forcedBalance': forcedBalance,
         if (forcedBalanceDate != null)
           'forcedBalanceDate': forcedBalanceDate!.toIso8601String(),
@@ -78,6 +86,10 @@ class Account {
         securityCode: json['securityCode'] as String?,
         emoji: json['emoji'] as String?,
         imagePath: json['imagePath'] as String?,
+        feeWaiverMinimumBalance:
+            (json['feeWaiverMinimumBalance'] as num?)?.toDouble(),
+        feeWaiverMonthlyDeposit:
+            (json['feeWaiverMonthlyDeposit'] as num?)?.toDouble(),
         forcedBalance: (json['forcedBalance'] as num?)?.toDouble(),
         forcedBalanceDate: json['forcedBalanceDate'] != null
             ? DateTime.parse(json['forcedBalanceDate'] as String)

@@ -29,8 +29,8 @@ Maintenance rules:
 - **Package id:** Dart package `my_day`; Android namespace/application id `com.yuanzhe.my_day`; MSIX identity `com.yuanzhe.myday`; macOS bundle id `com.yuanzhe.myDay`.
 - **Author / publisher:** `yuanzhe`.
 - **License:** GPL-3.0.
-- **Current version:** `0.6.6+25` in `pubspec.yaml`, `0.6.6.0` in `msix_config.msix_version`, and `0.6.6` in `installer.iss`.
-- **Latest tag at the time this guide was written:** `v0.6.5`.
+- **Current version:** `0.6.7+26` in `pubspec.yaml`, `0.6.7.0` in `msix_config.msix_version`, and `0.6.7` in `installer.iss`.
+- **Latest tag at the time this guide was written:** `v0.6.7`.
 - **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.41.6`.
 - **Primary platforms:** Windows x64/ARM64, Android APK/AAB, iOS sideload IPA, and macOS DMG. Linux project support exists for desktop runtime features but is not a primary release artifact.
 - **Repository:** Use the current environment's workspace root / repository path instead of hard-coding an absolute local path.
@@ -182,7 +182,7 @@ Main model: `lib/features/finance/models/finance.dart`.
 
 - `AccountType`: `fund`, `credit`, `recharge`, `financial`.
 - `TransactionType`: `expense`, `income`, `transfer`.
-- `Account`: bank/app, account name, currency, optional card metadata, emoji/image, legacy forced-balance sentinel fields, `modifiedAt`. New-version balances are calculated from transactions only; setting a current balance creates an income/expense adjustment transaction and then stores `forcedBalance: 0` with `forcedBalanceDate: 1970-01-01T00:00:00.000Z` for old-version compatibility.
+- `Account`: bank/app, account name, currency, optional card metadata, emoji/image, optional monthly-fee waiver amounts (`feeWaiverMinimumBalance` and `feeWaiverMonthlyDeposit` treated as alternative criteria when both are present), legacy forced-balance sentinel fields, `modifiedAt`. New-version balances are calculated from transactions only; setting a current balance creates an income/expense adjustment transaction and then stores `forcedBalance: 0` with `forcedBalanceDate: 1970-01-01T00:00:00.000Z` for old-version compatibility.
 - `Transaction`: amount/currency, historical rate snapshot id, account ids, transfer target fields, category/subscription ids, note, date, `modifiedAt`.
 - `Category`: name, `IconRef`, emoji, transaction type, `modifiedAt`. Transfer categories are supported.
 - `Subscription`: trial, billing cycle/interval, amount/currency, account/category, cancellation mode, persisted `nextBillingDate`, `modifiedAt`.
@@ -190,14 +190,14 @@ Main model: `lib/features/finance/models/finance.dart`.
 
 Finance services include:
 
-- `FinanceStorage`: stores accounts, categories, transactions, subscriptions, default currency, subscription reminders/sort order, account sort modes/custom orders, and `settingsModifiedAt`.
+- `FinanceStorage`: stores accounts including optional monthly-fee waiver criteria, categories, transactions, subscriptions, default currency, subscription reminders/sort order, account sort modes/custom orders, and `settingsModifiedAt`.
 - `ExchangeRateStorage`: snapshot-based exchange-rate history with deduped `RateSnapshot`s and migration from old flat maps.
 - `ExchangeRateApi`: fetches from `https://open.er-api.com/v6/latest/{base}` with no API key, updates only configured pairs, and fetches at most once per day.
 - `balance_util.dart`: currency symbols, direct/reverse/intermediate conversion through CNY/USD/EUR, and account balance reconstruction around forced-balance anchors.
 - `BankPresetService`: loads 250+ bank presets from `assets/banks.json`, country currency defaults, search/grouping, and multiple logo URL sources.
 - `SubscriptionProcessor`: hourly renewal catch-up, persisted `nextBillingDate`, multi-cycle catch-up, and at-expiry cancellation handling.
 
-Finance views cover monthly home summaries, grouped transactions, accounts, categories, category details, exchange rates, subscriptions, subscription details, and analysis charts. The analysis page includes expense/income trends and a total-assets trend that reconstructs account balances at sample points.
+Finance views cover monthly home summaries, grouped transactions, accounts with optional monthly-fee waiver criteria, categories, category details, exchange rates, subscriptions, subscription details, and analysis charts. The analysis page includes expense/income trends and a total-assets trend that reconstructs account balances at sample points.
 
 ### Intimacy
 
@@ -336,7 +336,7 @@ Default app data directory is `Documents/MyDay/` on desktop or the platform app 
 | --- | --- | --- | --- |
 | Core preferences | `storage_config.json` | No | Custom path, intimacy visibility, theme, locale, tray, backup, local API settings |
 | Todo | `todo_data.json` | Yes | Tasks, daily templates, completion log, reminders, task sort/custom order |
-| Finance | `finance_data.json` | Yes | Accounts, categories, transactions, subscriptions, finance settings |
+| Finance | `finance_data.json` | Yes | Accounts including optional fee waiver criteria, categories, transactions, subscriptions, finance settings |
 | Exchange rates | `exchange_rates.json` | Yes | Rate snapshots and `lastFetchedAt` |
 | Intimacy | `intimacy_data.json` | Yes | Partners, toys, positions, records, timer history, sort settings |
 | Weight | `weight_data.json` | Yes | Height, records, reminders, grace window |
@@ -441,3 +441,4 @@ Use the narrowest relevant command set for verification. For sync/model/persiste
 - `v0.6.4`: Weekly history grouping, weight reminder grace window, zero-value chart filtering, unknown JSON field preservation.
 - `v0.6.5`: Finance monthly totals, smoother trend sampling, total-assets trend chart, forced-balance historical reconstruction, version `0.6.5+24`.
 - `v0.6.6`: Finance forced balances are migrated into ordinary adjustment transactions, live balances now come only from transactions, old-version compatibility uses the `0 + 1970-01-01` forced-balance sentinel, and versions are unified to `0.6.6+25` / MSIX `0.6.6.0` / installer `0.6.6`.
+- `v0.6.7`: Finance accounts can store optional monthly-fee waiver criteria for minimum balance and/or monthly incoming transfer, with versions unified to `0.6.7+26` / MSIX `0.6.7.0` / installer `0.6.7`.

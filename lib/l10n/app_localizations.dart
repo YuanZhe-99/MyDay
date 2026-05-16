@@ -5166,6 +5166,83 @@ abstract class AppLocalizations {
   /// **'Last 4 digits'**
   String get financeCardNumberHint;
 
+  /// Purpose: Return the localized string for `financeFeeWaiverConditions`.
+  /// Inputs: None.
+  /// Returns: A localized `String`.
+  /// Side effects: None.
+  /// Notes: Generated localization accessor or override.
+  /// No description provided for @financeFeeWaiverConditions.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly fee waiver'**
+  String get financeFeeWaiverConditions;
+
+  /// Purpose: Return the localized string for `financeFeeWaiverConditionsHint`.
+  /// Inputs: None.
+  /// Returns: A localized `String`.
+  /// Side effects: None.
+  /// Notes: Generated localization accessor or override.
+  /// No description provided for @financeFeeWaiverConditionsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional criteria for avoiding monthly maintenance fees.'**
+  String get financeFeeWaiverConditionsHint;
+
+  /// Purpose: Return the localized string for `financeFeeWaiverMinimumBalance`.
+  /// Inputs: None.
+  /// Returns: A localized `String`.
+  /// Side effects: None.
+  /// Notes: Generated localization accessor or override.
+  /// No description provided for @financeFeeWaiverMinimumBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Minimum balance'**
+  String get financeFeeWaiverMinimumBalance;
+
+  /// Purpose: Return the localized string for `financeFeeWaiverMinimumBalanceHint`.
+  /// Inputs: None.
+  /// Returns: A localized `String`.
+  /// Side effects: None.
+  /// Notes: Generated localization accessor or override.
+  /// No description provided for @financeFeeWaiverMinimumBalanceHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. 1500'**
+  String get financeFeeWaiverMinimumBalanceHint;
+
+  /// Purpose: Return the localized string for `financeFeeWaiverMonthlyDeposit`.
+  /// Inputs: None.
+  /// Returns: A localized `String`.
+  /// Side effects: None.
+  /// Notes: Generated localization accessor or override.
+  /// No description provided for @financeFeeWaiverMonthlyDeposit.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly incoming transfer'**
+  String get financeFeeWaiverMonthlyDeposit;
+
+  /// Purpose: Return the localized string for `financeFeeWaiverMonthlyDepositHint`.
+  /// Inputs: None.
+  /// Returns: A localized `String`.
+  /// Side effects: None.
+  /// Notes: Generated localization accessor or override.
+  /// No description provided for @financeFeeWaiverMonthlyDepositHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. 500'**
+  String get financeFeeWaiverMonthlyDepositHint;
+
+  /// Purpose: Return the localized string for `financeFeeWaiverSeparator`.
+  /// Inputs: None.
+  /// Returns: A localized `String`.
+  /// Side effects: None.
+  /// Notes: Generated localization accessor or override.
+  /// No description provided for @financeFeeWaiverSeparator.
+  ///
+  /// In en, this message translates to:
+  /// **' or '**
+  String get financeFeeWaiverSeparator;
+
   /// Purpose: Return the localized string for `financeCurrentBalanceHint`.
   /// Inputs: None.
   /// Returns: A localized `String`.

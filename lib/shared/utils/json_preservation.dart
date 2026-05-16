@@ -329,6 +329,8 @@ const _accountSchema = JsonPreservationSchema(
     'securityCode',
     'emoji',
     'imagePath',
+    'feeWaiverMinimumBalance',
+    'feeWaiverMonthlyDeposit',
     'forcedBalance',
     'forcedBalanceDate',
     'modifiedAt',

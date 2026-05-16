@@ -15,6 +15,37 @@ import '../widgets/add_transaction_dialog.dart';
 import '../widgets/bank_preset_picker.dart';
 import '../widgets/grouped_transaction_list.dart';
 
+/// Purpose: Format an account-condition amount without unnecessary decimals.
+/// Inputs: `account`, `amount`.
+/// Returns: `String`.
+/// Side effects: None.
+/// Notes: Uses the account currency symbol because fee waiver amounts share the account currency.
+String _formatAccountConditionAmount(Account account, double amount) =>
+    '${currencySymbol(account.currency)}${NumberFormat('#,##0.##').format(amount)}';
+
+/// Purpose: Build the optional monthly fee waiver summary for an account.
+/// Inputs: `account`, `l10n`.
+/// Returns: `String?`.
+/// Side effects: None.
+/// Notes: When both conditions are present they are treated as alternatives.
+String? _accountFeeWaiverSummary(Account account, AppLocalizations l10n) {
+  final parts = <String>[];
+  final minimumBalance = account.feeWaiverMinimumBalance;
+  if (minimumBalance != null) {
+    parts.add(
+      '${l10n.financeFeeWaiverMinimumBalance} ${_formatAccountConditionAmount(account, minimumBalance)}',
+    );
+  }
+  final monthlyDeposit = account.feeWaiverMonthlyDeposit;
+  if (monthlyDeposit != null) {
+    parts.add(
+      '${l10n.financeFeeWaiverMonthlyDeposit} ${_formatAccountConditionAmount(account, monthlyDeposit)}',
+    );
+  }
+  if (parts.isEmpty) return null;
+  return '${l10n.financeFeeWaiverConditions}: ${parts.join(l10n.financeFeeWaiverSeparator)}';
+}
+
 class AccountsPage extends StatefulWidget {
   final List<Account> accounts;
   final List<Transaction> transactions;
@@ -72,7 +103,7 @@ class _AccountsPageState extends State<AccountsPage> {
   /// Inputs: None.
   /// Returns: None.
   /// Side effects: Registers listeners and may kick off asynchronous loading.
-  /// Notes: Guard any post-await UI updates with `mounted` when needed.
+  /// Notes: Copies incoming account, transaction, and sort state before user edits.
   @override
   void initState() {
     super.initState();
@@ -489,9 +520,7 @@ class _AccountsPageState extends State<AccountsPage> {
                           child: ListTile(
                             leading: _buildAccountAvatar(entry.value, theme),
                             title: Text(entry.value.name),
-                            subtitle: Text(
-                              '${entry.value.bankOrApp}  •  ${entry.value.currency}',
-                            ),
+                            subtitle: _buildAccountSubtitle(entry.value, theme),
                             trailing: Text(
                               '${currencySymbol(entry.value.currency)}${NumberFormat('#,##0.00').format(accountBalance(entry.value, _transactions, widget.rateData))}',
                               style: theme.textTheme.bodyMedium?.copyWith(
@@ -660,7 +689,7 @@ class _AccountsPageState extends State<AccountsPage> {
             child: const Icon(Icons.drag_handle),
           ),
           title: Text(account.name),
-          subtitle: Text('${account.bankOrApp}  â€¢  ${account.currency}'),
+          subtitle: _buildAccountSubtitle(account, theme),
           trailing: Text(
             '${currencySymbol(account.currency)}${NumberFormat('#,##0.00').format(accountBalance(account, _transactions, widget.rateData))}',
             style: theme.textTheme.bodyMedium?.copyWith(
@@ -710,6 +739,33 @@ class _AccountsPageState extends State<AccountsPage> {
     AccountType.recharge => Colors.green,
     AccountType.financial => Colors.purple,
   };
+
+  /// Purpose: Build account metadata and optional fee waiver details.
+  /// Inputs: `account`, `theme`.
+  /// Returns: `Widget`.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keeps the fee waiver summary out of the account title and balance columns.
+  Widget _buildAccountSubtitle(Account account, ThemeData theme) {
+    final l10n = AppLocalizations.of(context)!;
+    final feeWaiverSummary = _accountFeeWaiverSummary(account, l10n);
+    if (feeWaiverSummary == null) {
+      return Text('${account.bankOrApp}  •  ${account.currency}');
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text('${account.bankOrApp}  •  ${account.currency}'),
+        const SizedBox(height: 2),
+        Text(
+          feeWaiverSummary,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
+  }
 
   /// Purpose: Provide the internal build account avatar helper for this file.
   /// Inputs: `account`, `theme`.
@@ -787,7 +843,7 @@ class _AccountTransactionsPageState extends State<_AccountTransactionsPage> {
   /// Inputs: None.
   /// Returns: None.
   /// Side effects: Registers listeners and may kick off asynchronous loading.
-  /// Notes: Guard any post-await UI updates with `mounted` when needed.
+  /// Notes: Copies incoming transactions for the account detail view.
   @override
   void initState() {
     super.initState();
@@ -851,6 +907,7 @@ class _AccountTransactionsPageState extends State<_AccountTransactionsPage> {
       _transactions,
       widget.rateData,
     );
+    final feeWaiverSummary = _accountFeeWaiverSummary(widget.account, l10n);
 
     return Scaffold(
       appBar: AppBar(title: Text(widget.account.name), centerTitle: true),
@@ -864,22 +921,36 @@ class _AccountTransactionsPageState extends State<_AccountTransactionsPage> {
                   horizontal: 16,
                   vertical: 12,
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(
-                      l10n.financeBalance,
-                      style: theme.textTheme.titleSmall,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          l10n.financeBalance,
+                          style: theme.textTheme.titleSmall,
+                        ),
+                        Text(
+                          '${currencySymbol(widget.account.currency)}${NumberFormat('#,##0.00').format(balance)}',
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: balance >= 0
+                                ? Colors.green
+                                : theme.colorScheme.error,
+                          ),
+                        ),
+                      ],
                     ),
-                    Text(
-                      '${currencySymbol(widget.account.currency)}${NumberFormat('#,##0.00').format(balance)}',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: balance >= 0
-                            ? Colors.green
-                            : theme.colorScheme.error,
+                    if (feeWaiverSummary != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        feeWaiverSummary,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),
@@ -1022,6 +1093,8 @@ class _AccountDialogState extends State<_AccountDialog> {
   final _nameController = TextEditingController();
   final _bankController = TextEditingController();
   final _cardController = TextEditingController();
+  final _feeWaiverMinimumBalanceController = TextEditingController();
+  final _feeWaiverMonthlyDepositController = TextEditingController();
   final _balanceController = TextEditingController();
   AccountType _type = AccountType.fund;
   String _currency = 'CNY';
@@ -1082,7 +1155,7 @@ class _AccountDialogState extends State<_AccountDialog> {
   /// Inputs: None.
   /// Returns: None.
   /// Side effects: Registers listeners and may kick off asynchronous loading.
-  /// Notes: Guard any post-await UI updates with `mounted` when needed.
+  /// Notes: Prefills account metadata and optional fee waiver fields when editing.
   @override
   void initState() {
     super.initState();
@@ -1091,6 +1164,14 @@ class _AccountDialogState extends State<_AccountDialog> {
       _nameController.text = a.name;
       _bankController.text = a.bankOrApp;
       _cardController.text = a.cardNumber ?? '';
+      if (a.feeWaiverMinimumBalance != null) {
+        _feeWaiverMinimumBalanceController.text = a.feeWaiverMinimumBalance!
+            .toStringAsFixed(2);
+      }
+      if (a.feeWaiverMonthlyDeposit != null) {
+        _feeWaiverMonthlyDepositController.text = a.feeWaiverMonthlyDeposit!
+            .toStringAsFixed(2);
+      }
       _type = a.type;
       _currency = a.currency;
       _selectedEmoji = a.emoji;
@@ -1110,12 +1191,14 @@ class _AccountDialogState extends State<_AccountDialog> {
   /// Inputs: None.
   /// Returns: None.
   /// Side effects: Releases owned resources and unregisters listeners.
-  /// Notes: Call the superclass implementation in the expected lifecycle order.
+  /// Notes: Dispose every text controller before calling the superclass implementation.
   @override
   void dispose() {
     _nameController.dispose();
     _bankController.dispose();
     _cardController.dispose();
+    _feeWaiverMinimumBalanceController.dispose();
+    _feeWaiverMonthlyDepositController.dispose();
     _balanceController.dispose();
     super.dispose();
   }
@@ -1216,6 +1299,47 @@ class _AccountDialogState extends State<_AccountDialog> {
                 decoration: InputDecoration(
                   labelText: l10n.financeCardNumber,
                   hintText: l10n.financeCardNumberHint,
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              Text(
+                l10n.financeFeeWaiverConditions,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                l10n.financeFeeWaiverConditionsHint,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _feeWaiverMinimumBalanceController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: InputDecoration(
+                  labelText: l10n.financeFeeWaiverMinimumBalance,
+                  hintText: l10n.financeFeeWaiverMinimumBalanceHint,
+                  prefixText: '$_currency ',
+                  prefixStyle: TextStyle(color: theme.colorScheme.onSurface),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _feeWaiverMonthlyDepositController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: InputDecoration(
+                  labelText: l10n.financeFeeWaiverMonthlyDeposit,
+                  hintText: l10n.financeFeeWaiverMonthlyDepositHint,
+                  prefixText: '$_currency ',
+                  prefixStyle: TextStyle(color: theme.colorScheme.onSurface),
                 ),
               ),
               const SizedBox(height: 16),
@@ -1355,11 +1479,13 @@ class _AccountDialogState extends State<_AccountDialog> {
   /// Inputs: None.
   /// Returns: `String`.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Includes optional fee waiver fields so unsaved-change detection covers them.
   String _signature() => formSignature([
     _nameController.text.trim(),
     _bankController.text.trim(),
     _cardController.text.trim(),
+    _feeWaiverMinimumBalanceController.text.trim(),
+    _feeWaiverMonthlyDepositController.text.trim(),
     _balanceController.text.trim(),
     _type.name,
     _currency,
@@ -1508,11 +1634,21 @@ class _AccountDialogState extends State<_AccountDialog> {
     }
   }
 
+  /// Purpose: Parse an optional money field from account form text.
+  /// Inputs: `text`.
+  /// Returns: `double?`.
+  /// Side effects: None.
+  /// Notes: Empty or invalid input is treated as absent, matching the balance field behavior.
+  double? _parseOptionalMoney(String text) {
+    final trimmed = text.trim();
+    return trimmed.isNotEmpty ? double.tryParse(trimmed) : null;
+  }
+
   /// Purpose: Provide the internal submit helper for this file.
   /// Inputs: `guard`.
   /// Returns: None.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Optional fee waiver amounts are copied into the account metadata.
   void _submit(UnsavedChangesController guard) {
     final name = _nameController.text.trim();
     final bank = _bankController.text.trim();
@@ -1522,6 +1658,12 @@ class _AccountDialogState extends State<_AccountDialog> {
     final forcedBalance = balanceText.isNotEmpty
         ? double.tryParse(balanceText)
         : null;
+    final feeWaiverMinimumBalance = _parseOptionalMoney(
+      _feeWaiverMinimumBalanceController.text,
+    );
+    final feeWaiverMonthlyDeposit = _parseOptionalMoney(
+      _feeWaiverMonthlyDepositController.text,
+    );
 
     final account = Account(
       id: widget.account?.id,
@@ -1532,6 +1674,8 @@ class _AccountDialogState extends State<_AccountDialog> {
       cardNumber: _cardController.text.trim().isEmpty
           ? null
           : _cardController.text.trim(),
+      feeWaiverMinimumBalance: feeWaiverMinimumBalance,
+      feeWaiverMonthlyDeposit: feeWaiverMonthlyDeposit,
       emoji: _selectedEmoji,
       imagePath: _imagePath,
       forcedBalance: forcedBalance,

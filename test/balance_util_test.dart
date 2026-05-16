@@ -142,4 +142,26 @@ void main() {
       isTrue,
     );
   });
+
+  test('forced-balance sentinel preserves fee waiver fields', () {
+    final account = Account(
+      type: AccountType.fund,
+      bankOrApp: 'Bank',
+      name: 'Checking',
+      feeWaiverMinimumBalance: 1500,
+      feeWaiverMonthlyDeposit: 500,
+      forcedBalance: 2000,
+      forcedBalanceDate: DateTime(2026, 1, 10),
+    );
+
+    final sentinelAccount = accountWithForcedBalanceSentinel(account);
+
+    expect(sentinelAccount.feeWaiverMinimumBalance, 1500);
+    expect(sentinelAccount.feeWaiverMonthlyDeposit, 500);
+    expect(sentinelAccount.forcedBalance, 0);
+    expect(
+      isForcedBalanceSentinelDate(sentinelAccount.forcedBalanceDate!),
+      isTrue,
+    );
+  });
 }

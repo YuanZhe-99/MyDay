@@ -161,7 +161,7 @@ bool hasForcedBalanceSentinel(Account account) =>
 /// Inputs: `account`, `modifiedAt`.
 /// Returns: `Account`.
 /// Side effects: None.
-/// Notes: Use before saving accounts from new-version balance adjustment flows.
+/// Notes: Use before saving accounts from new-version balance adjustment flows; non-balance metadata is preserved.
 Account accountWithForcedBalanceSentinel(
   Account account, {
   DateTime? modifiedAt,
@@ -177,6 +177,8 @@ Account accountWithForcedBalanceSentinel(
     securityCode: account.securityCode,
     emoji: account.emoji,
     imagePath: account.imagePath,
+    feeWaiverMinimumBalance: account.feeWaiverMinimumBalance,
+    feeWaiverMonthlyDeposit: account.feeWaiverMonthlyDeposit,
     forcedBalance: 0,
     forcedBalanceDate: forcedBalanceSentinelDate,
     modifiedAt: modifiedAt ?? account.modifiedAt,

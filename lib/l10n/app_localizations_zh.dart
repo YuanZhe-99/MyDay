@@ -3746,6 +3746,62 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get financeCardNumberHint => '后四位';
 
+  /// Purpose: Return the localized string for `financeFeeWaiverConditions`.
+  /// Inputs: None.
+  /// Returns: A localized `String`.
+  /// Side effects: None.
+  /// Notes: Generated localization accessor or override.
+  @override
+  String get financeFeeWaiverConditions => '免月管理费条件';
+
+  /// Purpose: Return the localized string for `financeFeeWaiverConditionsHint`.
+  /// Inputs: None.
+  /// Returns: A localized `String`.
+  /// Side effects: None.
+  /// Notes: Generated localization accessor or override.
+  @override
+  String get financeFeeWaiverConditionsHint => '可选记录银行免收月管理费的条件。';
+
+  /// Purpose: Return the localized string for `financeFeeWaiverMinimumBalance`.
+  /// Inputs: None.
+  /// Returns: A localized `String`.
+  /// Side effects: None.
+  /// Notes: Generated localization accessor or override.
+  @override
+  String get financeFeeWaiverMinimumBalance => '最低余额';
+
+  /// Purpose: Return the localized string for `financeFeeWaiverMinimumBalanceHint`.
+  /// Inputs: None.
+  /// Returns: A localized `String`.
+  /// Side effects: None.
+  /// Notes: Generated localization accessor or override.
+  @override
+  String get financeFeeWaiverMinimumBalanceHint => '例如 1500';
+
+  /// Purpose: Return the localized string for `financeFeeWaiverMonthlyDeposit`.
+  /// Inputs: None.
+  /// Returns: A localized `String`.
+  /// Side effects: None.
+  /// Notes: Generated localization accessor or override.
+  @override
+  String get financeFeeWaiverMonthlyDeposit => '每月转入额';
+
+  /// Purpose: Return the localized string for `financeFeeWaiverMonthlyDepositHint`.
+  /// Inputs: None.
+  /// Returns: A localized `String`.
+  /// Side effects: None.
+  /// Notes: Generated localization accessor or override.
+  @override
+  String get financeFeeWaiverMonthlyDepositHint => '例如 500';
+
+  /// Purpose: Return the localized string for `financeFeeWaiverSeparator`.
+  /// Inputs: None.
+  /// Returns: A localized `String`.
+  /// Side effects: None.
+  /// Notes: Generated localization accessor or override.
+  @override
+  String get financeFeeWaiverSeparator => ' 或 ';
+
   /// Purpose: Return the localized string for `financeCurrentBalanceHint`.
   /// Inputs: None.
   /// Returns: A localized `String`.
@@ -7926,6 +7982,62 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   /// Notes: Generated localization accessor or override.
   @override
   String get financeCardNumberHint => '末4碼';
+
+  /// Purpose: Return the localized string for `financeFeeWaiverConditions`.
+  /// Inputs: None.
+  /// Returns: A localized `String`.
+  /// Side effects: None.
+  /// Notes: Generated localization accessor or override.
+  @override
+  String get financeFeeWaiverConditions => '免月管理費條件';
+
+  /// Purpose: Return the localized string for `financeFeeWaiverConditionsHint`.
+  /// Inputs: None.
+  /// Returns: A localized `String`.
+  /// Side effects: None.
+  /// Notes: Generated localization accessor or override.
+  @override
+  String get financeFeeWaiverConditionsHint => '選填，用於記錄銀行免收月管理費的條件。';
+
+  /// Purpose: Return the localized string for `financeFeeWaiverMinimumBalance`.
+  /// Inputs: None.
+  /// Returns: A localized `String`.
+  /// Side effects: None.
+  /// Notes: Generated localization accessor or override.
+  @override
+  String get financeFeeWaiverMinimumBalance => '最低餘額';
+
+  /// Purpose: Return the localized string for `financeFeeWaiverMinimumBalanceHint`.
+  /// Inputs: None.
+  /// Returns: A localized `String`.
+  /// Side effects: None.
+  /// Notes: Generated localization accessor or override.
+  @override
+  String get financeFeeWaiverMinimumBalanceHint => '例如 1500';
+
+  /// Purpose: Return the localized string for `financeFeeWaiverMonthlyDeposit`.
+  /// Inputs: None.
+  /// Returns: A localized `String`.
+  /// Side effects: None.
+  /// Notes: Generated localization accessor or override.
+  @override
+  String get financeFeeWaiverMonthlyDeposit => '每月轉入額';
+
+  /// Purpose: Return the localized string for `financeFeeWaiverMonthlyDepositHint`.
+  /// Inputs: None.
+  /// Returns: A localized `String`.
+  /// Side effects: None.
+  /// Notes: Generated localization accessor or override.
+  @override
+  String get financeFeeWaiverMonthlyDepositHint => '例如 500';
+
+  /// Purpose: Return the localized string for `financeFeeWaiverSeparator`.
+  /// Inputs: None.
+  /// Returns: A localized `String`.
+  /// Side effects: None.
+  /// Notes: Generated localization accessor or override.
+  @override
+  String get financeFeeWaiverSeparator => ' 或 ';
 
   /// Purpose: Return the localized string for `financeCurrentBalanceHint`.
   /// Inputs: None.

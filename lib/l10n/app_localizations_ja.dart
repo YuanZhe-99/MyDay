@@ -3748,6 +3748,62 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get financeCardNumberHint => '下4桁';
 
+  /// Purpose: Return the localized string for `financeFeeWaiverConditions`.
+  /// Inputs: None.
+  /// Returns: A localized `String`.
+  /// Side effects: None.
+  /// Notes: Generated localization accessor or override.
+  @override
+  String get financeFeeWaiverConditions => '月額管理手数料の免除条件';
+
+  /// Purpose: Return the localized string for `financeFeeWaiverConditionsHint`.
+  /// Inputs: None.
+  /// Returns: A localized `String`.
+  /// Side effects: None.
+  /// Notes: Generated localization accessor or override.
+  @override
+  String get financeFeeWaiverConditionsHint => '月額管理手数料を避けるための任意条件です。';
+
+  /// Purpose: Return the localized string for `financeFeeWaiverMinimumBalance`.
+  /// Inputs: None.
+  /// Returns: A localized `String`.
+  /// Side effects: None.
+  /// Notes: Generated localization accessor or override.
+  @override
+  String get financeFeeWaiverMinimumBalance => '最低残高';
+
+  /// Purpose: Return the localized string for `financeFeeWaiverMinimumBalanceHint`.
+  /// Inputs: None.
+  /// Returns: A localized `String`.
+  /// Side effects: None.
+  /// Notes: Generated localization accessor or override.
+  @override
+  String get financeFeeWaiverMinimumBalanceHint => '例：1500';
+
+  /// Purpose: Return the localized string for `financeFeeWaiverMonthlyDeposit`.
+  /// Inputs: None.
+  /// Returns: A localized `String`.
+  /// Side effects: None.
+  /// Notes: Generated localization accessor or override.
+  @override
+  String get financeFeeWaiverMonthlyDeposit => '毎月入金額';
+
+  /// Purpose: Return the localized string for `financeFeeWaiverMonthlyDepositHint`.
+  /// Inputs: None.
+  /// Returns: A localized `String`.
+  /// Side effects: None.
+  /// Notes: Generated localization accessor or override.
+  @override
+  String get financeFeeWaiverMonthlyDepositHint => '例：500';
+
+  /// Purpose: Return the localized string for `financeFeeWaiverSeparator`.
+  /// Inputs: None.
+  /// Returns: A localized `String`.
+  /// Side effects: None.
+  /// Notes: Generated localization accessor or override.
+  @override
+  String get financeFeeWaiverSeparator => ' または ';
+
   /// Purpose: Return the localized string for `financeCurrentBalanceHint`.
   /// Inputs: None.
   /// Returns: A localized `String`.
