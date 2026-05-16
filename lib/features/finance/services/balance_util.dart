@@ -1,6 +1,28 @@
 import '../models/finance.dart';
 import 'exchange_rate_storage.dart';
 
+final DateTime forcedBalanceSentinelDate = DateTime.fromMillisecondsSinceEpoch(
+  0,
+  isUtc: true,
+);
+
+class ForcedBalanceMigrationResult {
+  final List<Account> accounts;
+  final List<Transaction> transactions;
+  final bool changed;
+
+  /// Purpose: Create a forced balance migration result instance.
+  /// Inputs: `accounts`, `transactions`, `changed`.
+  /// Returns: A new `ForcedBalanceMigrationResult` instance.
+  /// Side effects: None.
+  /// Notes: Use this as the normalized finance payload after one-time migration.
+  const ForcedBalanceMigrationResult({
+    required this.accounts,
+    required this.transactions,
+    required this.changed,
+  });
+}
+
 /// Currency symbols for display.
 /// Purpose: Implement the currency symbol behavior for this file.
 /// Inputs: `code`.
@@ -72,65 +94,204 @@ double convertCurrency(
 /// Inputs: `account`, `transactions`, `rateData`.
 /// Returns: `double`.
 /// Side effects: None.
-/// Notes: None.
+/// Notes: Forced-balance fields are migration sentinels only and never affect live balances.
 double accountBalance(
   Account account,
   List<Transaction> transactions,
   ExchangeRateData rateData,
 ) {
-  final base = account.forcedBalance ?? 0.0;
-  final cutoff = account.forcedBalanceDate;
-
   var net = 0.0;
   for (final tx in transactions) {
-    if (cutoff != null && !tx.date.isAfter(cutoff)) continue;
     net += _accountTransactionDelta(account, tx, rateData);
   }
 
-  return base + net;
+  return net;
 }
 
 /// Calculate account balance immediately before [before].
-///
-/// If an account has a forced balance, that balance is treated as an anchor at
-/// [Account.forcedBalanceDate]. Samples after the anchor walk forward from it;
-/// samples before the anchor walk backward by reversing known transactions.
 /// Purpose: Implement the account balance before behavior for this file.
 /// Inputs: `account`, `transactions`, `rateData`, `before`.
 /// Returns: `double`.
 /// Side effects: None.
-/// Notes: None.
+/// Notes: Forced-balance fields are migration sentinels only and never affect live balances.
 double accountBalanceBefore(
   Account account,
   List<Transaction> transactions,
   ExchangeRateData rateData,
   DateTime before,
 ) {
-  final base = account.forcedBalance ?? 0.0;
-  final cutoff = account.forcedBalanceDate;
-
   var net = 0.0;
   for (final tx in transactions) {
-    final delta = _accountTransactionDelta(account, tx, rateData);
-    if (delta == 0) continue;
-
-    if (cutoff == null) {
-      if (tx.date.isBefore(before)) net += delta;
-      continue;
-    }
-
-    if (before.isAfter(cutoff)) {
-      if (tx.date.isAfter(cutoff) && tx.date.isBefore(before)) {
-        net += delta;
-      }
-    } else {
-      if (!tx.date.isBefore(before) && !tx.date.isAfter(cutoff)) {
-        net -= delta;
-      }
+    if (tx.date.isBefore(before)) {
+      net += _accountTransactionDelta(account, tx, rateData);
     }
   }
 
-  return base + net;
+  return net;
+}
+
+/// Purpose: Return whether a date is the forced-balance migration sentinel.
+/// Inputs: `date`.
+/// Returns: `bool`.
+/// Side effects: None.
+/// Notes: Accepts both UTC epoch and local 1970-01-01 midnight encodings.
+bool isForcedBalanceSentinelDate(DateTime date) {
+  if (date.toUtc().millisecondsSinceEpoch == 0) return true;
+  return date.year == 1970 &&
+      date.month == 1 &&
+      date.day == 1 &&
+      date.hour == 0 &&
+      date.minute == 0 &&
+      date.second == 0 &&
+      date.millisecond == 0 &&
+      date.microsecond == 0;
+}
+
+/// Purpose: Return whether an account already uses the forced-balance sentinel.
+/// Inputs: `account`.
+/// Returns: `bool`.
+/// Side effects: None.
+/// Notes: This means old forced-balance state has already been discarded.
+bool hasForcedBalanceSentinel(Account account) =>
+    (account.forcedBalance ?? 0) == 0 &&
+    account.forcedBalanceDate != null &&
+    isForcedBalanceSentinelDate(account.forcedBalanceDate!);
+
+/// Purpose: Return an account with forced-balance fields replaced by the sentinel.
+/// Inputs: `account`, `modifiedAt`.
+/// Returns: `Account`.
+/// Side effects: None.
+/// Notes: Use before saving accounts from new-version balance adjustment flows.
+Account accountWithForcedBalanceSentinel(
+  Account account, {
+  DateTime? modifiedAt,
+}) {
+  return Account(
+    id: account.id,
+    type: account.type,
+    bankOrApp: account.bankOrApp,
+    name: account.name,
+    currency: account.currency,
+    cardNumber: account.cardNumber,
+    expiryDate: account.expiryDate,
+    securityCode: account.securityCode,
+    emoji: account.emoji,
+    imagePath: account.imagePath,
+    forcedBalance: 0,
+    forcedBalanceDate: forcedBalanceSentinelDate,
+    modifiedAt: modifiedAt ?? account.modifiedAt,
+  );
+}
+
+/// Purpose: Migrate old forced balances into ordinary adjustment transactions.
+/// Inputs: `accounts`, `transactions`, `rateData`, `adjustmentNote`.
+/// Returns: `ForcedBalanceMigrationResult`.
+/// Side effects: None.
+/// Notes: Non-zero forced balances become deterministic income/expense transactions, then accounts are set to the 0 + 1970 sentinel.
+ForcedBalanceMigrationResult migrateForcedBalances({
+  required List<Account> accounts,
+  required List<Transaction> transactions,
+  required ExchangeRateData rateData,
+  String adjustmentNote = 'Balance Adjustment',
+}) {
+  final migratedAccounts = <Account>[];
+  final migratedTransactions = List<Transaction>.of(transactions);
+  final existingTransactionIds = transactions.map((tx) => tx.id).toSet();
+  var changed = false;
+
+  for (final account in accounts) {
+    final hasForcedBalanceMarker =
+        account.forcedBalance != null || account.forcedBalanceDate != null;
+    if (!hasForcedBalanceMarker || hasForcedBalanceSentinel(account)) {
+      migratedAccounts.add(account);
+      continue;
+    }
+
+    final forcedBalance = account.forcedBalance ?? 0.0;
+    if (forcedBalance != 0) {
+      final delta = _forcedBalanceMigrationDelta(
+        account,
+        transactions,
+        rateData,
+      );
+      final txId = _forcedBalanceMigrationTransactionId(account);
+      if (delta.abs() > 0.000001 && !existingTransactionIds.contains(txId)) {
+        migratedTransactions.add(
+          Transaction(
+            id: txId,
+            type: delta > 0 ? TransactionType.income : TransactionType.expense,
+            amount: delta.abs(),
+            currency: account.currency,
+            rateSnapshotId: rateData.currentSnapshotId,
+            accountId: account.id,
+            note: adjustmentNote,
+            date: _forcedBalanceAdjustmentDate(account),
+          ),
+        );
+        existingTransactionIds.add(txId);
+      }
+    }
+
+    migratedAccounts.add(
+      accountWithForcedBalanceSentinel(account, modifiedAt: DateTime.now()),
+    );
+    changed = true;
+  }
+
+  return ForcedBalanceMigrationResult(
+    accounts: migratedAccounts,
+    transactions: migratedTransactions,
+    changed: changed,
+  );
+}
+
+/// Purpose: Provide the internal forced balance migration delta helper for this file.
+/// Inputs: `account`, `transactions`, `rateData`.
+/// Returns: `double`.
+/// Side effects: None.
+/// Notes: Internal helper used within this file only.
+double _forcedBalanceMigrationDelta(
+  Account account,
+  List<Transaction> transactions,
+  ExchangeRateData rateData,
+) {
+  var delta = account.forcedBalance ?? 0.0;
+  final cutoff = account.forcedBalanceDate;
+  if (cutoff == null) return delta;
+
+  for (final tx in transactions) {
+    if (!tx.date.isAfter(cutoff)) {
+      delta -= _accountTransactionDelta(account, tx, rateData);
+    }
+  }
+  return delta;
+}
+
+/// Purpose: Provide the internal forced balance migration transaction id helper for this file.
+/// Inputs: `account`.
+/// Returns: `String`.
+/// Side effects: None.
+/// Notes: Internal helper used within this file only.
+String _forcedBalanceMigrationTransactionId(Account account) {
+  final date = account.forcedBalanceDate?.toIso8601String() ?? 'none';
+  final modifiedAt = account.modifiedAt.toIso8601String();
+  return 'forced-balance-migration:${account.id}:${account.forcedBalance}:$date:$modifiedAt';
+}
+
+/// Purpose: Provide the internal forced balance adjustment date helper for this file.
+/// Inputs: `account`.
+/// Returns: `DateTime`.
+/// Side effects: None.
+/// Notes: Internal helper used within this file only.
+DateTime _forcedBalanceAdjustmentDate(Account account) {
+  final cutoff = account.forcedBalanceDate;
+  if (cutoff != null && !isForcedBalanceSentinelDate(cutoff)) {
+    return cutoff;
+  }
+  if (account.modifiedAt.isAfter(forcedBalanceSentinelDate)) {
+    return account.modifiedAt;
+  }
+  return DateTime.now();
 }
 
 /// Purpose: Provide the internal account transaction delta helper for this file.

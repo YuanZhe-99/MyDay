@@ -90,12 +90,14 @@ class _AccountsPageState extends State<AccountsPage> {
   /// Side effects: May update UI state or trigger user-facing flows.
   /// Notes: Internal helper used within this file only.
   void _notifyAccounts() => widget.onChanged(_accounts);
+
   /// Purpose: Provide the internal notify transactions helper for this file.
   /// Inputs: None.
   /// Returns: None.
   /// Side effects: May update UI state or trigger user-facing flows.
   /// Notes: Internal helper used within this file only.
   void _notifyTransactions() => widget.onTransactionsChanged(_transactions);
+
   /// Purpose: Provide the internal notify sort helper for this file.
   /// Inputs: None.
   /// Returns: None.
@@ -275,13 +277,27 @@ class _AccountsPageState extends State<AccountsPage> {
   /// Side effects: May update UI state or trigger user-facing flows.
   /// Notes: Internal helper used within this file only.
   Future<void> _addAccount() async {
-    final account = await showDialog<Account>(
+    final submittedAccount = await showDialog<Account>(
       context: context,
       builder: (_) => const _AccountDialog(),
     );
-    if (account != null) {
-      setState(() => _accounts.add(account));
+    if (!mounted) return;
+    if (submittedAccount != null) {
+      final l10n = AppLocalizations.of(context)!;
+      final account = accountWithForcedBalanceSentinel(submittedAccount);
+      final adjTx = _balanceAdjustmentTransaction(
+        account: account,
+        targetBalance: submittedAccount.forcedBalance,
+        currentBalance: 0,
+        date: submittedAccount.forcedBalanceDate,
+        note: l10n.financeBalanceAdjustment,
+      );
+      setState(() {
+        _accounts.add(account);
+        if (adjTx != null) _transactions.insert(0, adjTx);
+      });
       _appendAccountToCustomOrderIfNeeded(account);
+      if (adjTx != null) _notifyTransactions();
       _notifyAccounts();
       _notifySort();
     }
@@ -297,43 +313,68 @@ class _AccountsPageState extends State<AccountsPage> {
     final l10n = AppLocalizations.of(context)!;
     final account = await showDialog<Account>(
       context: context,
-      builder: (_) => _AccountDialog(account: oldAccount),
-    );
-    if (!mounted) return;
-    if (account != null) {
-      // If forced balance changed, create an adjustment transaction
-      if (account.forcedBalance != null &&
-          account.forcedBalance != oldAccount.forcedBalance) {
-        final oldBalance = accountBalance(
+      builder: (_) => _AccountDialog(
+        account: oldAccount,
+        currentBalance: accountBalance(
           oldAccount,
           _transactions,
           widget.rateData,
-        );
-        final delta = account.forcedBalance! - oldBalance;
-        if (delta != 0) {
-          final adjTx = Transaction(
-            type: delta > 0 ? TransactionType.income : TransactionType.expense,
-            amount: delta.abs(),
-            currency: account.currency,
-            rateSnapshotId: widget.rateData.currentSnapshotId,
-            accountId: account.id,
-            note: l10n.financeBalanceAdjustment,
-            date: account.forcedBalanceDate ?? DateTime.now(),
-          );
-          setState(() {
-            _transactions.insert(0, adjTx);
-          });
-          _notifyTransactions();
-        }
-      }
-      setState(() => _accounts[index] = account);
+        ),
+      ),
+    );
+    if (!mounted) return;
+    if (account != null) {
+      final savedAccount = accountWithForcedBalanceSentinel(account);
+      final currentBalance = accountBalance(
+        savedAccount,
+        _transactions,
+        widget.rateData,
+      );
+      final adjTx = _balanceAdjustmentTransaction(
+        account: savedAccount,
+        targetBalance: account.forcedBalance,
+        currentBalance: currentBalance,
+        date: account.forcedBalanceDate,
+        note: l10n.financeBalanceAdjustment,
+      );
+      setState(() {
+        if (adjTx != null) _transactions.insert(0, adjTx);
+        _accounts[index] = savedAccount;
+      });
+      if (adjTx != null) _notifyTransactions();
       if (oldAccount.type != account.type) {
         _removeAccountFromCustomOrders(account.id);
-        _appendAccountToCustomOrderIfNeeded(account);
+        _appendAccountToCustomOrderIfNeeded(savedAccount);
       }
       _notifyAccounts();
       _notifySort();
     }
+  }
+
+  /// Purpose: Provide the internal balance adjustment transaction helper for this file.
+  /// Inputs: `account`, `targetBalance`, `currentBalance`, `date`, `note`.
+  /// Returns: `Transaction?`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  Transaction? _balanceAdjustmentTransaction({
+    required Account account,
+    required double? targetBalance,
+    required double currentBalance,
+    required DateTime? date,
+    required String note,
+  }) {
+    if (targetBalance == null) return null;
+    final delta = targetBalance - currentBalance;
+    if (delta.abs() <= 0.000001) return null;
+    return Transaction(
+      type: delta > 0 ? TransactionType.income : TransactionType.expense,
+      amount: delta.abs(),
+      currency: account.currency,
+      rateSnapshotId: widget.rateData.currentSnapshotId,
+      accountId: account.id,
+      note: note,
+      date: date ?? DateTime.now(),
+    );
   }
 
   /// Purpose: Provide the internal delete account helper for this file.
@@ -959,12 +1000,14 @@ class _AccountTransactionsPageState extends State<_AccountTransactionsPage> {
 
 class _AccountDialog extends StatefulWidget {
   final Account? account;
+  final double? currentBalance;
+
   /// Purpose: Create a account dialog instance.
-  /// Inputs: `account`.
+  /// Inputs: `account`, `currentBalance`.
   /// Returns: A new `_AccountDialog` instance.
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
-  const _AccountDialog({this.account});
+  const _AccountDialog({this.account, this.currentBalance});
 
   /// Purpose: Create the mutable state object for this widget.
   /// Inputs: None.
@@ -1052,7 +1095,10 @@ class _AccountDialogState extends State<_AccountDialog> {
       _currency = a.currency;
       _selectedEmoji = a.emoji;
       _imagePath = a.imagePath;
-      if (a.forcedBalance != null) {
+      if (widget.currentBalance != null) {
+        _balanceController.text = widget.currentBalance!.toStringAsFixed(2);
+        _forcedBalanceDate = DateTime.now();
+      } else if (a.forcedBalance != null && !hasForcedBalanceSentinel(a)) {
         _balanceController.text = a.forcedBalance!.toStringAsFixed(2);
         _forcedBalanceDate = a.forcedBalanceDate ?? DateTime.now();
       }

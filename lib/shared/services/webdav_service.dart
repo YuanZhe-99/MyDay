@@ -6,6 +6,9 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 
+import '../../features/finance/services/balance_util.dart';
+import '../../features/finance/services/exchange_rate_storage.dart';
+import '../../features/finance/services/finance_storage.dart';
 import '../../features/todo/services/todo_storage.dart';
 import '../utils/json_preservation.dart';
 import 'sync_merge.dart';
@@ -196,6 +199,38 @@ class WebDAVService {
     final v = _localDataChanged;
     _localDataChanged = false;
     return v;
+  }
+
+  /// Purpose: Provide the internal migrate finance forced balances helper for this file.
+  /// Inputs: `data`.
+  /// Returns: `Future<FinanceData>`.
+  /// Side effects: May read exchange-rate data needed to convert legacy transactions.
+  /// Notes: Internal helper used within this file only.
+  static Future<FinanceData> _migrateFinanceForcedBalances(
+    FinanceData data,
+  ) async {
+    final rateData = await ExchangeRateStorage.load();
+    final migration = migrateForcedBalances(
+      accounts: data.accounts,
+      transactions: data.transactions,
+      rateData: rateData,
+    );
+    if (!migration.changed) return data;
+
+    return FinanceData(
+      accounts: migration.accounts,
+      categories: data.categories,
+      transactions: migration.transactions,
+      subscriptions: data.subscriptions,
+      defaultCurrency: data.defaultCurrency,
+      settingsModifiedAt: data.settingsModifiedAt,
+      subscriptionReminderHour: data.subscriptionReminderHour,
+      subscriptionReminderMinute: data.subscriptionReminderMinute,
+      subscriptionSortMode: data.subscriptionSortMode,
+      subscriptionCustomOrder: data.subscriptionCustomOrder,
+      accountSortModes: data.accountSortModes,
+      accountCustomOrders: data.accountCustomOrders,
+    );
   }
 
   // ── Config persistence ──
@@ -888,7 +923,9 @@ class WebDAVService {
               if (result.hasConflicts) {
                 pendingFinance = result;
               } else {
-                final mergedData = result.buildResolved({});
+                final mergedData = await _migrateFinanceForcedBalances(
+                  result.buildResolved({}),
+                );
                 final mergedJson = _preserveUnknownJson(
                   name,
                   jsonEncode(mergedData.toJson()),
@@ -1069,7 +1106,9 @@ class WebDAVService {
       }
 
       if (pending.financeMerge != null) {
-        final mergedData = pending.financeMerge!.buildResolved(resolutions);
+        final mergedData = await _migrateFinanceForcedBalances(
+          pending.financeMerge!.buildResolved(resolutions),
+        );
         final localFile = File('${appDir.path}/finance_data.json');
         final mergedJson = await _preserveUnknownJsonFromCurrentSources(
           config,

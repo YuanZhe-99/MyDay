@@ -29,7 +29,7 @@ Maintenance rules:
 - **Package id:** Dart package `my_day`; Android namespace/application id `com.yuanzhe.my_day`; MSIX identity `com.yuanzhe.myday`; macOS bundle id `com.yuanzhe.myDay`.
 - **Author / publisher:** `yuanzhe`.
 - **License:** GPL-3.0.
-- **Current version:** `0.6.5+24` in `pubspec.yaml`, legacy `0.9.7.0` currently in `msix_config.msix_version`, and `0.6.5` in `installer.iss`. Do not change the current files only for this mismatch; at the next release, unify MSIX back to the app version family.
+- **Current version:** `0.6.6+25` in `pubspec.yaml`, `0.6.6.0` in `msix_config.msix_version`, and `0.6.6` in `installer.iss`.
 - **Latest tag at the time this guide was written:** `v0.6.5`.
 - **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.41.6`.
 - **Primary platforms:** Windows x64/ARM64, Android APK/AAB, iOS sideload IPA, and macOS DMG. Linux project support exists for desktop runtime features but is not a primary release artifact.
@@ -182,7 +182,7 @@ Main model: `lib/features/finance/models/finance.dart`.
 
 - `AccountType`: `fund`, `credit`, `recharge`, `financial`.
 - `TransactionType`: `expense`, `income`, `transfer`.
-- `Account`: bank/app, account name, currency, optional card metadata, emoji/image, optional forced balance anchor, `modifiedAt`.
+- `Account`: bank/app, account name, currency, optional card metadata, emoji/image, legacy forced-balance sentinel fields, `modifiedAt`. New-version balances are calculated from transactions only; setting a current balance creates an income/expense adjustment transaction and then stores `forcedBalance: 0` with `forcedBalanceDate: 1970-01-01T00:00:00.000Z` for old-version compatibility.
 - `Transaction`: amount/currency, historical rate snapshot id, account ids, transfer target fields, category/subscription ids, note, date, `modifiedAt`.
 - `Category`: name, `IconRef`, emoji, transaction type, `modifiedAt`. Transfer categories are supported.
 - `Subscription`: trial, billing cycle/interval, amount/currency, account/category, cancellation mode, persisted `nextBillingDate`, `modifiedAt`.
@@ -439,4 +439,5 @@ Use the narrowest relevant command set for verification. For sync/model/persiste
 - `v0.6.2`: Todo, finance account, and intimacy active/history custom sorting.
 - `v0.6.3`: Todo subtask save safety/reordering and unsaved edit protection across major dialogs.
 - `v0.6.4`: Weekly history grouping, weight reminder grace window, zero-value chart filtering, unknown JSON field preservation.
-- `v0.6.5`: Finance monthly totals, smoother trend sampling, total-assets trend chart, forced-balance historical reconstruction, version `0.6.5+24`. The repo currently still has legacy MSIX `0.9.7.0`; next release should unify MSIX to `X.Y.Z.0`.
+- `v0.6.5`: Finance monthly totals, smoother trend sampling, total-assets trend chart, forced-balance historical reconstruction, version `0.6.5+24`.
+- `v0.6.6`: Finance forced balances are migrated into ordinary adjustment transactions, live balances now come only from transactions, old-version compatibility uses the `0 + 1970-01-01` forced-balance sentinel, and versions are unified to `0.6.6+25` / MSIX `0.6.6.0` / installer `0.6.6`.

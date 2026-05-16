@@ -4,6 +4,8 @@ import 'dart:io';
 import '../../../shared/utils/json_preservation.dart';
 import '../../todo/services/todo_storage.dart';
 import '../models/finance.dart';
+import 'balance_util.dart';
+import 'exchange_rate_storage.dart';
 
 class FinanceData {
   final List<Account> accounts;
@@ -133,7 +135,7 @@ class FinanceStorage {
   /// Inputs: None.
   /// Returns: `Future<FinanceData?>`.
   /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: None.
+  /// Notes: Legacy forced-balance fields are migrated into adjustment transactions before returning data.
   static Future<FinanceData?> load() async {
     try {
       final file = await _getFile();
@@ -141,10 +143,50 @@ class FinanceStorage {
       final raw = await file.readAsString();
 
       final json = jsonDecode(raw) as Map<String, dynamic>;
-      return FinanceData.fromJson(json);
+      final data = FinanceData.fromJson(json);
+      final rateData = await ExchangeRateStorage.load();
+      final migrated = _migrateForcedBalances(data, rateData);
+      if (identical(migrated, data)) return data;
+
+      try {
+        await save(migrated);
+      } catch (_) {}
+      return migrated;
     } catch (_) {
       return null;
     }
+  }
+
+  /// Purpose: Provide the internal migrate forced balances helper for this file.
+  /// Inputs: `data`, `rateData`.
+  /// Returns: `FinanceData`.
+  /// Side effects: May create, transform, or mutate data used by callers.
+  /// Notes: Internal helper used within this file only.
+  static FinanceData _migrateForcedBalances(
+    FinanceData data,
+    ExchangeRateData rateData,
+  ) {
+    final migration = migrateForcedBalances(
+      accounts: data.accounts,
+      transactions: data.transactions,
+      rateData: rateData,
+    );
+    if (!migration.changed) return data;
+
+    return FinanceData(
+      accounts: migration.accounts,
+      categories: data.categories,
+      transactions: migration.transactions,
+      subscriptions: data.subscriptions,
+      defaultCurrency: data.defaultCurrency,
+      settingsModifiedAt: data.settingsModifiedAt,
+      subscriptionReminderHour: data.subscriptionReminderHour,
+      subscriptionReminderMinute: data.subscriptionReminderMinute,
+      subscriptionSortMode: data.subscriptionSortMode,
+      subscriptionCustomOrder: data.subscriptionCustomOrder,
+      accountSortModes: data.accountSortModes,
+      accountCustomOrders: data.accountCustomOrders,
+    );
   }
 
   /// Purpose: Implement the save behavior for this file.
