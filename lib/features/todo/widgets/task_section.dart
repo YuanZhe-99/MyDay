@@ -18,6 +18,11 @@ class TaskSectionWidget extends StatefulWidget {
   final void Function(Task task)? onEdit;
   final void Function(Task task, SubTask subtask)? onSubtaskToggle;
 
+  /// Purpose: Create a task section widget instance.
+  /// Inputs: None.
+  /// Returns: A new `TaskSectionWidget` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const TaskSectionWidget({
     super.key,
     required this.title,
@@ -34,6 +39,11 @@ class TaskSectionWidget extends StatefulWidget {
     this.onSubtaskToggle,
   });
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new `State` instance.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   @override
   State<TaskSectionWidget> createState() => _TaskSectionWidgetState();
 }
@@ -46,6 +56,11 @@ class _TaskSectionWidgetState extends State<TaskSectionWidget> {
   static const _sortName = 'name';
   static const _sortCustom = 'custom';
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -138,6 +153,11 @@ class _TaskSectionWidgetState extends State<TaskSectionWidget> {
     );
   }
 
+  /// Purpose: Provide the internal sort item helper for this file.
+  /// Inputs: None.
+  /// Returns: `PopupMenuEntry<String>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   PopupMenuEntry<String> _sortItem({
     required String value,
     required String label,
@@ -164,8 +184,18 @@ class _TaskReorderList extends StatelessWidget {
   final List<Task> tasks;
   final void Function(List<Task> tasks, int oldIndex, int newIndex)? onReorder;
 
+  /// Purpose: Create a task reorder list instance.
+  /// Inputs: `onReorder`.
+  /// Returns: A new `_TaskReorderList` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   const _TaskReorderList({required this.tasks, required this.onReorder});
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     return ReorderableListView.builder(
@@ -207,6 +237,11 @@ class _TaskTile extends StatefulWidget {
   final VoidCallback? onEdit;
   final void Function(SubTask subtask)? onSubtaskToggle;
 
+  /// Purpose: Create a task tile instance.
+  /// Inputs: None.
+  /// Returns: A new `_TaskTile` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   const _TaskTile({
     super.key,
     required this.task,
@@ -216,6 +251,11 @@ class _TaskTile extends StatefulWidget {
     this.onSubtaskToggle,
   });
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new `State` instance.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   @override
   State<_TaskTile> createState() => _TaskTileState();
 }
@@ -223,6 +263,11 @@ class _TaskTile extends StatefulWidget {
 class _TaskTileState extends State<_TaskTile> {
   bool _expanded = false;
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

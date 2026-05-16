@@ -17,6 +17,11 @@ class RecordConflict<T> {
   final T remoteRecord;
   final String displayName;
 
+  /// Purpose: Create a record conflict instance.
+  /// Inputs: None.
+  /// Returns: A new `RecordConflict` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const RecordConflict({
     required this.id,
     required this.localRecord,
@@ -30,9 +35,19 @@ class RecordMergeResult<T> {
   final List<T> merged;
   final List<RecordConflict<T>> conflicts;
 
+  /// Purpose: Create a record merge result instance.
+  /// Inputs: `conflicts`.
+  /// Returns: A new `RecordMergeResult` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const RecordMergeResult({required this.merged, this.conflicts = const []});
 }
 
+/// Purpose: Merge records into a single result.
+/// Inputs: `autoResolve`.
+/// Returns: `RecordMergeResult<T>`.
+/// Side effects: May read or mutate application state, storage, or service resources.
+/// Notes: None.
 /// Three-way merge for a list of records by ID.
 ///
 /// Uses [base] (last synced version) to detect which side changed:
@@ -47,6 +62,11 @@ class RecordMergeResult<T> {
 /// When [autoResolve] is true, conflicts are resolved automatically using
 /// last-writer-wins (newer `modifiedAt`). This is used by auto-sync to
 /// prevent one conflict from blocking all other records in the same file.
+/// Purpose: Merge records from the relevant sources.
+/// Inputs: `local`, `remote`, `base`, `getId`, `getModifiedAt`, `getDisplayName`, `autoResolve`.
+/// Returns: `RecordMergeResult<T>`.
+/// Side effects: May create, transform, or mutate data used by callers.
+/// Notes: None.
 RecordMergeResult<T> mergeRecords<T>({
   required List<T> local,
   required List<T> remote,
@@ -142,6 +162,11 @@ class SyncConflictInfo {
   final String displayName;
   final List<RecordConflict> recordConflicts;
 
+  /// Purpose: Create a sync conflict info instance.
+  /// Inputs: None.
+  /// Returns: A new `SyncConflictInfo` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const SyncConflictInfo({
     required this.fileName,
     required this.displayName,
@@ -157,13 +182,28 @@ class MergeResult {
   /// Per-file conflict lists. Empty if no conflicts.
   final List<SyncConflictInfo> conflicts;
 
+  /// Purpose: Create a merge result instance.
+  /// Inputs: `conflicts`.
+  /// Returns: A new `MergeResult` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const MergeResult({required this.mergedJsons, this.conflicts = const []});
 
+  /// Purpose: Return whether conflicts is available.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: None.
   bool get hasConflicts => conflicts.any((c) => c.recordConflicts.isNotEmpty);
 }
 
 // ─── TodoData merge ─────────────────────────────────────────────────
 
+/// Purpose: Merge todo json into a single result.
+/// Inputs: `localJson`, `remoteJson`, `baseJson`.
+/// Returns: `String?`.
+/// Side effects: May read or mutate application state, storage, or service resources.
+/// Notes: None.
 String? mergeTodoJson(String localJson, String remoteJson, String? baseJson) {
   try {
     final local = TodoData.fromJson(
@@ -228,6 +268,11 @@ String? mergeTodoJson(String localJson, String remoteJson, String? baseJson) {
 }
 
 /// Full merge returning conflicts for UI resolution.
+/// Purpose: Merge todo data into a single result.
+/// Inputs: `localJson`, `remoteJson`, `baseJson`, `autoResolve`.
+/// Returns: `TodoMergeResult`.
+/// Side effects: May create, transform, or mutate data used by callers.
+/// Notes: None.
 TodoMergeResult mergeTodoData(
   String localJson,
   String remoteJson,
@@ -289,6 +334,11 @@ class TodoMergeResult {
   final List<RecordConflict<Task>> dailyConflicts;
   final List<RecordConflict<Task>> onceConflicts;
 
+  /// Purpose: Create a todo merge result instance.
+  /// Inputs: None.
+  /// Returns: A new `TodoMergeResult` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const TodoMergeResult({
     required this.dailyMerged,
     required this.onceMerged,
@@ -298,9 +348,19 @@ class TodoMergeResult {
     required this.onceConflicts,
   });
 
+  /// Purpose: Return whether conflicts is available.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: None.
   bool get hasConflicts =>
       dailyConflicts.isNotEmpty || onceConflicts.isNotEmpty;
 
+  /// Purpose: Implement the build resolved behavior for this file.
+  /// Inputs: `resolutions`.
+  /// Returns: `TodoData`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   TodoData buildResolved(Map<String, Task> resolutions) {
     final daily = _resolveList(dailyMerged, dailyConflicts, resolutions);
     final once = _resolveList(onceMerged, onceConflicts, resolutions);
@@ -318,6 +378,11 @@ class TodoMergeResult {
     );
   }
 
+  /// Purpose: Provide the internal resolve list helper for this file.
+  /// Inputs: `merged`, `conflicts`, `resolutions`.
+  /// Returns: `List<T>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static List<T> _resolveList<T>(
     List<T> merged,
     List<RecordConflict<T>> conflicts,
@@ -334,6 +399,11 @@ class TodoMergeResult {
 
 // ─── FinanceData merge ──────────────────────────────────────────────
 
+/// Purpose: Merge finance data into a single result.
+/// Inputs: `localJson`, `remoteJson`, `baseJson`, `autoResolve`.
+/// Returns: `FinanceMergeResult`.
+/// Side effects: May read or mutate application state, storage, or service resources.
+/// Notes: None.
 FinanceMergeResult mergeFinanceData(
   String localJson,
   String remoteJson,
@@ -420,6 +490,11 @@ class FinanceMergeResult {
   final List<RecordConflict<Transaction>> transactionConflicts;
   final List<RecordConflict<Subscription>> subscriptionConflicts;
 
+  /// Purpose: Create a finance merge result instance.
+  /// Inputs: None.
+  /// Returns: A new `FinanceMergeResult` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const FinanceMergeResult({
     required this.accountsMerged,
     required this.categoriesMerged,
@@ -432,12 +507,22 @@ class FinanceMergeResult {
     required this.subscriptionConflicts,
   });
 
+  /// Purpose: Return whether conflicts is available.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: None.
   bool get hasConflicts =>
       accountConflicts.isNotEmpty ||
       categoryConflicts.isNotEmpty ||
       transactionConflicts.isNotEmpty ||
       subscriptionConflicts.isNotEmpty;
 
+  /// Purpose: Implement the build resolved behavior for this file.
+  /// Inputs: `resolutions`.
+  /// Returns: `FinanceData`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   FinanceData buildResolved(Map<String, dynamic> resolutions) {
     return FinanceData(
       accounts: _resolveList(accountsMerged, accountConflicts, resolutions),
@@ -467,6 +552,11 @@ class FinanceMergeResult {
     );
   }
 
+  /// Purpose: Provide the internal resolve list helper for this file.
+  /// Inputs: `merged`, `conflicts`, `resolutions`.
+  /// Returns: `List<T>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static List<T> _resolveList<T>(
     List<T> merged,
     List<RecordConflict<T>> conflicts,
@@ -483,6 +573,11 @@ class FinanceMergeResult {
 
 // ─── IntimacyData merge ─────────────────────────────────────────────
 
+/// Purpose: Merge intimacy data into a single result.
+/// Inputs: `localJson`, `remoteJson`, `baseJson`, `autoResolve`.
+/// Returns: `IntimacyMergeResult`.
+/// Side effects: May read or mutate application state, storage, or service resources.
+/// Notes: None.
 IntimacyMergeResult mergeIntimacyData(
   String localJson,
   String remoteJson,
@@ -602,6 +697,11 @@ class IntimacyMergeResult {
   final List<RecordConflict<Position>> positionConflicts;
   final List<RecordConflict<IntimacyRecord>> recordConflicts;
 
+  /// Purpose: Create a intimacy merge result instance.
+  /// Inputs: None.
+  /// Returns: A new `IntimacyMergeResult` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const IntimacyMergeResult({
     required this.partnersMerged,
     required this.toysMerged,
@@ -620,12 +720,22 @@ class IntimacyMergeResult {
     required this.recordConflicts,
   });
 
+  /// Purpose: Return whether conflicts is available.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: None.
   bool get hasConflicts =>
       partnerConflicts.isNotEmpty ||
       toyConflicts.isNotEmpty ||
       positionConflicts.isNotEmpty ||
       recordConflicts.isNotEmpty;
 
+  /// Purpose: Implement the build resolved behavior for this file.
+  /// Inputs: `resolutions`.
+  /// Returns: `IntimacyData`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   IntimacyData buildResolved(Map<String, dynamic> resolutions) {
     return IntimacyData(
       partners: _resolveList(partnersMerged, partnerConflicts, resolutions),
@@ -642,6 +752,11 @@ class IntimacyMergeResult {
     );
   }
 
+  /// Purpose: Provide the internal resolve list helper for this file.
+  /// Inputs: `merged`, `conflicts`, `resolutions`.
+  /// Returns: `List<T>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static List<T> _resolveList<T>(
     List<T> merged,
     List<RecordConflict<T>> conflicts,
@@ -659,6 +774,11 @@ class IntimacyMergeResult {
 // ─── ExchangeRateData merge ─────────────────────────────────────────
 
 /// Exchange rates: union of all snapshots, newest snapshot becomes current.
+/// Purpose: Merge exchange rate json into a single result.
+/// Inputs: `localJson`, `remoteJson`.
+/// Returns: `String`.
+/// Side effects: May create, transform, or mutate data used by callers.
+/// Notes: None.
 String mergeExchangeRateJson(String localJson, String remoteJson) {
   final local = ExchangeRateData.fromJson(
     jsonDecode(localJson) as Map<String, dynamic>,
@@ -704,6 +824,11 @@ String mergeExchangeRateJson(String localJson, String remoteJson) {
 
 // ─── WeightData merge ───────────────────────────────────────────────
 
+/// Purpose: Merge weight data into a single result.
+/// Inputs: `localJson`, `remoteJson`, `baseJson`, `autoResolve`.
+/// Returns: `WeightMergeResult`.
+/// Side effects: May read or mutate application state, storage, or service resources.
+/// Notes: None.
 WeightMergeResult mergeWeightData(
   String localJson,
   String remoteJson,
@@ -766,6 +891,11 @@ class WeightMergeResult {
   final int reminderGraceMinutes;
   final DateTime settingsModifiedAt;
 
+  /// Purpose: Create a weight merge result instance.
+  /// Inputs: `reminderMode`.
+  /// Returns: A new `WeightMergeResult` instance.
+  /// Side effects: None.
+  /// Notes: None.
   WeightMergeResult({
     required this.height,
     required this.recordsMerged,
@@ -780,8 +910,18 @@ class WeightMergeResult {
   }) : settingsModifiedAt =
            settingsModifiedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
 
+  /// Purpose: Return whether conflicts is available.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: None.
   bool get hasConflicts => recordConflicts.isNotEmpty;
 
+  /// Purpose: Implement the build resolved behavior for this file.
+  /// Inputs: `resolutions`.
+  /// Returns: `WeightData`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   WeightData buildResolved(Map<String, dynamic> resolutions) {
     final result = [...recordsMerged];
     for (final c in recordConflicts) {

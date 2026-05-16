@@ -19,8 +19,18 @@ import '../models/task.dart';
 class RecurrencePicker extends StatefulWidget {
   final TaskRecurrence? initial;
   final ValueChanged<TaskRecurrence?> onSelected;
+  /// Purpose: Create a recurrence picker instance.
+  /// Inputs: `onSelected`.
+  /// Returns: A new `RecurrencePicker` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const RecurrencePicker({super.key, required this.initial, required this.onSelected});
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new `State` instance.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   @override
   State<RecurrencePicker> createState() => _RecurrencePickerState();
 }
@@ -31,6 +41,11 @@ class _RecurrencePickerState extends State<RecurrencePicker> {
   int _dayOfMonth = 1;
   int _monthOfYear = 1;
 
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Registers listeners and may kick off asynchronous loading.
+  /// Notes: Guard any post-await UI updates with `mounted` when needed.
   @override
   void initState() {
     super.initState();
@@ -51,6 +66,11 @@ class _RecurrencePickerState extends State<RecurrencePicker> {
     }
   }
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;

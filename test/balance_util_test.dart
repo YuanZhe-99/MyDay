@@ -3,6 +3,11 @@ import 'package:my_day/features/finance/models/finance.dart';
 import 'package:my_day/features/finance/services/balance_util.dart';
 import 'package:my_day/features/finance/services/exchange_rate_storage.dart';
 
+/// Purpose: Initialize startup services and launch the app entry point.
+/// Inputs: None.
+/// Returns: None.
+/// Side effects: May create, transform, or mutate data used by callers.
+/// Notes: None.
 void main() {
   test('accountBalanceBefore walks around forced balance anchor', () {
     final rateData = ExchangeRateData(currentSnapshotId: '', snapshots: {});

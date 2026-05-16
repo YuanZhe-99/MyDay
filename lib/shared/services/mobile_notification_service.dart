@@ -8,6 +8,11 @@ import 'package:timezone/timezone.dart' as tz;
 /// Service for scheduling notifications on Android/iOS.
 /// On mobile, the OS delivers notifications even when the app is killed.
 class MobileNotificationService {
+  /// Purpose: Prevent direct instantiation of the mobile notification singleton.
+  /// Inputs: None.
+  /// Returns: A new `MobileNotificationService` instance.
+  /// Side effects: None.
+  /// Notes: Use `MobileNotificationService.instance` instead.
   MobileNotificationService._();
   static final instance = MobileNotificationService._();
 
@@ -15,8 +20,18 @@ class MobileNotificationService {
   bool _initialized = false;
 
   /// Whether we are on a mobile platform that needs scheduled notifications.
+  /// Purpose: Return whether mobile is true.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: None.
   static bool get isMobile => Platform.isAndroid || Platform.isIOS;
 
+  /// Purpose: Implement the init behavior for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   Future<void> init() async {
     if (!isMobile || _initialized) return;
 
@@ -59,6 +74,11 @@ class MobileNotificationService {
   }
 
   /// Show an immediate notification (used as fallback for _notify on mobile).
+  /// Purpose: Show now through the current flow.
+  /// Inputs: `id`, `title`, `body`.
+  /// Returns: `Future<void>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   Future<void> showNow({required int id, required String title, required String body}) async {
     if (!_initialized) return;
     const details = NotificationDetails(
@@ -76,6 +96,11 @@ class MobileNotificationService {
 
   /// Schedule a daily notification at the given time.
   /// [id] should be a unique integer per scheduled notification type.
+  /// Purpose: Implement the schedule daily behavior for this file.
+  /// Inputs: `id`, `title`, `body`, `time`.
+  /// Returns: `Future<void>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   Future<void> scheduleDaily({
     required int id,
     required String title,
@@ -122,6 +147,11 @@ class MobileNotificationService {
   }
 
   /// Schedule a one-time notification at a specific date/time.
+  /// Purpose: Implement the schedule at behavior for this file.
+  /// Inputs: `id`, `title`, `body`, `dateTime`.
+  /// Returns: `Future<void>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   Future<void> scheduleAt({
     required int id,
     required String title,
@@ -157,6 +187,11 @@ class MobileNotificationService {
   }
 
   /// Cancel a scheduled notification by id.
+  /// Purpose: Implement the cancel behavior for this file.
+  /// Inputs: `id`.
+  /// Returns: `Future<void>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   Future<void> cancel(int id) async {
     if (!_initialized) return;
     await _plugin.cancel(id);

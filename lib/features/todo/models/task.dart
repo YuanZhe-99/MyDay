@@ -17,6 +17,11 @@ class TaskRecurrence {
   /// Month of year (1-12), used by [RecurrenceType.yearlyOnMonthDay].
   final int monthOfYear;
 
+  /// Purpose: Create a task recurrence instance.
+  /// Inputs: `intervalDays`.
+  /// Returns: A new `TaskRecurrence._` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   const TaskRecurrence._({
     required this.type,
     this.intervalDays = 0,
@@ -24,12 +29,27 @@ class TaskRecurrence {
     this.monthOfYear = 0,
   });
 
+  /// Purpose: Create a task recurrence instance.
+  /// Inputs: `days`.
+  /// Returns: A new `TaskRecurrence.everyNDays` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const TaskRecurrence.everyNDays(int days)
     : this._(type: RecurrenceType.everyNDays, intervalDays: days);
 
+  /// Purpose: Create a task recurrence instance.
+  /// Inputs: `day`.
+  /// Returns: A new `TaskRecurrence.monthlyOnDay` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const TaskRecurrence.monthlyOnDay(int day)
     : this._(type: RecurrenceType.monthlyOnDay, dayOfMonth: day);
 
+  /// Purpose: Create a task recurrence instance.
+  /// Inputs: `month`, `day`.
+  /// Returns: A new `TaskRecurrence.yearlyOnMonthDay` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const TaskRecurrence.yearlyOnMonthDay(int month, int day)
     : this._(
         type: RecurrenceType.yearlyOnMonthDay,
@@ -38,6 +58,11 @@ class TaskRecurrence {
       );
 
   /// Returns the next scheduled date relative to [from].
+  /// Purpose: Compute the next date for the current state.
+  /// Inputs: `from`.
+  /// Returns: `DateTime`.
+  /// Side effects: None.
+  /// Notes: None.
   DateTime nextDate(DateTime from) {
     switch (type) {
       case RecurrenceType.everyNDays:
@@ -61,6 +86,11 @@ class TaskRecurrence {
     }
   }
 
+  /// Purpose: Serialize this value into a JSON-compatible map.
+  /// Inputs: None.
+  /// Returns: A JSON-compatible map.
+  /// Side effects: None.
+  /// Notes: Keep the output aligned with the persisted file and sync format.
   Map<String, dynamic> toJson() => {
     'type': type.name,
     'intervalDays': intervalDays,
@@ -68,6 +98,11 @@ class TaskRecurrence {
     'monthOfYear': monthOfYear,
   };
 
+  /// Purpose: Create an instance from a JSON-compatible map.
+  /// Inputs: `json`.
+  /// Returns: A new `TaskRecurrence.fromJson` instance.
+  /// Side effects: None.
+  /// Notes: Use this path when reading the persisted or transferred data format for this type.
   factory TaskRecurrence.fromJson(Map<String, dynamic> json) =>
       TaskRecurrence._(
         type: RecurrenceType.values.byName(json['type'] as String),
@@ -83,6 +118,11 @@ class SubTask {
   final bool isCompleted;
   final DateTime modifiedAt;
 
+  /// Purpose: Create a sub task instance.
+  /// Inputs: `isCompleted`.
+  /// Returns: A new `SubTask` instance.
+  /// Side effects: None.
+  /// Notes: None.
   SubTask({
     String? id,
     required this.title,
@@ -91,6 +131,11 @@ class SubTask {
   }) : id = id ?? const Uuid().v4(),
        modifiedAt = modifiedAt ?? DateTime.now();
 
+  /// Purpose: Create a copy of this value with selected fields replaced.
+  /// Inputs: `modifiedAt`.
+  /// Returns: `SubTask`.
+  /// Side effects: None.
+  /// Notes: None.
   SubTask copyWith({String? title, bool? isCompleted, DateTime? modifiedAt}) {
     return SubTask(
       id: id,
@@ -100,6 +145,11 @@ class SubTask {
     );
   }
 
+  /// Purpose: Serialize this value into a JSON-compatible map.
+  /// Inputs: None.
+  /// Returns: A JSON-compatible map.
+  /// Side effects: None.
+  /// Notes: Keep the output aligned with the persisted file and sync format.
   Map<String, dynamic> toJson() => {
     'id': id,
     'title': title,
@@ -107,6 +157,11 @@ class SubTask {
     'modifiedAt': modifiedAt.toIso8601String(),
   };
 
+  /// Purpose: Create an instance from a JSON-compatible map.
+  /// Inputs: `json`.
+  /// Returns: A new `SubTask.fromJson` instance.
+  /// Side effects: None.
+  /// Notes: Use this path when reading the persisted or transferred data format for this type.
   factory SubTask.fromJson(Map<String, dynamic> json) => SubTask(
     id: json['id'] as String,
     title: json['title'] as String,
@@ -148,6 +203,11 @@ class Task {
   final TaskRecurrence? recurrence;
   final DateTime modifiedAt;
 
+  /// Purpose: Create a task instance.
+  /// Inputs: `isCompleted`.
+  /// Returns: A new `Task` instance.
+  /// Side effects: None.
+  /// Notes: None.
   Task({
     String? id,
     required this.title,
@@ -169,6 +229,11 @@ class Task {
        createdDate = createdDate ?? DateTime.now(),
        modifiedAt = modifiedAt ?? DateTime.now();
 
+  /// Purpose: Create a copy of this value with selected fields replaced.
+  /// Inputs: `clearNote`.
+  /// Returns: `Task`.
+  /// Side effects: None.
+  /// Notes: None.
   Task copyWith({
     String? title,
     String? note,
@@ -209,6 +274,11 @@ class Task {
     );
   }
 
+  /// Purpose: Serialize this value into a JSON-compatible map.
+  /// Inputs: None.
+  /// Returns: A JSON-compatible map.
+  /// Side effects: None.
+  /// Notes: Keep the output aligned with the persisted file and sync format.
   Map<String, dynamic> toJson() => {
     'id': id,
     'title': title,
@@ -228,6 +298,11 @@ class Task {
     'modifiedAt': modifiedAt.toIso8601String(),
   };
 
+  /// Purpose: Create an instance from a JSON-compatible map.
+  /// Inputs: `json`.
+  /// Returns: A new `Task.fromJson` instance.
+  /// Side effects: None.
+  /// Notes: Use this path when reading the persisted or transferred data format for this type.
   factory Task.fromJson(Map<String, dynamic> json) => Task(
     id: json['id'] as String,
     title: json['title'] as String,
@@ -276,15 +351,35 @@ class DailyCompletionLog {
   /// Per-date subtask completion: dateKey → set of completed subtask IDs.
   final Map<String, Set<String>> _subLog = {};
 
+  /// Purpose: Create a daily completion log instance.
+  /// Inputs: None.
+  /// Returns: A new `DailyCompletionLog` instance.
+  /// Side effects: None.
+  /// Notes: None.
   DailyCompletionLog();
 
+  /// Purpose: Implement the date key behavior for this file.
+  /// Inputs: `date`.
+  /// Returns: `String`.
+  /// Side effects: May create, transform, or mutate data used by callers.
+  /// Notes: None.
   static String dateKey(DateTime date) =>
       '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
+  /// Purpose: Implement the is completed behavior for this file.
+  /// Inputs: `date`, `taskId`.
+  /// Returns: `bool`.
+  /// Side effects: May create, transform, or mutate data used by callers.
+  /// Notes: None.
   bool isCompleted(DateTime date, String taskId) {
     return _log[dateKey(date)]?.contains(taskId) ?? false;
   }
 
+  /// Purpose: Implement the toggle behavior for this file.
+  /// Inputs: `date`, `taskId`.
+  /// Returns: None.
+  /// Side effects: May create, transform, or mutate data used by callers.
+  /// Notes: None.
   void toggle(DateTime date, String taskId) {
     final key = dateKey(date);
     _log.putIfAbsent(key, () => {});
@@ -295,14 +390,29 @@ class DailyCompletionLog {
     }
   }
 
+  /// Purpose: Implement the completed ids behavior for this file.
+  /// Inputs: `date`.
+  /// Returns: `Set<String>`.
+  /// Side effects: May create, transform, or mutate data used by callers.
+  /// Notes: None.
   Set<String> completedIds(DateTime date) => _log[dateKey(date)] ?? {};
 
   // --- Subtask per-date tracking ---
 
+  /// Purpose: Implement the is subtask completed behavior for this file.
+  /// Inputs: `date`, `subtaskId`.
+  /// Returns: `bool`.
+  /// Side effects: May create, transform, or mutate data used by callers.
+  /// Notes: None.
   bool isSubtaskCompleted(DateTime date, String subtaskId) {
     return _subLog[dateKey(date)]?.contains(subtaskId) ?? false;
   }
 
+  /// Purpose: Implement the toggle subtask behavior for this file.
+  /// Inputs: `date`, `subtaskId`.
+  /// Returns: None.
+  /// Side effects: May create, transform, or mutate data used by callers.
+  /// Notes: None.
   void toggleSubtask(DateTime date, String subtaskId) {
     final key = dateKey(date);
     _subLog.putIfAbsent(key, () => {});
@@ -313,6 +423,11 @@ class DailyCompletionLog {
     }
   }
 
+  /// Purpose: Implement the set subtasks completed behavior for this file.
+  /// Inputs: `date`, `subtaskIds`, `completed`.
+  /// Returns: None.
+  /// Side effects: May create, transform, or mutate data used by callers.
+  /// Notes: None.
   void setSubtasksCompleted(
     DateTime date,
     Iterable<String> subtaskIds,
@@ -327,14 +442,29 @@ class DailyCompletionLog {
     }
   }
 
+  /// Purpose: Implement the completed subtask ids behavior for this file.
+  /// Inputs: `date`.
+  /// Returns: `Set<String>`.
+  /// Side effects: May create, transform, or mutate data used by callers.
+  /// Notes: None.
   Set<String> completedSubtaskIds(DateTime date) =>
       _subLog[dateKey(date)] ?? {};
 
+  /// Purpose: Serialize this value into a JSON-compatible map.
+  /// Inputs: None.
+  /// Returns: A JSON-compatible map.
+  /// Side effects: None.
+  /// Notes: Keep the output aligned with the persisted file and sync format.
   Map<String, dynamic> toJson() => {
     'tasks': _log.map((key, value) => MapEntry(key, value.toList())),
     'subtasks': _subLog.map((key, value) => MapEntry(key, value.toList())),
   };
 
+  /// Purpose: Create an instance from a JSON-compatible map.
+  /// Inputs: `json`.
+  /// Returns: A new `DailyCompletionLog.fromJson` instance.
+  /// Side effects: None.
+  /// Notes: Use this path when reading the persisted or transferred data format for this type.
   factory DailyCompletionLog.fromJson(Map<String, dynamic> json) {
     final log = DailyCompletionLog();
     // Support old format (flat map of date→taskIds) and new format ({tasks, subtasks})
@@ -363,6 +493,11 @@ class DailyCompletionLog {
   }
 
   /// Merge two logs by taking the union of completed IDs per date.
+  /// Purpose: Create a daily completion log instance.
+  /// Inputs: `a`, `b`.
+  /// Returns: A new `DailyCompletionLog.merge` instance.
+  /// Side effects: None.
+  /// Notes: None.
   factory DailyCompletionLog.merge(DailyCompletionLog a, DailyCompletionLog b) {
     final merged = DailyCompletionLog();
     final allDates = {...a._log.keys, ...b._log.keys};

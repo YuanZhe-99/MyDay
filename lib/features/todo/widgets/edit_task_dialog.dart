@@ -9,8 +9,18 @@ class EditTaskDialog extends StatefulWidget {
   final Task task;
   final VoidCallback? onPermanentDelete;
 
+  /// Purpose: Create a edit task dialog instance.
+  /// Inputs: `onPermanentDelete`.
+  /// Returns: A new `EditTaskDialog` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const EditTaskDialog({super.key, required this.task, this.onPermanentDelete});
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new `State` instance.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   @override
   State<EditTaskDialog> createState() => _EditTaskDialogState();
 }
@@ -30,6 +40,11 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
   late TaskRecurrence? _recurrence;
   late final String _initialSignature;
 
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Registers listeners and may kick off asynchronous loading.
+  /// Notes: Guard any post-await UI updates with `mounted` when needed.
   @override
   void initState() {
     super.initState();
@@ -50,6 +65,11 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
     _initialSignature = _signature();
   }
 
+  /// Purpose: Release listeners, controllers, and other owned resources.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Releases owned resources and unregisters listeners.
+  /// Notes: Call the superclass implementation in the expected lifecycle order.
   @override
   void dispose() {
     _titleController.dispose();
@@ -58,6 +78,11 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
     super.dispose();
   }
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -493,6 +518,11 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
     );
   }
 
+  /// Purpose: Provide the internal add subtask helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _addSubtask() {
     final text = _subtaskController.text.trim();
     if (text.isEmpty) return;
@@ -502,6 +532,11 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
     });
   }
 
+  /// Purpose: Provide the internal reorder subtask helper for this file.
+  /// Inputs: `oldIndex`, `newIndex`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _reorderSubtask(int oldIndex, int newIndex) {
     setState(() {
       if (newIndex > oldIndex) newIndex -= 1;
@@ -510,6 +545,11 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
     });
   }
 
+  /// Purpose: Provide the internal edit subtask helper for this file.
+  /// Inputs: `index`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _editSubtask(int index) {
     final controller = TextEditingController(text: _subtasks[index].title);
     final initialTitle = controller.text.trim();
@@ -581,6 +621,11 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
     '🧑‍🍳',
   ];
 
+  /// Purpose: Provide the internal show emoji picker helper for this file.
+  /// Inputs: `context`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _showEmojiPicker(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -654,6 +699,11 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
     );
   }
 
+  /// Purpose: Provide the internal show custom emoji input helper for this file.
+  /// Inputs: `outerContext`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _showCustomEmojiInput(BuildContext outerContext) {
     final controller = TextEditingController();
     showDialog(
@@ -694,6 +744,11 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
     );
   }
 
+  /// Purpose: Provide the internal recurrence label helper for this file.
+  /// Inputs: `r`, `l10n`.
+  /// Returns: `String`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   String _recurrenceLabel(TaskRecurrence r, AppLocalizations l10n) {
     switch (r.type) {
       case RecurrenceType.everyNDays:
@@ -705,6 +760,11 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
     }
   }
 
+  /// Purpose: Provide the internal show recurrence picker helper for this file.
+  /// Inputs: `l10n`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _showRecurrencePicker(AppLocalizations l10n) {
     showModalBottomSheet(
       context: context,
@@ -719,8 +779,18 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
     );
   }
 
+  /// Purpose: Provide the internal has unsaved changes helper for this file.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   bool _hasUnsavedChanges() => _signature() != _initialSignature;
 
+  /// Purpose: Provide the internal signature helper for this file.
+  /// Inputs: None.
+  /// Returns: `String`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   String _signature() => formSignature([
     _titleController.text.trim(),
     _noteController.text.trim(),
@@ -736,6 +806,11 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
     _subtasks.map((s) => [s.id, s.title, s.isCompleted]),
   ]);
 
+  /// Purpose: Provide the internal recurrence signature helper for this file.
+  /// Inputs: `recurrence`.
+  /// Returns: `String`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   String _recurrenceSignature(TaskRecurrence? recurrence) {
     if (recurrence == null) return '';
     return formSignature([
@@ -746,6 +821,11 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
     ]);
   }
 
+  /// Purpose: Provide the internal submit helper for this file.
+  /// Inputs: `guard`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _submit(UnsavedChangesController guard) {
     final title = _titleController.text.trim();
     if (title.isEmpty) return;

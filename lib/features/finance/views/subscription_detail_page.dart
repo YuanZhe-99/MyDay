@@ -21,6 +21,11 @@ class SubscriptionDetailPage extends StatefulWidget {
   final String defaultCurrency;
   final void Function(List<Transaction>) onTransactionsChanged;
 
+  /// Purpose: Create a subscription detail page instance.
+  /// Inputs: None.
+  /// Returns: A new `SubscriptionDetailPage` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const SubscriptionDetailPage({
     super.key,
     required this.subscription,
@@ -32,6 +37,11 @@ class SubscriptionDetailPage extends StatefulWidget {
     required this.onTransactionsChanged,
   });
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new `State` instance.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   @override
   State<SubscriptionDetailPage> createState() => _SubscriptionDetailPageState();
 }
@@ -39,16 +49,31 @@ class SubscriptionDetailPage extends StatefulWidget {
 class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
   late List<Transaction> _transactions;
 
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Registers listeners and may kick off asynchronous loading.
+  /// Notes: Guard any post-await UI updates with `mounted` when needed.
   @override
   void initState() {
     super.initState();
     _transactions = List.of(widget.transactions);
   }
 
+  /// Purpose: Return filtered.
+  /// Inputs: None.
+  /// Returns: `List<Transaction>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   List<Transaction> get _filtered =>
       _transactions.where((t) => t.subscriptionId == widget.subscription.id).toList()
         ..sort((a, b) => b.date.compareTo(a.date));
 
+  /// Purpose: Return total spent.
+  /// Inputs: None.
+  /// Returns: `double`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   double get _totalSpent {
     return _filtered.fold(0.0, (sum, t) => sum + convertCurrency(
         widget.rateData.ratesAt(t.rateSnapshotId),
@@ -57,11 +82,21 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
         widget.defaultCurrency));
   }
 
+  /// Purpose: Provide the internal delete transaction helper for this file.
+  /// Inputs: `tx`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _deleteTransaction(Transaction tx) {
     setState(() => _transactions.removeWhere((t) => t.id == tx.id));
     widget.onTransactionsChanged(_transactions);
   }
 
+  /// Purpose: Provide the internal edit transaction helper for this file.
+  /// Inputs: `tx`.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _editTransaction(Transaction tx) async {
     final updated = await showDialog<Transaction>(
       context: context,
@@ -97,6 +132,11 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
     }
   }
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -229,6 +269,11 @@ class _TxTile extends StatelessWidget {
   final List<Category> categories;
   final List<Account> accounts;
 
+  /// Purpose: Create a tx tile instance.
+  /// Inputs: None.
+  /// Returns: A new `_TxTile` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   const _TxTile({
     required this.transaction,
     required this.subscription,
@@ -236,6 +281,11 @@ class _TxTile extends StatelessWidget {
     required this.accounts,
   });
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -277,7 +327,17 @@ class _TxTile extends StatelessWidget {
     );
   }
 
+  /// Purpose: Provide the internal build leading helper for this file.
+  /// Inputs: `account`, `color`, `theme`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildLeading(Account? account, Color color, ThemeData theme) {
+    /// Purpose: Build the fallback subscription avatar.
+    /// Inputs: None.
+    /// Returns: `Widget`.
+    /// Side effects: None.
+    /// Notes: Internal helper used within this function only.
     Widget defaultAvatar() => CircleAvatar(
           backgroundColor: color.withValues(alpha: 0.1),
           child: subscription.emoji != null

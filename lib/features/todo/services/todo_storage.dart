@@ -22,6 +22,11 @@ class TodoData {
   final Map<String, List<String>> taskCustomOrders;
   final DateTime settingsModifiedAt;
 
+  /// Purpose: Create a todo data instance.
+  /// Inputs: `taskSortModes`.
+  /// Returns: A new `TodoData` instance.
+  /// Side effects: None.
+  /// Notes: None.
   TodoData({
     required this.dailyTemplates,
     required this.oneTimeTasks,
@@ -36,6 +41,11 @@ class TodoData {
   }) : settingsModifiedAt =
            settingsModifiedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
 
+  /// Purpose: Serialize this value into a JSON-compatible map.
+  /// Inputs: None.
+  /// Returns: A JSON-compatible map.
+  /// Side effects: None.
+  /// Notes: Keep the output aligned with the persisted file and sync format.
   Map<String, dynamic> toJson() => {
     'dailyTemplates': dailyTemplates.map((t) => t.toJson()).toList(),
     'oneTimeTasks': oneTimeTasks.map((t) => t.toJson()).toList(),
@@ -52,6 +62,11 @@ class TodoData {
     'settingsModifiedAt': settingsModifiedAt.toIso8601String(),
   };
 
+  /// Purpose: Create an instance from a JSON-compatible map.
+  /// Inputs: `json`.
+  /// Returns: A new `TodoData.fromJson` instance.
+  /// Side effects: None.
+  /// Notes: Use this path when reading the persisted or transferred data format for this type.
   factory TodoData.fromJson(Map<String, dynamic> json) {
     // Migrate old single-reminder format
     final oldH = json['dailyReminderHour'] as int?;
@@ -115,6 +130,11 @@ class TodoStorage {
   static bool _minimizeToTray = false;
   static bool _closeToTray = false;
 
+  /// Purpose: Provide the internal get default app dir helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<Directory>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Future<Directory> _getDefaultAppDir() async {
     final dir = await getApplicationDocumentsDirectory();
     final appDir = Directory('${dir.path}/MyDay');
@@ -125,15 +145,30 @@ class TodoStorage {
   }
 
   /// Config file always lives in default location.
+  /// Purpose: Provide the internal get config file helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<File>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Future<File> _getConfigFile() async {
     final dir = await _getDefaultAppDir();
     return File('${dir.path}/$_configFileName');
   }
 
   /// Public access to the config file for other services (e.g. LocalApiServer).
+  /// Purpose: Implement the get config file behavior for this file.
+  /// Inputs: None.
+  /// Returns: `Future<File>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<File> getConfigFile() => _getConfigFile();
 
   /// Read the raw config JSON (for modules that store their own keys).
+  /// Purpose: Implement the read config behavior for this file.
+  /// Inputs: None.
+  /// Returns: `Future<Map<String, dynamic>>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<Map<String, dynamic>> readConfig() async {
     final file = await _getConfigFile();
     try {
@@ -145,6 +180,11 @@ class TodoStorage {
   }
 
   /// Write config JSON (merge-write to preserve other modules' keys).
+  /// Purpose: Implement the write config behavior for this file.
+  /// Inputs: `config`.
+  /// Returns: `Future<void>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<void> writeConfig(Map<String, dynamic> config) async {
     final file = await _getConfigFile();
     Map<String, dynamic> existing = {};
@@ -163,6 +203,11 @@ class TodoStorage {
   }
 
   /// Load the config from config file.
+  /// Purpose: Provide the internal load config helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Future<void> _loadConfig() async {
     if (_configLoaded) return;
     try {
@@ -188,6 +233,11 @@ class TodoStorage {
   /// Save config to config file.
   /// Uses read-merge-write to preserve keys written by other modules
   /// (e.g. BackupService's autoBackupEnabled / backupRetentionDays).
+  /// Purpose: Provide the internal save config helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Future<void> _saveConfig() async {
     final file = await _getConfigFile();
     Map<String, dynamic> json = {};
@@ -231,12 +281,22 @@ class TodoStorage {
   }
 
   /// Get persisted intimacy visible state.
+  /// Purpose: Implement the get intimacy visible behavior for this file.
+  /// Inputs: None.
+  /// Returns: `Future<bool>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<bool> getIntimacyVisible() async {
     await _loadConfig();
     return _intimacyVisible;
   }
 
   /// Set and persist intimacy visible state.
+  /// Purpose: Implement the set intimacy visible behavior for this file.
+  /// Inputs: `value`.
+  /// Returns: `Future<void>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<void> setIntimacyVisible(bool value) async {
     await _loadConfig();
     if (_intimacyVisible == value) return;
@@ -245,12 +305,22 @@ class TodoStorage {
   }
 
   /// Get persisted theme mode.
+  /// Purpose: Implement the get theme mode behavior for this file.
+  /// Inputs: None.
+  /// Returns: `Future<String?>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<String?> getThemeMode() async {
     await _loadConfig();
     return _themeMode;
   }
 
   /// Set and persist theme mode.
+  /// Purpose: Implement the set theme mode behavior for this file.
+  /// Inputs: `mode`.
+  /// Returns: `Future<void>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<void> setThemeMode(String? mode) async {
     await _loadConfig();
     _themeMode = mode;
@@ -258,18 +328,33 @@ class TodoStorage {
   }
 
   /// Get persisted locale tag.
+  /// Purpose: Implement the get locale tag behavior for this file.
+  /// Inputs: None.
+  /// Returns: `Future<String?>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<String?> getLocaleTag() async {
     await _loadConfig();
     return _localeTag;
   }
 
   /// Set and persist locale tag (e.g. 'en', 'zh', 'zh_TW', 'ja', or null for system).
+  /// Purpose: Implement the set locale tag behavior for this file.
+  /// Inputs: `tag`.
+  /// Returns: `Future<void>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<void> setLocaleTag(String? tag) async {
     await _loadConfig();
     _localeTag = tag;
     await _saveConfig();
   }
 
+  /// Purpose: Implement the get app dir behavior for this file.
+  /// Inputs: None.
+  /// Returns: `Future<Directory>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<Directory> getAppDir() async {
     await _loadConfig();
     if (_customPath != null && _customPath!.isNotEmpty) {
@@ -282,18 +367,33 @@ class TodoStorage {
     return _getDefaultAppDir();
   }
 
+  /// Purpose: Provide the internal get file helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<File>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Future<File> _getFile() async {
     final appDir = await getAppDir();
     return File('${appDir.path}/$_fileName');
   }
 
   /// Check if the file exists at all.
+  /// Purpose: Implement the file exists behavior for this file.
+  /// Inputs: None.
+  /// Returns: `Future<bool>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<bool> fileExists() async {
     final file = await _getFile();
     return file.exists();
   }
 
   /// Load data. Returns null if file does not exist or on error.
+  /// Purpose: Implement the load behavior for this file.
+  /// Inputs: None.
+  /// Returns: `Future<TodoData?>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<TodoData?> load() async {
     try {
       final file = await _getFile();
@@ -307,6 +407,11 @@ class TodoStorage {
   }
 
   /// Save data.
+  /// Purpose: Implement the save behavior for this file.
+  /// Inputs: `data`.
+  /// Returns: `Future<void>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<void> save(TodoData data) async {
     final file = await _getFile();
     final jsonStr = await JsonPreservation.encodeForFile(
@@ -318,6 +423,11 @@ class TodoStorage {
   }
 
   /// Get the storage directory path for display.
+  /// Purpose: Implement the get storage path behavior for this file.
+  /// Inputs: None.
+  /// Returns: `Future<String>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<String> getStoragePath() async {
     final appDir = await getAppDir();
     return appDir.path;
@@ -337,6 +447,11 @@ class TodoStorage {
   /// Pass null to reset to default.
   /// If the new path already has data files, uses those;
   /// otherwise moves existing data files to the new location.
+  /// Purpose: Implement the set storage path behavior for this file.
+  /// Inputs: `newPath`.
+  /// Returns: `Future<bool>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<bool> setStoragePath(String? newPath) async {
     try {
       final oldDir = await getAppDir();
@@ -367,22 +482,42 @@ class TodoStorage {
 
   // ─── Tray settings ─────────────────────────────────────────────
 
+  /// Purpose: Implement the get minimize to tray behavior for this file.
+  /// Inputs: None.
+  /// Returns: `Future<bool>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<bool> getMinimizeToTray() async {
     await _loadConfig();
     return _minimizeToTray;
   }
 
+  /// Purpose: Implement the set minimize to tray behavior for this file.
+  /// Inputs: `value`.
+  /// Returns: `Future<void>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<void> setMinimizeToTray(bool value) async {
     await _loadConfig();
     _minimizeToTray = value;
     await _saveConfig();
   }
 
+  /// Purpose: Implement the get close to tray behavior for this file.
+  /// Inputs: None.
+  /// Returns: `Future<bool>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<bool> getCloseToTray() async {
     await _loadConfig();
     return _closeToTray;
   }
 
+  /// Purpose: Implement the set close to tray behavior for this file.
+  /// Inputs: `value`.
+  /// Returns: `Future<void>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<void> setCloseToTray(bool value) async {
     await _loadConfig();
     _closeToTray = value;

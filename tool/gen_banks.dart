@@ -6,6 +6,11 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
+/// Purpose: Initialize startup services and launch the app entry point.
+/// Inputs: None.
+/// Returns: None.
+/// Side effects: May read or mutate application state, storage, or service resources.
+/// Notes: None.
 void main() async {
   final banksDbDir = p.join(Platform.environment['TEMP']!, 'banks-db', 'banks');
   final outFile = File('assets/banks.json');

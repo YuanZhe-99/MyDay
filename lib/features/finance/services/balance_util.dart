@@ -2,6 +2,11 @@ import '../models/finance.dart';
 import 'exchange_rate_storage.dart';
 
 /// Currency symbols for display.
+/// Purpose: Implement the currency symbol behavior for this file.
+/// Inputs: `code`.
+/// Returns: `String`.
+/// Side effects: None.
+/// Notes: None.
 String currencySymbol(String code) => switch (code) {
   'CNY' => '¥',
   'USD' => '\$',
@@ -21,6 +26,11 @@ String currencySymbol(String code) => switch (code) {
 };
 
 /// Find a direct or reverse rate between two currencies.
+/// Purpose: Provide the internal find rate helper for this file.
+/// Inputs: `rates`, `from`, `to`.
+/// Returns: `double?`.
+/// Side effects: None.
+/// Notes: Internal helper used within this file only.
 double? _findRate(Map<String, double> rates, String from, String to) {
   if (from == to) return 1.0;
   final direct = rates['${from}_$to'];
@@ -32,6 +42,11 @@ double? _findRate(Map<String, double> rates, String from, String to) {
 
 /// Convert [amount] from [from] currency to [to] currency using [rates].
 /// Tries direct, reverse, then via intermediate currencies (CNY, USD, EUR).
+/// Purpose: Implement the convert currency behavior for this file.
+/// Inputs: `rates`, `amount`, `from`, `to`.
+/// Returns: `double`.
+/// Side effects: None.
+/// Notes: None.
 double convertCurrency(
   Map<String, double> rates,
   double amount,
@@ -53,6 +68,11 @@ double convertCurrency(
 }
 
 /// Calculate account balance in the account's own currency.
+/// Purpose: Implement the account balance behavior for this file.
+/// Inputs: `account`, `transactions`, `rateData`.
+/// Returns: `double`.
+/// Side effects: None.
+/// Notes: None.
 double accountBalance(
   Account account,
   List<Transaction> transactions,
@@ -75,6 +95,11 @@ double accountBalance(
 /// If an account has a forced balance, that balance is treated as an anchor at
 /// [Account.forcedBalanceDate]. Samples after the anchor walk forward from it;
 /// samples before the anchor walk backward by reversing known transactions.
+/// Purpose: Implement the account balance before behavior for this file.
+/// Inputs: `account`, `transactions`, `rateData`, `before`.
+/// Returns: `double`.
+/// Side effects: None.
+/// Notes: None.
 double accountBalanceBefore(
   Account account,
   List<Transaction> transactions,
@@ -108,6 +133,11 @@ double accountBalanceBefore(
   return base + net;
 }
 
+/// Purpose: Provide the internal account transaction delta helper for this file.
+/// Inputs: `account`, `tx`, `rateData`.
+/// Returns: `double`.
+/// Side effects: May read or mutate application state, storage, or service resources.
+/// Notes: Internal helper used within this file only.
 double _accountTransactionDelta(
   Account account,
   Transaction tx,

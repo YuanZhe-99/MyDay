@@ -8,8 +8,18 @@ import '../services/exchange_rate_api.dart';
 import '../services/exchange_rate_storage.dart';
 
 class ExchangeRatesPage extends StatefulWidget {
+  /// Purpose: Create an exchange rates page instance.
+  /// Inputs: None.
+  /// Returns: A new `ExchangeRatesPage` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const ExchangeRatesPage({super.key});
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new `State` instance.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   @override
   State<ExchangeRatesPage> createState() => _ExchangeRatesPageState();
 }
@@ -20,12 +30,22 @@ class _ExchangeRatesPageState extends State<ExchangeRatesPage> {
   bool _loaded = false;
   bool _fetching = false;
 
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Registers listeners and may kick off asynchronous loading.
+  /// Notes: Guard any post-await UI updates with `mounted` when needed.
   @override
   void initState() {
     super.initState();
     _loadRates();
   }
 
+  /// Purpose: Provide the internal load rates helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _loadRates() async {
     final data = await ExchangeRateStorage.load();
     setState(() {
@@ -39,6 +59,11 @@ class _ExchangeRatesPageState extends State<ExchangeRatesPage> {
     }
   }
 
+  /// Purpose: Provide the internal fetch online helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _fetchOnline() async {
     if (_data == null || _fetching) return;
     setState(() => _fetching = true);
@@ -59,6 +84,11 @@ class _ExchangeRatesPageState extends State<ExchangeRatesPage> {
     if (mounted) setState(() => _fetching = false);
   }
 
+  /// Purpose: Provide the internal save rates helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _saveRates() async {
     if (_data == null) return;
     final updated = ExchangeRateStorage.updateRates(_data!, _rates);
@@ -67,6 +97,11 @@ class _ExchangeRatesPageState extends State<ExchangeRatesPage> {
     AutoSyncService.instance.notifySaved();
   }
 
+  /// Purpose: Provide the internal add rate helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _addRate() async {
     final result = await showDialog<MapEntry<String, double>>(
       context: context,
@@ -78,6 +113,11 @@ class _ExchangeRatesPageState extends State<ExchangeRatesPage> {
     }
   }
 
+  /// Purpose: Provide the internal edit rate helper for this file.
+  /// Inputs: `value`.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _editRate(String key, double value) async {
     final parts = key.split('_');
     if (parts.length != 2) return;
@@ -98,11 +138,21 @@ class _ExchangeRatesPageState extends State<ExchangeRatesPage> {
     }
   }
 
+  /// Purpose: Provide the internal delete rate helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _deleteRate(String key) {
     setState(() => _rates.remove(key));
     _saveRates();
   }
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -208,8 +258,18 @@ class _RateDialog extends StatefulWidget {
   final String? toCurrency;
   final double? rate;
 
+  /// Purpose: Create a rate dialog instance.
+  /// Inputs: `rate`.
+  /// Returns: A new `_RateDialog` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   const _RateDialog({this.fromCurrency, this.toCurrency, this.rate});
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new `State` instance.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   @override
   State<_RateDialog> createState() => _RateDialogState();
 }
@@ -221,6 +281,11 @@ class _RateDialogState extends State<_RateDialog> {
   late final TextEditingController _rateController;
   late final String _initialSignature;
 
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Registers listeners and may kick off asynchronous loading.
+  /// Notes: Guard any post-await UI updates with `mounted` when needed.
   @override
   void initState() {
     super.initState();
@@ -232,12 +297,22 @@ class _RateDialogState extends State<_RateDialog> {
     _initialSignature = _signature();
   }
 
+  /// Purpose: Release listeners, controllers, and other owned resources.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Releases owned resources and unregisters listeners.
+  /// Notes: Call the superclass implementation in the expected lifecycle order.
   @override
   void dispose() {
     _rateController.dispose();
     super.dispose();
   }
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -341,11 +416,26 @@ class _RateDialogState extends State<_RateDialog> {
     );
   }
 
+  /// Purpose: Provide the internal has unsaved changes helper for this file.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   bool _hasUnsavedChanges() => _signature() != _initialSignature;
 
+  /// Purpose: Provide the internal signature helper for this file.
+  /// Inputs: None.
+  /// Returns: `String`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   String _signature() =>
       formSignature([_from, _to, _rateController.text.trim()]);
 
+  /// Purpose: Provide the internal submit helper for this file.
+  /// Inputs: `guard`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _submit(UnsavedChangesController guard) {
     final rate = double.tryParse(_rateController.text.trim());
     if (rate == null || rate <= 0) return;

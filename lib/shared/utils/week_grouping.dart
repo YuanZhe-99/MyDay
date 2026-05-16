@@ -5,6 +5,11 @@ class WeekGroup<T> {
   final DateTime end;
   final List<T> items;
 
+  /// Purpose: Create a week group instance.
+  /// Inputs: None.
+  /// Returns: A new `WeekGroup` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const WeekGroup({
     required this.year,
     required this.week,
@@ -14,6 +19,11 @@ class WeekGroup<T> {
   });
 }
 
+/// Purpose: Implement the group by iso week behavior for this file.
+/// Inputs: `items`, `getDate`, `descending`.
+/// Returns: `List<WeekGroup<T>>`.
+/// Side effects: May create, transform, or mutate data used by callers.
+/// Notes: None.
 List<WeekGroup<T>> groupByIsoWeek<T>(
   List<T> items,
   DateTime Function(T item) getDate, {
@@ -48,16 +58,31 @@ List<WeekGroup<T>> groupByIsoWeek<T>(
   return result;
 }
 
+/// Purpose: Implement the start of iso week behavior for this file.
+/// Inputs: `date`.
+/// Returns: `DateTime`.
+/// Side effects: May create, transform, or mutate data used by callers.
+/// Notes: None.
 DateTime startOfIsoWeek(DateTime date) {
   final day = _dateOnly(date);
   return day.subtract(Duration(days: day.weekday - DateTime.monday));
 }
 
+/// Purpose: Implement the iso week year behavior for this file.
+/// Inputs: `date`.
+/// Returns: `int`.
+/// Side effects: May create, transform, or mutate data used by callers.
+/// Notes: None.
 int isoWeekYear(DateTime date) {
   final day = _dateOnly(date);
   return day.add(Duration(days: DateTime.thursday - day.weekday)).year;
 }
 
+/// Purpose: Implement the iso week number behavior for this file.
+/// Inputs: `date`.
+/// Returns: `int`.
+/// Side effects: May create, transform, or mutate data used by callers.
+/// Notes: None.
 int isoWeekNumber(DateTime date) {
   final day = _dateOnly(date);
   final thursday = day.add(Duration(days: DateTime.thursday - day.weekday));
@@ -66,8 +91,18 @@ int isoWeekNumber(DateTime date) {
   return thursday.difference(firstWeekStart).inDays ~/ 7 + 1;
 }
 
+/// Purpose: Implement the format month day range behavior for this file.
+/// Inputs: `start`, `end`.
+/// Returns: `String`.
+/// Side effects: May create, transform, or mutate data used by callers.
+/// Notes: None.
 String formatMonthDayRange(DateTime start, DateTime end) {
   return '${start.month}/${start.day}-${end.month}/${end.day}';
 }
 
+/// Purpose: Provide the internal date only helper for this file.
+/// Inputs: `date`.
+/// Returns: `DateTime`.
+/// Side effects: May create, transform, or mutate data used by callers.
+/// Notes: Internal helper used within this file only.
 DateTime _dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);

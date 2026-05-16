@@ -11,6 +11,11 @@ import 'webdav_service.dart';
 ///   2. App resumed from background → immediate sync
 ///   3. Data saved locally → debounced sync (30 s after last save)
 class AutoSyncService with WidgetsBindingObserver {
+  /// Purpose: Prevent direct instantiation of the auto-sync singleton.
+  /// Inputs: None.
+  /// Returns: A new `AutoSyncService` instance.
+  /// Side effects: None.
+  /// Notes: Use `AutoSyncService.instance` instead.
   AutoSyncService._();
   static final instance = AutoSyncService._();
 
@@ -22,10 +27,25 @@ class AutoSyncService with WidgetsBindingObserver {
   /// Callbacks invoked when sync writes merged data to local files.
   /// UI pages should register to reload their data.
   final List<void Function()> _onLocalDataChanged = [];
+  /// Purpose: Add on local data changed through the current flow.
+  /// Inputs: `cb`.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   void addOnLocalDataChanged(void Function() cb) => _onLocalDataChanged.add(cb);
+  /// Purpose: Remove on local data changed through the current flow.
+  /// Inputs: `cb`.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   void removeOnLocalDataChanged(void Function() cb) => _onLocalDataChanged.remove(cb);
 
   /// Call once at app startup.
+  /// Purpose: Start the current workflow and register any long-lived listeners.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   void start() {
     if (_started) return;
     _started = true;
@@ -34,6 +54,11 @@ class AutoSyncService with WidgetsBindingObserver {
     _trySync();
   }
 
+  /// Purpose: Stop the current workflow and clean up any related activity.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   void stop() {
     _debounce?.cancel();
     _debounce = null;
@@ -42,11 +67,21 @@ class AutoSyncService with WidgetsBindingObserver {
   }
 
   /// Called by storage save methods to schedule a debounced sync.
+  /// Purpose: Notify dependent code that data was saved locally.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   void notifySaved() {
     _debounce?.cancel();
     _debounce = Timer(_debounceDuration, _trySync);
   }
 
+  /// Purpose: Implement the did change app lifecycle state behavior for this file.
+  /// Inputs: `state`.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
@@ -54,6 +89,11 @@ class AutoSyncService with WidgetsBindingObserver {
     }
   }
 
+  /// Purpose: Provide the internal try sync helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   Future<void> _trySync() async {
     final config = await WebDAVService.loadConfig();
     if (config == null || !config.isConfigured || !config.autoSync) return;

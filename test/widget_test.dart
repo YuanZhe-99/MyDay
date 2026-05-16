@@ -4,6 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:my_day/app/app.dart';
 import 'package:my_day/features/todo/models/task.dart';
 
+/// Purpose: Initialize startup services and launch the app entry point.
+/// Inputs: None.
+/// Returns: None.
+/// Side effects: May update UI state or trigger user-facing flows.
+/// Notes: None.
 void main() {
   test('Task note serializes and deserializes', () {
     final task = Task(

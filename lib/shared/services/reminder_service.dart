@@ -19,6 +19,11 @@ import 'mobile_notification_service.dart';
 /// Global reminder service that runs independently of page lifecycle.
 /// Initialized once at app startup and keeps running across tab switches.
 class ReminderService {
+  /// Purpose: Prevent direct instantiation of the reminder singleton.
+  /// Inputs: None.
+  /// Returns: A new `ReminderService` instance.
+  /// Side effects: None.
+  /// Notes: Use `ReminderService.instance` instead.
   ReminderService._();
   static final instance = ReminderService._();
 
@@ -26,6 +31,11 @@ class ReminderService {
   final Set<String> _notifiedIds = {};
   Locale _locale = const Locale('en');
 
+  /// Purpose: Return l10n.
+  /// Inputs: None.
+  /// Returns: `AppLocalizations`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   AppLocalizations get _l10n => lookupAppLocalizations(_locale);
 
   // Cached data – refreshed on each tick
@@ -50,6 +60,11 @@ class ReminderService {
   void Function(String message)? onShowSnackbar;
 
   /// Update locale for notification strings.
+  /// Purpose: Update locale through the current flow.
+  /// Inputs: `locale`.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   void updateLocale(Locale locale) {
     _locale = locale;
   }
@@ -60,18 +75,33 @@ class ReminderService {
 
   DateTime? _lastRenewalCheck;
 
+  /// Purpose: Start the current workflow and register any long-lived listeners.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   void start() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 30), (_) => _check());
     _check();
   }
 
+  /// Purpose: Stop the current workflow and clean up any related activity.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   void stop() {
     _timer?.cancel();
     _timer = null;
   }
 
   /// Call this whenever todo data changes so reminders stay up-to-date.
+  /// Purpose: Update data through the current flow.
+  /// Inputs: `dailyTemplates`, `oneTimeTasks`, `dailyLog`, `morningReminderTime`, `completionReminderTime`.
+  /// Returns: None.
+  /// Side effects: Updates cached todo reminder data and reschedules mobile notifications.
+  /// Notes: None.
   void updateData({
     required List<Task> dailyTemplates,
     required List<Task> oneTimeTasks,
@@ -88,6 +118,11 @@ class ReminderService {
   }
 
   /// Call this whenever subscription data or reminder settings change.
+  /// Purpose: Update subscription data through the current flow.
+  /// Inputs: `subscriptions`, `reminderHour`, `reminderMinute`.
+  /// Returns: None.
+  /// Side effects: Updates cached subscription reminder data and reschedules mobile notifications.
+  /// Notes: None.
   void updateSubscriptionData({
     required List<Subscription> subscriptions,
     int? reminderHour,
@@ -101,6 +136,11 @@ class ReminderService {
   }
 
   /// Call this whenever weight reminder settings change.
+  /// Purpose: Update weight data through the current flow.
+  /// Inputs: `records`, `morningHour`, `morningMinute`, `eveningHour`, `eveningMinute`, `reminderGraceMinutes`.
+  /// Returns: None.
+  /// Side effects: Updates cached weight reminder data and reschedules mobile notifications.
+  /// Notes: None.
   void updateWeightData({
     List<WeightRecord>? records,
     int? morningHour,
@@ -135,10 +175,20 @@ class ReminderService {
   final Set<int> _scheduledTaskNotificationIds = {};
 
   /// Derive a stable notification ID from a task's string ID.
+  /// Purpose: Provide the internal task notification id helper for this file.
+  /// Inputs: `taskId`.
+  /// Returns: `int`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static int _taskNotificationId(String taskId) =>
       taskId.hashCode.abs() % 100000 + 10000;
 
   /// Schedule subscription renewal notification on mobile.
+  /// Purpose: Provide the internal schedule mobile subscription reminder helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   void _scheduleMobileSubscriptionReminder() {
     if (!MobileNotificationService.isMobile) return;
     final mns = MobileNotificationService.instance;
@@ -179,6 +229,11 @@ class ReminderService {
   }
 
   /// Schedule weight reminder notifications on mobile.
+  /// Purpose: Provide the internal schedule mobile weight reminders helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   void _scheduleMobileWeightReminders() {
     if (!MobileNotificationService.isMobile) return;
     final mns = MobileNotificationService.instance;
@@ -200,6 +255,11 @@ class ReminderService {
     }
   }
 
+  /// Purpose: Provide the internal schedule mobile weight reminder helper for this file.
+  /// Inputs: `id`, `time`.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   void _scheduleMobileWeightReminder(int id, TimeOfDay time) {
     final mns = MobileNotificationService.instance;
     final now = DateTime.now();
@@ -231,6 +291,11 @@ class ReminderService {
   }
 
   /// Schedule todo reminder notifications on mobile.
+  /// Purpose: Provide the internal schedule mobile todo reminders helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   void _scheduleMobileTodoReminders() {
     if (!MobileNotificationService.isMobile) return;
     final mns = MobileNotificationService.instance;
@@ -260,6 +325,11 @@ class ReminderService {
   /// Schedule individual per-task reminders via OS-level notifications.
   /// Daily templates get repeating daily notifications; one-time tasks
   /// get a single scheduled notification at the exact date/time.
+  /// Purpose: Provide the internal schedule mobile per task reminders helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   void _scheduleMobilePerTaskReminders() {
     final mns = MobileNotificationService.instance;
 
@@ -300,6 +370,11 @@ class ReminderService {
     }
   }
 
+  /// Purpose: Provide the internal check helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   Future<void> _check() async {
     // If we have no cached data yet, try loading from storage
     if (_dailyTemplates.isEmpty && _oneTimeTasks.isEmpty) {
@@ -445,11 +520,21 @@ class ReminderService {
     }
   }
 
+  /// Purpose: Provide the internal today at helper for this file.
+  /// Inputs: `time`.
+  /// Returns: `DateTime`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   DateTime _todayAt(TimeOfDay time) {
     final today = DateTime.now();
     return DateTime(today.year, today.month, today.day, time.hour, time.minute);
   }
 
+  /// Purpose: Provide the internal should skip weight reminder helper for this file.
+  /// Inputs: `reminderAt`.
+  /// Returns: `bool`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   bool _shouldSkipWeightReminder(DateTime reminderAt) {
     if (_weightReminderGraceMinutes <= 0) return false;
     final windowStart = reminderAt.subtract(
@@ -462,6 +547,11 @@ class ReminderService {
     });
   }
 
+  /// Purpose: Provide the internal refresh weight data from storage helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   Future<void> _refreshWeightDataFromStorage() async {
     final data = await WeightStorage.load();
     if (data == null) {
@@ -488,6 +578,11 @@ class ReminderService {
 
   /// Process subscription renewals: generate transactions for overdue billing
   /// dates. Runs at most once per hour from the background timer.
+  /// Purpose: Provide the internal process renewals helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   Future<void> _processRenewals() async {
     final now = DateTime.now();
     if (_lastRenewalCheck != null &&
@@ -528,6 +623,11 @@ class ReminderService {
 
   int _notifyCounter = 0;
 
+  /// Purpose: Provide the internal notify helper for this file.
+  /// Inputs: `message`.
+  /// Returns: None.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   void _notify(String message) {
     if (Platform.isAndroid || Platform.isIOS) {
       // Mobile: use flutter_local_notifications for immediate display

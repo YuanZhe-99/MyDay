@@ -18,6 +18,11 @@ class Account {
   final DateTime? forcedBalanceDate;
   final DateTime modifiedAt;
 
+  /// Purpose: Create a account instance.
+  /// Inputs: `currency`.
+  /// Returns: A new `Account` instance.
+  /// Side effects: None.
+  /// Notes: None.
   Account({
     String? id,
     required this.type,
@@ -35,6 +40,11 @@ class Account {
   }) : id = id ?? const Uuid().v4(),
        modifiedAt = modifiedAt ?? DateTime.now();
 
+  /// Purpose: Serialize this value into a JSON-compatible map.
+  /// Inputs: None.
+  /// Returns: A JSON-compatible map.
+  /// Side effects: None.
+  /// Notes: Keep the output aligned with the persisted file and sync format.
   Map<String, dynamic> toJson() => {
         'id': id,
         'type': type.name,
@@ -52,6 +62,11 @@ class Account {
         'modifiedAt': modifiedAt.toIso8601String(),
       };
 
+  /// Purpose: Create an instance from a JSON-compatible map.
+  /// Inputs: `json`.
+  /// Returns: A new `Account.fromJson` instance.
+  /// Side effects: None.
+  /// Notes: Use this path when reading the persisted or transferred data format for this type.
   factory Account.fromJson(Map<String, dynamic> json) => Account(
         id: json['id'] as String,
         type: AccountType.values.byName(json['type'] as String),
@@ -91,6 +106,11 @@ class Transaction {
   final DateTime date;
   final DateTime modifiedAt;
 
+  /// Purpose: Create a transaction instance.
+  /// Inputs: `currency`.
+  /// Returns: A new `Transaction` instance.
+  /// Side effects: None.
+  /// Notes: None.
   Transaction({
     String? id,
     required this.type,
@@ -110,6 +130,11 @@ class Transaction {
         date = date ?? DateTime.now(),
         modifiedAt = modifiedAt ?? DateTime.now();
 
+  /// Purpose: Serialize this value into a JSON-compatible map.
+  /// Inputs: None.
+  /// Returns: A JSON-compatible map.
+  /// Side effects: None.
+  /// Notes: Keep the output aligned with the persisted file and sync format.
   Map<String, dynamic> toJson() => {
         'id': id,
         'type': type.name,
@@ -127,6 +152,11 @@ class Transaction {
         'modifiedAt': modifiedAt.toIso8601String(),
       };
 
+  /// Purpose: Create an instance from a JSON-compatible map.
+  /// Inputs: `json`.
+  /// Returns: A new `Transaction.fromJson` instance.
+  /// Side effects: None.
+  /// Notes: Use this path when reading the persisted or transferred data format for this type.
   factory Transaction.fromJson(Map<String, dynamic> json) => Transaction(
         id: json['id'] as String,
         type: TransactionType.values.byName(json['type'] as String),
@@ -155,6 +185,11 @@ class Category {
   final TransactionType type; // expense or income
   final DateTime modifiedAt;
 
+  /// Purpose: Create a category instance.
+  /// Inputs: None.
+  /// Returns: A new `Category` instance.
+  /// Side effects: None.
+  /// Notes: None.
   Category({
     String? id,
     required this.name,
@@ -165,6 +200,11 @@ class Category {
   }) : id = id ?? const Uuid().v4(),
        modifiedAt = modifiedAt ?? DateTime.now();
 
+  /// Purpose: Serialize this value into a JSON-compatible map.
+  /// Inputs: None.
+  /// Returns: A JSON-compatible map.
+  /// Side effects: None.
+  /// Notes: Keep the output aligned with the persisted file and sync format.
   Map<String, dynamic> toJson() => {
         'id': id,
         'name': name,
@@ -174,6 +214,11 @@ class Category {
         'modifiedAt': modifiedAt.toIso8601String(),
       };
 
+  /// Purpose: Create an instance from a JSON-compatible map.
+  /// Inputs: `json`.
+  /// Returns: A new `Category.fromJson` instance.
+  /// Side effects: None.
+  /// Notes: Use this path when reading the persisted or transferred data format for this type.
   factory Category.fromJson(Map<String, dynamic> json) => Category(
         id: json['id'] as String,
         name: json['name'] as String,
@@ -210,6 +255,11 @@ class Subscription {
   final DateTime? nextBillingDate;
   final DateTime modifiedAt;
 
+  /// Purpose: Create a subscription instance.
+  /// Inputs: `trialDays`.
+  /// Returns: A new `Subscription` instance.
+  /// Side effects: None.
+  /// Notes: None.
   Subscription({
     String? id,
     required this.name,
@@ -233,9 +283,19 @@ class Subscription {
         modifiedAt = modifiedAt ?? DateTime.now();
 
   /// The first billing date (start + trial days).
+  /// Purpose: Return first billing date.
+  /// Inputs: None.
+  /// Returns: `DateTime`.
+  /// Side effects: None.
+  /// Notes: None.
   DateTime get firstBillingDate => startDate.add(Duration(days: trialDays));
 
   /// Compute next billing date after [after] date.
+  /// Purpose: Calculate next billing date from the available inputs.
+  /// Inputs: `after`.
+  /// Returns: `DateTime?`.
+  /// Side effects: None.
+  /// Notes: None.
   DateTime? calculateNextBillingDate({DateTime? after}) {
     after ??= DateTime.now();
     final first = firstBillingDate;
@@ -254,6 +314,11 @@ class Subscription {
   }
 
   /// Generate all billing dates from start up to [until].
+  /// Purpose: Implement the billing dates before behavior for this file.
+  /// Inputs: `until`.
+  /// Returns: `List<DateTime>`.
+  /// Side effects: None.
+  /// Notes: None.
   List<DateTime> billingDatesBefore(DateTime until) {
     final dates = <DateTime>[];
     final first = firstBillingDate;
@@ -269,6 +334,11 @@ class Subscription {
     return dates;
   }
 
+  /// Purpose: Serialize this value into a JSON-compatible map.
+  /// Inputs: None.
+  /// Returns: A JSON-compatible map.
+  /// Side effects: None.
+  /// Notes: Keep the output aligned with the persisted file and sync format.
   Map<String, dynamic> toJson() => {
         'id': id,
         'name': name,
@@ -290,6 +360,11 @@ class Subscription {
         'modifiedAt': modifiedAt.toIso8601String(),
       };
 
+  /// Purpose: Create an instance from a JSON-compatible map.
+  /// Inputs: `json`.
+  /// Returns: A new `Subscription.fromJson` instance.
+  /// Side effects: None.
+  /// Notes: Use this path when reading the persisted or transferred data format for this type.
   factory Subscription.fromJson(Map<String, dynamic> json) => Subscription(
         id: json['id'] as String,
         name: json['name'] as String,
@@ -326,17 +401,37 @@ class IconRef {
   final int codePoint;
   final String fontFamily;
 
+  /// Purpose: Create a icon ref instance.
+  /// Inputs: `fontFamily`.
+  /// Returns: A new `IconRef` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const IconRef({required this.codePoint, this.fontFamily = 'MaterialIcons'});
 
+  /// Purpose: Serialize this value into a JSON-compatible map.
+  /// Inputs: None.
+  /// Returns: A JSON-compatible map.
+  /// Side effects: None.
+  /// Notes: Keep the output aligned with the persisted file and sync format.
   Map<String, dynamic> toJson() => {
         'codePoint': codePoint,
         'fontFamily': fontFamily,
       };
 
+  /// Purpose: Create an instance from a JSON-compatible map.
+  /// Inputs: `json`.
+  /// Returns: A new `IconRef.fromJson` instance.
+  /// Side effects: None.
+  /// Notes: Use this path when reading the persisted or transferred data format for this type.
   factory IconRef.fromJson(Map<String, dynamic> json) => IconRef(
         codePoint: json['codePoint'] as int,
         fontFamily: json['fontFamily'] as String? ?? 'MaterialIcons',
       );
 
+  /// Purpose: Implement the to icon data behavior for this file.
+  /// Inputs: None.
+  /// Returns: `IconData`.
+  /// Side effects: May create, transform, or mutate data used by callers.
+  /// Notes: None.
   IconData toIconData() => IconData(codePoint, fontFamily: fontFamily);
 }

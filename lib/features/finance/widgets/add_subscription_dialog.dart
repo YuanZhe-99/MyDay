@@ -14,6 +14,11 @@ class AddSubscriptionDialog extends StatefulWidget {
   final List<Account> accounts;
   final Subscription? subscription;
 
+  /// Purpose: Create a add subscription dialog instance.
+  /// Inputs: `categories`.
+  /// Returns: A new `AddSubscriptionDialog` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const AddSubscriptionDialog({
     super.key,
     this.categories = const [],
@@ -21,6 +26,11 @@ class AddSubscriptionDialog extends StatefulWidget {
     this.subscription,
   });
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new `State` instance.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   @override
   State<AddSubscriptionDialog> createState() => _AddSubscriptionDialogState();
 }
@@ -82,10 +92,25 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
     ('iQIYI', '📺'),
   ];
 
+  /// Purpose: Return is editing.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   bool get _isEditing => widget.subscription != null;
+  /// Purpose: Return is cancelled.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   bool get _isCancelled =>
       widget.subscription != null && !widget.subscription!.isActive;
 
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Registers listeners and may kick off asynchronous loading.
+  /// Notes: Guard any post-await UI updates with `mounted` when needed.
   @override
   void initState() {
     super.initState();
@@ -119,6 +144,11 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
     _initialSignature = _signature();
   }
 
+  /// Purpose: Release listeners, controllers, and other owned resources.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Releases owned resources and unregisters listeners.
+  /// Notes: Call the superclass implementation in the expected lifecycle order.
   @override
   void dispose() {
     _nameController.dispose();
@@ -128,6 +158,11 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
     super.dispose();
   }
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -454,8 +489,18 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
     );
   }
 
+  /// Purpose: Provide the internal has unsaved changes helper for this file.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   bool _hasUnsavedChanges() => _signature() != _initialSignature;
 
+  /// Purpose: Provide the internal signature helper for this file.
+  /// Inputs: None.
+  /// Returns: `String`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   String _signature() => formSignature([
     _nameController.text.trim(),
     _amountController.text.trim(),
@@ -471,6 +516,11 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
     _selectedAccount?.id,
   ]);
 
+  /// Purpose: Provide the internal submit helper for this file.
+  /// Inputs: `guard`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _submit(UnsavedChangesController guard) {
     final amount = double.tryParse(_amountController.text.trim());
     if (amount == null || amount <= 0) return;
@@ -520,6 +570,11 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
     }
   }
 
+  /// Purpose: Provide the internal build image preview helper for this file.
+  /// Inputs: `theme`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildImagePreview(ThemeData theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -588,6 +643,11 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
     );
   }
 
+  /// Purpose: Provide the internal ask import history helper for this file.
+  /// Inputs: `sub`, `guard`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _askImportHistory(Subscription sub, UnsavedChangesController guard) {
     final l10n = AppLocalizations.of(context)!;
     showDialog<bool>(

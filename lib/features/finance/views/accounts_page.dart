@@ -30,6 +30,11 @@ class AccountsPage extends StatefulWidget {
   )?
   onSortChanged;
 
+  /// Purpose: Create a accounts page instance.
+  /// Inputs: `sortModes`.
+  /// Returns: A new `AccountsPage` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const AccountsPage({
     super.key,
     required this.accounts,
@@ -43,6 +48,11 @@ class AccountsPage extends StatefulWidget {
     this.onSortChanged,
   });
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new `State` instance.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   @override
   State<AccountsPage> createState() => _AccountsPageState();
 }
@@ -58,6 +68,11 @@ class _AccountsPageState extends State<AccountsPage> {
   static const _sortBank = 'bank';
   static const _sortCustom = 'custom';
 
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Registers listeners and may kick off asynchronous loading.
+  /// Notes: Guard any post-await UI updates with `mounted` when needed.
   @override
   void initState() {
     super.initState();
@@ -69,18 +84,53 @@ class _AccountsPageState extends State<AccountsPage> {
     );
   }
 
+  /// Purpose: Provide the internal notify accounts helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _notifyAccounts() => widget.onChanged(_accounts);
+  /// Purpose: Provide the internal notify transactions helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _notifyTransactions() => widget.onTransactionsChanged(_transactions);
+  /// Purpose: Provide the internal notify sort helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _notifySort() => widget.onSortChanged?.call(_sortModes, _customOrders);
 
+  /// Purpose: Provide the internal type key helper for this file.
+  /// Inputs: `type`.
+  /// Returns: `String`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   String _typeKey(AccountType type) => type.name;
 
+  /// Purpose: Provide the internal sort mode helper for this file.
+  /// Inputs: `type`.
+  /// Returns: `String`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   String _sortMode(AccountType type) =>
       _sortModes[_typeKey(type)] ?? _sortCustom;
 
+  /// Purpose: Provide the internal compare text helper for this file.
+  /// Inputs: `a`, `b`.
+  /// Returns: `int`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   int _compareText(String a, String b) =>
       a.toLowerCase().compareTo(b.toLowerCase());
 
+  /// Purpose: Provide the internal normalized order helper for this file.
+  /// Inputs: `type`.
+  /// Returns: `List<String>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   List<String> _normalizedOrder(AccountType type) {
     final key = _typeKey(type);
     final allIds = _accounts
@@ -99,6 +149,11 @@ class _AccountsPageState extends State<AccountsPage> {
     return normalized;
   }
 
+  /// Purpose: Provide the internal sort entries helper for this file.
+  /// Inputs: `type`, `entries`.
+  /// Returns: `List<MapEntry<int, Account>>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   List<MapEntry<int, Account>> _sortEntries(
     AccountType type,
     List<MapEntry<int, Account>> entries,
@@ -135,6 +190,11 @@ class _AccountsPageState extends State<AccountsPage> {
     return list;
   }
 
+  /// Purpose: Provide the internal set sort mode helper for this file.
+  /// Inputs: `type`, `mode`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _setSortMode(AccountType type, String mode) {
     final key = _typeKey(type);
     setState(() {
@@ -158,17 +218,32 @@ class _AccountsPageState extends State<AccountsPage> {
     _notifySort();
   }
 
+  /// Purpose: Provide the internal append account to custom order if needed helper for this file.
+  /// Inputs: `account`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _appendAccountToCustomOrderIfNeeded(Account account) {
     if (_sortMode(account.type) != _sortCustom) return;
     _customOrders[_typeKey(account.type)] = _normalizedOrder(account.type);
   }
 
+  /// Purpose: Provide the internal remove account from custom orders helper for this file.
+  /// Inputs: `accountId`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _removeAccountFromCustomOrders(String accountId) {
     for (final entry in _customOrders.entries) {
       entry.value.remove(accountId);
     }
   }
 
+  /// Purpose: Provide the internal reorder accounts helper for this file.
+  /// Inputs: `type`, `entries`, `oldIndex`, `newIndex`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _reorderAccounts(
     AccountType type,
     List<MapEntry<int, Account>> entries,
@@ -194,6 +269,11 @@ class _AccountsPageState extends State<AccountsPage> {
     _notifySort();
   }
 
+  /// Purpose: Provide the internal add account helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _addAccount() async {
     final account = await showDialog<Account>(
       context: context,
@@ -207,6 +287,11 @@ class _AccountsPageState extends State<AccountsPage> {
     }
   }
 
+  /// Purpose: Provide the internal edit account helper for this file.
+  /// Inputs: `index`.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _editAccount(int index) async {
     final oldAccount = _accounts[index];
     final l10n = AppLocalizations.of(context)!;
@@ -251,6 +336,11 @@ class _AccountsPageState extends State<AccountsPage> {
     }
   }
 
+  /// Purpose: Provide the internal delete account helper for this file.
+  /// Inputs: `index`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _deleteAccount(int index) {
     final accountId = _accounts[index].id;
     setState(() => _accounts.removeAt(index));
@@ -259,11 +349,21 @@ class _AccountsPageState extends State<AccountsPage> {
     _notifySort();
   }
 
+  /// Purpose: Provide the internal delete transaction helper for this file.
+  /// Inputs: `tx`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _deleteTransaction(Transaction tx) {
     setState(() => _transactions.removeWhere((t) => t.id == tx.id));
     _notifyTransactions();
   }
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -392,6 +492,11 @@ class _AccountsPageState extends State<AccountsPage> {
     );
   }
 
+  /// Purpose: Provide the internal build section header helper for this file.
+  /// Inputs: `type`, `entries`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildSectionHeader(
     AccountType type,
     List<MapEntry<int, Account>> entries,
@@ -457,6 +562,11 @@ class _AccountsPageState extends State<AccountsPage> {
     );
   }
 
+  /// Purpose: Provide the internal sort menu item helper for this file.
+  /// Inputs: None.
+  /// Returns: `PopupMenuEntry<String>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   PopupMenuEntry<String> _sortMenuItem({
     required AccountType type,
     required String value,
@@ -479,6 +589,11 @@ class _AccountsPageState extends State<AccountsPage> {
     );
   }
 
+  /// Purpose: Provide the internal build reorder list helper for this file.
+  /// Inputs: `type`, `entries`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildReorderList(
     AccountType type,
     List<MapEntry<int, Account>> entries,
@@ -516,6 +631,11 @@ class _AccountsPageState extends State<AccountsPage> {
     );
   }
 
+  /// Purpose: Provide the internal account type label helper for this file.
+  /// Inputs: `type`.
+  /// Returns: `String`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   String _accountTypeLabel(AccountType type) {
     final l10n = AppLocalizations.of(context)!;
     return switch (type) {
@@ -526,6 +646,11 @@ class _AccountsPageState extends State<AccountsPage> {
     };
   }
 
+  /// Purpose: Provide the internal account type icon helper for this file.
+  /// Inputs: `type`.
+  /// Returns: `IconData`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   IconData _accountTypeIcon(AccountType type) => switch (type) {
     AccountType.fund => Icons.savings,
     AccountType.credit => Icons.credit_card,
@@ -533,6 +658,11 @@ class _AccountsPageState extends State<AccountsPage> {
     AccountType.financial => Icons.trending_up,
   };
 
+  /// Purpose: Provide the internal account type color helper for this file.
+  /// Inputs: `type`.
+  /// Returns: `Color`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Color _accountTypeColor(AccountType type) => switch (type) {
     AccountType.fund => Colors.blue,
     AccountType.credit => Colors.orange,
@@ -540,6 +670,11 @@ class _AccountsPageState extends State<AccountsPage> {
     AccountType.financial => Colors.purple,
   };
 
+  /// Purpose: Provide the internal build account avatar helper for this file.
+  /// Inputs: `account`, `theme`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildAccountAvatar(Account account, ThemeData theme) {
     final color = _accountTypeColor(account.type);
     if (account.imagePath != null) {
@@ -580,6 +715,11 @@ class _AccountTransactionsPage extends StatefulWidget {
   final void Function(Transaction) onEdit;
   final void Function(Transaction) onDelete;
 
+  /// Purpose: Create a account transactions page instance.
+  /// Inputs: None.
+  /// Returns: A new `_AccountTransactionsPage` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   const _AccountTransactionsPage({
     required this.account,
     required this.transactions,
@@ -589,6 +729,11 @@ class _AccountTransactionsPage extends StatefulWidget {
     required this.onDelete,
   });
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new `State` instance.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   @override
   State<_AccountTransactionsPage> createState() =>
       _AccountTransactionsPageState();
@@ -597,17 +742,32 @@ class _AccountTransactionsPage extends StatefulWidget {
 class _AccountTransactionsPageState extends State<_AccountTransactionsPage> {
   late List<Transaction> _transactions;
 
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Registers listeners and may kick off asynchronous loading.
+  /// Notes: Guard any post-await UI updates with `mounted` when needed.
   @override
   void initState() {
     super.initState();
     _transactions = List.of(widget.transactions);
   }
 
+  /// Purpose: Provide the internal handle delete helper for this file.
+  /// Inputs: `tx`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _handleDelete(Transaction tx) {
     setState(() => _transactions.removeWhere((t) => t.id == tx.id));
     widget.onDelete(tx);
   }
 
+  /// Purpose: Provide the internal handle edit helper for this file.
+  /// Inputs: `tx`.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _handleEdit(Transaction tx) async {
     final updated = await showDialog<Transaction>(
       context: context,
@@ -627,6 +787,11 @@ class _AccountTransactionsPageState extends State<_AccountTransactionsPage> {
     }
   }
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -794,8 +959,18 @@ class _AccountTransactionsPageState extends State<_AccountTransactionsPage> {
 
 class _AccountDialog extends StatefulWidget {
   final Account? account;
+  /// Purpose: Create a account dialog instance.
+  /// Inputs: `account`.
+  /// Returns: A new `_AccountDialog` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   const _AccountDialog({this.account});
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new `State` instance.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   @override
   State<_AccountDialog> createState() => _AccountDialogState();
 }
@@ -830,6 +1005,11 @@ class _AccountDialogState extends State<_AccountDialog> {
     'INR',
   ];
 
+  /// Purpose: Return currencies.
+  /// Inputs: None.
+  /// Returns: `List<String>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   List<String> get _currencies {
     final list = List<String>.from(_baseCurrencies);
     if (!list.contains(_currency)) list.insert(0, _currency);
@@ -855,6 +1035,11 @@ class _AccountDialogState extends State<_AccountDialog> {
     '📈',
   ];
 
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Registers listeners and may kick off asynchronous loading.
+  /// Notes: Guard any post-await UI updates with `mounted` when needed.
   @override
   void initState() {
     super.initState();
@@ -875,6 +1060,11 @@ class _AccountDialogState extends State<_AccountDialog> {
     _initialSignature = _signature();
   }
 
+  /// Purpose: Release listeners, controllers, and other owned resources.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Releases owned resources and unregisters listeners.
+  /// Notes: Call the superclass implementation in the expected lifecycle order.
   @override
   void dispose() {
     _nameController.dispose();
@@ -884,6 +1074,11 @@ class _AccountDialogState extends State<_AccountDialog> {
     super.dispose();
   }
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -1103,8 +1298,18 @@ class _AccountDialogState extends State<_AccountDialog> {
     );
   }
 
+  /// Purpose: Provide the internal has unsaved changes helper for this file.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   bool _hasUnsavedChanges() => _signature() != _initialSignature;
 
+  /// Purpose: Provide the internal signature helper for this file.
+  /// Inputs: None.
+  /// Returns: `String`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   String _signature() => formSignature([
     _nameController.text.trim(),
     _bankController.text.trim(),
@@ -1117,6 +1322,11 @@ class _AccountDialogState extends State<_AccountDialog> {
     _forcedBalanceDate,
   ]);
 
+  /// Purpose: Provide the internal build image preview helper for this file.
+  /// Inputs: `theme`, `l10n`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildImagePreview(ThemeData theme, AppLocalizations l10n) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1205,6 +1415,11 @@ class _AccountDialogState extends State<_AccountDialog> {
 
   bool _downloadingLogo = false;
 
+  /// Purpose: Provide the internal pick bank preset helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _pickBankPreset() async {
     final bank = await showBankPresetPicker(context);
     if (bank == null || !mounted) return;
@@ -1221,6 +1436,11 @@ class _AccountDialogState extends State<_AccountDialog> {
     _fetchBankIcon();
   }
 
+  /// Purpose: Provide the internal fetch bank icon helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _fetchBankIcon() async {
     final bank = _selectedBank;
     if (bank == null || bank.logoUrls.isEmpty) return;
@@ -1242,6 +1462,11 @@ class _AccountDialogState extends State<_AccountDialog> {
     }
   }
 
+  /// Purpose: Provide the internal submit helper for this file.
+  /// Inputs: `guard`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _submit(UnsavedChangesController guard) {
     final name = _nameController.text.trim();
     final bank = _bankController.text.trim();

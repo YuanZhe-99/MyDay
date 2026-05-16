@@ -8,6 +8,11 @@ import 'package:uuid/uuid.dart';
 import '../../features/todo/services/todo_storage.dart';
 
 class ImageService {
+  /// Purpose: Provide the internal image directory helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<Directory>`.
+  /// Side effects: Creates the app image directory when it does not exist.
+  /// Notes: Internal helper used within this file only.
   static Future<Directory> _getImageDir() async {
     final appDir = await TodoStorage.getAppDir();
     final imgDir = Directory(p.join(appDir.path, 'images'));
@@ -20,6 +25,11 @@ class ImageService {
   /// Pick an image file and copy it into app storage.
   /// Returns the relative path (relative to appDir) e.g. "images/xxx.png",
   /// or null if the user cancelled.
+  /// Purpose: Implement the pick and save image behavior for this file.
+  /// Inputs: None.
+  /// Returns: `Future<String?>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<String?> pickAndSaveImage() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.image,
@@ -38,12 +48,22 @@ class ImageService {
   }
 
   /// Resolve a relative imagePath to an absolute File path.
+  /// Purpose: Implement the resolve behavior for this file.
+  /// Inputs: `relativePath`.
+  /// Returns: `Future<File>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<File> resolve(String relativePath) async {
     final appDir = await TodoStorage.getAppDir();
     return File(p.join(appDir.path, relativePath));
   }
 
   /// Delete a previously saved image.
+  /// Purpose: Implement the delete behavior for this file.
+  /// Inputs: `relativePath`.
+  /// Returns: `Future<void>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<void> delete(String relativePath) async {
     final file = await resolve(relativePath);
     if (await file.exists()) {
@@ -55,6 +75,11 @@ class ImageService {
   /// Returns the relative path e.g. "images/xxx.png", or null on failure.
   /// Rejects responses smaller than [minBytes] (default 500) to filter out
   /// placeholder / default favicons.
+  /// Purpose: Implement the download and save behavior for this file.
+  /// Inputs: `url`, `minBytes`.
+  /// Returns: `Future<String?>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<String?> downloadAndSave(String url, {int minBytes = 500}) async {
     try {
       final response = await http.get(Uri.parse(url));

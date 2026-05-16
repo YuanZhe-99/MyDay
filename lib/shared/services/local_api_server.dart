@@ -24,12 +24,42 @@ class LocalApiServer {
   static String? _password;
   static String? _lastError;
 
+  /// Purpose: Return port.
+  /// Inputs: None.
+  /// Returns: `int`.
+  /// Side effects: None.
+  /// Notes: None.
   static int get port => _port;
+  /// Purpose: Return listen address.
+  /// Inputs: None.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: None.
   static String get listenAddress => _listenAddress;
+  /// Purpose: Return enabled.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: None.
   static bool get enabled => _enabled;
+  /// Purpose: Return whether running is true.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: None.
   static bool get isRunning => _server != null;
+  /// Purpose: Return last error.
+  /// Inputs: None.
+  /// Returns: `String?`.
+  /// Side effects: None.
+  /// Notes: None.
   static String? get lastError => _lastError;
 
+  /// Purpose: Load config into the current workflow or state.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<void> loadConfig() async {
     try {
       final json = await TodoStorage.readConfig();
@@ -41,6 +71,11 @@ class LocalApiServer {
     } catch (_) {}
   }
 
+  /// Purpose: Start the current workflow and register any long-lived listeners.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<void> start() async {
     await loadConfig();
     await stop();
@@ -106,11 +141,21 @@ class LocalApiServer {
     }
   }
 
+  /// Purpose: Stop the current workflow and clean up any related activity.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<void> stop() async {
     await _server?.close(force: true);
     _server = null;
   }
 
+  /// Purpose: Implement the restart behavior for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<void> restart() async {
     await loadConfig();
     await start();
@@ -118,12 +163,22 @@ class LocalApiServer {
 
   // ── Route handlers ──
 
+  /// Purpose: Provide the internal handle ping helper for this file.
+  /// Inputs: `request`.
+  /// Returns: `Future<Response>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Future<Response> _handlePing(Request request) async {
     return _json({'status': 'ok'});
   }
 
   // ── Todo ──
 
+  /// Purpose: Provide the internal handle todo list helper for this file.
+  /// Inputs: `request`.
+  /// Returns: `Future<Response>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Future<Response> _handleTodoList(Request request) async {
     final dateStr = request.url.queryParameters['date'];
     final typeStr = request.url.queryParameters['type'];
@@ -208,6 +263,11 @@ class LocalApiServer {
     return _json(results);
   }
 
+  /// Purpose: Provide the internal handle todo add helper for this file.
+  /// Inputs: `request`.
+  /// Returns: `Future<Response>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Future<Response> _handleTodoAdd(Request request) async {
     final body = await _parseBody(request);
     if (body == null) return _error(400, 'invalid JSON body');
@@ -282,6 +342,11 @@ class LocalApiServer {
     return _json({'success': true, 'id': task.id});
   }
 
+  /// Purpose: Provide the internal handle todo complete helper for this file.
+  /// Inputs: `request`.
+  /// Returns: `Future<Response>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Future<Response> _handleTodoComplete(Request request) async {
     final body = await _parseBody(request);
     if (body == null) return _error(400, 'invalid JSON body');
@@ -333,6 +398,11 @@ class LocalApiServer {
     return _json({'success': true});
   }
 
+  /// Purpose: Provide the internal handle todo stats helper for this file.
+  /// Inputs: `request`.
+  /// Returns: `Future<Response>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Future<Response> _handleTodoStats(Request request) async {
     final now = DateTime.now();
     final todayKey = DailyCompletionLog.dateKey(now);
@@ -385,6 +455,11 @@ class LocalApiServer {
 
   // ── Finance ──
 
+  /// Purpose: Provide the internal handle finance summary helper for this file.
+  /// Inputs: `request`.
+  /// Returns: `Future<Response>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Future<Response> _handleFinanceSummary(Request request) async {
     final monthStr = request.url.queryParameters['month'];
     final now = DateTime.now();
@@ -467,6 +542,11 @@ class LocalApiServer {
     });
   }
 
+  /// Purpose: Provide the internal handle finance transactions helper for this file.
+  /// Inputs: `request`.
+  /// Returns: `Future<Response>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Future<Response> _handleFinanceTransactions(Request request) async {
     final limit =
         int.tryParse(request.url.queryParameters['limit'] ?? '') ?? 20;
@@ -519,6 +599,11 @@ class LocalApiServer {
     );
   }
 
+  /// Purpose: Provide the internal handle finance add transaction helper for this file.
+  /// Inputs: `request`.
+  /// Returns: `Future<Response>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Future<Response> _handleFinanceAddTransaction(Request request) async {
     final body = await _parseBody(request);
     if (body == null) return _error(400, 'invalid JSON body');
@@ -580,6 +665,11 @@ class LocalApiServer {
     return _json({'success': true, 'id': tx.id});
   }
 
+  /// Purpose: Provide the internal handle finance subscriptions helper for this file.
+  /// Inputs: `request`.
+  /// Returns: `Future<Response>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Future<Response> _handleFinanceSubscriptions(Request request) async {
     final finData = await FinanceStorage.load();
     if (finData == null) return _json([]);
@@ -603,6 +693,11 @@ class LocalApiServer {
 
   // ── Weight ──
 
+  /// Purpose: Provide the internal handle weight list helper for this file.
+  /// Inputs: `request`.
+  /// Returns: `Future<Response>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Future<Response> _handleWeightList(Request request) async {
     final limit =
         int.tryParse(request.url.queryParameters['limit'] ?? '') ?? 30;
@@ -624,6 +719,11 @@ class LocalApiServer {
     );
   }
 
+  /// Purpose: Provide the internal handle weight add helper for this file.
+  /// Inputs: `request`.
+  /// Returns: `Future<Response>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Future<Response> _handleWeightAdd(Request request) async {
     final body = await _parseBody(request);
     if (body == null) return _error(400, 'invalid JSON body');
@@ -654,6 +754,11 @@ class LocalApiServer {
     return _json({'success': true, 'id': record.id});
   }
 
+  /// Purpose: Provide the internal handle weight stats helper for this file.
+  /// Inputs: `request`.
+  /// Returns: `Future<Response>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Future<Response> _handleWeightStats(Request request) async {
     final data = await WeightStorage.load();
     if (data == null || data.records.isEmpty) {
@@ -709,17 +814,32 @@ class LocalApiServer {
 
   // ── Helpers ──
 
+  /// Purpose: Provide the internal json helper for this file.
+  /// Inputs: `data`.
+  /// Returns: `Response`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Response _json(Object data) => Response.ok(
     jsonEncode(data),
     headers: {'Content-Type': 'application/json'},
   );
 
+  /// Purpose: Provide the internal error helper for this file.
+  /// Inputs: `status`, `message`.
+  /// Returns: `Response`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Response _error(int status, String message) => Response(
     status,
     body: jsonEncode({'error': message}),
     headers: {'Content-Type': 'application/json'},
   );
 
+  /// Purpose: Provide the internal parse body helper for this file.
+  /// Inputs: `request`.
+  /// Returns: `Future<Map<String, dynamic>?>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Future<Map<String, dynamic>?> _parseBody(Request request) async {
     try {
       final raw = await request.readAsString();
@@ -732,6 +852,11 @@ class LocalApiServer {
 
   // ── Middleware ──
 
+  /// Purpose: Provide the internal cors middleware helper for this file.
+  /// Inputs: None.
+  /// Returns: `Middleware`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Middleware _corsMiddleware() {
     return (Handler innerHandler) {
       return (Request request) async {
@@ -750,6 +875,11 @@ class LocalApiServer {
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   };
 
+  /// Purpose: Provide the internal auth middleware helper for this file.
+  /// Inputs: None.
+  /// Returns: `Middleware`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Middleware _authMiddleware() {
     return (Handler innerHandler) {
       return (Request request) async {
@@ -786,6 +916,11 @@ class LocalApiServer {
     };
   }
 
+  /// Purpose: Provide the internal validate basic auth helper for this file.
+  /// Inputs: `header`.
+  /// Returns: `bool`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static bool _validateBasicAuth(String header) {
     if (!header.startsWith('Basic ')) return false;
     try {
@@ -798,6 +933,11 @@ class LocalApiServer {
     }
   }
 
+  /// Purpose: Provide the internal error middleware helper for this file.
+  /// Inputs: None.
+  /// Returns: `Middleware`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Middleware _errorMiddleware() {
     return (Handler innerHandler) {
       return (Request request) async {

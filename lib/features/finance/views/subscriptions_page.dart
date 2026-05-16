@@ -28,6 +28,11 @@ class SubscriptionsPage extends StatefulWidget {
   final void Function(int? hour, int? minute) onReminderChanged;
   final void Function(String mode, List<String>? customOrder) onSortChanged;
 
+  /// Purpose: Create a subscriptions page instance.
+  /// Inputs: None.
+  /// Returns: A new `SubscriptionsPage` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const SubscriptionsPage({
     super.key,
     required this.subscriptions,
@@ -46,6 +51,11 @@ class SubscriptionsPage extends StatefulWidget {
     required this.onSortChanged,
   });
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new `State` instance.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   @override
   State<SubscriptionsPage> createState() => _SubscriptionsPageState();
 }
@@ -59,6 +69,11 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
   late List<String> _customOrder;
   bool _reordering = false;
 
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Registers listeners and may kick off asynchronous loading.
+  /// Notes: Guard any post-await UI updates with `mounted` when needed.
   @override
   void initState() {
     super.initState();
@@ -70,15 +85,30 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     _customOrder = List.of(widget.customOrder ?? []);
   }
 
+  /// Purpose: Return active.
+  /// Inputs: None.
+  /// Returns: `List<Subscription>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   List<Subscription> get _active {
     final list = _subscriptions.where((s) => s.isActive).toList();
     _sortList(list);
     return list;
   }
 
+  /// Purpose: Return historical.
+  /// Inputs: None.
+  /// Returns: `List<Subscription>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   List<Subscription> get _historical =>
       _subscriptions.where((s) => !s.isActive).toList();
 
+  /// Purpose: Provide the internal sort list helper for this file.
+  /// Inputs: `list`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _sortList(List<Subscription> list) {
     switch (_sortMode) {
       case 'name':
@@ -106,6 +136,11 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     }
   }
 
+  /// Purpose: Provide the internal on sort mode changed helper for this file.
+  /// Inputs: `mode`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _onSortModeChanged(String mode) {
     setState(() {
       _sortMode = mode;
@@ -118,6 +153,11 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     widget.onSortChanged(_sortMode, _sortMode == 'custom' ? _customOrder : null);
   }
 
+  /// Purpose: Provide the internal monthly due helper for this file.
+  /// Inputs: None.
+  /// Returns: `double`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   double _monthlyDue() {
     double total = 0;
     for (final s in _active) {
@@ -133,6 +173,11 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     return total;
   }
 
+  /// Purpose: Provide the internal monthly avg helper for this file.
+  /// Inputs: None.
+  /// Returns: `double`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   double _monthlyAvg() {
     // Average monthly cost based on actual transactions; fall back to projected
     // cost when there isn't at least 2 full months of history.
@@ -147,8 +192,18 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     return total / months;
   }
 
+  /// Purpose: Provide the internal yearly avg helper for this file.
+  /// Inputs: None.
+  /// Returns: `double`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   double _yearlyAvg() => _monthlyDue() * 12;
 
+  /// Purpose: Provide the internal add subscription helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _addSubscription() async {
     final result = await showDialog<({Subscription sub, bool importHistory})>(
       context: context,
@@ -213,6 +268,11 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     }
   }
 
+  /// Purpose: Provide the internal edit subscription helper for this file.
+  /// Inputs: `sub`.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _editSubscription(Subscription sub) async {
     final result = await showDialog<({Subscription sub, bool importHistory})>(
       context: context,
@@ -281,6 +341,11 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     }
   }
 
+  /// Purpose: Provide the internal delete subscription helper for this file.
+  /// Inputs: `sub`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _deleteSubscription(Subscription sub) {
     setState(() {
       _subscriptions.removeWhere((s) => s.id == sub.id);
@@ -290,6 +355,11 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     if (_sortMode == 'custom') widget.onSortChanged(_sortMode, _customOrder);
   }
 
+  /// Purpose: Provide the internal cancel subscription helper for this file.
+  /// Inputs: `sub`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _cancelSubscription(Subscription sub) {
     final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
@@ -320,6 +390,11 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     );
   }
 
+  /// Purpose: Provide the internal do cancel subscription helper for this file.
+  /// Inputs: `sub`, `type`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _doCancelSubscription(Subscription sub, CancelType type) {
     final cancelled = Subscription(
       id: sub.id,
@@ -347,6 +422,11 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     widget.onSubscriptionsChanged(_subscriptions);
   }
 
+  /// Purpose: Provide the internal import historical transactions helper for this file.
+  /// Inputs: `sub`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _importHistoricalTransactions(Subscription sub) {
     final now = DateTime.now();
     final dates = sub.billingDatesBefore(now);
@@ -364,6 +444,11 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     widget.onTransactionsChanged(_transactions);
   }
 
+  /// Purpose: Provide the internal open detail helper for this file.
+  /// Inputs: `sub`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _openDetail(Subscription sub) {
     Navigator.push(
       context,
@@ -384,6 +469,11 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     );
   }
 
+  /// Purpose: Provide the internal get upcoming subs helper for this file.
+  /// Inputs: `days`.
+  /// Returns: `List<(Subscription, DateTime)>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   List<(Subscription, DateTime)> _getUpcomingSubs(int days) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -403,6 +493,11 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     return result;
   }
 
+  /// Purpose: Provide the internal build reorder body helper for this file.
+  /// Inputs: `theme`, `l10n`, `active`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildReorderBody(ThemeData theme, AppLocalizations l10n, List<Subscription> active) {
     // Mutable copy for reorder
     final items = List.of(active);
@@ -440,6 +535,11 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     );
   }
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -753,8 +853,18 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
 
 class _SectionHeader extends StatelessWidget {
   final String title;
+  /// Purpose: Create a section header instance.
+  /// Inputs: `title`.
+  /// Returns: A new `_SectionHeader` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   const _SectionHeader({required this.title});
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -778,6 +888,11 @@ class _SummaryCard extends StatelessWidget {
   final Color color;
   final IconData icon;
 
+  /// Purpose: Create a summary card instance.
+  /// Inputs: None.
+  /// Returns: A new `_SummaryCard` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   const _SummaryCard({
     required this.label,
     required this.value,
@@ -785,6 +900,11 @@ class _SummaryCard extends StatelessWidget {
     required this.icon,
   });
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -831,6 +951,11 @@ class _SubscriptionTile extends StatelessWidget {
   final VoidCallback? onCancel;
   final VoidCallback onDelete;
 
+  /// Purpose: Create a subscription tile instance.
+  /// Inputs: None.
+  /// Returns: A new `_SubscriptionTile` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   const _SubscriptionTile({
     required this.subscription,
     required this.categories,
@@ -842,6 +967,11 @@ class _SubscriptionTile extends StatelessWidget {
     required this.onDelete,
   });
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -910,6 +1040,11 @@ class _SubscriptionTile extends StatelessWidget {
     );
   }
 
+  /// Purpose: Provide the internal show actions helper for this file.
+  /// Inputs: `context`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _showActions(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
@@ -950,15 +1085,30 @@ class _SubscriptionTile extends StatelessWidget {
     );
   }
 
+  /// Purpose: Provide the internal build leading helper for this file.
+  /// Inputs: `sub`, `account`, `cat`, `theme`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildLeading(
       Subscription sub, Account? account, Category? cat, ThemeData theme) {
     final color = theme.colorScheme.error;
 
+    /// Purpose: Build a subscription emoji avatar.
+    /// Inputs: `emoji`.
+    /// Returns: `Widget`.
+    /// Side effects: None.
+    /// Notes: Internal helper used within this function only.
     Widget emojiAvatar(String emoji) => CircleAvatar(
       backgroundColor: color.withValues(alpha: 0.1),
       child: Text(emoji, style: const TextStyle(fontSize: 18)),
     );
 
+    /// Purpose: Build the default subscription icon avatar.
+    /// Inputs: None.
+    /// Returns: `Widget`.
+    /// Side effects: None.
+    /// Notes: Internal helper used within this function only.
     Widget defaultIcon() => CircleAvatar(
       backgroundColor: color.withValues(alpha: 0.1),
       child: Icon(Icons.repeat, color: color, size: 20),

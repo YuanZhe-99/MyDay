@@ -1,6 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:my_day/shared/utils/json_preservation.dart';
 
+/// Purpose: Initialize startup services and launch the app entry point.
+/// Inputs: None.
+/// Returns: None.
+/// Side effects: May create, transform, or mutate data used by callers.
+/// Notes: None.
 void main() {
   test('preserves unknown fields without restoring removed known fields', () {
     final schema = dataFilePreservationSchemas['weight_data.json']!;

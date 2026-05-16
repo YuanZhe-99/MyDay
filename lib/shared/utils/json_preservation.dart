@@ -5,6 +5,11 @@ class JsonListPreservation {
   final String keyField;
   final JsonPreservationSchema itemSchema;
 
+  /// Purpose: Create a json list preservation instance.
+  /// Inputs: None.
+  /// Returns: A new `JsonListPreservation` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const JsonListPreservation({
     required this.keyField,
     required this.itemSchema,
@@ -17,6 +22,11 @@ class JsonPreservationSchema {
   final Map<String, JsonListPreservation> listFields;
   final Map<String, JsonPreservationSchema> keyedObjectFields;
 
+  /// Purpose: Create a json preservation schema instance.
+  /// Inputs: `objectFields`.
+  /// Returns: A new `JsonPreservationSchema` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const JsonPreservationSchema({
     required this.knownKeys,
     this.objectFields = const {},
@@ -26,8 +36,18 @@ class JsonPreservationSchema {
 }
 
 class JsonPreservation {
+  /// Purpose: Prevent direct instantiation of the JSON preservation utility.
+  /// Inputs: None.
+  /// Returns: A new `JsonPreservation` instance.
+  /// Side effects: None.
+  /// Notes: Use the static utility methods on this type instead.
   const JsonPreservation._();
 
+  /// Purpose: Implement the encode for file behavior for this file.
+  /// Inputs: None.
+  /// Returns: `Future<String>`.
+  /// Side effects: May create, transform, or mutate data used by callers.
+  /// Notes: None.
   static Future<String> encodeForFile({
     required File file,
     required Map<String, dynamic> next,
@@ -44,6 +64,11 @@ class JsonPreservation {
     return jsonEncode(preserve(next: next, sources: sources, schema: schema));
   }
 
+  /// Purpose: Implement the preserve json string behavior for this file.
+  /// Inputs: None.
+  /// Returns: `String`.
+  /// Side effects: May create, transform, or mutate data used by callers.
+  /// Notes: None.
   static String preserveJsonString({
     required String nextJson,
     required Iterable<String?> sourceJsons,
@@ -60,6 +85,11 @@ class JsonPreservation {
     return jsonEncode(preserve(next: next, sources: sources, schema: schema));
   }
 
+  /// Purpose: Implement the preserve behavior for this file.
+  /// Inputs: None.
+  /// Returns: `Map<String, dynamic>`.
+  /// Side effects: May create, transform, or mutate data used by callers.
+  /// Notes: None.
   static Map<String, dynamic> preserve({
     required Map<String, dynamic> next,
     required Iterable<Map<String, dynamic>> sources,
@@ -72,6 +102,11 @@ class JsonPreservation {
     return result;
   }
 
+  /// Purpose: Provide the internal preserve one helper for this file.
+  /// Inputs: None.
+  /// Returns: `Map<String, dynamic>`.
+  /// Side effects: May create, transform, or mutate data used by callers.
+  /// Notes: Internal helper used within this file only.
   static Map<String, dynamic> _preserveOne({
     required Map<String, dynamic> next,
     required Map<String, dynamic> source,
@@ -123,6 +158,11 @@ class JsonPreservation {
     return result;
   }
 
+  /// Purpose: Provide the internal preserve keyed objects helper for this file.
+  /// Inputs: None.
+  /// Returns: `Map<String, dynamic>`.
+  /// Side effects: May create, transform, or mutate data used by callers.
+  /// Notes: Internal helper used within this file only.
   static Map<String, dynamic> _preserveKeyedObjects({
     required Map<String, dynamic> next,
     required Map<String, dynamic> source,
@@ -142,6 +182,11 @@ class JsonPreservation {
     return result;
   }
 
+  /// Purpose: Provide the internal preserve list items helper for this file.
+  /// Inputs: None.
+  /// Returns: `List<dynamic>`.
+  /// Side effects: May create, transform, or mutate data used by callers.
+  /// Notes: Internal helper used within this file only.
   static List<dynamic> _preserveListItems({
     required List<dynamic> next,
     required List<dynamic> source,
@@ -169,14 +214,29 @@ class JsonPreservation {
     }).toList();
   }
 
+  /// Purpose: Provide the internal copy map helper for this file.
+  /// Inputs: `map`.
+  /// Returns: `Map<String, dynamic>`.
+  /// Side effects: May create, transform, or mutate data used by callers.
+  /// Notes: Internal helper used within this file only.
   static Map<String, dynamic> _copyMap(Map<String, dynamic> map) {
     return map.map((key, value) => MapEntry(key, _copyJsonValue(value)));
   }
 
+  /// Purpose: Provide the internal string key map helper for this file.
+  /// Inputs: `map`.
+  /// Returns: `Map<String, dynamic>`.
+  /// Side effects: May create, transform, or mutate data used by callers.
+  /// Notes: Internal helper used within this file only.
   static Map<String, dynamic> _stringKeyMap(Map map) {
     return map.map((key, value) => MapEntry(key as String, value));
   }
 
+  /// Purpose: Provide the internal copy json value helper for this file.
+  /// Inputs: `value`.
+  /// Returns: `dynamic`.
+  /// Side effects: May create, transform, or mutate data used by callers.
+  /// Notes: Internal helper used within this file only.
   static dynamic _copyJsonValue(dynamic value) {
     if (value is Map) {
       return value.map(

@@ -11,8 +11,18 @@ import '../services/sync_merge.dart';
 class SyncConflictDialog extends StatefulWidget {
   final List<RecordConflict> conflicts;
 
+  /// Purpose: Create a sync conflict dialog instance.
+  /// Inputs: `conflicts`.
+  /// Returns: A new `SyncConflictDialog` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const SyncConflictDialog({super.key, required this.conflicts});
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new `State` instance.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   @override
   State<SyncConflictDialog> createState() => _SyncConflictDialogState();
 }
@@ -21,8 +31,18 @@ class _SyncConflictDialogState extends State<SyncConflictDialog> {
   // Maps record ID → true for local, false for remote
   final Map<String, bool> _choices = {};
 
+  /// Purpose: Return all resolved.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   bool get _allResolved => _choices.length == widget.conflicts.length;
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
@@ -121,6 +141,11 @@ class _ChoiceButton extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
+  /// Purpose: Create a choice button instance.
+  /// Inputs: None.
+  /// Returns: A new `_ChoiceButton` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   const _ChoiceButton({
     required this.label,
     required this.icon,
@@ -128,6 +153,11 @@ class _ChoiceButton extends StatelessWidget {
     required this.onTap,
   });
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

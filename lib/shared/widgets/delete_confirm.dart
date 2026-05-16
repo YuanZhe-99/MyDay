@@ -8,6 +8,11 @@ DateTime? _suppressUntil;
 /// Returns true if delete should proceed, false to cancel.
 /// Shows a confirmation dialog with a "Don't ask for 5 min" option.
 /// If the user previously chose to suppress, returns true immediately.
+/// Purpose: Implement the confirm delete behavior for this file.
+/// Inputs: `context`, `itemLabel`.
+/// Returns: `Future<bool>`.
+/// Side effects: May update UI state or trigger user-facing flows.
+/// Notes: None.
 Future<bool> confirmDelete(BuildContext context, String itemLabel) async {
   // If suppressed, allow immediately
   if (_suppressUntil != null && DateTime.now().isBefore(_suppressUntil!)) {

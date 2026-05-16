@@ -4,6 +4,11 @@ import 'package:intl/intl.dart';
 import '../models/finance.dart';
 
 /// Builds a date-grouped transaction list with date headers.
+/// Purpose: Implement the build grouped transaction list behavior for this file.
+/// Inputs: `context`, `sorted`, `tileBuilder`.
+/// Returns: `Widget`.
+/// Side effects: Creates UI widgets from grouped transaction data.
+/// Notes: None.
 Widget buildGroupedTransactionList(
   BuildContext context,
   List<Transaction> sorted,

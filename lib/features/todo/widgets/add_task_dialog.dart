@@ -11,6 +11,11 @@ class AddTaskDialog extends StatefulWidget {
   /// When set, pre-fills all fields and uses this as the dialog title.
   final Task? initialTask;
   final String? dialogTitle;
+  /// Purpose: Create a add task dialog instance.
+  /// Inputs: None.
+  /// Returns: A new `AddTaskDialog` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const AddTaskDialog({
     super.key,
     this.defaultDate,
@@ -18,6 +23,11 @@ class AddTaskDialog extends StatefulWidget {
     this.dialogTitle,
   });
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new `State` instance.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   @override
   State<AddTaskDialog> createState() => _AddTaskDialogState();
 }
@@ -35,6 +45,11 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   final List<String> _subtaskTitles = [];
   late final String _initialSignature;
 
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Registers listeners and may kick off asynchronous loading.
+  /// Notes: Guard any post-await UI updates with `mounted` when needed.
   @override
   void initState() {
     super.initState();
@@ -57,6 +72,11 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
     _initialSignature = _signature();
   }
 
+  /// Purpose: Release listeners, controllers, and other owned resources.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Releases owned resources and unregisters listeners.
+  /// Notes: Call the superclass implementation in the expected lifecycle order.
   @override
   void dispose() {
     _titleController.dispose();
@@ -65,6 +85,11 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
     super.dispose();
   }
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -341,6 +366,11 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
     );
   }
 
+  /// Purpose: Provide the internal add subtask helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _addSubtask() {
     final text = _subtaskController.text.trim();
     if (text.isEmpty) return;
@@ -385,6 +415,11 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
     '🧑‍🍳',
   ];
 
+  /// Purpose: Provide the internal show emoji picker helper for this file.
+  /// Inputs: `context`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _showEmojiPicker(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -458,6 +493,11 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
     );
   }
 
+  /// Purpose: Provide the internal show custom emoji input helper for this file.
+  /// Inputs: `outerContext`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _showCustomEmojiInput(BuildContext outerContext) {
     final controller = TextEditingController();
     showDialog(
@@ -498,8 +538,18 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
     );
   }
 
+  /// Purpose: Provide the internal has unsaved changes helper for this file.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   bool _hasUnsavedChanges() => _signature() != _initialSignature;
 
+  /// Purpose: Provide the internal signature helper for this file.
+  /// Inputs: None.
+  /// Returns: `String`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   String _signature() => formSignature([
     _titleController.text.trim(),
     _noteController.text.trim(),
@@ -513,6 +563,11 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
     _subtaskTitles,
   ]);
 
+  /// Purpose: Provide the internal recurrence signature helper for this file.
+  /// Inputs: `recurrence`.
+  /// Returns: `String`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   String _recurrenceSignature(TaskRecurrence? recurrence) {
     if (recurrence == null) return '';
     return formSignature([
@@ -523,6 +578,11 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
     ]);
   }
 
+  /// Purpose: Provide the internal submit helper for this file.
+  /// Inputs: `guard`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _submit(UnsavedChangesController guard) {
     final title = _titleController.text.trim();
     if (title.isEmpty) return;
@@ -564,9 +624,19 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
     guard.pop(task);
   }
 
+  /// Purpose: Provide the internal fmt date helper for this file.
+  /// Inputs: `d`.
+  /// Returns: `String`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   String _fmtDate(DateTime d) =>
       '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
+  /// Purpose: Provide the internal recurrence label helper for this file.
+  /// Inputs: `r`, `l10n`.
+  /// Returns: `String`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   String _recurrenceLabel(TaskRecurrence r, AppLocalizations l10n) {
     switch (r.type) {
       case RecurrenceType.everyNDays:
@@ -578,6 +648,11 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
     }
   }
 
+  /// Purpose: Provide the internal show recurrence picker helper for this file.
+  /// Inputs: `l10n`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _showRecurrencePicker(AppLocalizations l10n) {
     showModalBottomSheet(
       context: context,

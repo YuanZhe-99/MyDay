@@ -3,8 +3,18 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 
 abstract class UnsavedChangesController {
+  /// Purpose: Confirm whether pending changes can be discarded before popping.
+  /// Inputs: `result`.
+  /// Returns: `Future<bool>`.
+  /// Side effects: May show confirmation UI and may pop the current route.
+  /// Notes: Implementations should return whether the route was actually popped.
   Future<bool> maybeDiscardAndPop<T extends Object?>([T? result]);
 
+  /// Purpose: Implement the pop behavior for this file.
+  /// Inputs: `result`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   void pop<T extends Object?>([T? result]);
 }
 
@@ -13,12 +23,22 @@ class UnsavedChangesGuard extends StatefulWidget {
   final Widget Function(BuildContext context, UnsavedChangesController guard)
   builder;
 
+  /// Purpose: Create a unsaved changes guard instance.
+  /// Inputs: None.
+  /// Returns: A new `UnsavedChangesGuard` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const UnsavedChangesGuard({
     super.key,
     required this.hasUnsavedChanges,
     required this.builder,
   });
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new `State` instance.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   @override
   State<UnsavedChangesGuard> createState() => _UnsavedChangesGuardState();
 }
@@ -29,6 +49,11 @@ class _UnsavedChangesGuardState extends State<UnsavedChangesGuard>
   bool _closing = false;
   bool _confirming = false;
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -41,6 +66,11 @@ class _UnsavedChangesGuardState extends State<UnsavedChangesGuard>
     );
   }
 
+  /// Purpose: Implement the maybe discard and pop behavior for this file.
+  /// Inputs: `result`.
+  /// Returns: `Future<bool>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   @override
   Future<bool> maybeDiscardAndPop<T extends Object?>([T? result]) async {
     if (_closing || _confirming) return false;
@@ -58,6 +88,11 @@ class _UnsavedChangesGuardState extends State<UnsavedChangesGuard>
     return true;
   }
 
+  /// Purpose: Implement the pop behavior for this file.
+  /// Inputs: `result`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   @override
   void pop<T extends Object?>([T? result]) {
     if (_closing || !mounted) return;
@@ -70,6 +105,11 @@ class _UnsavedChangesGuardState extends State<UnsavedChangesGuard>
   }
 }
 
+/// Purpose: Show discard changes dialog through the current flow.
+/// Inputs: `context`.
+/// Returns: `Future<bool>`.
+/// Side effects: May update UI state or trigger user-facing flows.
+/// Notes: None.
 Future<bool> showDiscardChangesDialog(BuildContext context) async {
   final l10n = AppLocalizations.of(context)!;
   final theme = Theme.of(context);
@@ -97,9 +137,19 @@ Future<bool> showDiscardChangesDialog(BuildContext context) async {
   return result ?? false;
 }
 
+/// Purpose: Implement the form signature behavior for this file.
+/// Inputs: `values`.
+/// Returns: `String`.
+/// Side effects: May update UI state or trigger user-facing flows.
+/// Notes: None.
 String formSignature(Iterable<Object?> values) =>
     values.map(_formValueSignature).join('\u001f');
 
+/// Purpose: Provide the internal form value signature helper for this file.
+/// Inputs: `value`.
+/// Returns: `String`.
+/// Side effects: May update UI state or trigger user-facing flows.
+/// Notes: Internal helper used within this file only.
 String _formValueSignature(Object? value) {
   if (value == null) return '';
   if (value is DateTime) return value.toIso8601String();

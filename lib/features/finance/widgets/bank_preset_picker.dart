@@ -48,6 +48,11 @@ const _countryOrder = [
 
 /// Shows a bottom sheet for picking a bank / fintech preset.
 /// Returns the selected [BankPreset] or null.
+/// Purpose: Show bank preset picker through the current flow.
+/// Inputs: `context`.
+/// Returns: `Future<BankPreset?>`.
+/// Side effects: May update UI state or trigger user-facing flows.
+/// Notes: None.
 Future<BankPreset?> showBankPresetPicker(BuildContext context) {
   return showModalBottomSheet<BankPreset>(
     context: context,
@@ -58,8 +63,18 @@ Future<BankPreset?> showBankPresetPicker(BuildContext context) {
 }
 
 class _BankPickerSheet extends StatefulWidget {
+  /// Purpose: Create a bank picker sheet instance.
+  /// Inputs: None.
+  /// Returns: A new `_BankPickerSheet` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   const _BankPickerSheet();
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new `State` instance.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   @override
   State<_BankPickerSheet> createState() => _BankPickerSheetState();
 }
@@ -71,17 +86,32 @@ class _BankPickerSheetState extends State<_BankPickerSheet> {
   bool _isSearching = false;
   bool _loading = true;
 
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Registers listeners and may kick off asynchronous loading.
+  /// Notes: Guard any post-await UI updates with `mounted` when needed.
   @override
   void initState() {
     super.initState();
     _load();
   }
 
+  /// Purpose: Provide the internal load helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _load() async {
     final grouped = await BankPresetService.instance.groupedByCountry();
     if (mounted) setState(() { _grouped = grouped; _loading = false; });
   }
 
+  /// Purpose: Provide the internal on search helper for this file.
+  /// Inputs: `query`.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _onSearch(String query) async {
     if (query.isEmpty) {
       setState(() => _isSearching = false);
@@ -96,12 +126,22 @@ class _BankPickerSheetState extends State<_BankPickerSheet> {
     }
   }
 
+  /// Purpose: Release listeners, controllers, and other owned resources.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Releases owned resources and unregisters listeners.
+  /// Notes: Call the superclass implementation in the expected lifecycle order.
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
   }
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -206,8 +246,18 @@ class _BankPickerSheetState extends State<_BankPickerSheet> {
 
 class _BankTile extends StatelessWidget {
   final BankPreset bank;
+  /// Purpose: Create a bank tile instance.
+  /// Inputs: `bank`.
+  /// Returns: A new `_BankTile` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   const _BankTile({required this.bank});
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -253,6 +303,11 @@ class _BankTile extends StatelessWidget {
     );
   }
 
+  /// Purpose: Provide the internal parse color helper for this file.
+  /// Inputs: `hex`.
+  /// Returns: `Color`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   static Color _parseColor(String hex) {
     try {
       final buffer = StringBuffer();

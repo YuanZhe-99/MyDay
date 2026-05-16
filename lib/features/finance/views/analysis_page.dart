@@ -16,6 +16,11 @@ class AnalysisPage extends StatefulWidget {
   final ExchangeRateData rateData;
   final String defaultCurrency;
 
+  /// Purpose: Create a analysis page instance.
+  /// Inputs: `accounts`.
+  /// Returns: A new `AnalysisPage` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const AnalysisPage({
     super.key,
     required this.transactions,
@@ -25,6 +30,11 @@ class AnalysisPage extends StatefulWidget {
     this.defaultCurrency = 'CNY',
   });
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new `State` instance.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   @override
   State<AnalysisPage> createState() => _AnalysisPageState();
 }
@@ -36,12 +46,22 @@ class _AnalysisPageState extends State<AnalysisPage>
   _TimeRange _timeRange = _TimeRange.month;
   DateTimeRange? _customRange;
 
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Registers listeners and may kick off asynchronous loading.
+  /// Notes: Guard any post-await UI updates with `mounted` when needed.
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
   }
 
+  /// Purpose: Release listeners, controllers, and other owned resources.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Releases owned resources and unregisters listeners.
+  /// Notes: Call the superclass implementation in the expected lifecycle order.
   @override
   void dispose() {
     _tabController.dispose();
@@ -49,6 +69,11 @@ class _AnalysisPageState extends State<AnalysisPage>
   }
 
   /// Filter transactions based on the current time range selection.
+  /// Purpose: Return filtered transactions.
+  /// Inputs: None.
+  /// Returns: `List<Transaction>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   List<Transaction> get _filteredTransactions {
     switch (_timeRange) {
       case _TimeRange.year:
@@ -87,10 +112,20 @@ class _AnalysisPageState extends State<AnalysisPage>
     }
   }
 
+  /// Purpose: Return filtered expenses.
+  /// Inputs: None.
+  /// Returns: `List<Transaction>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   List<Transaction> get _filteredExpenses => _filteredTransactions
       .where((t) => t.type == TransactionType.expense)
       .toList();
 
+  /// Purpose: Return range label.
+  /// Inputs: None.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   String get _rangeLabel {
     switch (_timeRange) {
       case _TimeRange.year:
@@ -105,6 +140,11 @@ class _AnalysisPageState extends State<AnalysisPage>
     }
   }
 
+  /// Purpose: Provide the internal prev helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _prev() {
     setState(() {
       switch (_timeRange) {
@@ -126,6 +166,11 @@ class _AnalysisPageState extends State<AnalysisPage>
     });
   }
 
+  /// Purpose: Provide the internal next helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _next() {
     setState(() {
       switch (_timeRange) {
@@ -147,6 +192,11 @@ class _AnalysisPageState extends State<AnalysisPage>
     });
   }
 
+  /// Purpose: Provide the internal pick custom range helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _pickCustomRange() async {
     final picked = await showDateRangePicker(
       context: context,
@@ -164,6 +214,11 @@ class _AnalysisPageState extends State<AnalysisPage>
     }
   }
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -260,6 +315,11 @@ class _AnalysisPageState extends State<AnalysisPage>
 
   // --------------- Pie Chart Tab ---------------
 
+  /// Purpose: Provide the internal build pie chart helper for this file.
+  /// Inputs: `context`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildPieChart(BuildContext context) {
     final theme = Theme.of(context);
     final expenses = _filteredExpenses;
@@ -415,6 +475,11 @@ class _AnalysisPageState extends State<AnalysisPage>
 
   // --------------- Trend Line Chart Tab ---------------
 
+  /// Purpose: Provide the internal build trend chart helper for this file.
+  /// Inputs: `context`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildTrendChart(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
@@ -493,6 +558,11 @@ class _AnalysisPageState extends State<AnalysisPage>
     );
   }
 
+  /// Purpose: Provide the internal build trend scale helper for this file.
+  /// Inputs: None.
+  /// Returns: `_TrendScale`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   _TrendScale _buildTrendScale() {
     final dateLabel = DateFormat('M/d');
     final dayTooltip = DateFormat('yyyy-MM-dd');
@@ -578,6 +648,11 @@ class _AnalysisPageState extends State<AnalysisPage>
     }
   }
 
+  /// Purpose: Provide the internal build trend data helper for this file.
+  /// Inputs: `scale`.
+  /// Returns: `_TrendData`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   _TrendData _buildTrendData(_TrendScale scale) {
     final expense = List.filled(scale.pointCount, 0.0);
     final income = List.filled(scale.pointCount, 0.0);
@@ -633,6 +708,11 @@ class _AnalysisPageState extends State<AnalysisPage>
     );
   }
 
+  /// Purpose: Provide the internal total assets before helper for this file.
+  /// Inputs: `before`.
+  /// Returns: `double`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   double _totalAssetsBefore(DateTime before) {
     if (widget.accounts.isEmpty) {
       var total = 0.0;
@@ -675,6 +755,11 @@ class _AnalysisPageState extends State<AnalysisPage>
     });
   }
 
+  /// Purpose: Provide the internal build line chart panel helper for this file.
+  /// Inputs: None.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildLineChartPanel({
     required BuildContext context,
     required String title,
@@ -833,6 +918,11 @@ class _AnalysisPageState extends State<AnalysisPage>
     return (minY: minY - padding, maxY: maxY + padding);
   }
 
+  /// Purpose: Provide the internal point count helper for this file.
+  /// Inputs: `start`, `end`, `step`.
+  /// Returns: `int`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   int _pointCount(DateTime start, DateTime end, Duration step) {
     final total = end.difference(start).inMicroseconds;
     final stepMicros = step.inMicroseconds;
@@ -840,11 +930,21 @@ class _AnalysisPageState extends State<AnalysisPage>
     return count < 1 ? 1 : count;
   }
 
+  /// Purpose: Provide the internal label interval helper for this file.
+  /// Inputs: `pointCount`.
+  /// Returns: `double`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   double _labelInterval(int pointCount) {
     final interval = (pointCount / 6).ceil();
     return (interval < 1 ? 1 : interval).toDouble();
   }
 
+  /// Purpose: Provide the internal format axis value helper for this file.
+  /// Inputs: `value`.
+  /// Returns: `String`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   String _formatAxisValue(double value) {
     final abs = value.abs();
     final sign = value < 0 ? '-' : '';
@@ -857,6 +957,11 @@ class _AnalysisPageState extends State<AnalysisPage>
     return value.toStringAsFixed(0);
   }
 
+  /// Purpose: Provide the internal legend dot helper for this file.
+  /// Inputs: `color`, `label`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _legendDot(Color color, String label) {
     return Row(
       children: [
@@ -896,6 +1001,11 @@ class _TrendScale {
   final String Function(DateTime date) labelForDate;
   final String Function(DateTime date) tooltipForDate;
 
+  /// Purpose: Create a trend scale instance.
+  /// Inputs: None.
+  /// Returns: A new `_TrendScale` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   const _TrendScale({
     required this.start,
     required this.endExclusive,
@@ -906,6 +1016,11 @@ class _TrendScale {
     required this.tooltipForDate,
   });
 
+  /// Purpose: Implement the bucket index behavior for this file.
+  /// Inputs: `date`.
+  /// Returns: `int?`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   int? bucketIndex(DateTime date) {
     if (date.isBefore(start) || !date.isBefore(endExclusive)) return null;
     final idx = date.difference(start).inMicroseconds ~/ step.inMicroseconds;
@@ -913,15 +1028,35 @@ class _TrendScale {
     return idx;
   }
 
+  /// Purpose: Implement the sample end behavior for this file.
+  /// Inputs: `index`.
+  /// Returns: `DateTime`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   DateTime sampleEnd(int index) {
     final end = _offset(index + 1);
     return end.isAfter(endExclusive) ? endExclusive : end;
   }
 
+  /// Purpose: Implement the x label behavior for this file.
+  /// Inputs: `index`.
+  /// Returns: `String`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   String xLabel(int index) => labelForDate(_offset(index));
 
+  /// Purpose: Implement the tooltip label behavior for this file.
+  /// Inputs: `index`.
+  /// Returns: `String`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   String tooltipLabel(int index) => tooltipForDate(_offset(index));
 
+  /// Purpose: Provide the internal offset helper for this file.
+  /// Inputs: `steps`.
+  /// Returns: `DateTime`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   DateTime _offset(int steps) {
     return start.add(Duration(microseconds: step.inMicroseconds * steps));
   }
@@ -935,6 +1070,11 @@ class _TrendData {
   final double assetMinY;
   final double assetMaxY;
 
+  /// Purpose: Create a trend data instance.
+  /// Inputs: None.
+  /// Returns: A new `_TrendData` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   const _TrendData({
     required this.expenseSpots,
     required this.incomeSpots,
@@ -951,6 +1091,11 @@ class _ChartSeries {
   final List<FlSpot> spots;
   final bool fill;
 
+  /// Purpose: Create a chart series instance.
+  /// Inputs: `fill`.
+  /// Returns: A new `_ChartSeries` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   const _ChartSeries({
     required this.label,
     required this.color,

@@ -8,6 +8,11 @@ class WeightRecord {
   final String? notes;
   final DateTime modifiedAt;
 
+  /// Purpose: Create a weight record instance.
+  /// Inputs: None.
+  /// Returns: A new `WeightRecord` instance.
+  /// Side effects: None.
+  /// Notes: None.
   WeightRecord({
     String? id,
     required this.weight,
@@ -19,6 +24,11 @@ class WeightRecord {
        datetime = datetime ?? DateTime.now(),
        modifiedAt = modifiedAt ?? DateTime.now();
 
+  /// Purpose: Serialize this value into a JSON-compatible map.
+  /// Inputs: None.
+  /// Returns: A JSON-compatible map.
+  /// Side effects: None.
+  /// Notes: Keep the output aligned with the persisted file and sync format.
   Map<String, dynamic> toJson() => {
     'id': id,
     'weight': weight,
@@ -28,6 +38,11 @@ class WeightRecord {
     'modifiedAt': modifiedAt.toIso8601String(),
   };
 
+  /// Purpose: Create an instance from a JSON-compatible map.
+  /// Inputs: `json`.
+  /// Returns: A new `WeightRecord.fromJson` instance.
+  /// Side effects: None.
+  /// Notes: Use this path when reading the persisted or transferred data format for this type.
   factory WeightRecord.fromJson(Map<String, dynamic> json) => WeightRecord(
     id: json['id'] as String,
     weight: (json['weight'] as num).toDouble(),
@@ -39,6 +54,11 @@ class WeightRecord {
         : DateTime.now(),
   );
 
+  /// Purpose: Create a copy of this value with selected fields replaced.
+  /// Inputs: None.
+  /// Returns: `WeightRecord`.
+  /// Side effects: None.
+  /// Notes: None.
   WeightRecord copyWith({
     double? weight,
     double? bodyFat,
@@ -67,6 +87,11 @@ class WeightData {
   final int reminderGraceMinutes;
   final DateTime settingsModifiedAt;
 
+  /// Purpose: Create a weight data instance.
+  /// Inputs: `reminderMode`.
+  /// Returns: A new `WeightData` instance.
+  /// Side effects: None.
+  /// Notes: None.
   WeightData({
     this.height,
     required this.records,
@@ -80,6 +105,11 @@ class WeightData {
   }) : settingsModifiedAt =
            settingsModifiedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
 
+  /// Purpose: Serialize this value into a JSON-compatible map.
+  /// Inputs: None.
+  /// Returns: A JSON-compatible map.
+  /// Side effects: None.
+  /// Notes: Keep the output aligned with the persisted file and sync format.
   Map<String, dynamic> toJson() => {
     if (height != null) 'height': height,
     'records': records.map((r) => r.toJson()).toList(),
@@ -92,6 +122,11 @@ class WeightData {
     'settingsModifiedAt': settingsModifiedAt.toIso8601String(),
   };
 
+  /// Purpose: Create an instance from a JSON-compatible map.
+  /// Inputs: `json`.
+  /// Returns: A new `WeightData.fromJson` instance.
+  /// Side effects: None.
+  /// Notes: Use this path when reading the persisted or transferred data format for this type.
   factory WeightData.fromJson(Map<String, dynamic> json) => WeightData(
     height: (json['height'] as num?)?.toDouble(),
     records: (json['records'] as List? ?? [])
@@ -109,6 +144,11 @@ class WeightData {
   );
 
   /// Calculate BMI from height (cm) and weight (kg).
+  /// Purpose: Calculate bmi from the available inputs.
+  /// Inputs: `heightCm`, `weightKg`.
+  /// Returns: `double?`.
+  /// Side effects: None.
+  /// Notes: None.
   static double? calculateBMI(double? heightCm, double weightKg) {
     if (heightCm == null || heightCm <= 0) return null;
     final heightM = heightCm / 100.0;

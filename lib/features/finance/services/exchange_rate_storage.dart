@@ -12,16 +12,31 @@ class RateSnapshot {
   final Map<String, double> rates;
   final DateTime createdAt;
 
+  /// Purpose: Create a rate snapshot instance.
+  /// Inputs: `createdAt`.
+  /// Returns: A new `RateSnapshot` instance.
+  /// Side effects: None.
+  /// Notes: None.
   RateSnapshot({String? id, required this.rates, DateTime? createdAt})
     : id = id ?? const Uuid().v4(),
       createdAt = createdAt ?? DateTime.now();
 
+  /// Purpose: Serialize this value into a JSON-compatible map.
+  /// Inputs: None.
+  /// Returns: A JSON-compatible map.
+  /// Side effects: None.
+  /// Notes: Keep the output aligned with the persisted file and sync format.
   Map<String, dynamic> toJson() => {
     'id': id,
     'rates': rates,
     'createdAt': createdAt.toIso8601String(),
   };
 
+  /// Purpose: Create an instance from a JSON-compatible map.
+  /// Inputs: `json`.
+  /// Returns: A new `RateSnapshot.fromJson` instance.
+  /// Side effects: None.
+  /// Notes: Use this path when reading the persisted or transferred data format for this type.
   factory RateSnapshot.fromJson(Map<String, dynamic> json) => RateSnapshot(
     id: json['id'] as String,
     rates: (json['rates'] as Map<String, dynamic>).map(
@@ -37,6 +52,11 @@ class ExchangeRateData {
   final Map<String, RateSnapshot> snapshots;
   final DateTime? lastFetchedAt;
 
+  /// Purpose: Create a exchange rate data instance.
+  /// Inputs: None.
+  /// Returns: A new `ExchangeRateData` instance.
+  /// Side effects: None.
+  /// Notes: None.
   ExchangeRateData({
     required this.currentSnapshotId,
     required this.snapshots,
@@ -44,13 +64,28 @@ class ExchangeRateData {
   });
 
   /// The current active rates.
+  /// Purpose: Return current rates.
+  /// Inputs: None.
+  /// Returns: `Map<String, double>`.
+  /// Side effects: None.
+  /// Notes: None.
   Map<String, double> get currentRates =>
       snapshots[currentSnapshotId]?.rates ?? const {};
 
   /// Get rates for a specific snapshot. Falls back to current rates.
+  /// Purpose: Implement the rates at behavior for this file.
+  /// Inputs: `snapshotId`.
+  /// Returns: `Map<String, double>`.
+  /// Side effects: None.
+  /// Notes: None.
   Map<String, double> ratesAt(String? snapshotId) =>
       snapshots[snapshotId]?.rates ?? currentRates;
 
+  /// Purpose: Serialize this value into a JSON-compatible map.
+  /// Inputs: None.
+  /// Returns: A JSON-compatible map.
+  /// Side effects: None.
+  /// Notes: Keep the output aligned with the persisted file and sync format.
   Map<String, dynamic> toJson() => {
     'currentSnapshotId': currentSnapshotId,
     'snapshots': snapshots.map((k, v) => MapEntry(k, v.toJson())),
@@ -58,6 +93,11 @@ class ExchangeRateData {
       'lastFetchedAt': lastFetchedAt!.toIso8601String(),
   };
 
+  /// Purpose: Create an instance from a JSON-compatible map.
+  /// Inputs: `json`.
+  /// Returns: A new `ExchangeRateData.fromJson` instance.
+  /// Side effects: None.
+  /// Notes: Use this path when reading the persisted or transferred data format for this type.
   factory ExchangeRateData.fromJson(Map<String, dynamic> json) {
     final snapshotsMap = (json['snapshots'] as Map<String, dynamic>).map(
       (k, v) => MapEntry(k, RateSnapshot.fromJson(v as Map<String, dynamic>)),
@@ -76,11 +116,21 @@ class ExchangeRateData {
 class ExchangeRateStorage {
   static const _fileName = 'exchange_rates.json';
 
+  /// Purpose: Provide the internal get file helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<File>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Future<File> _getFile() async {
     final appDir = await TodoStorage.getAppDir();
     return File('${appDir.path}/$_fileName');
   }
 
+  /// Purpose: Implement the load behavior for this file.
+  /// Inputs: None.
+  /// Returns: `Future<ExchangeRateData>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<ExchangeRateData> load() async {
     try {
       final file = await _getFile();
@@ -102,6 +152,11 @@ class ExchangeRateStorage {
     }
   }
 
+  /// Purpose: Implement the save behavior for this file.
+  /// Inputs: `data`.
+  /// Returns: `Future<void>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<void> save(ExchangeRateData data) async {
     final file = await _getFile();
     var preserveUnknown = true;
@@ -125,6 +180,11 @@ class ExchangeRateStorage {
   }
 
   /// Update rates. Creates a new snapshot only if rates differ from current.
+  /// Purpose: Update rates through the current flow.
+  /// Inputs: `data`, `newRates`.
+  /// Returns: `ExchangeRateData`.
+  /// Side effects: May create, transform, or mutate data used by callers.
+  /// Notes: None.
   static ExchangeRateData updateRates(
     ExchangeRateData data,
     Map<String, double> newRates,
@@ -141,6 +201,11 @@ class ExchangeRateStorage {
     );
   }
 
+  /// Purpose: Provide the internal rates equal helper for this file.
+  /// Inputs: `a`, `b`.
+  /// Returns: `bool`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static bool _ratesEqual(Map<String, double> a, Map<String, double> b) {
     if (a.length != b.length) return false;
     for (final key in a.keys) {
@@ -149,8 +214,18 @@ class ExchangeRateStorage {
     return true;
   }
 
+  /// Purpose: Provide the internal default data helper for this file.
+  /// Inputs: None.
+  /// Returns: `ExchangeRateData`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static ExchangeRateData _defaultData() => _createInitialData(_defaultRates);
 
+  /// Purpose: Provide the internal create initial data helper for this file.
+  /// Inputs: `rates`.
+  /// Returns: `ExchangeRateData`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static ExchangeRateData _createInitialData(Map<String, double> rates) {
     final snapshot = RateSnapshot(rates: rates);
     return ExchangeRateData(

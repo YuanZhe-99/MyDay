@@ -23,8 +23,18 @@ import 'license_page.dart' as app_license;
 import 'privacy_policy_page.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
+  /// Purpose: Create a settings page instance.
+  /// Inputs: None.
+  /// Returns: A new `SettingsPage` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const SettingsPage({super.key});
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new `State` instance.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   @override
   ConsumerState<SettingsPage> createState() => _SettingsPageState();
 }
@@ -43,9 +53,19 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   String _apiUsername = '';
   String _apiPassword = '';
 
+  /// Purpose: Return is desktop.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   bool get _isDesktop =>
       Platform.isWindows || Platform.isMacOS || Platform.isLinux;
 
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Registers listeners and may kick off asynchronous loading.
+  /// Notes: Guard any post-await UI updates with `mounted` when needed.
   @override
   void initState() {
     super.initState();
@@ -59,6 +79,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     }
   }
 
+  /// Purpose: Provide the internal load tray settings helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _loadTraySettings() async {
     final tray = TrayService.instance;
     if (mounted) {
@@ -69,11 +94,21 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     }
   }
 
+  /// Purpose: Provide the internal load storage path helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _loadStoragePath() async {
     final path = await TodoStorage.getStoragePath();
     if (mounted) setState(() => _storagePath = path);
   }
 
+  /// Purpose: Provide the internal open data folder helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _openDataFolder() async {
     final appDir = await TodoStorage.getAppDir();
     if (Platform.isWindows) {
@@ -86,11 +121,21 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     }
   }
 
+  /// Purpose: Provide the internal load version helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _loadVersion() async {
     final info = await PackageInfo.fromPlatform();
     if (mounted) setState(() => _appVersion = 'v${info.version}');
   }
 
+  /// Purpose: Provide the internal load web dav status helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _loadWebDAVStatus() async {
     final config = await WebDAVService.loadConfig();
     if (mounted) {
@@ -98,11 +143,21 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     }
   }
 
+  /// Purpose: Provide the internal load auto start status helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _loadAutoStartStatus() async {
     final enabled = await launchAtStartup.isEnabled();
     if (mounted) setState(() => _autoStart = enabled);
   }
 
+  /// Purpose: Provide the internal load api settings helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _loadApiSettings() async {
     final config = await TodoStorage.readConfig();
     if (!mounted) return;
@@ -115,12 +170,22 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     });
   }
 
+  /// Purpose: Provide the internal show api settings dialog helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _showApiSettingsDialog() async {
     final l10n = AppLocalizations.of(context)!;
     final portCtrl = TextEditingController(text: _apiPort.toString());
     final addrCtrl = TextEditingController(text: _apiListenAddress);
     final userCtrl = TextEditingController(text: _apiUsername);
     final passCtrl = TextEditingController(text: _apiPassword);
+    /// Purpose: Return the current API settings form signature.
+    /// Inputs: None.
+    /// Returns: `String`.
+    /// Side effects: None.
+    /// Notes: Internal helper used within this function only.
     String signature() => formSignature([
       addrCtrl.text.trim(),
       portCtrl.text.trim(),
@@ -209,6 +274,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     }
   }
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final visibility = ref.watch(intimacyVisibilityProvider);
@@ -502,6 +572,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
+  /// Purpose: Provide the internal build section helper for this file.
+  /// Inputs: `context`, `title`, `children`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildSection(
     BuildContext context,
     String title,
@@ -524,6 +599,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
+  /// Purpose: Provide the internal show storage path dialog helper for this file.
+  /// Inputs: `context`.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _showStoragePathDialog(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
     final controller = TextEditingController(text: _storagePath);
@@ -588,6 +668,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     }
   }
 
+  /// Purpose: Provide the internal show theme picker helper for this file.
+  /// Inputs: `context`, `settings`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _showThemePicker(BuildContext context, AppSettings settings) {
     final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
@@ -624,6 +709,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
+  /// Purpose: Provide the internal show language picker helper for this file.
+  /// Inputs: `context`, `settings`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _showLanguagePicker(BuildContext context, AppSettings settings) {
     final l10n = AppLocalizations.of(context)!;
     final currentTag = settings.locale != null

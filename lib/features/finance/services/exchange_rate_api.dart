@@ -14,6 +14,11 @@ class ExchangeRateApi {
   ///
   /// Only updates pairs that already exist in the local data (preserves user's
   /// configured pairs). Returns `null` on network / parse failure.
+  /// Purpose: Fetch and merge from the relevant source.
+  /// Inputs: `data`.
+  /// Returns: `Future<ExchangeRateData?>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<ExchangeRateData?> fetchAndMerge(ExchangeRateData data) async {
     final pairs = data.currentRates.keys.toList();
     if (pairs.isEmpty) return null;
@@ -51,6 +56,11 @@ class ExchangeRateApi {
 
   /// Raw fetch: returns `{ "CNY": 7.25, "EUR": 0.92, ... }` for the given
   /// base currency, or `null` on failure.
+  /// Purpose: Provide the internal fetch rates helper for this file.
+  /// Inputs: `base`.
+  /// Returns: `Future<Map<String, double>?>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Future<Map<String, double>?> _fetchRates(String base) async {
     try {
       final uri = Uri.parse('$_baseUrl/$base');
@@ -67,6 +77,11 @@ class ExchangeRateApi {
 
   /// Check whether we should auto-fetch today.
   /// Returns `true` if [lastFetch] is null or on a different day than now.
+  /// Purpose: Implement the should fetch today behavior for this file.
+  /// Inputs: `lastFetch`.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: None.
   static bool shouldFetchToday(DateTime? lastFetch) {
     if (lastFetch == null) return true;
     final now = DateTime.now();

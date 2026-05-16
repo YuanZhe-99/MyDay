@@ -23,6 +23,11 @@ class ImportExportService {
 
   /// Export all data as a ZIP file containing JSON data files and images.
   /// Returns the exported file path, or null on failure.
+  /// Purpose: Implement the export zip behavior for this file.
+  /// Inputs: `destDir`.
+  /// Returns: `Future<String?>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<String?> exportZIP(String destDir) async {
     try {
       final appDir = await TodoStorage.getAppDir();
@@ -61,6 +66,11 @@ class ImportExportService {
 
   /// Export finance transactions as CSV.
   /// Returns the exported file path, or null on failure.
+  /// Purpose: Implement the export csv behavior for this file.
+  /// Inputs: `destDir`.
+  /// Returns: `Future<String?>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<String?> exportCSV(String destDir) async {
     try {
       final data = await FinanceStorage.load();
@@ -97,6 +107,11 @@ class ImportExportService {
 
   /// Export intimacy records as CSV.
   /// Returns the exported file path, or null on failure.
+  /// Purpose: Implement the export intimacy csv behavior for this file.
+  /// Inputs: `destDir`.
+  /// Returns: `Future<String?>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<String?> exportIntimacyCSV(String destDir) async {
     try {
       final data = await IntimacyStorage.load();
@@ -142,6 +157,11 @@ class ImportExportService {
 
   /// Export weight records as CSV.
   /// Format matches MyWeight² CSV: Date, Time, Weight (kg)
+  /// Purpose: Implement the export weight csv behavior for this file.
+  /// Inputs: `destDir`.
+  /// Returns: `Future<String?>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<String?> exportWeightCSV(String destDir) async {
     try {
       final data = await WeightStorage.load();
@@ -169,6 +189,11 @@ class ImportExportService {
 
   /// Import data from a previously exported ZIP file.
   /// Returns true on success.
+  /// Purpose: Implement the import zip behavior for this file.
+  /// Inputs: `filePath`.
+  /// Returns: `Future<bool>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<bool> importZIP(String filePath) async {
     try {
       final file = File(filePath);
@@ -203,6 +228,11 @@ class ImportExportService {
   // ── CSV helpers ──
 
   /// Parse a CSV line handling quoted fields with commas and escaped quotes.
+  /// Purpose: Provide the internal parse csv line helper for this file.
+  /// Inputs: `line`.
+  /// Returns: `List<String>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static List<String> _parseCsvLine(String line) {
     final fields = <String>[];
     final buf = StringBuffer();
@@ -238,6 +268,11 @@ class ImportExportService {
   /// Import finance transactions from CSV and merge into existing data.
   /// CSV columns: Date,Type,Category,Amount,Currency,Account,Note
   /// Returns (success, importedCount) tuple.
+  /// Purpose: Implement the import finance csv behavior for this file.
+  /// Inputs: `filePath`.
+  /// Returns: `Future<(bool, int)>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<(bool, int)> importFinanceCSV(String filePath) async {
     try {
       final file = File(filePath);
@@ -366,6 +401,11 @@ class ImportExportService {
   /// CSV columns: Date,Type,IsSolo,Partner,Toys,PleasureLevel,Duration(min),
   ///              HadOrgasm,WatchedPorn,Location,Notes
   /// Returns (success, importedCount) tuple.
+  /// Purpose: Implement the import intimacy csv behavior for this file.
+  /// Inputs: `filePath`.
+  /// Returns: `Future<(bool, int)>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<(bool, int)> importIntimacyCSV(String filePath) async {
     try {
       final file = File(filePath);
@@ -497,6 +537,11 @@ class ImportExportService {
   /// Supports format: Date, Time, Weight (kg)
   /// Also supports: Date,Time,Weight (kg) (no spaces after comma)
   /// Returns (success, importedCount) tuple.
+  /// Purpose: Implement the import weight csv behavior for this file.
+  /// Inputs: `filePath`.
+  /// Returns: `Future<(bool, int)>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<(bool, int)> importWeightCSV(String filePath) async {
     try {
       final file = File(filePath);

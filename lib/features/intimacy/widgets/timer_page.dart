@@ -16,6 +16,11 @@ class TimerPageResult {
   /// true if retention was explicitly set (even if null = permanent)
   final bool retentionChanged;
 
+  /// Purpose: Create a timer page result instance.
+  /// Inputs: `retentionChanged`.
+  /// Returns: A new `TimerPageResult` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const TimerPageResult({
     this.record,
     this.updatedHistory,
@@ -31,6 +36,11 @@ class TimerPage extends StatefulWidget {
   final List<TimerHistoryEntry> timerHistory;
   final int? timerHistoryRetentionDays;
 
+  /// Purpose: Create a timer page instance.
+  /// Inputs: `positions`.
+  /// Returns: A new `TimerPage` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const TimerPage({
     super.key,
     required this.partners,
@@ -40,6 +50,11 @@ class TimerPage extends StatefulWidget {
     this.timerHistoryRetentionDays,
   });
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new `State` instance.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   @override
   State<TimerPage> createState() => _TimerPageState();
 }
@@ -57,6 +72,11 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
   bool _retentionChanged = false;
   bool _historyChanged = false;
 
+  /// Purpose: Return elapsed.
+  /// Inputs: None.
+  /// Returns: `Duration`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Duration get _elapsed =>
       _accumulated +
       (_running && _startedAt != null
@@ -65,6 +85,11 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
 
   // ── lifecycle ──────────────────────────────────────────────────────
 
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Registers listeners and may kick off asynchronous loading.
+  /// Notes: Guard any post-await UI updates with `mounted` when needed.
   @override
   void initState() {
     super.initState();
@@ -76,6 +101,11 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
     }
   }
 
+  /// Purpose: Release listeners, controllers, and other owned resources.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Releases owned resources and unregisters listeners.
+  /// Notes: Call the superclass implementation in the expected lifecycle order.
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -83,6 +113,11 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
     super.dispose();
   }
 
+  /// Purpose: Implement the did change app lifecycle state behavior for this file.
+  /// Inputs: `state`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && _running) {
@@ -93,6 +128,11 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
 
   // ── retention ──────────────────────────────────────────────────────
 
+  /// Purpose: Provide the internal apply retention helper for this file.
+  /// Inputs: `entries`.
+  /// Returns: `List<TimerHistoryEntry>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   List<TimerHistoryEntry> _applyRetention(List<TimerHistoryEntry> entries) {
     if (_retentionDays == null) return entries;  // permanent
     final cutoff = DateTime.now().subtract(Duration(days: _retentionDays!));
@@ -101,6 +141,11 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
 
   // ── timer controls ─────────────────────────────────────────────────
 
+  /// Purpose: Provide the internal start helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _start() {
     _firstStartedAt ??= DateTime.now();
     _startedAt = DateTime.now();
@@ -109,6 +154,11 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
     setState(() {});
   }
 
+  /// Purpose: Provide the internal pause helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _pause() {
     if (_running && _startedAt != null) {
       _accumulated += DateTime.now().difference(_startedAt!);
@@ -119,6 +169,11 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
     setState(() {});
   }
 
+  /// Purpose: Provide the internal reset helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _reset() {
     _accumulated = Duration.zero;
     _firstStartedAt = null;
@@ -128,6 +183,11 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
     setState(() {});
   }
 
+  /// Purpose: Provide the internal ensure ticker helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _ensureTicker() {
     _ticker?.cancel();
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -135,10 +195,20 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
     });
   }
 
+  /// Purpose: Return session start time.
+  /// Inputs: None.
+  /// Returns: `DateTime?`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   DateTime? get _sessionStartTime => _firstStartedAt;
 
   // ── pop helpers ─────────────────────────────────────────────────────
 
+  /// Purpose: Provide the internal pop with history if changed helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _popWithHistoryIfChanged() {
     if (_historyChanged || _retentionChanged) {
       Navigator.pop(
@@ -156,6 +226,11 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
 
   // ── save ────────────────────────────────────────────────────────────
 
+  /// Purpose: Provide the internal save record helper for this file.
+  /// Inputs: `prefillDuration`.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _saveRecord({Duration? prefillDuration}) async {
     final elapsed = prefillDuration ?? _elapsed;
     final sessionStart = prefillDuration != null
@@ -201,6 +276,11 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
 
   // ── formatting ──────────────────────────────────────────────────────
 
+  /// Purpose: Provide the internal format duration helper for this file.
+  /// Inputs: `d`.
+  /// Returns: `String`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   String _formatDuration(Duration d) {
     final hours = d.inHours.toString().padLeft(2, '0');
     final minutes = (d.inMinutes % 60).toString().padLeft(2, '0');
@@ -208,10 +288,20 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
     return '$hours:$minutes:$seconds';
   }
 
+  /// Purpose: Provide the internal format date time helper for this file.
+  /// Inputs: `dt`.
+  /// Returns: `String`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   String _formatDateTime(DateTime dt) => DateFormat('MM/dd HH:mm:ss').format(dt);
 
   // ── build ───────────────────────────────────────────────────────────
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -385,6 +475,11 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
     );
   }
 
+  /// Purpose: Provide the internal build retention chip helper for this file.
+  /// Inputs: `theme`, `l10n`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildRetentionChip(ThemeData theme, AppLocalizations l10n) {
     final labels = {
       3: l10n.intimacyTimerRetention3d,

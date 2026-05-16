@@ -22,8 +22,18 @@ import 'exchange_rates_page.dart';
 import 'subscriptions_page.dart';
 
 class FinancePage extends StatefulWidget {
+  /// Purpose: Create a finance page instance.
+  /// Inputs: None.
+  /// Returns: A new `FinancePage` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const FinancePage({super.key});
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new `State` instance.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   @override
   State<FinancePage> createState() => _FinancePageState();
 }
@@ -47,6 +57,11 @@ class _FinancePageState extends State<FinancePage> {
   DateTime _settingsModifiedAt = DateTime.fromMillisecondsSinceEpoch(0);
   bool _loaded = false;
 
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Registers listeners and may kick off asynchronous loading.
+  /// Notes: Guard any post-await UI updates with `mounted` when needed.
   @override
   void initState() {
     super.initState();
@@ -55,6 +70,11 @@ class _FinancePageState extends State<FinancePage> {
     AutoSyncService.instance.addOnLocalDataChanged(_loadData);
   }
 
+  /// Purpose: Release listeners, controllers, and other owned resources.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Releases owned resources and unregisters listeners.
+  /// Notes: Call the superclass implementation in the expected lifecycle order.
   @override
   void dispose() {
     ReminderService.instance.onRenewalsProcessed = null;
@@ -62,6 +82,11 @@ class _FinancePageState extends State<FinancePage> {
     super.dispose();
   }
 
+  /// Purpose: Provide the internal load data helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _loadData() async {
     final data = await FinanceStorage.load();
     final rateData = await ExchangeRateStorage.load();
@@ -94,6 +119,11 @@ class _FinancePageState extends State<FinancePage> {
   }
 
   /// For each active subscription, generate transactions for overdue billing dates.
+  /// Purpose: Provide the internal process subscriptions helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _processSubscriptions() {
     final result = SubscriptionProcessor.process(_subscriptions, _transactions);
     if (result.changed) {
@@ -106,6 +136,11 @@ class _FinancePageState extends State<FinancePage> {
   }
 
   /// Subscriptions whose next billing date is within [days] days from now.
+  /// Purpose: Provide the internal get upcoming subs helper for this file.
+  /// Inputs: `days`.
+  /// Returns: `List<(Subscription, DateTime)>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   List<(Subscription, DateTime)> _getUpcomingSubs(int days) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -125,6 +160,11 @@ class _FinancePageState extends State<FinancePage> {
     return result;
   }
 
+  /// Purpose: Provide the internal save data helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _saveData() async {
     await FinanceStorage.save(
       FinanceData(
@@ -146,6 +186,11 @@ class _FinancePageState extends State<FinancePage> {
     _updateReminderService();
   }
 
+  /// Purpose: Provide the internal update reminder service helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _updateReminderService() {
     ReminderService.instance.updateSubscriptionData(
       subscriptions: _subscriptions,
@@ -154,6 +199,11 @@ class _FinancePageState extends State<FinancePage> {
     );
   }
 
+  /// Purpose: Provide the internal add transaction helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _addTransaction() async {
     final tx = await showDialog<Transaction>(
       context: context,
@@ -170,6 +220,11 @@ class _FinancePageState extends State<FinancePage> {
     }
   }
 
+  /// Purpose: Provide the internal delete transaction helper for this file.
+  /// Inputs: `tx`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _deleteTransaction(Transaction tx) {
     setState(() {
       _transactions.removeWhere((t) => t.id == tx.id);
@@ -177,6 +232,11 @@ class _FinancePageState extends State<FinancePage> {
     _saveData();
   }
 
+  /// Purpose: Provide the internal edit transaction helper for this file.
+  /// Inputs: `tx`.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _editTransaction(Transaction tx) async {
     final updated = await showDialog<Transaction>(
       context: context,
@@ -197,6 +257,11 @@ class _FinancePageState extends State<FinancePage> {
     }
   }
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -447,6 +512,11 @@ class _FinancePageState extends State<FinancePage> {
     );
   }
 
+  /// Purpose: Provide the internal pick default currency helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _pickDefaultCurrency() {
     final l10n = AppLocalizations.of(context)!;
     const currencies = [
@@ -487,6 +557,11 @@ class _FinancePageState extends State<FinancePage> {
     );
   }
 
+  /// Purpose: Provide the internal open accounts helper for this file.
+  /// Inputs: `context`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _openAccounts(BuildContext context) {
     Navigator.push(
       context,
@@ -521,6 +596,11 @@ class _FinancePageState extends State<FinancePage> {
     );
   }
 
+  /// Purpose: Provide the internal open analysis helper for this file.
+  /// Inputs: `context`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _openAnalysis(BuildContext context) {
     Navigator.push(
       context,
@@ -536,6 +616,11 @@ class _FinancePageState extends State<FinancePage> {
     );
   }
 
+  /// Purpose: Provide the internal open subscriptions helper for this file.
+  /// Inputs: `context`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _openSubscriptions(BuildContext context) {
     Navigator.push(
       context,
@@ -580,6 +665,11 @@ class _FinancePageState extends State<FinancePage> {
     );
   }
 
+  /// Purpose: Provide the internal show finance menu helper for this file.
+  /// Inputs: `context`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _showFinanceMenu(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
@@ -649,6 +739,11 @@ class _SummaryHeader extends StatelessWidget {
   final double totalAssets;
   final String currencyCode;
 
+  /// Purpose: Create a summary header instance.
+  /// Inputs: None.
+  /// Returns: A new `_SummaryHeader` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   const _SummaryHeader({
     required this.monthLabel,
     required this.monthExpense,
@@ -657,6 +752,11 @@ class _SummaryHeader extends StatelessWidget {
     required this.currencyCode,
   });
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -732,6 +832,11 @@ class _SummaryCard extends StatelessWidget {
   final Color color;
   final IconData icon;
 
+  /// Purpose: Create a summary card instance.
+  /// Inputs: None.
+  /// Returns: A new `_SummaryCard` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   const _SummaryCard({
     required this.label,
     required this.value,
@@ -739,6 +844,11 @@ class _SummaryCard extends StatelessWidget {
     required this.icon,
   });
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -775,12 +885,22 @@ class _TransactionTile extends StatelessWidget {
   final List<Category> categories;
   final List<Account> accounts;
 
+  /// Purpose: Create a transaction tile instance.
+  /// Inputs: `accounts`.
+  /// Returns: A new `_TransactionTile` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   const _TransactionTile({
     required this.transaction,
     required this.categories,
     this.accounts = const [],
   });
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -840,6 +960,11 @@ class _TransactionTile extends StatelessWidget {
     );
   }
 
+  /// Purpose: Provide the internal build leading helper for this file.
+  /// Inputs: Key parameters such as `account`, `cat`, `isExpense`, `isTransfer`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildLeading(
     Account? account,
     Category? cat,
@@ -848,6 +973,11 @@ class _TransactionTile extends StatelessWidget {
     Color color,
     ThemeData theme,
   ) {
+    /// Purpose: Build the fallback finance transaction avatar.
+    /// Inputs: None.
+    /// Returns: `Widget`.
+    /// Side effects: None.
+    /// Notes: Internal helper used within this function only.
     Widget defaultAvatar() => CircleAvatar(
       backgroundColor: color.withValues(alpha: 0.1),
       child: cat?.emoji != null

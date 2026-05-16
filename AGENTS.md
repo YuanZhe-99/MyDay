@@ -2,6 +2,26 @@
 
 This file is the operating guide for agents working on **MyDay!!!!!**. Read it before editing anything, then read the relevant source files and the user's request carefully. The user's message is the change request: plan the work, execute it in this workspace, verify it, and keep this document current when the project changes.
 
+## Function Explanation Layer
+
+Handwritten source files across the project now use short English function explanations as the first reading layer for future agents. Before reading a full implementation, read the structured explanation immediately above each function, method, significant callback helper, constructor, getter, setter, or similar declaration.
+
+Each explanation should stay concise and use this structure:
+
+- `Purpose: <one short sentence describing what the declaration is responsible for>`
+- `Inputs: <important parameters only; omit obvious ones if trivial>`
+- `Returns: <what the caller receives, or None>`
+- `Side effects: <state changes, file/network/database/UI effects, logging, mutation, or None>`
+- `Notes: <important assumptions, edge cases, invariants, or when the declaration should be used; prefer None when there is nothing special to add>`
+
+Maintenance rules:
+
+- When editing an existing function or method, update its explanation in the same change.
+- When adding a new function, method, significant callback helper, constructor, getter, or setter, add the explanation immediately above the declaration.
+- Prefer the established `///` doc-comment style in Dart and matching line comments/doc comments in other languages when appropriate.
+- Keep generated files editable only when the generated output is intentionally tracked and updated in the same change; otherwise update the source generator/input instead of hand-editing generated output.
+- Use these explanations as the first-pass orientation layer, but still verify important behavior in the implementation before making changes.
+
 ## Project Snapshot
 
 - **Name:** MyDay!!!!!, with five exclamation marks in user-facing app names, installer metadata, macOS bundle names, and notification titles.
@@ -24,7 +44,7 @@ Do not include secrets, credentials, private personal data, WebDAV credentials, 
 
 1. Treat the user's message as the modification request.
 2. Before making any modification, check whether the relevant remote has new commits by fetching and comparing the current branch with its upstream. If the branch is behind or has diverged, stop and resolve that situation before editing.
-3. Read this `AGENTS.md`, inspect the relevant source files, and understand the current behavior before editing.
+3. Read this `AGENTS.md`, then read the function explanations in the relevant source files as the first-pass orientation layer, then inspect the implementation details you need before editing.
 4. Make a concise plan when the work is non-trivial, then implement the requested changes directly in the workspace.
 5. Keep changes scoped. Do not revert unrelated user work in the tree.
 6. Update `AGENTS.md` in the same change set whenever architecture, behavior, data formats, commands, release process, version locations, remotes, caveats, feature descriptions, or project history change. This document replaces the older external summary role and must stay current and complete.

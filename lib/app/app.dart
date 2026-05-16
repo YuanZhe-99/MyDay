@@ -8,8 +8,18 @@ import 'router.dart';
 import 'theme.dart';
 
 class MyDayApp extends ConsumerWidget {
+  /// Purpose: Create a my day app instance.
+  /// Inputs: None.
+  /// Returns: A new `MyDayApp` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const MyDayApp({super.key});
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`, `ref`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(appSettingsProvider);

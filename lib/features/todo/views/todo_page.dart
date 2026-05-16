@@ -11,8 +11,18 @@ import '../widgets/edit_task_dialog.dart';
 import '../widgets/task_section.dart';
 
 class TodoPage extends StatefulWidget {
+  /// Purpose: Create a todo page instance.
+  /// Inputs: None.
+  /// Returns: A new `TodoPage` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const TodoPage({super.key});
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new `State` instance.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   @override
   State<TodoPage> createState() => _TodoPageState();
 }
@@ -42,6 +52,11 @@ class _TodoPageState extends State<TodoPage> {
   static const _taskSortName = 'name';
   static const _taskSortCustom = 'custom';
 
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Registers listeners and may kick off asynchronous loading.
+  /// Notes: Guard any post-await UI updates with `mounted` when needed.
   @override
   void initState() {
     super.initState();
@@ -49,12 +64,22 @@ class _TodoPageState extends State<TodoPage> {
     AutoSyncService.instance.addOnLocalDataChanged(_loadData);
   }
 
+  /// Purpose: Release listeners, controllers, and other owned resources.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Releases owned resources and unregisters listeners.
+  /// Notes: Call the superclass implementation in the expected lifecycle order.
   @override
   void dispose() {
     AutoSyncService.instance.removeOnLocalDataChanged(_loadData);
     super.dispose();
   }
 
+  /// Purpose: Provide the internal load data helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _loadData() async {
     final data = await TodoStorage.load();
     setState(() {
@@ -87,6 +112,11 @@ class _TodoPageState extends State<TodoPage> {
     _syncReminders();
   }
 
+  /// Purpose: Provide the internal save data helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _saveData() async {
     await TodoStorage.save(
       TodoData(
@@ -108,6 +138,11 @@ class _TodoPageState extends State<TodoPage> {
 
   // --- Reminder ---
 
+  /// Purpose: Provide the internal sync reminders helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _syncReminders() {
     ReminderService.instance.updateData(
       dailyTemplates: _dailyTemplates,
@@ -118,6 +153,11 @@ class _TodoPageState extends State<TodoPage> {
     );
   }
 
+  /// Purpose: Provide the internal show daily reminder settings helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _showDailyReminderSettings() async {
     await showModalBottomSheet(
       context: context,
@@ -232,13 +272,28 @@ class _TodoPageState extends State<TodoPage> {
 
   // --- Helpers ---
 
+  /// Purpose: Provide the internal is same day helper for this file.
+  /// Inputs: `a`, `b`.
+  /// Returns: `bool`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   bool _isSameDay(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
 
+  /// Purpose: Return is today.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   bool get _isToday => _isSameDay(_selectedDate, DateTime.now());
 
   /// Daily tasks for selected date — show template with per-date completion,
   /// filtered by startDate <= selectedDate and (deletedDate == null or deletedDate > selectedDate)
+  /// Purpose: Return daily for date.
+  /// Inputs: None.
+  /// Returns: `List<Task>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   List<Task> get _dailyForDate {
     final selDate = _dateOnly(_selectedDate);
     final list = _dailyTemplates
@@ -267,25 +322,60 @@ class _TodoPageState extends State<TodoPage> {
   }
 
   /// Strip time from DateTime for comparison
+  /// Purpose: Provide the internal date only helper for this file.
+  /// Inputs: `d`.
+  /// Returns: `DateTime`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
+  /// Purpose: Provide the internal task type key helper for this file.
+  /// Inputs: `type`.
+  /// Returns: `String`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   String _taskTypeKey(TaskType type) => type.name;
 
+  /// Purpose: Provide the internal task sort mode helper for this file.
+  /// Inputs: `type`.
+  /// Returns: `String`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   String _taskSortMode(TaskType type) =>
       _taskSortModes[_taskTypeKey(type)] ?? _taskSortCreated;
 
+  /// Purpose: Provide the internal touch settings helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _touchSettings() {
     _settingsModifiedAt = DateTime.now().toUtc();
   }
 
+  /// Purpose: Provide the internal tasks for type helper for this file.
+  /// Inputs: `type`.
+  /// Returns: `List<Task>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   List<Task> _tasksForType(TaskType type) {
     if (type == TaskType.daily) return List.of(_dailyTemplates);
     return _oneTimeTasks.where((t) => t.type == type).toList();
   }
 
+  /// Purpose: Provide the internal compare text helper for this file.
+  /// Inputs: `a`, `b`.
+  /// Returns: `int`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   int _compareText(String a, String b) =>
       a.toLowerCase().compareTo(b.toLowerCase());
 
+  /// Purpose: Provide the internal compare nullable dates helper for this file.
+  /// Inputs: `a`, `b`.
+  /// Returns: `int`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   int _compareNullableDates(DateTime? a, DateTime? b) {
     if (a == null && b == null) return 0;
     if (a == null) return 1;
@@ -293,15 +383,30 @@ class _TodoPageState extends State<TodoPage> {
     return a.compareTo(b);
   }
 
+  /// Purpose: Provide the internal compare task fallback helper for this file.
+  /// Inputs: `a`, `b`.
+  /// Returns: `int`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   int _compareTaskFallback(Task a, Task b) {
     final byCreated = a.createdDate.compareTo(b.createdDate);
     if (byCreated != 0) return byCreated;
     return _compareText(a.title, b.title);
   }
 
+  /// Purpose: Provide the internal task due sort date helper for this file.
+  /// Inputs: `task`.
+  /// Returns: `DateTime?`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   DateTime? _taskDueSortDate(Task task) =>
       task.dueDate ?? task.scheduledDate ?? task.startDate;
 
+  /// Purpose: Provide the internal normalized task order helper for this file.
+  /// Inputs: `type`.
+  /// Returns: `List<String>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   List<String> _normalizedTaskOrder(TaskType type) {
     final key = _taskTypeKey(type);
     final allIds = _tasksForType(type).map((t) => t.id).toList();
@@ -317,6 +422,11 @@ class _TodoPageState extends State<TodoPage> {
     return normalized;
   }
 
+  /// Purpose: Provide the internal sort tasks for mode helper for this file.
+  /// Inputs: `tasks`, `type`, `mode`.
+  /// Returns: `List<Task>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   List<Task> _sortTasksForMode(List<Task> tasks, TaskType type, String mode) {
     final list = List<Task>.of(tasks);
     switch (mode) {
@@ -351,9 +461,19 @@ class _TodoPageState extends State<TodoPage> {
     return list;
   }
 
+  /// Purpose: Provide the internal sort tasks helper for this file.
+  /// Inputs: `tasks`, `type`.
+  /// Returns: `List<Task>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   List<Task> _sortTasks(List<Task> tasks, TaskType type) =>
       _sortTasksForMode(tasks, type, _taskSortMode(type));
 
+  /// Purpose: Provide the internal append task to custom order if needed helper for this file.
+  /// Inputs: `task`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _appendTaskToCustomOrderIfNeeded(Task task) {
     if (_taskSortMode(task.type) != _taskSortCustom) return;
     _taskCustomOrders[_taskTypeKey(task.type)] = _normalizedTaskOrder(
@@ -362,6 +482,11 @@ class _TodoPageState extends State<TodoPage> {
     _touchSettings();
   }
 
+  /// Purpose: Provide the internal remove task from custom orders helper for this file.
+  /// Inputs: `taskId`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _removeTaskFromCustomOrders(String taskId) {
     var changed = false;
     for (final entry in _taskCustomOrders.entries) {
@@ -370,6 +495,11 @@ class _TodoPageState extends State<TodoPage> {
     if (changed) _touchSettings();
   }
 
+  /// Purpose: Provide the internal on task sort mode changed helper for this file.
+  /// Inputs: `type`, `mode`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _onTaskSortModeChanged(TaskType type, String mode) {
     final key = _taskTypeKey(type);
     setState(() {
@@ -390,6 +520,11 @@ class _TodoPageState extends State<TodoPage> {
     _saveData();
   }
 
+  /// Purpose: Provide the internal on task reorder helper for this file.
+  /// Inputs: `type`, `visibleTasks`, `oldIndex`, `newIndex`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _onTaskReorder(
     TaskType type,
     List<Task> visibleTasks,
@@ -430,6 +565,11 @@ class _TodoPageState extends State<TodoPage> {
   /// Whether a one-time task should be visible on the selected date:
   /// - Completed: show on scheduledDate AND completedDate, not in between
   /// - Not completed: show from scheduledDate through today (carry forward)
+  /// Purpose: Provide the internal one time visible on date helper for this file.
+  /// Inputs: `t`.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   bool _oneTimeVisibleOnDate(Task t) {
     if (t.scheduledDate == null) return false;
     final selDate = _dateOnly(_selectedDate);
@@ -446,6 +586,11 @@ class _TodoPageState extends State<TodoPage> {
   }
 
   /// One-time routine tasks for selected date
+  /// Purpose: Return routine for date.
+  /// Inputs: None.
+  /// Returns: `List<Task>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   List<Task> get _routineForDate {
     final list = _oneTimeTasks
         .where(
@@ -456,6 +601,11 @@ class _TodoPageState extends State<TodoPage> {
   }
 
   /// One-time work tasks for selected date
+  /// Purpose: Return work for date.
+  /// Inputs: None.
+  /// Returns: `List<Task>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   List<Task> get _workForDate {
     final list = _oneTimeTasks
         .where((t) => t.type == TaskType.workOnce && _oneTimeVisibleOnDate(t))
@@ -466,6 +616,11 @@ class _TodoPageState extends State<TodoPage> {
   // --- Calendar helpers ---
 
   /// Daily templates visible on a given date (respects startDate/deletedDate)
+  /// Purpose: Provide the internal daily templates for date helper for this file.
+  /// Inputs: `date`.
+  /// Returns: `List<Task>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   List<Task> _dailyTemplatesForDate(DateTime date) {
     final d = _dateOnly(date);
     return _dailyTemplates.where((t) {
@@ -475,6 +630,11 @@ class _TodoPageState extends State<TodoPage> {
     }).toList();
   }
 
+  /// Purpose: Provide the internal all daily completed on helper for this file.
+  /// Inputs: `date`.
+  /// Returns: `bool`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   bool _allDailyCompletedOn(DateTime date) {
     final templates = _dailyTemplatesForDate(date);
     if (templates.isEmpty) return false;
@@ -484,6 +644,11 @@ class _TodoPageState extends State<TodoPage> {
     return true;
   }
 
+  /// Purpose: Provide the internal all tasks completed on helper for this file.
+  /// Inputs: `date`.
+  /// Returns: `bool`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   bool _allTasksCompletedOn(DateTime date) {
     if (!_allDailyCompletedOn(date)) return false;
     final selDate = _dateOnly(date);
@@ -503,6 +668,11 @@ class _TodoPageState extends State<TodoPage> {
     return true;
   }
 
+  /// Purpose: Provide the internal some daily completed on helper for this file.
+  /// Inputs: `date`.
+  /// Returns: `bool`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   bool _someDailyCompletedOn(DateTime date) {
     final templates = _dailyTemplatesForDate(date);
     if (templates.isEmpty) return false;
@@ -518,6 +688,11 @@ class _TodoPageState extends State<TodoPage> {
     return anyDone && !allDone;
   }
 
+  /// Purpose: Provide the internal show calendar helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _showCalendar() async {
     final picked = await showDialog<DateTime>(
       context: context,
@@ -535,12 +710,22 @@ class _TodoPageState extends State<TodoPage> {
 
   // --- Actions ---
 
+  /// Purpose: Provide the internal change date helper for this file.
+  /// Inputs: `delta`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _changeDate(int delta) {
     setState(() {
       _selectedDate = _selectedDate.add(Duration(days: delta));
     });
   }
 
+  /// Purpose: Provide the internal toggle task helper for this file.
+  /// Inputs: `task`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _toggleTask(Task task) {
     Task? completedWithRecurrence;
     setState(() {
@@ -603,6 +788,11 @@ class _TodoPageState extends State<TodoPage> {
     }
   }
 
+  /// Purpose: Provide the internal offer next occurrence helper for this file.
+  /// Inputs: `completedTask`.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _offerNextOccurrence(Task completedTask) async {
     final l10n = AppLocalizations.of(context)!;
     final nextDate = completedTask.recurrence!.nextDate(
@@ -637,6 +827,11 @@ class _TodoPageState extends State<TodoPage> {
     }
   }
 
+  /// Purpose: Provide the internal delete task helper for this file.
+  /// Inputs: `task`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _deleteTask(Task task) {
     setState(() {
       if (task.type == TaskType.daily) {
@@ -662,6 +857,11 @@ class _TodoPageState extends State<TodoPage> {
     _saveData();
   }
 
+  /// Purpose: Provide the internal toggle subtask helper for this file.
+  /// Inputs: `task`, `subtask`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _toggleSubtask(Task task, SubTask subtask) {
     setState(() {
       if (task.type == TaskType.daily) {
@@ -685,6 +885,11 @@ class _TodoPageState extends State<TodoPage> {
     _saveData();
   }
 
+  /// Purpose: Provide the internal add task helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _addTask() async {
     final task = await showDialog<Task>(
       context: context,
@@ -703,6 +908,11 @@ class _TodoPageState extends State<TodoPage> {
     }
   }
 
+  /// Purpose: Provide the internal edit task helper for this file.
+  /// Inputs: `task`.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _editTask(Task task) async {
     // Find the original template (un-mapped) for daily tasks
     final originalTask = task.type == TaskType.daily
@@ -738,6 +948,11 @@ class _TodoPageState extends State<TodoPage> {
     }
   }
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -910,6 +1125,11 @@ class _CalendarDialog extends StatefulWidget {
   final bool Function(DateTime) allTasksCompleted;
   final bool Function(DateTime) someDailyCompleted;
 
+  /// Purpose: Create a calendar dialog instance.
+  /// Inputs: None.
+  /// Returns: A new `_CalendarDialog` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   const _CalendarDialog({
     required this.selectedDate,
     required this.allDailyCompleted,
@@ -917,6 +1137,11 @@ class _CalendarDialog extends StatefulWidget {
     required this.someDailyCompleted,
   });
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new `State` instance.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   @override
   State<_CalendarDialog> createState() => _CalendarDialogState();
 }
@@ -924,24 +1149,44 @@ class _CalendarDialog extends StatefulWidget {
 class _CalendarDialogState extends State<_CalendarDialog> {
   late DateTime _viewMonth;
 
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Registers listeners and may kick off asynchronous loading.
+  /// Notes: Guard any post-await UI updates with `mounted` when needed.
   @override
   void initState() {
     super.initState();
     _viewMonth = DateTime(widget.selectedDate.year, widget.selectedDate.month);
   }
 
+  /// Purpose: Provide the internal prev month helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _prevMonth() {
     setState(() {
       _viewMonth = DateTime(_viewMonth.year, _viewMonth.month - 1);
     });
   }
 
+  /// Purpose: Provide the internal next month helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _nextMonth() {
     setState(() {
       _viewMonth = DateTime(_viewMonth.year, _viewMonth.month + 1);
     });
   }
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

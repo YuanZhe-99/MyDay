@@ -9,6 +9,11 @@ class Partner {
   final DateTime? endDate;
   final DateTime modifiedAt;
 
+  /// Purpose: Create a partner instance.
+  /// Inputs: None.
+  /// Returns: A new `Partner` instance.
+  /// Side effects: None.
+  /// Notes: None.
   Partner({
     String? id,
     required this.name,
@@ -20,6 +25,11 @@ class Partner {
   }) : id = id ?? const Uuid().v4(),
        modifiedAt = modifiedAt ?? DateTime.now();
 
+  /// Purpose: Serialize this value into a JSON-compatible map.
+  /// Inputs: None.
+  /// Returns: A JSON-compatible map.
+  /// Side effects: None.
+  /// Notes: Keep the output aligned with the persisted file and sync format.
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,
@@ -30,6 +40,11 @@ class Partner {
     'modifiedAt': modifiedAt.toIso8601String(),
   };
 
+  /// Purpose: Create an instance from a JSON-compatible map.
+  /// Inputs: `json`.
+  /// Returns: A new `Partner.fromJson` instance.
+  /// Side effects: None.
+  /// Notes: Use this path when reading the persisted or transferred data format for this type.
   factory Partner.fromJson(Map<String, dynamic> json) => Partner(
     id: json['id'] as String,
     name: json['name'] as String,
@@ -58,6 +73,11 @@ class Toy {
   final double? price;
   final DateTime modifiedAt;
 
+  /// Purpose: Create a toy instance.
+  /// Inputs: None.
+  /// Returns: A new `Toy` instance.
+  /// Side effects: None.
+  /// Notes: None.
   Toy({
     String? id,
     required this.name,
@@ -71,6 +91,11 @@ class Toy {
   }) : id = id ?? const Uuid().v4(),
        modifiedAt = modifiedAt ?? DateTime.now();
 
+  /// Purpose: Serialize this value into a JSON-compatible map.
+  /// Inputs: None.
+  /// Returns: A JSON-compatible map.
+  /// Side effects: None.
+  /// Notes: Keep the output aligned with the persisted file and sync format.
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,
@@ -83,6 +108,11 @@ class Toy {
     'modifiedAt': modifiedAt.toIso8601String(),
   };
 
+  /// Purpose: Create an instance from a JSON-compatible map.
+  /// Inputs: `json`.
+  /// Returns: A new `Toy.fromJson` instance.
+  /// Side effects: None.
+  /// Notes: Use this path when reading the persisted or transferred data format for this type.
   factory Toy.fromJson(Map<String, dynamic> json) => Toy(
     id: json['id'] as String,
     name: json['name'] as String,
@@ -108,10 +138,20 @@ class Position {
   final String? emoji;
   final DateTime modifiedAt;
 
+  /// Purpose: Create a position instance.
+  /// Inputs: `modifiedAt`.
+  /// Returns: A new `Position` instance.
+  /// Side effects: None.
+  /// Notes: None.
   Position({String? id, required this.name, this.emoji, DateTime? modifiedAt})
     : id = id ?? const Uuid().v4(),
       modifiedAt = modifiedAt ?? DateTime.now();
 
+  /// Purpose: Serialize this value into a JSON-compatible map.
+  /// Inputs: None.
+  /// Returns: A JSON-compatible map.
+  /// Side effects: None.
+  /// Notes: Keep the output aligned with the persisted file and sync format.
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,
@@ -119,6 +159,11 @@ class Position {
     'modifiedAt': modifiedAt.toIso8601String(),
   };
 
+  /// Purpose: Create an instance from a JSON-compatible map.
+  /// Inputs: `json`.
+  /// Returns: A new `Position.fromJson` instance.
+  /// Side effects: None.
+  /// Notes: Use this path when reading the persisted or transferred data format for this type.
   factory Position.fromJson(Map<String, dynamic> json) => Position(
     id: json['id'] as String,
     name: json['name'] as String,
@@ -145,6 +190,11 @@ class IntimacyRecord {
   final bool watchedPorn;
   final DateTime modifiedAt;
 
+  /// Purpose: Create a intimacy record instance.
+  /// Inputs: `isSolo`.
+  /// Returns: A new `IntimacyRecord` instance.
+  /// Side effects: None.
+  /// Notes: None.
   IntimacyRecord({
     String? id,
     required this.type,
@@ -164,6 +214,11 @@ class IntimacyRecord {
        datetime = datetime ?? DateTime.now(),
        modifiedAt = modifiedAt ?? DateTime.now();
 
+  /// Purpose: Serialize this value into a JSON-compatible map.
+  /// Inputs: None.
+  /// Returns: A JSON-compatible map.
+  /// Side effects: None.
+  /// Notes: Keep the output aligned with the persisted file and sync format.
   Map<String, dynamic> toJson() => {
     'id': id,
     'type': type,
@@ -181,6 +236,11 @@ class IntimacyRecord {
     'modifiedAt': modifiedAt.toIso8601String(),
   };
 
+  /// Purpose: Create an instance from a JSON-compatible map.
+  /// Inputs: `json`.
+  /// Returns: A new `IntimacyRecord.fromJson` instance.
+  /// Side effects: None.
+  /// Notes: Use this path when reading the persisted or transferred data format for this type.
   factory IntimacyRecord.fromJson(Map<String, dynamic> json) {
     // Backward compat: old records had 'partner' string field
     final isSolo = json['isSolo'] as bool? ?? false;
@@ -217,13 +277,28 @@ class IntimacyRecord {
 class TimerHistoryEntry {
   final DateTime start;
   final Duration duration;
+  /// Purpose: Create a timer history entry instance.
+  /// Inputs: `duration`.
+  /// Returns: A new `TimerHistoryEntry` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const TimerHistoryEntry({required this.start, required this.duration});
 
+  /// Purpose: Serialize this value into a JSON-compatible map.
+  /// Inputs: None.
+  /// Returns: A JSON-compatible map.
+  /// Side effects: None.
+  /// Notes: Keep the output aligned with the persisted file and sync format.
   Map<String, dynamic> toJson() => {
     'start': start.toIso8601String(),
     'durationMs': duration.inMilliseconds,
   };
 
+  /// Purpose: Create an instance from a JSON-compatible map.
+  /// Inputs: `json`.
+  /// Returns: A new `TimerHistoryEntry.fromJson` instance.
+  /// Side effects: None.
+  /// Notes: Use this path when reading the persisted or transferred data format for this type.
   factory TimerHistoryEntry.fromJson(Map<String, dynamic> json) {
     // Support legacy entries that stored 'end' instead of 'durationMs'
     if (json.containsKey('durationMs')) {
@@ -253,6 +328,11 @@ class IntimacyData {
   final Map<String, List<String>> toyCustomOrders;
   final DateTime settingsModifiedAt;
 
+  /// Purpose: Create a intimacy data instance.
+  /// Inputs: `positions`.
+  /// Returns: A new `IntimacyData` instance.
+  /// Side effects: None.
+  /// Notes: None.
   IntimacyData({
     required this.partners,
     required this.toys,
@@ -267,6 +347,11 @@ class IntimacyData {
     DateTime? settingsModifiedAt,
   }) : settingsModifiedAt = settingsModifiedAt ?? DateTime.now().toUtc();
 
+  /// Purpose: Serialize this value into a JSON-compatible map.
+  /// Inputs: None.
+  /// Returns: A JSON-compatible map.
+  /// Side effects: None.
+  /// Notes: Keep the output aligned with the persisted file and sync format.
   Map<String, dynamic> toJson() => {
     'partners': partners.map((p) => p.toJson()).toList(),
     'toys': toys.map((t) => t.toJson()).toList(),
@@ -283,6 +368,11 @@ class IntimacyData {
     'settingsModifiedAt': settingsModifiedAt.toIso8601String(),
   };
 
+  /// Purpose: Create an instance from a JSON-compatible map.
+  /// Inputs: `json`.
+  /// Returns: A new `IntimacyData.fromJson` instance.
+  /// Side effects: None.
+  /// Notes: Use this path when reading the persisted or transferred data format for this type.
   factory IntimacyData.fromJson(Map<String, dynamic> json) => IntimacyData(
     partners:
         (json['partners'] as List<dynamic>?)

@@ -9,8 +9,18 @@ class SubscriptionProcessor {
   /// Set this to override DateTime.now() for testing / debugging.
   static DateTime? debugNowOverride;
 
+  /// Purpose: Return now.
+  /// Inputs: None.
+  /// Returns: `DateTime`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   static DateTime get _now => debugNowOverride ?? DateTime.now();
 
+  /// Purpose: Generate overdue subscription transactions and advance persisted billing dates.
+  /// Inputs: `subscriptions`, `existingTransactions`.
+  /// Returns: `({List<Subscription> subs, List<Transaction> txs, bool changed})`.
+  /// Side effects: None.
+  /// Notes: Returns updated subscriptions plus any generated transactions for catch-up billing.
   static ({List<Subscription> subs, List<Transaction> txs, bool changed}) process(
     List<Subscription> subscriptions,
     List<Transaction> existingTransactions,
@@ -96,6 +106,11 @@ class SubscriptionProcessor {
     return (subs: updatedSubs, txs: newTxs, changed: changed);
   }
 
+  /// Purpose: Provide the internal with next billing date helper for this file.
+  /// Inputs: `sub`, `date`, `isActive`.
+  /// Returns: `Subscription`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Subscription _withNextBillingDate(Subscription sub, DateTime date, {bool? isActive}) {
     return Subscription(
       id: sub.id,

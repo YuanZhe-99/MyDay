@@ -15,6 +15,11 @@ class AddTransactionDialog extends StatefulWidget {
   final String? currentSnapshotId;
   final String defaultCurrency;
 
+  /// Purpose: Create a add transaction dialog instance.
+  /// Inputs: `categories`.
+  /// Returns: A new `AddTransactionDialog` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const AddTransactionDialog({
     super.key,
     this.categories = const [],
@@ -24,6 +29,11 @@ class AddTransactionDialog extends StatefulWidget {
     this.defaultCurrency = 'CNY',
   });
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new `State` instance.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   @override
   State<AddTransactionDialog> createState() => _AddTransactionDialogState();
 }
@@ -40,7 +50,17 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
   Account? _selectedToAccount;
   late final String _initialSignature;
 
+  /// Purpose: Return is editing.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   bool get _isEditing => widget.transaction != null;
+  /// Purpose: Return is cross currency.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   bool get _isCrossCurrency =>
       _type == TransactionType.transfer &&
       _selectedAccount != null &&
@@ -64,6 +84,11 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
     'INR': '₹',
   };
 
+  /// Purpose: Return currency items.
+  /// Inputs: None.
+  /// Returns: `List<DropdownMenuItem<String>>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   List<DropdownMenuItem<String>> get _currencyItems {
     final codes = [
       'CNY',
@@ -92,6 +117,11 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
         .toList();
   }
 
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Registers listeners and may kick off asynchronous loading.
+  /// Notes: Guard any post-await UI updates with `mounted` when needed.
   @override
   void initState() {
     super.initState();
@@ -128,6 +158,11 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
     _initialSignature = _signature();
   }
 
+  /// Purpose: Release listeners, controllers, and other owned resources.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Releases owned resources and unregisters listeners.
+  /// Notes: Call the superclass implementation in the expected lifecycle order.
   @override
   void dispose() {
     _amountController.dispose();
@@ -136,6 +171,11 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
     super.dispose();
   }
 
+  /// Purpose: Provide the internal open calc keyboard helper for this file.
+  /// Inputs: `controller`, `label`.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _openCalcKeyboard(
     TextEditingController controller,
     String label,
@@ -149,6 +189,11 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
     if (result != null) setState(() => controller.text = result);
   }
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -332,6 +377,11 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
     );
   }
 
+  /// Purpose: Provide the internal build account label helper for this file.
+  /// Inputs: `a`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildAccountLabel(Account a) {
     final label = a.emoji != null
         ? '${a.emoji} ${a.name} (${a.bankOrApp})'
@@ -364,8 +414,18 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
     return Text(label, overflow: TextOverflow.ellipsis);
   }
 
+  /// Purpose: Provide the internal has unsaved changes helper for this file.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   bool _hasUnsavedChanges() => _signature() != _initialSignature;
 
+  /// Purpose: Provide the internal signature helper for this file.
+  /// Inputs: None.
+  /// Returns: `String`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   String _signature() => formSignature([
     _amountController.text.trim(),
     _toAmountController.text.trim(),
@@ -378,6 +438,11 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
     _selectedToAccount?.id,
   ]);
 
+  /// Purpose: Provide the internal submit helper for this file.
+  /// Inputs: `guard`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _submit(UnsavedChangesController guard) {
     final amount = double.tryParse(_amountController.text.trim());
     if (amount == null || amount <= 0) return;
@@ -412,9 +477,19 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
     guard.pop(tx);
   }
 
+  /// Purpose: Return filtered categories.
+  /// Inputs: None.
+  /// Returns: `List<Category>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   List<Category> get _filteredCategories =>
       widget.categories.where((c) => c.type == _type).toList();
 
+  /// Purpose: Provide the internal build category picker helper for this file.
+  /// Inputs: `theme`, `l10n`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildCategoryPicker(ThemeData theme, AppLocalizations l10n) {
     final cats = _filteredCategories;
     if (cats.isEmpty) {
@@ -440,6 +515,11 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
     );
   }
 
+  /// Purpose: Provide the internal build account picker helper for this file.
+  /// Inputs: `theme`, `l10n`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildAccountPicker(ThemeData theme, AppLocalizations l10n) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -517,8 +597,18 @@ class _CalcKeyboard extends StatefulWidget {
   final String initial;
   final String label;
 
+  /// Purpose: Create a calc keyboard instance.
+  /// Inputs: `initial`.
+  /// Returns: A new `_CalcKeyboard` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   const _CalcKeyboard({this.initial = '', required this.label});
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new `State` instance.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   @override
   State<_CalcKeyboard> createState() => _CalcKeyboardState();
 }
@@ -526,20 +616,45 @@ class _CalcKeyboard extends StatefulWidget {
 class _CalcKeyboardState extends State<_CalcKeyboard> {
   late String _expr;
 
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Registers listeners and may kick off asynchronous loading.
+  /// Notes: Guard any post-await UI updates with `mounted` when needed.
   @override
   void initState() {
     super.initState();
     _expr = widget.initial;
   }
 
+  /// Purpose: Provide the internal append helper for this file.
+  /// Inputs: `s`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _append(String s) => setState(() => _expr += s);
 
+  /// Purpose: Provide the internal backspace helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _backspace() => setState(() {
     if (_expr.isNotEmpty) _expr = _expr.substring(0, _expr.length - 1);
   });
 
+  /// Purpose: Provide the internal clear helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _clear() => setState(() => _expr = '');
 
+  /// Purpose: Provide the internal confirm helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _confirm() {
     final result = _evalExpr(_expr);
     if (result != null && result > 0) {
@@ -552,6 +667,11 @@ class _CalcKeyboardState extends State<_CalcKeyboard> {
     }
   }
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -714,6 +834,11 @@ class _CalcKeyboardState extends State<_CalcKeyboard> {
 
 // ── Expression evaluator ─────────────────────────────────────────────────────
 
+/// Purpose: Provide the internal eval expr helper for this file.
+/// Inputs: `expr`.
+/// Returns: `double?`.
+/// Side effects: May update UI state or trigger user-facing flows.
+/// Notes: Internal helper used within this file only.
 double? _evalExpr(String expr) {
   expr = expr.trim().replaceAll('×', '*').replaceAll('÷', '/');
   if (expr.isEmpty) return null;
@@ -728,14 +853,29 @@ class _ExprParser {
   final String src;
   int _pos = 0;
 
+  /// Purpose: Create a expr parser instance.
+  /// Inputs: `src`.
+  /// Returns: A new `_ExprParser` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   _ExprParser(this.src);
 
+  /// Purpose: Implement the parse behavior for this file.
+  /// Inputs: None.
+  /// Returns: `double`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   double parse() {
     final v = _parseAddSub();
     if (_pos != src.length) throw const FormatException('unexpected char');
     return v;
   }
 
+  /// Purpose: Provide the internal parse add sub helper for this file.
+  /// Inputs: None.
+  /// Returns: `double`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   double _parseAddSub() {
     var v = _parseMulDiv();
     while (_pos < src.length && (src[_pos] == '+' || src[_pos] == '-')) {
@@ -746,6 +886,11 @@ class _ExprParser {
     return v;
   }
 
+  /// Purpose: Provide the internal parse mul div helper for this file.
+  /// Inputs: None.
+  /// Returns: `double`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   double _parseMulDiv() {
     var v = _parseNumber();
     while (_pos < src.length && (src[_pos] == '*' || src[_pos] == '/')) {
@@ -757,6 +902,11 @@ class _ExprParser {
     return v;
   }
 
+  /// Purpose: Provide the internal parse number helper for this file.
+  /// Inputs: None.
+  /// Returns: `double`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   double _parseNumber() {
     final start = _pos;
     // Allow leading minus for unary negation only at start of expression

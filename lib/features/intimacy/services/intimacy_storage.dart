@@ -9,11 +9,21 @@ class IntimacyStorage {
   static const _fileName = 'intimacy_data.json';
   static const _legacyTimerFileName = 'timer_history.json';
 
+  /// Purpose: Provide the internal get file helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<File>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Future<File> _getFile() async {
     final appDir = await TodoStorage.getAppDir();
     return File('${appDir.path}/$_fileName');
   }
 
+  /// Purpose: Implement the load behavior for this file.
+  /// Inputs: None.
+  /// Returns: `Future<IntimacyData?>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<IntimacyData?> load() async {
     try {
       final file = await _getFile();
@@ -32,6 +42,11 @@ class IntimacyStorage {
     }
   }
 
+  /// Purpose: Implement the save behavior for this file.
+  /// Inputs: `data`.
+  /// Returns: `Future<void>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<void> save(IntimacyData data) async {
     final file = await _getFile();
     final jsonStr = await JsonPreservation.encodeForFile(
@@ -43,6 +58,11 @@ class IntimacyStorage {
   }
 
   /// Migrate old timer_history.json entries into IntimacyData, then delete old file.
+  /// Purpose: Provide the internal migrate legacy timer history helper for this file.
+  /// Inputs: `data`.
+  /// Returns: `Future<IntimacyData>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Future<IntimacyData> _migrateLegacyTimerHistory(
     IntimacyData data,
   ) async {

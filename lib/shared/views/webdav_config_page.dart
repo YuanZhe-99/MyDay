@@ -5,8 +5,18 @@ import '../services/webdav_service.dart';
 import '../widgets/sync_conflict_dialog.dart';
 
 class WebDAVConfigPage extends StatefulWidget {
+  /// Purpose: Create a webdav config page instance.
+  /// Inputs: None.
+  /// Returns: A new `WebDAVConfigPage` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const WebDAVConfigPage({super.key});
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new `State` instance.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   @override
   State<WebDAVConfigPage> createState() => _WebDAVConfigPageState();
 }
@@ -22,12 +32,22 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
   bool _isConfigured = false;
   bool _autoSync = false;
 
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Registers listeners and may kick off asynchronous loading.
+  /// Notes: Guard any post-await UI updates with `mounted` when needed.
   @override
   void initState() {
     super.initState();
     _loadConfig();
   }
 
+  /// Purpose: Provide the internal load config helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _loadConfig() async {
     final config = await WebDAVService.loadConfig();
     if (config != null) {
@@ -41,6 +61,11 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
     if (mounted) setState(() => _loading = false);
   }
 
+  /// Purpose: Release listeners, controllers, and other owned resources.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Releases owned resources and unregisters listeners.
+  /// Notes: Call the superclass implementation in the expected lifecycle order.
   @override
   void dispose() {
     _urlController.dispose();
@@ -50,6 +75,11 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
     super.dispose();
   }
 
+  /// Purpose: Return current config.
+  /// Inputs: None.
+  /// Returns: `WebDAVConfig`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   WebDAVConfig get _currentConfig => WebDAVConfig(
         serverUrl: _urlController.text.trim(),
         username: _userController.text.trim(),
@@ -58,6 +88,11 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
         autoSync: _autoSync,
       );
 
+  /// Purpose: Provide the internal save config helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _saveConfig() async {
     final config = _currentConfig;
     await WebDAVService.saveConfig(config);
@@ -69,6 +104,11 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
     }
   }
 
+  /// Purpose: Provide the internal test connection helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _testConnection() async {
     setState(() => _testing = true);
     final ok = await WebDAVService.testConnection(_currentConfig);
@@ -82,6 +122,11 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
     }
   }
 
+  /// Purpose: Provide the internal sync now helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _syncNow() async {
     setState(() => _syncing = true);
     final result = await WebDAVService.sync(_currentConfig);
@@ -135,6 +180,11 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
     }
   }
 
+  /// Purpose: Provide the internal disconnect helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _disconnect() async {
     await WebDAVService.deleteConfig();
     _urlController.clear();
@@ -152,12 +202,22 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
     }
   }
 
+  /// Purpose: Provide the internal fill nextcloud helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _fillNextcloud() {
     _urlController.text = 'https://your-nextcloud-host/remote.php/dav/files/USERNAME';
     _pathController.text = '/MyDay';
     setState(() {});
   }
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

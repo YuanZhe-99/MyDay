@@ -59,6 +59,11 @@ class CategoriesPage extends StatefulWidget {
   final String defaultCurrency;
   final void Function(List<Transaction>)? onTransactionsChanged;
 
+  /// Purpose: Create a categories page instance.
+  /// Inputs: `transactions`.
+  /// Returns: A new `CategoriesPage` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const CategoriesPage({
     super.key,
     required this.categories,
@@ -70,6 +75,11 @@ class CategoriesPage extends StatefulWidget {
     this.onTransactionsChanged,
   });
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new `State` instance.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   @override
   State<CategoriesPage> createState() => _CategoriesPageState();
 }
@@ -80,6 +90,11 @@ class _CategoriesPageState extends State<CategoriesPage>
   late List<Transaction> _transactions;
   late TabController _tabController;
 
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Registers listeners and may kick off asynchronous loading.
+  /// Notes: Guard any post-await UI updates with `mounted` when needed.
   @override
   void initState() {
     super.initState();
@@ -88,17 +103,37 @@ class _CategoriesPageState extends State<CategoriesPage>
     _tabController = TabController(length: 3, vsync: this);
   }
 
+  /// Purpose: Release listeners, controllers, and other owned resources.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Releases owned resources and unregisters listeners.
+  /// Notes: Call the superclass implementation in the expected lifecycle order.
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
   }
 
+  /// Purpose: Provide the internal notify helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _notify() => widget.onChanged(_categories);
 
+  /// Purpose: Provide the internal of type helper for this file.
+  /// Inputs: `type`.
+  /// Returns: `List<Category>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   List<Category> _ofType(TransactionType type) =>
       _categories.where((c) => c.type == type).toList();
 
+  /// Purpose: Provide the internal add category helper for this file.
+  /// Inputs: `type`.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _addCategory(TransactionType type) async {
     final category = await showDialog<Category>(
       context: context,
@@ -110,6 +145,11 @@ class _CategoriesPageState extends State<CategoriesPage>
     }
   }
 
+  /// Purpose: Provide the internal edit category helper for this file.
+  /// Inputs: `cat`.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _editCategory(Category cat) async {
     final edited = await showDialog<Category>(
       context: context,
@@ -124,11 +164,21 @@ class _CategoriesPageState extends State<CategoriesPage>
     }
   }
 
+  /// Purpose: Provide the internal delete category helper for this file.
+  /// Inputs: `cat`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _deleteCategory(Category cat) {
     setState(() => _categories.removeWhere((c) => c.id == cat.id));
     _notify();
   }
 
+  /// Purpose: Provide the internal open category detail helper for this file.
+  /// Inputs: `cat`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _openCategoryDetail(Category cat) {
     final rateData = widget.rateData;
     if (rateData == null) return;
@@ -151,6 +201,11 @@ class _CategoriesPageState extends State<CategoriesPage>
     );
   }
 
+  /// Purpose: Provide the internal import defaults helper for this file.
+  /// Inputs: `type`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _importDefaults(TransactionType type) {
     final l10n = AppLocalizations.of(context)!;
     final defaults = switch (type) {
@@ -170,6 +225,11 @@ class _CategoriesPageState extends State<CategoriesPage>
     _notify();
   }
 
+  /// Purpose: Provide the internal resolve key helper for this file.
+  /// Inputs: `l10n`.
+  /// Returns: `String`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   String _resolveKey(AppLocalizations l10n, String key) => switch (key) {
     'financeCatFood' => l10n.financeCatFood,
     'financeCatTransport' => l10n.financeCatTransport,
@@ -192,6 +252,11 @@ class _CategoriesPageState extends State<CategoriesPage>
     _ => key,
   };
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -241,6 +306,11 @@ class _CategoriesPageState extends State<CategoriesPage>
     );
   }
 
+  /// Purpose: Provide the internal build category list helper for this file.
+  /// Inputs: `context`, `cats`, `type`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildCategoryList(
     BuildContext context,
     List<Category> cats,
@@ -377,8 +447,18 @@ class _CategoryDialog extends StatefulWidget {
   final Category? category;
   final TransactionType type;
 
+  /// Purpose: Create a category dialog instance.
+  /// Inputs: `type`.
+  /// Returns: A new `_CategoryDialog` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   const _CategoryDialog({this.category, required this.type});
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new `State` instance.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   @override
   State<_CategoryDialog> createState() => _CategoryDialogState();
 }
@@ -424,6 +504,11 @@ class _CategoryDialogState extends State<_CategoryDialog> {
     '❤️',
   ];
 
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Registers listeners and may kick off asynchronous loading.
+  /// Notes: Guard any post-await UI updates with `mounted` when needed.
   @override
   void initState() {
     super.initState();
@@ -439,12 +524,22 @@ class _CategoryDialogState extends State<_CategoryDialog> {
     _initialSignature = _signature();
   }
 
+  /// Purpose: Release listeners, controllers, and other owned resources.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Releases owned resources and unregisters listeners.
+  /// Notes: Call the superclass implementation in the expected lifecycle order.
   @override
   void dispose() {
     _nameController.dispose();
     super.dispose();
   }
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -592,8 +687,18 @@ class _CategoryDialogState extends State<_CategoryDialog> {
     );
   }
 
+  /// Purpose: Provide the internal has unsaved changes helper for this file.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   bool _hasUnsavedChanges() => _signature() != _initialSignature;
 
+  /// Purpose: Provide the internal signature helper for this file.
+  /// Inputs: None.
+  /// Returns: `String`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   String _signature() => formSignature([
     _nameController.text.trim(),
     _selectedIcon.codePoint,
@@ -601,6 +706,11 @@ class _CategoryDialogState extends State<_CategoryDialog> {
     _selectedEmoji,
   ]);
 
+  /// Purpose: Provide the internal submit helper for this file.
+  /// Inputs: `guard`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _submit(UnsavedChangesController guard) {
     final name = _nameController.text.trim();
     if (name.isEmpty) return;

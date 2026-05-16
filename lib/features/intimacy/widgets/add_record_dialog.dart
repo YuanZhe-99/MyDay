@@ -12,6 +12,11 @@ class AddRecordDialog extends StatefulWidget {
   final List<Toy> toys;
   final List<Position> positions;
 
+  /// Purpose: Create a add record dialog instance.
+  /// Inputs: `positions`.
+  /// Returns: A new `AddRecordDialog` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const AddRecordDialog({
     super.key,
     this.prefillDuration,
@@ -21,6 +26,11 @@ class AddRecordDialog extends StatefulWidget {
     this.positions = const [],
   });
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new `State` instance.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   @override
   State<AddRecordDialog> createState() => _AddRecordDialogState();
 }
@@ -40,8 +50,18 @@ class _AddRecordDialogState extends State<AddRecordDialog> {
   late bool _watchedPorn;
   late final String _initialSignature;
 
+  /// Purpose: Return is editing.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   bool get _isEditing => widget.record != null;
 
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Registers listeners and may kick off asynchronous loading.
+  /// Notes: Guard any post-await UI updates with `mounted` when needed.
   @override
   void initState() {
     super.initState();
@@ -73,6 +93,11 @@ class _AddRecordDialogState extends State<AddRecordDialog> {
     _initialSignature = _signature();
   }
 
+  /// Purpose: Release listeners, controllers, and other owned resources.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Releases owned resources and unregisters listeners.
+  /// Notes: Call the superclass implementation in the expected lifecycle order.
   @override
   void dispose() {
     _locationController.dispose();
@@ -82,6 +107,11 @@ class _AddRecordDialogState extends State<AddRecordDialog> {
     super.dispose();
   }
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -378,8 +408,18 @@ class _AddRecordDialogState extends State<AddRecordDialog> {
     );
   }
 
+  /// Purpose: Provide the internal has unsaved changes helper for this file.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   bool _hasUnsavedChanges() => _signature() != _initialSignature;
 
+  /// Purpose: Provide the internal signature helper for this file.
+  /// Inputs: None.
+  /// Returns: `String`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   String _signature() => formSignature([
     _isSolo,
     _selectedPartnerId,
@@ -395,6 +435,11 @@ class _AddRecordDialogState extends State<AddRecordDialog> {
     _watchedPorn,
   ]);
 
+  /// Purpose: Provide the internal submit helper for this file.
+  /// Inputs: `guard`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _submit(UnsavedChangesController guard) {
     final hours = int.tryParse(_hoursController.text) ?? 0;
     final minutes = int.tryParse(_minutesController.text) ?? 0;

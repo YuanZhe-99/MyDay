@@ -11,6 +11,11 @@ class BankPreset {
   final String color;
   final String domain;
 
+  /// Purpose: Create a bank preset instance.
+  /// Inputs: None.
+  /// Returns: A new `BankPreset` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const BankPreset({
     required this.id,
     required this.country,
@@ -20,6 +25,11 @@ class BankPreset {
     required this.domain,
   });
 
+  /// Purpose: Create an instance from a JSON-compatible map.
+  /// Inputs: `json`.
+  /// Returns: A new `BankPreset.fromJson` instance.
+  /// Side effects: None.
+  /// Notes: Use this path when reading the persisted or transferred data format for this type.
   factory BankPreset.fromJson(Map<String, dynamic> json) => BankPreset(
         id: json['id'] as String,
         country: json['country'] as String,
@@ -30,6 +40,11 @@ class BankPreset {
       );
 
   /// Logo URLs to try in priority order — higher quality sources first.
+  /// Purpose: Return logo urls.
+  /// Inputs: None.
+  /// Returns: `List<String>`.
+  /// Side effects: None.
+  /// Notes: None.
   List<String> get logoUrls => domain.isNotEmpty
       ? [
           // Best quality – dedicated logo APIs returning clean PNG/SVG
@@ -47,6 +62,11 @@ class BankPreset {
       : [];
 
   /// Primary logo URL for preview.
+  /// Purpose: Return logo url.
+  /// Inputs: None.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: None.
   String get logoUrl =>
       domain.isNotEmpty ? 'https://logo.clearbit.com/$domain?size=128' : '';
 
@@ -63,16 +83,31 @@ class BankPreset {
   };
 
   /// Returns the default currency for this bank's country, or null.
+  /// Purpose: Return default currency.
+  /// Inputs: None.
+  /// Returns: `String?`.
+  /// Side effects: None.
+  /// Notes: None.
   String? get defaultCurrency => countryCurrency[country];
 }
 
 /// Loads and caches the bundled bank preset list.
 class BankPresetService {
+  /// Purpose: Prevent direct instantiation of the preset service singleton.
+  /// Inputs: None.
+  /// Returns: A new `BankPresetService._` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   BankPresetService._();
   static final BankPresetService instance = BankPresetService._();
 
   List<BankPreset>? _cache;
 
+  /// Purpose: Implement the get all behavior for this file.
+  /// Inputs: None.
+  /// Returns: `Future<List<BankPreset>>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   Future<List<BankPreset>> getAll() async {
     if (_cache != null) return _cache!;
     final raw = await rootBundle.loadString('assets/banks.json');
@@ -82,6 +117,11 @@ class BankPresetService {
   }
 
   /// Returns banks grouped by country code, sorted by localTitle.
+  /// Purpose: Implement the grouped by country behavior for this file.
+  /// Inputs: None.
+  /// Returns: `Future<Map<String, List<BankPreset>>>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   Future<Map<String, List<BankPreset>>> groupedByCountry() async {
     final all = await getAll();
     final map = <String, List<BankPreset>>{};
@@ -95,6 +135,11 @@ class BankPresetService {
   }
 
   /// Search by name (local or English), case-insensitive.
+  /// Purpose: Implement the search behavior for this file.
+  /// Inputs: `query`.
+  /// Returns: `Future<List<BankPreset>>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   Future<List<BankPreset>> search(String query) async {
     if (query.isEmpty) return getAll();
     final q = query.toLowerCase();

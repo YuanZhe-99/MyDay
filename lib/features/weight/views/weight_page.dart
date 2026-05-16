@@ -15,8 +15,18 @@ import '../models/weight_record.dart';
 import '../services/weight_storage.dart';
 
 class WeightPage extends StatefulWidget {
+  /// Purpose: Create a weight page instance.
+  /// Inputs: None.
+  /// Returns: A new `WeightPage` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const WeightPage({super.key});
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new `State` instance.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   @override
   State<WeightPage> createState() => _WeightPageState();
 }
@@ -35,6 +45,11 @@ class _WeightPageState extends State<WeightPage> {
   TimeOfDay? _weightEveningReminder;
   int _reminderGraceMinutes = 180;
 
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Registers listeners and may kick off asynchronous loading.
+  /// Notes: Guard any post-await UI updates with `mounted` when needed.
   @override
   void initState() {
     super.initState();
@@ -42,12 +57,22 @@ class _WeightPageState extends State<WeightPage> {
     AutoSyncService.instance.addOnLocalDataChanged(_loadData);
   }
 
+  /// Purpose: Release listeners, controllers, and other owned resources.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Releases owned resources and unregisters listeners.
+  /// Notes: Call the superclass implementation in the expected lifecycle order.
   @override
   void dispose() {
     AutoSyncService.instance.removeOnLocalDataChanged(_loadData);
     super.dispose();
   }
 
+  /// Purpose: Provide the internal load data helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _loadData() async {
     final data = await WeightStorage.load();
     setState(() {
@@ -77,6 +102,11 @@ class _WeightPageState extends State<WeightPage> {
     );
   }
 
+  /// Purpose: Provide the internal save data helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _saveData() async {
     await WeightStorage.save(
       WeightData(
@@ -102,6 +132,11 @@ class _WeightPageState extends State<WeightPage> {
     AutoSyncService.instance.notifySaved();
   }
 
+  /// Purpose: Return latest record.
+  /// Inputs: None.
+  /// Returns: `WeightRecord?`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   WeightRecord? get _latestRecord {
     if (_records.isEmpty) return null;
     final sorted = List<WeightRecord>.from(_records)
@@ -109,6 +144,11 @@ class _WeightPageState extends State<WeightPage> {
     return sorted.first;
   }
 
+  /// Purpose: Return current bmi.
+  /// Inputs: None.
+  /// Returns: `double?`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   double? get _currentBMI {
     final latest = _latestRecord;
     if (latest == null) return null;
@@ -116,12 +156,22 @@ class _WeightPageState extends State<WeightPage> {
   }
 
   /// Weight change over the selected chart range.
+  /// Purpose: Return weight change.
+  /// Inputs: None.
+  /// Returns: `double?`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   double? get _weightChange {
     final data = _chartRecords;
     if (data.length < 2) return null;
     return data.last.weight - data.first.weight;
   }
 
+  /// Purpose: Return tracking days.
+  /// Inputs: None.
+  /// Returns: `int?`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   int? get _trackingDays {
     final data = _chartRecords;
     if (data.length < 2) return null;
@@ -129,6 +179,11 @@ class _WeightPageState extends State<WeightPage> {
   }
 
   /// Recent weight range.
+  /// Purpose: Return recent range.
+  /// Inputs: None.
+  /// Returns: `(double, double)?`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   (double, double)? get _recentRange {
     if (_records.isEmpty) return null;
     final sorted = List<WeightRecord>.from(_records)
@@ -139,6 +194,11 @@ class _WeightPageState extends State<WeightPage> {
     return (min, max);
   }
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -176,6 +236,11 @@ class _WeightPageState extends State<WeightPage> {
     );
   }
 
+  /// Purpose: Provide the internal build empty state helper for this file.
+  /// Inputs: `theme`, `l10n`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildEmptyState(ThemeData theme, AppLocalizations l10n) {
     return Center(
       child: Column(
@@ -204,6 +269,11 @@ class _WeightPageState extends State<WeightPage> {
     );
   }
 
+  /// Purpose: Provide the internal build content helper for this file.
+  /// Inputs: `theme`, `l10n`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildContent(ThemeData theme, AppLocalizations l10n) {
     final latest = _latestRecord!;
     final bmi = _currentBMI;
@@ -237,6 +307,11 @@ class _WeightPageState extends State<WeightPage> {
     );
   }
 
+  /// Purpose: Provide the internal build summary card helper for this file.
+  /// Inputs: Key parameters such as `theme`, `l10n`, `latest`, `bmi`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildSummaryCard(
     ThemeData theme,
     AppLocalizations l10n,
@@ -367,6 +442,11 @@ class _WeightPageState extends State<WeightPage> {
     );
   }
 
+  /// Purpose: Provide the internal build stat label helper for this file.
+  /// Inputs: `theme`, `label`, `value`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildStatLabel(
     ThemeData theme,
     String label,
@@ -399,6 +479,11 @@ class _WeightPageState extends State<WeightPage> {
     );
   }
 
+  /// Purpose: Provide the internal build bmi bar helper for this file.
+  /// Inputs: `theme`, `bmi`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildBMIBar(ThemeData theme, double bmi) {
     // BMI categories: <18.5 underweight, 18.5-25 normal, 25-30 overweight, 30+ obese
     const colors = [Colors.blue, Colors.green, Colors.orange, Colors.red];
@@ -449,6 +534,11 @@ class _WeightPageState extends State<WeightPage> {
 
   // ── Chart ──
 
+  /// Purpose: Provide the internal build chart section helper for this file.
+  /// Inputs: `theme`, `l10n`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildChartSection(ThemeData theme, AppLocalizations l10n) {
     final labels = {
       _ChartRange.oneWeek: '1W',
@@ -520,6 +610,11 @@ class _WeightPageState extends State<WeightPage> {
     );
   }
 
+  /// Purpose: Return chart records.
+  /// Inputs: None.
+  /// Returns: `List<WeightRecord>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   List<WeightRecord> get _chartRecords {
     final now = DateTime.now();
     final cutoff = switch (_chartRange) {
@@ -535,6 +630,11 @@ class _WeightPageState extends State<WeightPage> {
     return filtered;
   }
 
+  /// Purpose: Provide the internal build chart helper for this file.
+  /// Inputs: `theme`, `l10n`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildChart(ThemeData theme, AppLocalizations l10n) {
     final data = _chartRecords;
     if (data.isEmpty) {
@@ -693,6 +793,11 @@ class _WeightPageState extends State<WeightPage> {
   /// EWMA smoothed weight trend. τ = 7 days half-life.
   /// [allData] must include all records sorted oldest→newest for warm-up accuracy.
   /// Only emits spots for records on or after [visibleFrom].
+  /// Purpose: Provide the internal build weight ewma spots helper for this file.
+  /// Inputs: `allData`, `visibleFrom`, `halfLifeDays`.
+  /// Returns: `List<FlSpot>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   List<FlSpot> _buildWeightEwmaSpots(
     List<WeightRecord> allData,
     DateTime visibleFrom, {
@@ -715,6 +820,11 @@ class _WeightPageState extends State<WeightPage> {
     return spots;
   }
 
+  /// Purpose: Provide the internal weight interval helper for this file.
+  /// Inputs: `range`.
+  /// Returns: `double`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   double _weightInterval(double range) {
     if (range <= 2) return 0.5;
     if (range <= 5) return 1;
@@ -722,6 +832,11 @@ class _WeightPageState extends State<WeightPage> {
     return 5;
   }
 
+  /// Purpose: Provide the internal date interval helper for this file.
+  /// Inputs: `data`.
+  /// Returns: `double`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   double _dateInterval(List<WeightRecord> data) {
     if (data.length < 2) return 1;
     final spanMs = data.last.datetime
@@ -743,6 +858,11 @@ class _WeightPageState extends State<WeightPage> {
 
   // ── Records list ──
 
+  /// Purpose: Provide the internal build records list helper for this file.
+  /// Inputs: `theme`, `l10n`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildRecordsList(ThemeData theme, AppLocalizations l10n) {
     final sorted = List<WeightRecord>.from(_records)
       ..sort((a, b) => b.datetime.compareTo(a.datetime));
@@ -772,6 +892,11 @@ class _WeightPageState extends State<WeightPage> {
     );
   }
 
+  /// Purpose: Provide the internal build grouped record tiles helper for this file.
+  /// Inputs: `theme`, `l10n`, `records`.
+  /// Returns: `List<Widget>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   List<Widget> _buildGroupedRecordTiles(
     ThemeData theme,
     AppLocalizations l10n,
@@ -786,6 +911,11 @@ class _WeightPageState extends State<WeightPage> {
     ];
   }
 
+  /// Purpose: Provide the internal build week header helper for this file.
+  /// Inputs: `theme`, `l10n`, `group`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildWeekHeader(
     ThemeData theme,
     AppLocalizations l10n,
@@ -807,6 +937,11 @@ class _WeightPageState extends State<WeightPage> {
     );
   }
 
+  /// Purpose: Provide the internal build record tile helper for this file.
+  /// Inputs: `theme`, `l10n`, `record`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildRecordTile(
     ThemeData theme,
     AppLocalizations l10n,
@@ -858,6 +993,11 @@ class _WeightPageState extends State<WeightPage> {
     );
   }
 
+  /// Purpose: Provide the internal show all records helper for this file.
+  /// Inputs: `context`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _showAllRecords(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
@@ -881,6 +1021,11 @@ class _WeightPageState extends State<WeightPage> {
 
   // ── Actions ──
 
+  /// Purpose: Provide the internal show reminder settings helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _showReminderSettings() async {
     final l10n = AppLocalizations.of(context)!;
     await showModalBottomSheet(
@@ -1021,6 +1166,11 @@ class _WeightPageState extends State<WeightPage> {
     );
   }
 
+  /// Purpose: Provide the internal format reminder grace hours helper for this file.
+  /// Inputs: None.
+  /// Returns: `String`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   String _formatReminderGraceHours() {
     final hours = _reminderGraceMinutes / 60;
     return hours == hours.roundToDouble()
@@ -1028,6 +1178,11 @@ class _WeightPageState extends State<WeightPage> {
         : hours.toStringAsFixed(1);
   }
 
+  /// Purpose: Provide the internal edit reminder grace helper for this file.
+  /// Inputs: `context`, `setSheetState`.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _editReminderGrace(
     BuildContext context,
     StateSetter setSheetState,
@@ -1070,6 +1225,11 @@ class _WeightPageState extends State<WeightPage> {
     controller.dispose();
   }
 
+  /// Purpose: Provide the internal save reminder grace helper for this file.
+  /// Inputs: `dialogContext`, `controller`, `setSheetState`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _saveReminderGrace(
     BuildContext dialogContext,
     TextEditingController controller,
@@ -1083,6 +1243,11 @@ class _WeightPageState extends State<WeightPage> {
     _saveData();
   }
 
+  /// Purpose: Provide the internal add record helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _addRecord() async {
     final result = await showDialog<WeightRecord>(
       context: context,
@@ -1095,12 +1260,22 @@ class _WeightPageState extends State<WeightPage> {
     }
   }
 
+  /// Purpose: Provide the internal set height helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _setHeight() {
     final l10n = AppLocalizations.of(context)!;
     final controller = TextEditingController(
       text: _height?.toStringAsFixed(1) ?? '',
     );
     final initialHeightText = controller.text.trim();
+    /// Purpose: Save the currently entered height value and close the dialog.
+    /// Inputs: `guard`.
+    /// Returns: None.
+    /// Side effects: Pops the dialog, updates local height state, and persists weight data.
+    /// Notes: Internal helper used within this function only.
     void saveHeight(UnsavedChangesController guard) {
       final val = double.tryParse(controller.text.trim());
       if (val != null && val > 0) {
@@ -1146,6 +1321,11 @@ class _WeightPageState extends State<WeightPage> {
     );
   }
 
+  /// Purpose: Provide the internal time since last record helper for this file.
+  /// Inputs: `dt`, `l10n`.
+  /// Returns: `String`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   String _timeSinceLastRecord(DateTime dt, AppLocalizations l10n) {
     final diff = DateTime.now().difference(dt);
     if (diff.inDays == 0) return l10n.weightToday;
@@ -1162,8 +1342,18 @@ class _AddWeightDialog extends StatefulWidget {
   final double? height;
   final double? lastWeight;
 
+  /// Purpose: Create a add weight dialog instance.
+  /// Inputs: `lastWeight`.
+  /// Returns: A new `_AddWeightDialog` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   const _AddWeightDialog({this.height, this.lastWeight});
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new `State` instance.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   @override
   State<_AddWeightDialog> createState() => _AddWeightDialogState();
 }
@@ -1174,6 +1364,11 @@ class _AddWeightDialogState extends State<_AddWeightDialog> {
   late DateTime _date;
   late final String _initialSignature;
 
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Registers listeners and may kick off asynchronous loading.
+  /// Notes: Guard any post-await UI updates with `mounted` when needed.
   @override
   void initState() {
     super.initState();
@@ -1185,6 +1380,11 @@ class _AddWeightDialogState extends State<_AddWeightDialog> {
     _initialSignature = _signature();
   }
 
+  /// Purpose: Release listeners, controllers, and other owned resources.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Releases owned resources and unregisters listeners.
+  /// Notes: Call the superclass implementation in the expected lifecycle order.
   @override
   void dispose() {
     _weightController.dispose();
@@ -1192,6 +1392,11 @@ class _AddWeightDialogState extends State<_AddWeightDialog> {
     super.dispose();
   }
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -1299,20 +1504,40 @@ class _AddWeightDialogState extends State<_AddWeightDialog> {
     );
   }
 
+  /// Purpose: Provide the internal has unsaved changes helper for this file.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   bool _hasUnsavedChanges() => _signature() != _initialSignature;
 
+  /// Purpose: Provide the internal signature helper for this file.
+  /// Inputs: None.
+  /// Returns: `String`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   String _signature() => formSignature([
     _weightController.text.trim(),
     _noteController.text.trim(),
     _date,
   ]);
 
+  /// Purpose: Return preview bmi.
+  /// Inputs: None.
+  /// Returns: `double?`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   double? get _previewBMI {
     final w = double.tryParse(_weightController.text.trim());
     if (w == null || w <= 0) return null;
     return WeightData.calculateBMI(widget.height, w);
   }
 
+  /// Purpose: Provide the internal submit helper for this file.
+  /// Inputs: `guard`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _submit(UnsavedChangesController guard) {
     final weight = double.tryParse(_weightController.text.trim());
     if (weight == null || weight <= 0) return;

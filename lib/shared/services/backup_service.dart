@@ -26,6 +26,11 @@ class BackupService {
     'weight_data.json': 'weight',
   };
 
+  /// Purpose: Provide the internal get backup dir helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<Directory>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Future<Directory> _getBackupDir() async {
     final appDir = await TodoStorage.getAppDir();
     final dir = Directory(p.join(appDir.path, _backupDir));
@@ -36,6 +41,11 @@ class BackupService {
   }
 
   /// Load backup settings from config.
+  /// Purpose: Load settings into the current workflow or state.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<void> loadSettings() async {
     final config = await _readConfig();
     autoBackupEnabled = config['autoBackupEnabled'] as bool? ?? false;
@@ -43,6 +53,11 @@ class BackupService {
   }
 
   /// Save backup settings to config.
+  /// Purpose: Save settings to the relevant storage or service layer.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<void> saveSettings() async {
     await _updateConfig({
       'autoBackupEnabled': autoBackupEnabled,
@@ -51,6 +66,11 @@ class BackupService {
   }
 
   /// Create a backup now. Returns the backup file, or null on failure.
+  /// Purpose: Implement the create backup behavior for this file.
+  /// Inputs: None.
+  /// Returns: `Future<File?>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<File?> createBackup() async {
     try {
       final appDir = await TodoStorage.getAppDir();
@@ -93,6 +113,11 @@ class BackupService {
   }
 
   /// Run auto-backup if enabled and not yet done today.
+  /// Purpose: Implement the run auto backup if needed behavior for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<void> runAutoBackupIfNeeded() async {
     await loadSettings();
     if (!autoBackupEnabled) return;
@@ -125,6 +150,11 @@ class BackupService {
   }
 
   /// List all backups sorted by date descending (newest first).
+  /// Purpose: Implement the list backups behavior for this file.
+  /// Inputs: None.
+  /// Returns: `Future<List<BackupInfo>>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<List<BackupInfo>> listBackups() async {
     final backupDir = await _getBackupDir();
     if (!await backupDir.exists()) return [];
@@ -155,6 +185,11 @@ class BackupService {
   }
 
   /// Read a backup's content and return module names it contains.
+  /// Purpose: Implement the get backup modules behavior for this file.
+  /// Inputs: `file`.
+  /// Returns: `Future<List<String>>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<List<String>> getBackupModules(File file) async {
     try {
       final raw = await file.readAsString();
@@ -171,6 +206,11 @@ class BackupService {
   /// Restore from a backup file, optionally only specific modules.
   /// [moduleKeys] is a set of module identifiers (e.g. 'todo', 'finance').
   /// If null, all modules are restored.
+  /// Purpose: Implement the restore backup behavior for this file.
+  /// Inputs: `file`, `moduleKeys`.
+  /// Returns: `Future<bool>`.
+  /// Side effects: May overwrite app data files and restore image assets from the backup bundle.
+  /// Notes: None.
   static Future<bool> restoreBackup(
     File file, {
     Set<String>? moduleKeys,
@@ -209,6 +249,11 @@ class BackupService {
   }
 
   /// Delete a specific backup.
+  /// Purpose: Implement the delete backup behavior for this file.
+  /// Inputs: `file`.
+  /// Returns: `Future<void>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: None.
   static Future<void> deleteBackup(File file) async {
     if (await file.exists()) {
       await file.delete();
@@ -216,6 +261,11 @@ class BackupService {
   }
 
   /// Remove backups older than retention policy.
+  /// Purpose: Provide the internal clean old backups helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Future<void> _cleanOldBackups() async {
     if (retentionDays <= 0) return; // Keep forever
     final cutoff = DateTime.now().subtract(Duration(days: retentionDays));
@@ -228,6 +278,11 @@ class BackupService {
   }
 
   /// Read the storage config file.
+  /// Purpose: Provide the internal read config helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<Map<String, dynamic>>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Future<Map<String, dynamic>> _readConfig() async {
     try {
       final dir = await getApplicationDocumentsDirectory();
@@ -240,6 +295,11 @@ class BackupService {
   }
 
   /// Merge new values into the storage config file.
+  /// Purpose: Provide the internal update config helper for this file.
+  /// Inputs: `updates`.
+  /// Returns: `Future<void>`.
+  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Notes: Internal helper used within this file only.
   static Future<void> _updateConfig(Map<String, dynamic> updates) async {
     try {
       final dir = await getApplicationDocumentsDirectory();
@@ -259,12 +319,22 @@ class BackupInfo {
   final DateTime date;
   final int sizeBytes;
 
+  /// Purpose: Create a backup info instance.
+  /// Inputs: None.
+  /// Returns: A new `BackupInfo` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const BackupInfo({
     required this.file,
     required this.date,
     required this.sizeBytes,
   });
 
+  /// Purpose: Return display size.
+  /// Inputs: None.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: None.
   String get displaySize {
     if (sizeBytes < 1024) return '$sizeBytes B';
     if (sizeBytes < 1024 * 1024) return '${(sizeBytes / 1024).toStringAsFixed(1)} KB';

@@ -10,8 +10,18 @@ import '../services/auto_sync_service.dart';
 import '../services/import_export_service.dart';
 
 class ImportExportPage extends StatelessWidget {
+  /// Purpose: Create an import export page instance.
+  /// Inputs: None.
+  /// Returns: A new `ImportExportPage` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const ImportExportPage({super.key});
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -98,6 +108,11 @@ class ImportExportPage extends StatelessWidget {
     );
   }
 
+  /// Purpose: Provide the internal export json helper for this file.
+  /// Inputs: `context`.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _exportJSON(BuildContext context) async {
     final dir = await FilePicker.platform.getDirectoryPath(
       dialogTitle: AppLocalizations.of(context)!.filePickerExportLocation,
@@ -116,6 +131,11 @@ class ImportExportPage extends StatelessWidget {
     }
   }
 
+  /// Purpose: Provide the internal export csv helper for this file.
+  /// Inputs: `context`, `type`.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _exportCSV(BuildContext context, _CSVType type) async {
     final l10n = AppLocalizations.of(context)!;
     final confirm = await showDialog<bool>(
@@ -160,6 +180,11 @@ class ImportExportPage extends StatelessWidget {
     }
   }
 
+  /// Purpose: Provide the internal import json helper for this file.
+  /// Inputs: `context`.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _importJSON(BuildContext context) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -198,6 +223,11 @@ class ImportExportPage extends StatelessWidget {
     );
   }
 
+  /// Purpose: Provide the internal import csv helper for this file.
+  /// Inputs: `context`, `type`.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _importCSV(BuildContext context, _CSVType type) async {
     final l10n = AppLocalizations.of(context)!;
     final confirm = await showDialog<bool>(
@@ -255,6 +285,11 @@ class ImportExportPage extends StatelessWidget {
     );
   }
 
+  /// Purpose: Provide the internal save template helper for this file.
+  /// Inputs: `context`, `assetName`.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _saveTemplate(BuildContext context, String assetName) async {
     final dir = await FilePicker.platform.getDirectoryPath(
       dialogTitle: AppLocalizations.of(context)!.filePickerSaveTemplate,
@@ -279,8 +314,18 @@ enum _CSVType { finance, intimacy, weight }
 class _Section extends StatelessWidget {
   final String title;
   final List<Widget> children;
+  /// Purpose: Create a section instance.
+  /// Inputs: `children`.
+  /// Returns: A new `_Section` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   const _Section({required this.title, required this.children});
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     return Column(

@@ -30,8 +30,18 @@ enum _IntimacyChartRange {
 }
 
 class IntimacyPage extends StatefulWidget {
+  /// Purpose: Create an intimacy page instance.
+  /// Inputs: None.
+  /// Returns: A new `IntimacyPage` instance.
+  /// Side effects: None.
+  /// Notes: None.
   const IntimacyPage({super.key});
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new `State` instance.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   @override
   State<IntimacyPage> createState() => _IntimacyPageState();
 }
@@ -58,6 +68,11 @@ class _IntimacyPageState extends State<IntimacyPage> {
   _IntimacyChartRange _chartRange = _IntimacyChartRange.threeMonths;
   final bool _showChart = true;
 
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Registers listeners and may kick off asynchronous loading.
+  /// Notes: Guard any post-await UI updates with `mounted` when needed.
   @override
   void initState() {
     super.initState();
@@ -65,12 +80,22 @@ class _IntimacyPageState extends State<IntimacyPage> {
     AutoSyncService.instance.addOnLocalDataChanged(_loadData);
   }
 
+  /// Purpose: Release listeners, controllers, and other owned resources.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Releases owned resources and unregisters listeners.
+  /// Notes: Call the superclass implementation in the expected lifecycle order.
   @override
   void dispose() {
     AutoSyncService.instance.removeOnLocalDataChanged(_loadData);
     super.dispose();
   }
 
+  /// Purpose: Provide the internal load data helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _loadData() async {
     final data = await IntimacyStorage.load();
     setState(() {
@@ -95,6 +120,11 @@ class _IntimacyPageState extends State<IntimacyPage> {
     });
   }
 
+  /// Purpose: Provide the internal save data helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _saveData() async {
     await IntimacyStorage.save(
       IntimacyData(
@@ -114,12 +144,22 @@ class _IntimacyPageState extends State<IntimacyPage> {
     AutoSyncService.instance.notifySaved();
   }
 
+  /// Purpose: Return marked dates.
+  /// Inputs: None.
+  /// Returns: `Set<DateTime>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Set<DateTime> get _markedDates {
     return _records
         .map((r) => DateTime(r.datetime.year, r.datetime.month, r.datetime.day))
         .toSet();
   }
 
+  /// Purpose: Return filtered records.
+  /// Inputs: None.
+  /// Returns: `List<IntimacyRecord>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   List<IntimacyRecord> get _filteredRecords {
     var list = List<IntimacyRecord>.from(_records);
 
@@ -162,6 +202,11 @@ class _IntimacyPageState extends State<IntimacyPage> {
     return list;
   }
 
+  /// Purpose: Provide the internal add record helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _addRecord() async {
     final activePartners = _partners.where((p) => p.endDate == null).toList();
     final activeToys = _toys.where((t) => t.retiredDate == null).toList();
@@ -179,11 +224,21 @@ class _IntimacyPageState extends State<IntimacyPage> {
     }
   }
 
+  /// Purpose: Provide the internal delete record helper for this file.
+  /// Inputs: `record`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _deleteRecord(IntimacyRecord record) {
     setState(() => _records.removeWhere((r) => r.id == record.id));
     _saveData();
   }
 
+  /// Purpose: Provide the internal edit record helper for this file.
+  /// Inputs: `record`.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _editRecord(IntimacyRecord record) async {
     final activePartners = _partners.where((p) => p.endDate == null).toList();
     final activeToys = _toys.where((t) => t.retiredDate == null).toList();
@@ -205,6 +260,11 @@ class _IntimacyPageState extends State<IntimacyPage> {
     }
   }
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -355,6 +415,11 @@ class _IntimacyPageState extends State<IntimacyPage> {
     );
   }
 
+  /// Purpose: Provide the internal build record list widgets helper for this file.
+  /// Inputs: `theme`, `records`.
+  /// Returns: `List<Widget>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   List<Widget> _buildRecordListWidgets(
     ThemeData theme,
     List<IntimacyRecord> records,
@@ -376,6 +441,11 @@ class _IntimacyPageState extends State<IntimacyPage> {
     ];
   }
 
+  /// Purpose: Provide the internal build week header helper for this file.
+  /// Inputs: `theme`, `group`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildWeekHeader(ThemeData theme, WeekGroup<IntimacyRecord> group) {
     final l10n = AppLocalizations.of(context)!;
     return Padding(
@@ -394,6 +464,11 @@ class _IntimacyPageState extends State<IntimacyPage> {
     );
   }
 
+  /// Purpose: Provide the internal build record dismissible helper for this file.
+  /// Inputs: `record`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildRecordDismissible(IntimacyRecord record) {
     final theme = Theme.of(context);
     return Dismissible(
@@ -439,6 +514,11 @@ class _IntimacyPageState extends State<IntimacyPage> {
     );
   }
 
+  /// Purpose: Provide the internal build sort chip helper for this file.
+  /// Inputs: `context`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildSortChip(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final labels = {
@@ -461,6 +541,11 @@ class _IntimacyPageState extends State<IntimacyPage> {
     );
   }
 
+  /// Purpose: Provide the internal build filter chip helper for this file.
+  /// Inputs: `context`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildFilterChip(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final labels = {
@@ -486,6 +571,11 @@ class _IntimacyPageState extends State<IntimacyPage> {
 
   // ── Trend chart ──
 
+  /// Purpose: Return chart records.
+  /// Inputs: None.
+  /// Returns: `List<IntimacyRecord>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   List<IntimacyRecord> get _chartRecords {
     final now = DateTime.now();
     final cutoff = switch (_chartRange) {
@@ -514,6 +604,11 @@ class _IntimacyPageState extends State<IntimacyPage> {
 
   /// Build EWMA smoothed curve for duration (in minutes).
   /// Processes [allData] for warm-up but only emits spots at/after [visibleFrom].
+  /// Purpose: Provide the internal build ewma duration spots helper for this file.
+  /// Inputs: `allData`, `visibleFrom`, `halfLifeDays`.
+  /// Returns: `List<FlSpot>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   List<FlSpot> _buildEwmaDurationSpots(
     List<IntimacyRecord> allData,
     DateTime visibleFrom, {
@@ -545,6 +640,11 @@ class _IntimacyPageState extends State<IntimacyPage> {
   /// Build raw frequency spots — records per week using a 7-day rolling window.
   /// For each record, counts records within the preceding 7 days (inclusive).
   /// Processes [allData] but only emits spots at/after [visibleFrom].
+  /// Purpose: Provide the internal build raw frequency spots helper for this file.
+  /// Inputs: `allData`, `visibleFrom`.
+  /// Returns: `List<FlSpot>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   List<FlSpot> _buildRawFrequencySpots(
     List<IntimacyRecord> allData,
     DateTime visibleFrom,
@@ -573,6 +673,11 @@ class _IntimacyPageState extends State<IntimacyPage> {
   /// Build EWMA smoothed curve for pleasure level.
   /// Uses adaptive alpha based on time gap with half-life of [halfLifeDays].
   /// Processes [allData] for warm-up but only emits spots at/after [visibleFrom].
+  /// Purpose: Provide the internal build ewma pleasure spots helper for this file.
+  /// Inputs: `allData`, `visibleFrom`, `halfLifeDays`.
+  /// Returns: `List<FlSpot>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   List<FlSpot> _buildEwmaPleasureSpots(
     List<IntimacyRecord> allData,
     DateTime visibleFrom, {
@@ -601,6 +706,11 @@ class _IntimacyPageState extends State<IntimacyPage> {
 
   /// Build EWMA smoothed curve for frequency (records per week).
   /// Processes [allData] for warm-up but only emits spots at/after [visibleFrom].
+  /// Purpose: Provide the internal build ewma frequency spots helper for this file.
+  /// Inputs: `allData`, `visibleFrom`, `halfLifeDays`.
+  /// Returns: `List<FlSpot>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   List<FlSpot> _buildEwmaFrequencySpots(
     List<IntimacyRecord> allData,
     DateTime visibleFrom, {
@@ -629,6 +739,11 @@ class _IntimacyPageState extends State<IntimacyPage> {
     return spots;
   }
 
+  /// Purpose: Provide the internal build chart section helper for this file.
+  /// Inputs: `theme`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildChartSection(ThemeData theme) {
     final l10n = AppLocalizations.of(context)!;
     final labels = {
@@ -777,6 +892,11 @@ class _IntimacyPageState extends State<IntimacyPage> {
     );
   }
 
+  /// Purpose: Provide the internal build chart helper for this file.
+  /// Inputs: Key parameters such as `theme`, `rawPleasureSpots`, `pleasureSpots`, `rawFrequencySpots`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildChart(
     ThemeData theme,
     List<FlSpot> rawPleasureSpots,
@@ -791,6 +911,11 @@ class _IntimacyPageState extends State<IntimacyPage> {
         ? 5.0
         : allFreqSpots.map((s) => s.y).reduce(math.max);
     // Snap freqMax to a clean ceiling so right-axis labels land on round numbers
+    /// Purpose: Return a rounded-up frequency ceiling for chart labels.
+    /// Inputs: `v`.
+    /// Returns: `double`.
+    /// Side effects: None.
+    /// Notes: Internal helper used within this function only.
     double freqCeil(double v) {
       const steps = [1.0, 2.0, 3.0, 5.0, 7.0, 10.0, 14.0, 20.0];
       for (final s in steps) {
@@ -979,6 +1104,11 @@ class _IntimacyPageState extends State<IntimacyPage> {
     );
   }
 
+  /// Purpose: Provide the internal build duration chart helper for this file.
+  /// Inputs: `theme`, `rawDurationSpots`, `durationSpots`, `data`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildDurationChart(
     ThemeData theme,
     List<FlSpot> rawDurationSpots,
@@ -990,6 +1120,11 @@ class _IntimacyPageState extends State<IntimacyPage> {
         ? 30.0
         : allDurSpots.map((s) => s.y).reduce(math.max);
     // Snap to a clean ceiling (minutes)
+    /// Purpose: Return a rounded-up duration ceiling for chart labels.
+    /// Inputs: `v`.
+    /// Returns: `double`.
+    /// Side effects: None.
+    /// Notes: Internal helper used within this function only.
     double minCeil(double v) {
       const steps = [5.0, 10.0, 15.0, 20.0, 30.0, 45.0, 60.0, 90.0, 120.0];
       for (final s in steps) {
@@ -1126,6 +1261,11 @@ class _IntimacyPageState extends State<IntimacyPage> {
   }
 
   /// Legend item: solid line + dashed line + label for a given [color].
+  /// Purpose: Provide the internal legend item helper for this file.
+  /// Inputs: `color`, `labelStyle`, `label`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   Widget _legendItem(Color color, TextStyle? labelStyle, String label) {
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -1140,6 +1280,11 @@ class _IntimacyPageState extends State<IntimacyPage> {
     );
   }
 
+  /// Purpose: Provide the internal chart date interval helper for this file.
+  /// Inputs: `data`.
+  /// Returns: `double`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   double _chartDateInterval(List<IntimacyRecord> data) {
     if (data.length < 2) return 1;
     final spanMs = data.last.datetime
@@ -1157,6 +1302,11 @@ class _IntimacyPageState extends State<IntimacyPage> {
     return 365 * day; // annual labels
   }
 
+  /// Purpose: Provide the internal show manage menu helper for this file.
+  /// Inputs: `context`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _showManageMenu(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -1197,6 +1347,11 @@ class _IntimacyPageState extends State<IntimacyPage> {
     );
   }
 
+  /// Purpose: Provide the internal open partner management helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _openPartnerManagement() async {
     await Navigator.push(
       context,
@@ -1226,6 +1381,11 @@ class _IntimacyPageState extends State<IntimacyPage> {
     );
   }
 
+  /// Purpose: Provide the internal open toy management helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _openToyManagement() async {
     await Navigator.push(
       context,
@@ -1255,6 +1415,11 @@ class _IntimacyPageState extends State<IntimacyPage> {
     );
   }
 
+  /// Purpose: Provide the internal open position management helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _openPositionManagement() async {
     await Navigator.push(
       context,
@@ -1280,6 +1445,11 @@ class _CalendarWidget extends StatelessWidget {
   final void Function(DateTime) onMonthChanged;
   final void Function(DateTime) onDateSelected;
 
+  /// Purpose: Create a calendar widget instance.
+  /// Inputs: None.
+  /// Returns: A new `_CalendarWidget` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   const _CalendarWidget({
     required this.focusedMonth,
     required this.selectedDate,
@@ -1288,6 +1458,11 @@ class _CalendarWidget extends StatelessWidget {
     required this.onDateSelected,
   });
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -1356,6 +1531,11 @@ class _CalendarWidget extends StatelessWidget {
     );
   }
 
+  /// Purpose: Provide the internal build day grid helper for this file.
+  /// Inputs: Key parameters such as `context`, `startWeekday`, `daysInMonth`, `year`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildDayGrid(
     BuildContext context,
     int startWeekday,
@@ -1436,6 +1616,11 @@ class _RecordTile extends StatelessWidget {
   final List<Toy> toys;
   final List<Position> positions;
 
+  /// Purpose: Create a record tile instance.
+  /// Inputs: `toys`.
+  /// Returns: A new `_RecordTile` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   const _RecordTile({
     required this.record,
     this.partner,
@@ -1443,6 +1628,11 @@ class _RecordTile extends StatelessWidget {
     this.positions = const [],
   });
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -1649,6 +1839,11 @@ class _PartnerManagementPage extends StatefulWidget {
   )
   onSortChanged;
 
+  /// Purpose: Create a partner management page instance.
+  /// Inputs: None.
+  /// Returns: A new `_PartnerManagementPage` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   const _PartnerManagementPage({
     required this.partners,
     required this.records,
@@ -1659,6 +1854,11 @@ class _PartnerManagementPage extends StatefulWidget {
     required this.onSortChanged,
   });
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new `State` instance.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   @override
   State<_PartnerManagementPage> createState() => _PartnerManagementPageState();
 }
@@ -1695,6 +1895,11 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
     '✨',
   ];
 
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Registers listeners and may kick off asynchronous loading.
+  /// Notes: Guard any post-await UI updates with `mounted` when needed.
   @override
   void initState() {
     super.initState();
@@ -1705,16 +1910,41 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
     );
   }
 
+  /// Purpose: Provide the internal notify sort helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _notifySort() => widget.onSortChanged(_sortModes, _customOrders);
 
+  /// Purpose: Provide the internal status key helper for this file.
+  /// Inputs: `isInactive`.
+  /// Returns: `String`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   String _statusKey(bool isInactive) =>
       isInactive ? _statusInactive : _statusActive;
 
+  /// Purpose: Provide the internal sort mode helper for this file.
+  /// Inputs: `statusKey`.
+  /// Returns: `String`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   String _sortMode(String statusKey) => _sortModes[statusKey] ?? _sortCustom;
 
+  /// Purpose: Provide the internal compare text helper for this file.
+  /// Inputs: `a`, `b`.
+  /// Returns: `int`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   int _compareText(String a, String b) =>
       a.toLowerCase().compareTo(b.toLowerCase());
 
+  /// Purpose: Provide the internal compare nullable dates helper for this file.
+  /// Inputs: `a`, `b`.
+  /// Returns: `int`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   int _compareNullableDates(DateTime? a, DateTime? b) {
     if (a == null && b == null) return 0;
     if (a == null) return 1;
@@ -1722,9 +1952,19 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
     return a.compareTo(b);
   }
 
+  /// Purpose: Provide the internal partner record count helper for this file.
+  /// Inputs: `partner`.
+  /// Returns: `int`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   int _partnerRecordCount(Partner partner) =>
       widget.records.where((r) => r.partnerId == partner.id).length;
 
+  /// Purpose: Provide the internal normalized order helper for this file.
+  /// Inputs: `statusKey`.
+  /// Returns: `List<String>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   List<String> _normalizedOrder(String statusKey) {
     final isInactive = statusKey == _statusInactive;
     final allIds = _partners
@@ -1743,6 +1983,11 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
     return normalized;
   }
 
+  /// Purpose: Provide the internal sort partners helper for this file.
+  /// Inputs: `statusKey`, `partners`.
+  /// Returns: `List<Partner>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   List<Partner> _sortPartners(String statusKey, List<Partner> partners) {
     final list = List<Partner>.of(partners);
     switch (_sortMode(statusKey)) {
@@ -1776,6 +2021,11 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
     return list;
   }
 
+  /// Purpose: Provide the internal set sort mode helper for this file.
+  /// Inputs: `statusKey`, `mode`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _setSortMode(String statusKey, String mode) {
     setState(() {
       if (mode == _sortCustom && !_customOrders.containsKey(statusKey)) {
@@ -1798,18 +2048,33 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
     _notifySort();
   }
 
+  /// Purpose: Provide the internal append partner to custom order if needed helper for this file.
+  /// Inputs: `partner`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _appendPartnerToCustomOrderIfNeeded(Partner partner) {
     final statusKey = _statusKey(partner.endDate != null);
     if (_sortMode(statusKey) != _sortCustom) return;
     _customOrders[statusKey] = _normalizedOrder(statusKey);
   }
 
+  /// Purpose: Provide the internal remove partner from custom orders helper for this file.
+  /// Inputs: `partnerId`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _removePartnerFromCustomOrders(String partnerId) {
     for (final entry in _customOrders.entries) {
       entry.value.remove(partnerId);
     }
   }
 
+  /// Purpose: Provide the internal reorder partners helper for this file.
+  /// Inputs: `statusKey`, `partners`, `oldIndex`, `newIndex`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _reorderPartners(
     String statusKey,
     List<Partner> partners,
@@ -1834,10 +2099,25 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
     _notifySort();
   }
 
+  /// Purpose: Provide the internal add partner helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _addPartner() => _showEditDialog(null);
 
+  /// Purpose: Provide the internal edit partner helper for this file.
+  /// Inputs: `p`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _editPartner(Partner p) => _showEditDialog(p);
 
+  /// Purpose: Provide the internal delete partner helper for this file.
+  /// Inputs: `p`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _deletePartner(Partner p) {
     setState(() => _partners.removeWhere((x) => x.id == p.id));
     _removePartnerFromCustomOrders(p.id);
@@ -1845,6 +2125,11 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
     _notifySort();
   }
 
+  /// Purpose: Provide the internal break up partner helper for this file.
+  /// Inputs: `p`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _breakUpPartner(Partner p) {
     final now = DateTime.now();
     // Remove from list, re-add at end with endDate set
@@ -1869,6 +2154,11 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
     _notifySort();
   }
 
+  /// Purpose: Provide the internal show partner records helper for this file.
+  /// Inputs: `p`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _showPartnerRecords(Partner p) {
     final related = widget.records.where((r) => r.partnerId == p.id).toList();
     Navigator.push(
@@ -1884,6 +2174,11 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
     );
   }
 
+  /// Purpose: Provide the internal show edit dialog helper for this file.
+  /// Inputs: `existing`.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _showEditDialog(Partner? existing) async {
     final nameCtrl = TextEditingController(text: existing?.name ?? '');
     String? selectedEmoji = existing?.emoji;
@@ -1891,6 +2186,11 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
     DateTime? startDate = existing?.startDate;
     DateTime? endDate = existing?.endDate;
     final l10n = AppLocalizations.of(context)!;
+    /// Purpose: Return the current partner edit form signature.
+    /// Inputs: None.
+    /// Returns: `String`.
+    /// Side effects: None.
+    /// Notes: Internal helper used within this function only.
     String signature() => formSignature([
       nameCtrl.text.trim(),
       selectedEmoji,
@@ -2070,6 +2370,11 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
     }
   }
 
+  /// Purpose: Provide the internal build image row helper for this file.
+  /// Inputs: `imagePath`, `theme`, `onChanged`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildImageRow(
     String? imagePath,
     ThemeData theme,
@@ -2133,11 +2438,21 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
     );
   }
 
+  /// Purpose: Provide the internal partner subtitle helper for this file.
+  /// Inputs: `p`, `recordCount`.
+  /// Returns: `String`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   String _partnerSubtitle(Partner p, int recordCount) {
     final parts = <String>[
       AppLocalizations.of(context)!.intimacyRecordCount(recordCount),
     ];
     if (p.startDate != null || p.endDate != null) {
+      /// Purpose: Format a date for the partner subtitle.
+      /// Inputs: `d`.
+      /// Returns: `String`.
+      /// Side effects: None.
+      /// Notes: Internal helper used within this function only.
       String fmt(DateTime d) =>
           '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
       final start = p.startDate != null ? fmt(p.startDate!) : '?';
@@ -2147,16 +2462,31 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
     return parts.join(' · ');
   }
 
+  /// Purpose: Return active partners.
+  /// Inputs: None.
+  /// Returns: `List<Partner>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   List<Partner> get _activePartners => _sortPartners(
     _statusActive,
     _partners.where((p) => p.endDate == null).toList(),
   );
 
+  /// Purpose: Return inactive partners.
+  /// Inputs: None.
+  /// Returns: `List<Partner>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   List<Partner> get _inactivePartners => _sortPartners(
     _statusInactive,
     _partners.where((p) => p.endDate != null).toList(),
   );
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -2190,6 +2520,11 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
     );
   }
 
+  /// Purpose: Provide the internal build partner section helper for this file.
+  /// Inputs: None.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildPartnerSection({
     required String title,
     required String statusKey,
@@ -2212,6 +2547,11 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
     );
   }
 
+  /// Purpose: Provide the internal build managed section header helper for this file.
+  /// Inputs: None.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildManagedSectionHeader({
     required String title,
     required int count,
@@ -2283,6 +2623,11 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
     );
   }
 
+  /// Purpose: Provide the internal managed sort item helper for this file.
+  /// Inputs: None.
+  /// Returns: `PopupMenuEntry<String>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   PopupMenuEntry<String> _managedSortItem({
     required String statusKey,
     required String value,
@@ -2305,6 +2650,11 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
     );
   }
 
+  /// Purpose: Provide the internal build partner reorder list helper for this file.
+  /// Inputs: `statusKey`, `partners`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildPartnerReorderList(String statusKey, List<Partner> partners) {
     return ReorderableListView.builder(
       shrinkWrap: true,
@@ -2333,6 +2683,11 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
     );
   }
 
+  /// Purpose: Provide the internal build partner tile helper for this file.
+  /// Inputs: `p`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildPartnerTile(Partner p) {
     final l10n = AppLocalizations.of(context)!;
     final isInactive = p.endDate != null;
@@ -2420,6 +2775,11 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
     );
   }
 
+  /// Purpose: Provide the internal build partner avatar helper for this file.
+  /// Inputs: `p`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildPartnerAvatar(Partner p) {
     if (p.imagePath != null) {
       return FutureBuilder<File>(
@@ -2450,6 +2810,11 @@ class _ToyManagementPage extends StatefulWidget {
   )
   onSortChanged;
 
+  /// Purpose: Create a toy management page instance.
+  /// Inputs: None.
+  /// Returns: A new `_ToyManagementPage` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   const _ToyManagementPage({
     required this.toys,
     required this.records,
@@ -2460,6 +2825,11 @@ class _ToyManagementPage extends StatefulWidget {
     required this.onSortChanged,
   });
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new `State` instance.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   @override
   State<_ToyManagementPage> createState() => _ToyManagementPageState();
 }
@@ -2496,6 +2866,11 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
     '✨',
   ];
 
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Registers listeners and may kick off asynchronous loading.
+  /// Notes: Guard any post-await UI updates with `mounted` when needed.
   @override
   void initState() {
     super.initState();
@@ -2506,16 +2881,41 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
     );
   }
 
+  /// Purpose: Provide the internal notify sort helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _notifySort() => widget.onSortChanged(_sortModes, _customOrders);
 
+  /// Purpose: Provide the internal status key helper for this file.
+  /// Inputs: `isRetired`.
+  /// Returns: `String`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   String _statusKey(bool isRetired) =>
       isRetired ? _statusInactive : _statusActive;
 
+  /// Purpose: Provide the internal sort mode helper for this file.
+  /// Inputs: `statusKey`.
+  /// Returns: `String`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   String _sortMode(String statusKey) => _sortModes[statusKey] ?? _sortCustom;
 
+  /// Purpose: Provide the internal compare text helper for this file.
+  /// Inputs: `a`, `b`.
+  /// Returns: `int`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   int _compareText(String a, String b) =>
       a.toLowerCase().compareTo(b.toLowerCase());
 
+  /// Purpose: Provide the internal compare nullable dates helper for this file.
+  /// Inputs: `a`, `b`.
+  /// Returns: `int`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   int _compareNullableDates(DateTime? a, DateTime? b) {
     if (a == null && b == null) return 0;
     if (a == null) return 1;
@@ -2523,9 +2923,19 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
     return a.compareTo(b);
   }
 
+  /// Purpose: Provide the internal toy record count helper for this file.
+  /// Inputs: `toy`.
+  /// Returns: `int`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   int _toyRecordCount(Toy toy) =>
       widget.records.where((r) => r.toyIds.contains(toy.id)).length;
 
+  /// Purpose: Provide the internal normalized order helper for this file.
+  /// Inputs: `statusKey`.
+  /// Returns: `List<String>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   List<String> _normalizedOrder(String statusKey) {
     final isRetired = statusKey == _statusInactive;
     final allIds = _toys
@@ -2544,6 +2954,11 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
     return normalized;
   }
 
+  /// Purpose: Provide the internal sort toys helper for this file.
+  /// Inputs: `statusKey`, `toys`.
+  /// Returns: `List<Toy>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   List<Toy> _sortToys(String statusKey, List<Toy> toys) {
     final list = List<Toy>.of(toys);
     switch (_sortMode(statusKey)) {
@@ -2575,6 +2990,11 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
     return list;
   }
 
+  /// Purpose: Provide the internal set sort mode helper for this file.
+  /// Inputs: `statusKey`, `mode`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _setSortMode(String statusKey, String mode) {
     setState(() {
       if (mode == _sortCustom && !_customOrders.containsKey(statusKey)) {
@@ -2597,18 +3017,33 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
     _notifySort();
   }
 
+  /// Purpose: Provide the internal append toy to custom order if needed helper for this file.
+  /// Inputs: `toy`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _appendToyToCustomOrderIfNeeded(Toy toy) {
     final statusKey = _statusKey(toy.retiredDate != null);
     if (_sortMode(statusKey) != _sortCustom) return;
     _customOrders[statusKey] = _normalizedOrder(statusKey);
   }
 
+  /// Purpose: Provide the internal remove toy from custom orders helper for this file.
+  /// Inputs: `toyId`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _removeToyFromCustomOrders(String toyId) {
     for (final entry in _customOrders.entries) {
       entry.value.remove(toyId);
     }
   }
 
+  /// Purpose: Provide the internal reorder toys helper for this file.
+  /// Inputs: `statusKey`, `toys`, `oldIndex`, `newIndex`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _reorderToys(
     String statusKey,
     List<Toy> toys,
@@ -2633,10 +3068,25 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
     _notifySort();
   }
 
+  /// Purpose: Provide the internal add toy helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _addToy() => _showEditDialog(null);
 
+  /// Purpose: Provide the internal edit toy helper for this file.
+  /// Inputs: `t`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _editToy(Toy t) => _showEditDialog(t);
 
+  /// Purpose: Provide the internal delete toy helper for this file.
+  /// Inputs: `t`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _deleteToy(Toy t) {
     setState(() => _toys.removeWhere((x) => x.id == t.id));
     _removeToyFromCustomOrders(t.id);
@@ -2644,6 +3094,11 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
     _notifySort();
   }
 
+  /// Purpose: Provide the internal retire toy helper for this file.
+  /// Inputs: `t`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _retireToy(Toy t) {
     final now = DateTime.now();
     setState(() {
@@ -2667,6 +3122,11 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
     _notifySort();
   }
 
+  /// Purpose: Provide the internal show toy records helper for this file.
+  /// Inputs: `t`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _showToyRecords(Toy t) {
     final related = widget.records
         .where((r) => r.toyIds.contains(t.id))
@@ -2684,6 +3144,11 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
     );
   }
 
+  /// Purpose: Provide the internal show edit dialog helper for this file.
+  /// Inputs: `existing`.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _showEditDialog(Toy? existing) async {
     final nameCtrl = TextEditingController(text: existing?.name ?? '');
     final linkCtrl = TextEditingController(text: existing?.purchaseLink ?? '');
@@ -2695,6 +3160,11 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
     DateTime? purchaseDate = existing?.purchaseDate;
     DateTime? retiredDate = existing?.retiredDate;
     final l10n = AppLocalizations.of(context)!;
+    /// Purpose: Return the current toy edit form signature.
+    /// Inputs: None.
+    /// Returns: `String`.
+    /// Side effects: None.
+    /// Notes: Internal helper used within this function only.
     String signature() => formSignature([
       nameCtrl.text.trim(),
       linkCtrl.text.trim(),
@@ -2900,6 +3370,11 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
     }
   }
 
+  /// Purpose: Provide the internal build image row helper for this file.
+  /// Inputs: `imagePath`, `theme`, `onChanged`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildImageRow(
     String? imagePath,
     ThemeData theme,
@@ -2963,16 +3438,31 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
     );
   }
 
+  /// Purpose: Provide the internal toy subtitle helper for this file.
+  /// Inputs: `t`, `recordCount`.
+  /// Returns: `String`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   String _toySubtitle(Toy t, int recordCount) {
     final parts = <String>[
       AppLocalizations.of(context)!.intimacyRecordCount(recordCount),
     ];
     if (t.purchaseDate != null) {
+      /// Purpose: Format a purchase date for the toy subtitle.
+      /// Inputs: `d`.
+      /// Returns: `String`.
+      /// Side effects: None.
+      /// Notes: Internal helper used within this function only.
       String fmt(DateTime d) =>
           '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
       parts.add(fmt(t.purchaseDate!));
     }
     if (t.retiredDate != null) {
+      /// Purpose: Format a retired date for the toy subtitle.
+      /// Inputs: `d`.
+      /// Returns: `String`.
+      /// Side effects: None.
+      /// Notes: Internal helper used within this function only.
       String fmt(DateTime d) =>
           '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
       parts.add('⊘ ${fmt(t.retiredDate!)}');
@@ -2983,16 +3473,31 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
     return parts.join(' · ');
   }
 
+  /// Purpose: Return active toys.
+  /// Inputs: None.
+  /// Returns: `List<Toy>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   List<Toy> get _activeToys => _sortToys(
     _statusActive,
     _toys.where((t) => t.retiredDate == null).toList(),
   );
 
+  /// Purpose: Return retired toys.
+  /// Inputs: None.
+  /// Returns: `List<Toy>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   List<Toy> get _retiredToys => _sortToys(
     _statusInactive,
     _toys.where((t) => t.retiredDate != null).toList(),
   );
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -3026,6 +3531,11 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
     );
   }
 
+  /// Purpose: Provide the internal build toy section helper for this file.
+  /// Inputs: None.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildToySection({
     required String title,
     required String statusKey,
@@ -3048,6 +3558,11 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
     );
   }
 
+  /// Purpose: Provide the internal build managed section header helper for this file.
+  /// Inputs: None.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildManagedSectionHeader({
     required String title,
     required int count,
@@ -3119,6 +3634,11 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
     );
   }
 
+  /// Purpose: Provide the internal managed sort item helper for this file.
+  /// Inputs: None.
+  /// Returns: `PopupMenuEntry<String>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   PopupMenuEntry<String> _managedSortItem({
     required String statusKey,
     required String value,
@@ -3141,6 +3661,11 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
     );
   }
 
+  /// Purpose: Provide the internal build toy reorder list helper for this file.
+  /// Inputs: `statusKey`, `toys`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildToyReorderList(String statusKey, List<Toy> toys) {
     return ReorderableListView.builder(
       shrinkWrap: true,
@@ -3167,6 +3692,11 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
     );
   }
 
+  /// Purpose: Provide the internal build toy tile helper for this file.
+  /// Inputs: `t`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildToyTile(Toy t) {
     final l10n = AppLocalizations.of(context)!;
     final isRetired = t.retiredDate != null;
@@ -3254,6 +3784,11 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
     );
   }
 
+  /// Purpose: Provide the internal build toy avatar helper for this file.
+  /// Inputs: `t`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Widget _buildToyAvatar(Toy t) {
     if (t.imagePath != null) {
       return FutureBuilder<File>(
@@ -3276,12 +3811,22 @@ class _PositionManagementPage extends StatefulWidget {
   final List<IntimacyRecord> records;
   final ValueChanged<List<Position>> onChanged;
 
+  /// Purpose: Create a position management page instance.
+  /// Inputs: None.
+  /// Returns: A new `_PositionManagementPage` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   const _PositionManagementPage({
     required this.positions,
     required this.records,
     required this.onChanged,
   });
 
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new `State` instance.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
   @override
   State<_PositionManagementPage> createState() =>
       _PositionManagementPageState();
@@ -3309,21 +3854,46 @@ class _PositionManagementPageState extends State<_PositionManagementPage> {
     '✨',
   ];
 
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Registers listeners and may kick off asynchronous loading.
+  /// Notes: Guard any post-await UI updates with `mounted` when needed.
   @override
   void initState() {
     super.initState();
     _positions = List.of(widget.positions);
   }
 
+  /// Purpose: Provide the internal add position helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _addPosition() => _showEditDialog(null);
 
+  /// Purpose: Provide the internal edit position helper for this file.
+  /// Inputs: `p`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _editPosition(Position p) => _showEditDialog(p);
 
+  /// Purpose: Provide the internal delete position helper for this file.
+  /// Inputs: `p`.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _deletePosition(Position p) {
     setState(() => _positions.removeWhere((x) => x.id == p.id));
     widget.onChanged(_positions);
   }
 
+  /// Purpose: Provide the internal import defaults helper for this file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   void _importDefaults() {
     final l10n = AppLocalizations.of(context)!;
     final defaultPositions = [
@@ -3356,10 +3926,20 @@ class _PositionManagementPageState extends State<_PositionManagementPage> {
     }
   }
 
+  /// Purpose: Provide the internal show edit dialog helper for this file.
+  /// Inputs: `existing`.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only.
   Future<void> _showEditDialog(Position? existing) async {
     final nameCtrl = TextEditingController(text: existing?.name ?? '');
     String? selectedEmoji = existing?.emoji;
     final l10n = AppLocalizations.of(context)!;
+    /// Purpose: Return the current position edit form signature.
+    /// Inputs: None.
+    /// Returns: `String`.
+    /// Side effects: None.
+    /// Notes: Internal helper used within this function only.
     String signature() => formSignature([nameCtrl.text.trim(), selectedEmoji]);
     final initialSignature = signature();
     final result = await showDialog<bool>(
@@ -3469,6 +4049,11 @@ class _PositionManagementPageState extends State<_PositionManagementPage> {
     }
   }
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -3570,6 +4155,11 @@ class _FilteredRecordsPage extends StatelessWidget {
   final List<Partner> partners;
   final List<Toy> toys;
 
+  /// Purpose: Create a filtered records page instance.
+  /// Inputs: None.
+  /// Returns: A new `_FilteredRecordsPage` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   const _FilteredRecordsPage({
     required this.title,
     required this.records,
@@ -3577,6 +4167,11 @@ class _FilteredRecordsPage extends StatelessWidget {
     required this.toys,
   });
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -3615,6 +4210,11 @@ class _DatePickerTile extends StatelessWidget {
   final VoidCallback onPick;
   final VoidCallback onClear;
 
+  /// Purpose: Create a date picker tile instance.
+  /// Inputs: None.
+  /// Returns: A new `_DatePickerTile` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
   const _DatePickerTile({
     required this.label,
     required this.date,
@@ -3622,6 +4222,11 @@ class _DatePickerTile extends StatelessWidget {
     required this.onClear,
   });
 
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
