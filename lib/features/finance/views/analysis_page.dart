@@ -122,11 +122,11 @@ class _AnalysisPageState extends State<AnalysisPage>
       .toList();
 
   /// Purpose: Return range label.
-  /// Inputs: None.
+  /// Inputs: `l10n`.
   /// Returns: `String`.
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
-  String get _rangeLabel {
+  String _rangeLabel(AppLocalizations l10n) {
     switch (_timeRange) {
       case _TimeRange.year:
         return '${_selectedMonth.year}';
@@ -135,7 +135,7 @@ class _AnalysisPageState extends State<AnalysisPage>
       case _TimeRange.day:
         return DateFormat('yyyy-MM-dd').format(_selectedMonth);
       case _TimeRange.custom:
-        if (_customRange == null) return 'Select range';
+        if (_customRange == null) return l10n.financeSelectDateRange;
         return '${DateFormat('MM-dd').format(_customRange!.start)} ~ ${DateFormat('MM-dd').format(_customRange!.end)}';
     }
   }
@@ -214,6 +214,19 @@ class _AnalysisPageState extends State<AnalysisPage>
     }
   }
 
+  /// Purpose: Build the custom range segment label with re-edit support.
+  /// Inputs: `l10n`.
+  /// Returns: `Widget`.
+  /// Side effects: May open the custom date range picker when already selected.
+  /// Notes: The tap handler is enabled only while already in custom mode so switching modes still uses `SegmentedButton` normally.
+  Widget _buildCustomRangeSegmentLabel(AppLocalizations l10n) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: _timeRange == _TimeRange.custom ? _pickCustomRange : null,
+      child: Text(l10n.financeCustomRange),
+    );
+  }
+
   /// Purpose: Build the current widget subtree for the active UI state.
   /// Inputs: `context`.
   /// Returns: The widget tree for the current state.
@@ -222,16 +235,17 @@ class _AnalysisPageState extends State<AnalysisPage>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.financeAnalysis),
+        title: Text(l10n.financeAnalysis),
         centerTitle: true,
         bottom: TabBar(
           controller: _tabController,
           tabs: [
-            Tab(text: AppLocalizations.of(context)!.financeCategories),
-            Tab(text: AppLocalizations.of(context)!.financeTrends),
+            Tab(text: l10n.financeCategories),
+            Tab(text: l10n.financeTrends),
           ],
         ),
       ),
@@ -244,19 +258,19 @@ class _AnalysisPageState extends State<AnalysisPage>
               segments: [
                 ButtonSegment(
                   value: _TimeRange.year,
-                  label: Text(AppLocalizations.of(context)!.financeByYear),
+                  label: Text(l10n.financeByYear),
                 ),
                 ButtonSegment(
                   value: _TimeRange.month,
-                  label: Text(AppLocalizations.of(context)!.financeByMonth),
+                  label: Text(l10n.financeByMonth),
                 ),
                 ButtonSegment(
                   value: _TimeRange.day,
-                  label: Text(AppLocalizations.of(context)!.financeByDay),
+                  label: Text(l10n.financeByDay),
                 ),
                 ButtonSegment(
                   value: _TimeRange.custom,
-                  label: Text(AppLocalizations.of(context)!.financeCustomRange),
+                  label: _buildCustomRangeSegmentLabel(l10n),
                 ),
               ],
               selected: {_timeRange},
@@ -286,7 +300,7 @@ class _AnalysisPageState extends State<AnalysisPage>
                       ? _pickCustomRange
                       : null,
                   child: Text(
-                    _rangeLabel,
+                    _rangeLabel(l10n),
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
@@ -298,7 +312,11 @@ class _AnalysisPageState extends State<AnalysisPage>
                     onPressed: _next,
                   )
                 else
-                  const SizedBox(width: 48),
+                  IconButton(
+                    icon: const Icon(Icons.edit_calendar_outlined),
+                    tooltip: l10n.financeSelectDateRange,
+                    onPressed: _pickCustomRange,
+                  ),
               ],
             ),
           ),

@@ -29,8 +29,8 @@ Maintenance rules:
 - **Package id:** Dart package `my_day`; Android namespace/application id `com.yuanzhe.my_day`; MSIX identity `com.yuanzhe.myday`; macOS bundle id `com.yuanzhe.myDay`.
 - **Author / publisher:** `yuanzhe`.
 - **License:** GPL-3.0.
-- **Current version:** `0.6.7+26` in `pubspec.yaml`, `0.6.7.0` in `msix_config.msix_version`, and `0.6.7` in `installer.iss`.
-- **Latest tag at the time this guide was written:** `v0.6.7`.
+- **Current version:** `0.7.0+27` in `pubspec.yaml`, `0.7.0.0` in `msix_config.msix_version`, and `0.7.0` in `installer.iss`.
+- **Latest tag at the time this guide was written:** `v0.7.0`.
 - **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.41.6`.
 - **Primary platforms:** Windows x64/ARM64, Android APK/AAB, iOS sideload IPA, and macOS DMG. Linux project support exists for desktop runtime features but is not a primary release artifact.
 - **Repository:** Use the current environment's workspace root / repository path instead of hard-coding an absolute local path.
@@ -197,7 +197,7 @@ Finance services include:
 - `BankPresetService`: loads 250+ bank presets from `assets/banks.json`, country currency defaults, search/grouping, and multiple logo URL sources.
 - `SubscriptionProcessor`: hourly renewal catch-up, persisted `nextBillingDate`, multi-cycle catch-up, and at-expiry cancellation handling.
 
-Finance views cover monthly home summaries, grouped transactions, accounts with optional monthly-fee waiver criteria, categories, category details, exchange rates, subscriptions, subscription details, and analysis charts. The analysis page includes expense/income trends and a total-assets trend that reconstructs account balances at sample points.
+Finance views cover selectable-month home summaries and grouped monthly transactions, accounts with optional monthly-fee waiver criteria, account transaction pages with direct add-transaction support, categories, category details, exchange rates, subscriptions, subscription details, and analysis charts. The analysis page includes expense/income trends, editable custom date ranges, and a total-assets trend that reconstructs account balances at sample points.
 
 ### Intimacy
 
@@ -212,7 +212,7 @@ Main model: `lib/features/intimacy/models/intimacy_record.dart`.
 - `TimerHistoryEntry`: timer start and duration, with legacy `end` migration.
 - `IntimacyData`: partners, toys, positions, records, timer history, timer retention setting, partner/toy sort modes/custom orders, and `settingsModifiedAt`.
 
-The UI supports record list sorting/filtering, partner/toy/position management, default position import, partner break-up state, toy retirement state, exclusion of inactive partners/toys from new record pickers, EWMA/raw trend charts for pleasure/frequency/duration, weekly grouping, and a stopwatch timer whose history is stored in `intimacy_data.json`.
+The UI supports record list sorting/filtering, a limited default recent-history list with a show-all sheet, partner/toy/position management, default position import, partner break-up state, toy retirement state, exclusion of inactive partners/toys from new record pickers, EWMA/raw trend charts for pleasure/frequency/duration, weekly grouping, and a stopwatch timer whose history is stored in `intimacy_data.json`.
 
 ### Weight
 
@@ -442,3 +442,4 @@ Use the narrowest relevant command set for verification. For sync/model/persiste
 - `v0.6.5`: Finance monthly totals, smoother trend sampling, total-assets trend chart, forced-balance historical reconstruction, version `0.6.5+24`.
 - `v0.6.6`: Finance forced balances are migrated into ordinary adjustment transactions, live balances now come only from transactions, old-version compatibility uses the `0 + 1970-01-01` forced-balance sentinel, and versions are unified to `0.6.6+25` / MSIX `0.6.6.0` / installer `0.6.6`.
 - `v0.6.7`: Finance accounts can store optional monthly-fee waiver criteria for minimum balance and/or monthly incoming transfer, with versions unified to `0.6.7+26` / MSIX `0.6.7.0` / installer `0.6.7`.
+- `v0.7.0`: Finance analysis custom date ranges can be re-edited without losing prior selections, at-expiry-cancelled subscriptions are excluded from upcoming-renewal reminders, finance home transactions are month-filtered with month selection, account transaction pages can add transactions with the account preselected, intimacy default history shows a limited recent list with a show-all sheet, and versions are unified to `0.7.0+27` / MSIX `0.7.0.0` / installer `0.7.0`.

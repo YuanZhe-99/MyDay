@@ -112,7 +112,9 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
   void _sortList(List<Subscription> list) {
     switch (_sortMode) {
       case 'name':
-        list.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+        list.sort(
+          (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+        );
       case 'custom':
         if (_customOrder.isNotEmpty) {
           list.sort((a, b) {
@@ -147,10 +149,16 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
       _reordering = false;
       if (mode == 'custom' && _customOrder.isEmpty) {
         // Initialize custom order from current active list
-        _customOrder = _subscriptions.where((s) => s.isActive).map((s) => s.id).toList();
+        _customOrder = _subscriptions
+            .where((s) => s.isActive)
+            .map((s) => s.id)
+            .toList();
       }
     });
-    widget.onSortChanged(_sortMode, _sortMode == 'custom' ? _customOrder : null);
+    widget.onSortChanged(
+      _sortMode,
+      _sortMode == 'custom' ? _customOrder : null,
+    );
   }
 
   /// Purpose: Provide the internal monthly due helper for this file.
@@ -168,7 +176,12 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
       } else {
         monthly = s.amount / (s.billingInterval * 12);
       }
-      total += convertCurrency(rates, monthly, s.currency, widget.defaultCurrency);
+      total += convertCurrency(
+        rates,
+        monthly,
+        s.currency,
+        widget.defaultCurrency,
+      );
     }
     return total;
   }
@@ -181,14 +194,27 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
   double _monthlyAvg() {
     // Average monthly cost based on actual transactions; fall back to projected
     // cost when there isn't at least 2 full months of history.
-    final subTxs = _transactions.where((t) => t.subscriptionId != null).toList();
+    final subTxs = _transactions
+        .where((t) => t.subscriptionId != null)
+        .toList();
     if (subTxs.isEmpty) return _monthlyDue();
-    final earliest = subTxs.map((t) => t.date).reduce((a, b) => a.isBefore(b) ? a : b);
+    final earliest = subTxs
+        .map((t) => t.date)
+        .reduce((a, b) => a.isBefore(b) ? a : b);
     final now = DateTime.now();
     final months = (now.year - earliest.year) * 12 + now.month - earliest.month;
     if (months < 2) return _monthlyDue();
-    final total = subTxs.fold(0.0, (sum, t) => sum + convertCurrency(
-        widget.rateData.ratesAt(t.rateSnapshotId), t.amount, t.currency, widget.defaultCurrency));
+    final total = subTxs.fold(
+      0.0,
+      (sum, t) =>
+          sum +
+          convertCurrency(
+            widget.rateData.ratesAt(t.rateSnapshotId),
+            t.amount,
+            t.currency,
+            widget.defaultCurrency,
+          ),
+    );
     return total / months;
   }
 
@@ -237,7 +263,8 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
       final initialNBD = result.importHistory
           ? tempSub.calculateNextBillingDate(after: today)
           : tempSub.calculateNextBillingDate(
-              after: today.subtract(const Duration(days: 1)));
+              after: today.subtract(const Duration(days: 1)),
+            );
       final sub = Subscription(
         id: result.sub.id,
         name: result.sub.name,
@@ -289,7 +316,8 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
 
       // Recalculate nextBillingDate when restoring OR when billing parameters changed
       DateTime? nbd;
-      final billingChanged = sub.startDate != result.sub.startDate ||
+      final billingChanged =
+          sub.startDate != result.sub.startDate ||
           sub.trialDays != result.sub.trialDays ||
           sub.billingCycleType != result.sub.billingCycleType ||
           sub.billingInterval != result.sub.billingInterval;
@@ -306,7 +334,8 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
         nbd = (wasRestored && result.importHistory)
             ? tempSub.calculateNextBillingDate(after: today)
             : tempSub.calculateNextBillingDate(
-                after: today.subtract(const Duration(days: 1)));
+                after: today.subtract(const Duration(days: 1)),
+              );
       } else {
         nbd = sub.nextBillingDate;
       }
@@ -430,16 +459,20 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
   void _importHistoricalTransactions(Subscription sub) {
     final now = DateTime.now();
     final dates = sub.billingDatesBefore(now);
-    final newTxs = dates.map((d) => Transaction(
-      type: TransactionType.expense,
-      amount: sub.amount,
-      currency: sub.currency,
-      accountId: sub.accountId,
-      categoryId: sub.categoryId,
-      subscriptionId: sub.id,
-      note: sub.name,
-      date: d,
-    )).toList();
+    final newTxs = dates
+        .map(
+          (d) => Transaction(
+            type: TransactionType.expense,
+            amount: sub.amount,
+            currency: sub.currency,
+            accountId: sub.accountId,
+            categoryId: sub.categoryId,
+            subscriptionId: sub.id,
+            note: sub.name,
+            date: d,
+          ),
+        )
+        .toList();
     setState(() => _transactions.addAll(newTxs));
     widget.onTransactionsChanged(_transactions);
   }
@@ -473,13 +506,14 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
   /// Inputs: `days`.
   /// Returns: `List<(Subscription, DateTime)>`.
   /// Side effects: None.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: At-expiry cancellations keep showing in subscription lists but are excluded from renewal reminders.
   List<(Subscription, DateTime)> _getUpcomingSubs(int days) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final limit = today.add(Duration(days: days));
     final result = <(Subscription, DateTime)>[];
     for (final sub in _subscriptions) {
+      if (sub.cancelType == CancelType.atExpiry) continue;
       if (!sub.isActive && sub.cancelType == CancelType.immediate) continue;
       final next = sub.nextBillingDate;
       if (next != null) {
@@ -498,7 +532,11 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
   /// Returns: `Widget`.
   /// Side effects: May update UI state or trigger user-facing flows.
   /// Notes: Internal helper used within this file only.
-  Widget _buildReorderBody(ThemeData theme, AppLocalizations l10n, List<Subscription> active) {
+  Widget _buildReorderBody(
+    ThemeData theme,
+    AppLocalizations l10n,
+    List<Subscription> active,
+  ) {
     // Mutable copy for reorder
     final items = List.of(active);
     return ReorderableListView.builder(
@@ -512,10 +550,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
         widget.onSortChanged(_sortMode, _customOrder);
       },
       proxyDecorator: (child, index, animation) {
-        return Material(
-          elevation: 4,
-          child: child,
-        );
+        return Material(elevation: 4, child: child);
       },
       itemBuilder: (context, i) {
         final sub = items[i];
@@ -559,7 +594,9 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
           if (_sortMode == 'custom')
             IconButton(
               icon: Icon(_reordering ? Icons.check : Icons.reorder),
-              tooltip: _reordering ? l10n.financeSortDone : l10n.financeSortReorder,
+              tooltip: _reordering
+                  ? l10n.financeSortDone
+                  : l10n.financeSortReorder,
               onPressed: () => setState(() => _reordering = !_reordering),
             ),
           PopupMenuButton<String>(
@@ -571,7 +608,12 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                 value: 'nextRenewal',
                 child: Row(
                   children: [
-                    Icon(_sortMode == 'nextRenewal' ? Icons.radio_button_checked : Icons.radio_button_off, size: 18),
+                    Icon(
+                      _sortMode == 'nextRenewal'
+                          ? Icons.radio_button_checked
+                          : Icons.radio_button_off,
+                      size: 18,
+                    ),
                     const SizedBox(width: 8),
                     Text(l10n.financeSortByRenewal),
                   ],
@@ -581,7 +623,12 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                 value: 'name',
                 child: Row(
                   children: [
-                    Icon(_sortMode == 'name' ? Icons.radio_button_checked : Icons.radio_button_off, size: 18),
+                    Icon(
+                      _sortMode == 'name'
+                          ? Icons.radio_button_checked
+                          : Icons.radio_button_off,
+                      size: 18,
+                    ),
                     const SizedBox(width: 8),
                     Text(l10n.financeSortByName),
                   ],
@@ -591,7 +638,12 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                 value: 'custom',
                 child: Row(
                   children: [
-                    Icon(_sortMode == 'custom' ? Icons.radio_button_checked : Icons.radio_button_off, size: 18),
+                    Icon(
+                      _sortMode == 'custom'
+                          ? Icons.radio_button_checked
+                          : Icons.radio_button_off,
+                      size: 18,
+                    ),
                     const SizedBox(width: 8),
                     Text(l10n.financeSortCustom),
                   ],
@@ -601,248 +653,310 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
           ),
         ],
       ),
-      body: _reordering ? _buildReorderBody(theme, l10n, active) : Column(
-        children: [
-          // Summary cards
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
+      body: _reordering
+          ? _buildReorderBody(theme, l10n, active)
+          : Column(
               children: [
-                Expanded(
-                  child: _SummaryCard(
-                    label: l10n.financeMonthlyDue,
-                    value: '$sym${numberFormat.format(_monthlyDue())}',
-                    color: theme.colorScheme.error,
-                    icon: Icons.calendar_today,
+                // Summary cards
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _SummaryCard(
+                          label: l10n.financeMonthlyDue,
+                          value: '$sym${numberFormat.format(_monthlyDue())}',
+                          color: theme.colorScheme.error,
+                          icon: Icons.calendar_today,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _SummaryCard(
+                          label: l10n.financeMonthlyAvg,
+                          value: '$sym${numberFormat.format(_monthlyAvg())}',
+                          color: theme.colorScheme.primary,
+                          icon: Icons.trending_down,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _SummaryCard(
+                          label: l10n.financeYearlyAvg,
+                          value: '$sym${numberFormat.format(_yearlyAvg())}',
+                          color: Colors.orange,
+                          icon: Icons.date_range,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _SummaryCard(
-                    label: l10n.financeMonthlyAvg,
-                    value: '$sym${numberFormat.format(_monthlyAvg())}',
-                    color: theme.colorScheme.primary,
-                    icon: Icons.trending_down,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _SummaryCard(
-                    label: l10n.financeYearlyAvg,
-                    value: '$sym${numberFormat.format(_yearlyAvg())}',
-                    color: Colors.orange,
-                    icon: Icons.date_range,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1),
+                const Divider(height: 1),
 
-          // Active subscriptions
-          if (active.isNotEmpty || historical.isNotEmpty)
-            Expanded(
-              child: ListView(
-                children: [
-                  // Upcoming renewals
-                  if (upcomingSubs.isNotEmpty) ...[
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 2),
-                      child: Row(
-                        children: [
-                          Icon(Icons.notifications_active, size: 16, color: theme.colorScheme.error),
-                          const SizedBox(width: 6),
-                          Text(
-                            l10n.financeUpcomingRenewals,
-                            style: theme.textTheme.labelMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: theme.colorScheme.error,
+                // Active subscriptions
+                if (active.isNotEmpty || historical.isNotEmpty)
+                  Expanded(
+                    child: ListView(
+                      children: [
+                        // Upcoming renewals
+                        if (upcomingSubs.isNotEmpty) ...[
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 10, 16, 2),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.notifications_active,
+                                  size: 16,
+                                  color: theme.colorScheme.error,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  l10n.financeUpcomingRenewals,
+                                  style: theme.textTheme.labelMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: theme.colorScheme.error,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                            child: Wrap(
+                              spacing: 8,
+                              runSpacing: 4,
+                              children: upcomingSubs.map((entry) {
+                                final (sub, _) = entry;
+                                final cat = sub.categoryId != null
+                                    ? widget.categories
+                                          .where((c) => c.id == sub.categoryId)
+                                          .firstOrNull
+                                    : null;
+                                final icon = sub.emoji ?? cat?.emoji;
+                                return Chip(
+                                  avatar: icon != null
+                                      ? Text(
+                                          icon,
+                                          style: const TextStyle(fontSize: 14),
+                                        )
+                                      : const Icon(Icons.repeat, size: 14),
+                                  label: Text(
+                                    sub.name,
+                                    style: theme.textTheme.bodySmall,
+                                  ),
+                                  visualDensity: VisualDensity.compact,
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                          const Divider(height: 1),
+                        ],
+                        // Reminder setting
+                        SwitchListTile(
+                          secondary: const Icon(Icons.notifications_outlined),
+                          title: Text(
+                            l10n.financeReminderEnabled,
+                            style: theme.textTheme.bodyMedium,
+                          ),
+                          subtitle: reminderEnabled
+                              ? Text(
+                                  '${l10n.financeReminderTime}: '
+                                  '${_reminderHour!.toString().padLeft(2, '0')}:'
+                                  '${_reminderMinute!.toString().padLeft(2, '0')}',
+                                  style: theme.textTheme.bodySmall,
+                                )
+                              : null,
+                          value: reminderEnabled,
+                          onChanged: (enabled) async {
+                            if (enabled) {
+                              final picked = await showTimePicker(
+                                context: context,
+                                initialTime: const TimeOfDay(
+                                  hour: 9,
+                                  minute: 0,
+                                ),
+                              );
+                              if (picked != null) {
+                                setState(() {
+                                  _reminderHour = picked.hour;
+                                  _reminderMinute = picked.minute;
+                                });
+                                widget.onReminderChanged(
+                                  picked.hour,
+                                  picked.minute,
+                                );
+                              }
+                            } else {
+                              setState(() {
+                                _reminderHour = null;
+                                _reminderMinute = null;
+                              });
+                              widget.onReminderChanged(null, null);
+                            }
+                          },
+                        ),
+                        if (reminderEnabled)
+                          ListTile(
+                            leading: const Icon(Icons.access_time),
+                            title: Text(l10n.financeReminderTime),
+                            trailing: Text(
+                              '${_reminderHour!.toString().padLeft(2, '0')}:'
+                              '${_reminderMinute!.toString().padLeft(2, '0')}',
+                            ),
+                            onTap: () async {
+                              final picked = await showTimePicker(
+                                context: context,
+                                initialTime: TimeOfDay(
+                                  hour: _reminderHour!,
+                                  minute: _reminderMinute!,
+                                ),
+                              );
+                              if (picked != null) {
+                                setState(() {
+                                  _reminderHour = picked.hour;
+                                  _reminderMinute = picked.minute;
+                                });
+                                widget.onReminderChanged(
+                                  picked.hour,
+                                  picked.minute,
+                                );
+                              }
+                            },
+                          ),
+                        const Divider(height: 1),
+                        if (active.isNotEmpty) ...[
+                          _SectionHeader(
+                            title: l10n.financeActiveSubscriptions,
+                          ),
+                          ...active.map(
+                            (sub) => Dismissible(
+                              key: ValueKey('active-${sub.id}'),
+                              confirmDismiss: (direction) async {
+                                if (direction == DismissDirection.startToEnd) {
+                                  _editSubscription(sub);
+                                  return false;
+                                } else {
+                                  _cancelSubscription(sub);
+                                  return false;
+                                }
+                              },
+                              background: Container(
+                                color: theme.colorScheme.primaryContainer,
+                                alignment: Alignment.centerLeft,
+                                padding: const EdgeInsets.only(left: 20),
+                                child: Icon(
+                                  Icons.edit,
+                                  color: theme.colorScheme.onPrimaryContainer,
+                                ),
+                              ),
+                              secondaryBackground: Container(
+                                color: theme.colorScheme.errorContainer,
+                                alignment: Alignment.centerRight,
+                                padding: const EdgeInsets.only(right: 20),
+                                child: Icon(
+                                  Icons.cancel_outlined,
+                                  color: theme.colorScheme.onErrorContainer,
+                                ),
+                              ),
+                              child: _SubscriptionTile(
+                                subscription: sub,
+                                categories: widget.categories,
+                                accounts: widget.accounts,
+                                defaultCurrency: widget.defaultCurrency,
+                                onTap: () => _openDetail(sub),
+                                onEdit: () => _editSubscription(sub),
+                                onCancel: () => _cancelSubscription(sub),
+                                onDelete: () async {
+                                  final confirmed = await confirmDelete(
+                                    context,
+                                    l10n.financeThisSubscription,
+                                  );
+                                  if (confirmed == true) {
+                                    _deleteSubscription(sub);
+                                  }
+                                },
+                              ),
                             ),
                           ),
                         ],
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 4,
-                        children: upcomingSubs.map((entry) {
-                          final (sub, _) = entry;
-                          final cat = sub.categoryId != null
-                              ? widget.categories.where((c) => c.id == sub.categoryId).firstOrNull
-                              : null;
-                          final icon = sub.emoji ?? cat?.emoji;
-                          return Chip(
-                            avatar: icon != null
-                                ? Text(icon, style: const TextStyle(fontSize: 14))
-                                : const Icon(Icons.repeat, size: 14),
-                            label: Text(sub.name, style: theme.textTheme.bodySmall),
-                            visualDensity: VisualDensity.compact,
-                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                    const Divider(height: 1),
-                  ],
-                  // Reminder setting
-                  SwitchListTile(
-                    secondary: const Icon(Icons.notifications_outlined),
-                    title: Text(l10n.financeReminderEnabled, style: theme.textTheme.bodyMedium),
-                    subtitle: reminderEnabled
-                        ? Text(
-                            '${l10n.financeReminderTime}: '
-                            '${_reminderHour!.toString().padLeft(2, '0')}:'
-                            '${_reminderMinute!.toString().padLeft(2, '0')}',
-                            style: theme.textTheme.bodySmall,
-                          )
-                        : null,
-                    value: reminderEnabled,
-                    onChanged: (enabled) async {
-                      if (enabled) {
-                        final picked = await showTimePicker(
-                          context: context,
-                          initialTime: const TimeOfDay(hour: 9, minute: 0),
-                        );
-                        if (picked != null) {
-                          setState(() {
-                            _reminderHour = picked.hour;
-                            _reminderMinute = picked.minute;
-                          });
-                          widget.onReminderChanged(picked.hour, picked.minute);
-                        }
-                      } else {
-                        setState(() {
-                          _reminderHour = null;
-                          _reminderMinute = null;
-                        });
-                        widget.onReminderChanged(null, null);
-                      }
-                    },
-                  ),
-                  if (reminderEnabled)
-                    ListTile(
-                      leading: const Icon(Icons.access_time),
-                      title: Text(l10n.financeReminderTime),
-                      trailing: Text(
-                        '${_reminderHour!.toString().padLeft(2, '0')}:'
-                        '${_reminderMinute!.toString().padLeft(2, '0')}',
-                      ),
-                      onTap: () async {
-                        final picked = await showTimePicker(
-                          context: context,
-                          initialTime: TimeOfDay(
-                            hour: _reminderHour!,
-                            minute: _reminderMinute!,
+                        if (historical.isNotEmpty) ...[
+                          _SectionHeader(
+                            title: l10n.financeHistoricalSubscriptions,
                           ),
-                        );
-                        if (picked != null) {
-                          setState(() {
-                            _reminderHour = picked.hour;
-                            _reminderMinute = picked.minute;
-                          });
-                          widget.onReminderChanged(picked.hour, picked.minute);
-                        }
-                      },
+                          ...historical.map(
+                            (sub) => Dismissible(
+                              key: ValueKey('hist-${sub.id}'),
+                              confirmDismiss: (direction) async {
+                                if (direction == DismissDirection.startToEnd) {
+                                  _editSubscription(sub);
+                                  return false;
+                                } else {
+                                  final confirmed = await confirmDelete(
+                                    context,
+                                    l10n.financeThisSubscription,
+                                  );
+                                  if (confirmed == true) {
+                                    _deleteSubscription(sub);
+                                  }
+                                  return false;
+                                }
+                              },
+                              background: Container(
+                                color: theme.colorScheme.primaryContainer,
+                                alignment: Alignment.centerLeft,
+                                padding: const EdgeInsets.only(left: 20),
+                                child: Icon(
+                                  Icons.edit,
+                                  color: theme.colorScheme.onPrimaryContainer,
+                                ),
+                              ),
+                              secondaryBackground: Container(
+                                color: theme.colorScheme.errorContainer,
+                                alignment: Alignment.centerRight,
+                                padding: const EdgeInsets.only(right: 20),
+                                child: Icon(
+                                  Icons.delete,
+                                  color: theme.colorScheme.onErrorContainer,
+                                ),
+                              ),
+                              child: _SubscriptionTile(
+                                subscription: sub,
+                                categories: widget.categories,
+                                accounts: widget.accounts,
+                                defaultCurrency: widget.defaultCurrency,
+                                onTap: () => _openDetail(sub),
+                                onEdit: () => _editSubscription(sub),
+                                onDelete: () async {
+                                  final confirmed = await confirmDelete(
+                                    context,
+                                    l10n.financeThisSubscription,
+                                  );
+                                  if (confirmed == true) {
+                                    _deleteSubscription(sub);
+                                  }
+                                },
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
-                  const Divider(height: 1),
-                  if (active.isNotEmpty) ...[
-                    _SectionHeader(title: l10n.financeActiveSubscriptions),
-                    ...active.map((sub) => Dismissible(
-                      key: ValueKey('active-${sub.id}'),
-                      confirmDismiss: (direction) async {
-                        if (direction == DismissDirection.startToEnd) {
-                          _editSubscription(sub);
-                          return false;
-                        } else {
-                          _cancelSubscription(sub);
-                          return false;
-                        }
-                      },
-                      background: Container(
-                        color: theme.colorScheme.primaryContainer,
-                        alignment: Alignment.centerLeft,
-                        padding: const EdgeInsets.only(left: 20),
-                        child: Icon(Icons.edit, color: theme.colorScheme.onPrimaryContainer),
+                  )
+                else
+                  Expanded(
+                    child: Center(
+                      child: Text(
+                        l10n.financeNoSubscriptions,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
-                      secondaryBackground: Container(
-                        color: theme.colorScheme.errorContainer,
-                        alignment: Alignment.centerRight,
-                        padding: const EdgeInsets.only(right: 20),
-                        child: Icon(Icons.cancel_outlined, color: theme.colorScheme.onErrorContainer),
-                      ),
-                      child: _SubscriptionTile(
-                        subscription: sub,
-                        categories: widget.categories,
-                        accounts: widget.accounts,
-                        defaultCurrency: widget.defaultCurrency,
-                        onTap: () => _openDetail(sub),
-                        onEdit: () => _editSubscription(sub),
-                        onCancel: () => _cancelSubscription(sub),
-                        onDelete: () async {
-                          final confirmed = await confirmDelete(context, l10n.financeThisSubscription);
-                          if (confirmed == true) _deleteSubscription(sub);
-                        },
-                      ),
-                    )),
-                  ],
-                  if (historical.isNotEmpty) ...[
-                    _SectionHeader(title: l10n.financeHistoricalSubscriptions),
-                    ...historical.map((sub) => Dismissible(
-                      key: ValueKey('hist-${sub.id}'),
-                      confirmDismiss: (direction) async {
-                        if (direction == DismissDirection.startToEnd) {
-                          _editSubscription(sub);
-                          return false;
-                        } else {
-                          final confirmed = await confirmDelete(context, l10n.financeThisSubscription);
-                          if (confirmed == true) _deleteSubscription(sub);
-                          return false;
-                        }
-                      },
-                      background: Container(
-                        color: theme.colorScheme.primaryContainer,
-                        alignment: Alignment.centerLeft,
-                        padding: const EdgeInsets.only(left: 20),
-                        child: Icon(Icons.edit, color: theme.colorScheme.onPrimaryContainer),
-                      ),
-                      secondaryBackground: Container(
-                        color: theme.colorScheme.errorContainer,
-                        alignment: Alignment.centerRight,
-                        padding: const EdgeInsets.only(right: 20),
-                        child: Icon(Icons.delete, color: theme.colorScheme.onErrorContainer),
-                      ),
-                      child: _SubscriptionTile(
-                        subscription: sub,
-                        categories: widget.categories,
-                        accounts: widget.accounts,
-                        defaultCurrency: widget.defaultCurrency,
-                        onTap: () => _openDetail(sub),
-                        onEdit: () => _editSubscription(sub),
-                        onDelete: () async {
-                          final confirmed = await confirmDelete(context, l10n.financeThisSubscription);
-                          if (confirmed == true) _deleteSubscription(sub);
-                        },
-                      ),
-                    )),
-                  ],
-                ],
-              ),
-            )
-          else
-            Expanded(
-              child: Center(
-                child: Text(
-                  l10n.financeNoSubscriptions,
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
-                ),
-              ),
+              ],
             ),
-        ],
-      ),
       floatingActionButton: FloatingActionButton(
         onPressed: _addSubscription,
         child: const Icon(Icons.add),
@@ -853,6 +967,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
 
 class _SectionHeader extends StatelessWidget {
   final String title;
+
   /// Purpose: Create a section header instance.
   /// Inputs: `title`.
   /// Returns: A new `_SectionHeader` instance.
@@ -919,9 +1034,11 @@ class _SummaryCard extends StatelessWidget {
                 Icon(icon, size: 12, color: color),
                 const SizedBox(width: 4),
                 Flexible(
-                  child: Text(label,
-                      style: theme.textTheme.bodySmall,
-                      overflow: TextOverflow.ellipsis),
+                  child: Text(
+                    label,
+                    style: theme.textTheme.bodySmall,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
             ),
@@ -989,7 +1106,9 @@ class _SubscriptionTile extends StatelessWidget {
     // Account
     final account = accounts.where((a) => a.id == sub.accountId).firstOrNull;
     final accountLabel = account != null
-        ? (account.emoji != null ? '${account.emoji} ${account.name}' : account.name)
+        ? (account.emoji != null
+              ? '${account.emoji} ${account.name}'
+              : account.name)
         : null;
 
     // Cycle label
@@ -1001,14 +1120,19 @@ class _SubscriptionTile extends StatelessWidget {
     String? nextLabel;
     if (sub.cancelType == CancelType.atExpiry && sub.nextBillingDate != null) {
       // atExpiry: show expiry date (regardless of active or not)
-      nextLabel = '${l10n.financeExpiryDate}: ${DateFormat('yyyy-MM-dd').format(sub.nextBillingDate!)}';
+      nextLabel =
+          '${l10n.financeExpiryDate}: ${DateFormat('yyyy-MM-dd').format(sub.nextBillingDate!)}';
     } else if (sub.isActive && sub.nextBillingDate != null) {
-      nextLabel = '${l10n.financeNextBilling}: ${DateFormat('yyyy-MM-dd').format(sub.nextBillingDate!)}';
+      nextLabel =
+          '${l10n.financeNextBilling}: ${DateFormat('yyyy-MM-dd').format(sub.nextBillingDate!)}';
     }
 
     // Cancelled label (for immediate cancellation)
-    final cancelLabel = sub.cancelledAt != null && sub.cancelType != CancelType.atExpiry
-        ? l10n.financeCancelledOn(DateFormat('yyyy-MM-dd').format(sub.cancelledAt!))
+    final cancelLabel =
+        sub.cancelledAt != null && sub.cancelType != CancelType.atExpiry
+        ? l10n.financeCancelledOn(
+            DateFormat('yyyy-MM-dd').format(sub.cancelledAt!),
+          )
         : null;
 
     final subtitleParts = <String>[
@@ -1071,9 +1195,14 @@ class _SubscriptionTile extends StatelessWidget {
                 },
               ),
             ListTile(
-              leading: Icon(Icons.delete, color: Theme.of(context).colorScheme.error),
-              title: Text(l10n.commonDelete,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              leading: Icon(
+                Icons.delete,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              title: Text(
+                l10n.commonDelete,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
               onTap: () {
                 Navigator.pop(ctx);
                 onDelete();
@@ -1091,7 +1220,11 @@ class _SubscriptionTile extends StatelessWidget {
   /// Side effects: May update UI state or trigger user-facing flows.
   /// Notes: Internal helper used within this file only.
   Widget _buildLeading(
-      Subscription sub, Account? account, Category? cat, ThemeData theme) {
+    Subscription sub,
+    Account? account,
+    Category? cat,
+    ThemeData theme,
+  ) {
     final color = theme.colorScheme.error;
 
     /// Purpose: Build a subscription emoji avatar.

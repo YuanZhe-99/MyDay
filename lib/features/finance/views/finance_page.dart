@@ -55,16 +55,19 @@ class _FinancePageState extends State<FinancePage> {
   Map<String, String> _accountSortModes = {};
   Map<String, List<String>> _accountCustomOrders = {};
   DateTime _settingsModifiedAt = DateTime.fromMillisecondsSinceEpoch(0);
+  late DateTime _selectedFlowMonth;
   bool _loaded = false;
 
   /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
   /// Inputs: None.
   /// Returns: None.
   /// Side effects: Registers listeners and may kick off asynchronous loading.
-  /// Notes: Guard any post-await UI updates with `mounted` when needed.
+  /// Notes: Initializes the transaction flow filter to the current month.
   @override
   void initState() {
     super.initState();
+    final now = DateTime.now();
+    _selectedFlowMonth = DateTime(now.year, now.month);
     ReminderService.instance.onRenewalsProcessed = _loadData;
     _loadData();
     AutoSyncService.instance.addOnLocalDataChanged(_loadData);
@@ -140,13 +143,14 @@ class _FinancePageState extends State<FinancePage> {
   /// Inputs: `days`.
   /// Returns: `List<(Subscription, DateTime)>`.
   /// Side effects: None.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: At-expiry cancellations keep showing in subscription lists but are excluded from renewal reminders.
   List<(Subscription, DateTime)> _getUpcomingSubs(int days) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final limit = today.add(Duration(days: days));
     final result = <(Subscription, DateTime)>[];
     for (final sub in _subscriptions) {
+      if (sub.cancelType == CancelType.atExpiry) continue;
       if (!sub.isActive && sub.cancelType == CancelType.immediate) continue;
       final next = sub.nextBillingDate;
       if (next != null) {
@@ -257,6 +261,80 @@ class _FinancePageState extends State<FinancePage> {
     }
   }
 
+  /// Purpose: Let the user select the month shown on the finance home flow.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: Opens a month picker dialog and updates the selected month.
+  /// Notes: The dialog stores only a year/month pair; no day-level filtering is involved.
+  Future<void> _pickFlowMonth() async {
+    final l10n = AppLocalizations.of(context)!;
+    final picked = await showDialog<DateTime>(
+      context: context,
+      builder: (context) {
+        var year = _selectedFlowMonth.year;
+        return StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            title: Text(l10n.financeByMonth),
+            content: SizedBox(
+              width: 320,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.chevron_left),
+                        onPressed: () => setDialogState(() => year--),
+                      ),
+                      Text(
+                        '$year',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.chevron_right),
+                        onPressed: () => setDialogState(() => year++),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: List.generate(12, (index) {
+                      final month = index + 1;
+                      final selected =
+                          year == _selectedFlowMonth.year &&
+                          month == _selectedFlowMonth.month;
+                      return ChoiceChip(
+                        label: Text(
+                          DateFormat.MMM().format(DateTime(year, month)),
+                        ),
+                        selected: selected,
+                        onSelected: (_) {
+                          Navigator.pop(context, DateTime(year, month));
+                        },
+                      );
+                    }),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(l10n.commonCancel),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() => _selectedFlowMonth = DateTime(picked.year, picked.month));
+    }
+  }
+
   /// Purpose: Build the current widget subtree for the active UI state.
   /// Inputs: `context`.
   /// Returns: The widget tree for the current state.
@@ -265,14 +343,19 @@ class _FinancePageState extends State<FinancePage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final now = DateTime.now();
-    final monthLabel = DateFormat('yyyy-MM').format(now);
+    final monthLabel = DateFormat('yyyy-MM').format(_selectedFlowMonth);
     final l10n = AppLocalizations.of(context)!;
 
     // Calculate summaries with currency conversion
     final currentRates = _rateData.currentRates;
-    final startOfMonth = DateTime(now.year, now.month);
-    final startOfNextMonth = DateTime(now.year, now.month + 1);
+    final startOfMonth = DateTime(
+      _selectedFlowMonth.year,
+      _selectedFlowMonth.month,
+    );
+    final startOfNextMonth = DateTime(
+      _selectedFlowMonth.year,
+      _selectedFlowMonth.month + 1,
+    );
     final monthTransactions = _transactions
         .where(
           (t) =>
@@ -363,6 +446,19 @@ class _FinancePageState extends State<FinancePage> {
                   monthIncome: monthIncome,
                   totalAssets: totalAssets,
                   currencyCode: _defaultCurrency,
+                  onPreviousMonth: () => setState(() {
+                    _selectedFlowMonth = DateTime(
+                      _selectedFlowMonth.year,
+                      _selectedFlowMonth.month - 1,
+                    );
+                  }),
+                  onNextMonth: () => setState(() {
+                    _selectedFlowMonth = DateTime(
+                      _selectedFlowMonth.year,
+                      _selectedFlowMonth.month + 1,
+                    );
+                  }),
+                  onPickMonth: _pickFlowMonth,
                 ),
                 const Divider(height: 1),
 
@@ -450,7 +546,7 @@ class _FinancePageState extends State<FinancePage> {
                   ),
                 ),
                 Expanded(
-                  child: _transactions.isEmpty
+                  child: monthTransactions.isEmpty
                       ? Center(
                           child: Text(
                             l10n.financeNoTransactions,
@@ -461,7 +557,7 @@ class _FinancePageState extends State<FinancePage> {
                         )
                       : buildGroupedTransactionList(
                           context,
-                          List.of(_transactions)
+                          List.of(monthTransactions)
                             ..sort((a, b) => b.date.compareTo(a.date)),
                           (tx) => Dismissible(
                             key: ValueKey(tx.id),
@@ -738,9 +834,12 @@ class _SummaryHeader extends StatelessWidget {
   final double monthIncome;
   final double totalAssets;
   final String currencyCode;
+  final VoidCallback onPreviousMonth;
+  final VoidCallback onNextMonth;
+  final VoidCallback onPickMonth;
 
   /// Purpose: Create a summary header instance.
-  /// Inputs: None.
+  /// Inputs: Monthly totals and month navigation callbacks.
   /// Returns: A new `_SummaryHeader` instance.
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
@@ -750,6 +849,9 @@ class _SummaryHeader extends StatelessWidget {
     required this.monthIncome,
     required this.totalAssets,
     required this.currencyCode,
+    required this.onPreviousMonth,
+    required this.onNextMonth,
+    required this.onPickMonth,
   });
 
   /// Purpose: Build the current widget subtree for the active UI state.
@@ -768,11 +870,23 @@ class _SummaryHeader extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          Text(
-            monthLabel,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_left),
+                onPressed: onPreviousMonth,
+              ),
+              TextButton.icon(
+                onPressed: onPickMonth,
+                icon: const Icon(Icons.calendar_month, size: 16),
+                label: Text(monthLabel),
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_right),
+                onPressed: onNextMonth,
+              ),
+            ],
           ),
           const SizedBox(height: 8),
           Row(

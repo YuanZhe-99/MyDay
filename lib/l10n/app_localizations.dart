@@ -1525,6 +1525,17 @@ abstract class AppLocalizations {
   /// **'Show all'**
   String get intimacyShowAll;
 
+  /// Purpose: Return the localized string for `intimacyShowAllRecords`.
+  /// Inputs: None.
+  /// Returns: A localized `String`.
+  /// Side effects: None.
+  /// Notes: Generated localization accessor or override.
+  /// No description provided for @intimacyShowAllRecords.
+  ///
+  /// In en, this message translates to:
+  /// **'Show all records'**
+  String get intimacyShowAllRecords;
+
   /// Purpose: Return the localized string for `intimacyAllRecords`.
   /// Inputs: None.
   /// Returns: A localized `String`.

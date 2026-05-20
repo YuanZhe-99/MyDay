@@ -196,12 +196,14 @@ class ReminderService {
       mns.cancel(_mobileSubReminderId);
       return;
     }
-    // Build upcoming renewal message
+    // Build upcoming renewal message; at-expiry cancellations are expiry dates,
+    // not actionable renewal reminders.
     final today = DateTime.now();
     final todayDate = DateTime(today.year, today.month, today.day);
     final limit = todayDate.add(const Duration(days: 3));
     final upcoming = <String>[];
     for (final sub in _subscriptions) {
+      if (sub.cancelType == CancelType.atExpiry) continue;
       if (!sub.isActive && sub.cancelType == CancelType.immediate) continue;
       final next = sub.nextBillingDate;
       if (next != null) {
@@ -499,6 +501,7 @@ class ReminderService {
         final limit = todayDate.add(const Duration(days: 3));
         final upcoming = <String>[];
         for (final sub in _subscriptions) {
+          if (sub.cancelType == CancelType.atExpiry) continue;
           if (!sub.isActive && sub.cancelType == CancelType.immediate) continue;
           final next = sub.nextBillingDate;
           if (next != null) {

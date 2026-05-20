@@ -1057,6 +1057,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get intimacyShowAll => 'Show all';
 
+  /// Purpose: Return the localized string for `intimacyShowAllRecords`.
+  /// Inputs: None.
+  /// Returns: A localized `String`.
+  /// Side effects: None.
+  /// Notes: Generated localization accessor or override.
+  @override
+  String get intimacyShowAllRecords => 'Show all records';
+
   /// Purpose: Return the localized string for `intimacyAllRecords`.
   /// Inputs: None.
   /// Returns: A localized `String`.

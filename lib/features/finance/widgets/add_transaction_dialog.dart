@@ -14,12 +14,13 @@ class AddTransactionDialog extends StatefulWidget {
   final Transaction? transaction;
   final String? currentSnapshotId;
   final String defaultCurrency;
+  final String? initialAccountId;
 
   /// Purpose: Create a add transaction dialog instance.
-  /// Inputs: `categories`.
+  /// Inputs: `categories`, optional `initialAccountId`.
   /// Returns: A new `AddTransactionDialog` instance.
   /// Side effects: None.
-  /// Notes: None.
+  /// Notes: `initialAccountId` is used only when adding a new transaction.
   const AddTransactionDialog({
     super.key,
     this.categories = const [],
@@ -27,6 +28,7 @@ class AddTransactionDialog extends StatefulWidget {
     this.transaction,
     this.currentSnapshotId,
     this.defaultCurrency = 'CNY',
+    this.initialAccountId,
   });
 
   /// Purpose: Create the mutable state object for this widget.
@@ -56,6 +58,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
   bool get _isEditing => widget.transaction != null;
+
   /// Purpose: Return is cross currency.
   /// Inputs: None.
   /// Returns: `bool`.
@@ -121,7 +124,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
   /// Inputs: None.
   /// Returns: None.
   /// Side effects: Registers listeners and may kick off asynchronous loading.
-  /// Notes: Guard any post-await UI updates with `mounted` when needed.
+  /// Notes: Prefers the transaction account, then the caller's initial account, then the first available account.
   @override
   void initState() {
     super.initState();
@@ -135,10 +138,6 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
     _noteController = TextEditingController(text: tx?.note ?? '');
     _type = tx?.type ?? TransactionType.expense;
     _date = tx?.date ?? DateTime.now();
-    _currency =
-        tx?.currency ??
-        widget.accounts.firstOrNull?.currency ??
-        widget.defaultCurrency;
     if (tx?.categoryId != null) {
       _selectedCategory = widget.categories
           .where((c) => c.id == tx!.categoryId)
@@ -149,12 +148,19 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
           .where((a) => a.id == tx!.accountId)
           .firstOrNull;
     }
+    _selectedAccount ??= widget.initialAccountId != null
+        ? widget.accounts
+              .where((a) => a.id == widget.initialAccountId)
+              .firstOrNull
+        : null;
+    _selectedAccount ??= widget.accounts.firstOrNull;
+    _currency =
+        tx?.currency ?? _selectedAccount?.currency ?? widget.defaultCurrency;
     if (tx?.toAccountId != null) {
       _selectedToAccount = widget.accounts
           .where((a) => a.id == tx!.toAccountId)
           .firstOrNull;
     }
-    _selectedAccount ??= widget.accounts.firstOrNull;
     _initialSignature = _signature();
   }
 

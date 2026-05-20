@@ -532,9 +532,14 @@ class _AccountsPageState extends State<AccountsPage> {
                               MaterialPageRoute(
                                 builder: (_) => _AccountTransactionsPage(
                                   account: entry.value,
+                                  accounts: _accounts,
                                   transactions: _transactions,
                                   categories: widget.categories,
                                   rateData: widget.rateData,
+                                  onAdd: (tx) {
+                                    setState(() => _transactions.insert(0, tx));
+                                    _notifyTransactions();
+                                  },
                                   onEdit: (updated) {
                                     setState(() {
                                       final i = _transactions.indexWhere(
@@ -806,22 +811,26 @@ class _AccountsPageState extends State<AccountsPage> {
 
 class _AccountTransactionsPage extends StatefulWidget {
   final Account account;
+  final List<Account> accounts;
   final List<Transaction> transactions;
   final List<Category> categories;
   final ExchangeRateData rateData;
+  final void Function(Transaction) onAdd;
   final void Function(Transaction) onEdit;
   final void Function(Transaction) onDelete;
 
   /// Purpose: Create a account transactions page instance.
-  /// Inputs: None.
+  /// Inputs: The focused account, all accounts, and transaction callbacks.
   /// Returns: A new `_AccountTransactionsPage` instance.
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
   const _AccountTransactionsPage({
     required this.account,
+    required this.accounts,
     required this.transactions,
     required this.categories,
     required this.rateData,
+    required this.onAdd,
     required this.onEdit,
     required this.onDelete,
   });
@@ -850,6 +859,27 @@ class _AccountTransactionsPageState extends State<_AccountTransactionsPage> {
     _transactions = List.of(widget.transactions);
   }
 
+  /// Purpose: Add a transaction from the account detail view.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: Opens a dialog, updates local transaction state, and notifies the parent page.
+  /// Notes: The focused account is preselected while all accounts remain available for transfers.
+  Future<void> _handleAdd() async {
+    final tx = await showDialog<Transaction>(
+      context: context,
+      builder: (_) => AddTransactionDialog(
+        categories: widget.categories,
+        accounts: widget.accounts,
+        initialAccountId: widget.account.id,
+        currentSnapshotId: widget.rateData.currentSnapshotId,
+      ),
+    );
+    if (tx != null) {
+      setState(() => _transactions.insert(0, tx));
+      widget.onAdd(tx);
+    }
+  }
+
   /// Purpose: Provide the internal handle delete helper for this file.
   /// Inputs: `tx`.
   /// Returns: None.
@@ -870,8 +900,9 @@ class _AccountTransactionsPageState extends State<_AccountTransactionsPage> {
       context: context,
       builder: (_) => AddTransactionDialog(
         categories: widget.categories,
-        accounts: [widget.account],
+        accounts: widget.accounts,
         transaction: tx,
+        initialAccountId: widget.account.id,
         currentSnapshotId: widget.rateData.currentSnapshotId,
       ),
     );
@@ -1062,6 +1093,10 @@ class _AccountTransactionsPageState extends State<_AccountTransactionsPage> {
                   }),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _handleAdd,
+        child: const Icon(Icons.add),
       ),
     );
   }

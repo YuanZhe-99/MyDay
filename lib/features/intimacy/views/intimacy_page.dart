@@ -47,6 +47,8 @@ class IntimacyPage extends StatefulWidget {
 }
 
 class _IntimacyPageState extends State<IntimacyPage> {
+  static const _defaultVisibleRecordCount = 20;
+
   DateTime _focusedMonth = DateTime.now();
   DateTime? _selectedDate;
 
@@ -269,6 +271,9 @@ class _IntimacyPageState extends State<IntimacyPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final filteredRecords = _filteredRecords;
+    final visibleRecords = _selectedDate == null
+        ? filteredRecords.take(_defaultVisibleRecordCount).toList()
+        : filteredRecords;
 
     return Scaffold(
       appBar: AppBar(
@@ -401,8 +406,19 @@ class _IntimacyPageState extends State<IntimacyPage> {
                       ),
                     ),
                   )
-                else
-                  ..._buildRecordListWidgets(theme, filteredRecords),
+                else ...[
+                  ..._buildRecordListWidgets(theme, visibleRecords),
+                  if (_selectedDate == null &&
+                      filteredRecords.length > _defaultVisibleRecordCount)
+                    Center(
+                      child: TextButton(
+                        onPressed: () => _showAllRecords(context),
+                        child: Text(
+                          AppLocalizations.of(context)!.intimacyShowAllRecords,
+                        ),
+                      ),
+                    ),
+                ],
 
                 // FAB clearance
                 const SizedBox(height: 80),
@@ -411,6 +427,30 @@ class _IntimacyPageState extends State<IntimacyPage> {
       floatingActionButton: FloatingActionButton(
         onPressed: _addRecord,
         child: const Icon(Icons.add),
+      ),
+    );
+  }
+
+  /// Purpose: Show the complete filtered intimacy record list.
+  /// Inputs: `context`.
+  /// Returns: None.
+  /// Side effects: Opens a bottom sheet and may trigger record edit/delete flows from its rows.
+  /// Notes: Used only for the default no-date view so the page itself stays lightweight.
+  void _showAllRecords(BuildContext context) {
+    final theme = Theme.of(context);
+    final records = _filteredRecords;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.7,
+        maxChildSize: 0.9,
+        builder: (context, controller) => ListView(
+          controller: controller,
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          children: _buildRecordListWidgets(theme, records),
+        ),
       ),
     );
   }
@@ -2186,6 +2226,7 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
     DateTime? startDate = existing?.startDate;
     DateTime? endDate = existing?.endDate;
     final l10n = AppLocalizations.of(context)!;
+
     /// Purpose: Return the current partner edit form signature.
     /// Inputs: None.
     /// Returns: `String`.
@@ -3160,6 +3201,7 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
     DateTime? purchaseDate = existing?.purchaseDate;
     DateTime? retiredDate = existing?.retiredDate;
     final l10n = AppLocalizations.of(context)!;
+
     /// Purpose: Return the current toy edit form signature.
     /// Inputs: None.
     /// Returns: `String`.
@@ -3935,6 +3977,7 @@ class _PositionManagementPageState extends State<_PositionManagementPage> {
     final nameCtrl = TextEditingController(text: existing?.name ?? '');
     String? selectedEmoji = existing?.emoji;
     final l10n = AppLocalizations.of(context)!;
+
     /// Purpose: Return the current position edit form signature.
     /// Inputs: None.
     /// Returns: `String`.
