@@ -13,7 +13,9 @@ import '../widgets/add_transaction_dialog.dart';
 import '../widgets/grouped_transaction_list.dart';
 
 class CategoryDetailPage extends StatefulWidget {
-  final Category category;
+  final String? categoryId;
+  final Category? category;
+  final TransactionType transactionType;
   final List<Transaction> transactions;
   final List<Category> categories;
   final List<Account> accounts;
@@ -22,13 +24,15 @@ class CategoryDetailPage extends StatefulWidget {
   final void Function(List<Transaction>) onTransactionsChanged;
 
   /// Purpose: Create a category detail page instance.
-  /// Inputs: None.
+  /// Inputs: `categoryId`, optional `category`, `transactionType`, and transaction callbacks.
   /// Returns: A new `CategoryDetailPage` instance.
   /// Side effects: None.
-  /// Notes: None.
+  /// Notes: A null `categoryId` represents uncategorized transactions for the given type.
   const CategoryDetailPage({
     super.key,
-    required this.category,
+    required this.categoryId,
+    this.category,
+    required this.transactionType,
     required this.transactions,
     required this.categories,
     required this.accounts,
@@ -66,7 +70,13 @@ class _CategoryDetailPageState extends State<CategoryDetailPage> {
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
   List<Transaction> get _filtered =>
-      _transactions.where((t) => t.categoryId == widget.category.id).toList()
+      _transactions
+          .where(
+            (t) =>
+                t.type == widget.transactionType &&
+                t.categoryId == widget.categoryId,
+          )
+          .toList()
         ..sort((a, b) => b.date.compareTo(a.date));
 
   /// Purpose: Return month filtered.
@@ -87,11 +97,40 @@ class _CategoryDetailPageState extends State<CategoryDetailPage> {
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
   double get _monthTotal {
-    return _monthFiltered.fold(0.0, (sum, t) => sum + convertCurrency(
-        widget.rateData.ratesAt(t.rateSnapshotId),
-        t.amount,
-        t.currency,
-        widget.defaultCurrency));
+    return _monthFiltered.fold(
+      0.0,
+      (sum, t) =>
+          sum +
+          convertCurrency(
+            widget.rateData.ratesAt(t.rateSnapshotId),
+            t.amount,
+            t.currency,
+            widget.defaultCurrency,
+          ),
+    );
+  }
+
+  /// Purpose: Add a transaction from the category detail view.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: Opens a dialog, updates local transaction state, and notifies the parent page.
+  /// Notes: Real categories are preselected; uncategorized entries stay uncategorized by default.
+  Future<void> _addTransaction() async {
+    final tx = await showDialog<Transaction>(
+      context: context,
+      builder: (_) => AddTransactionDialog(
+        categories: widget.categories,
+        accounts: widget.accounts,
+        initialCategoryId: widget.category?.id,
+        initialType: widget.transactionType,
+        currentSnapshotId: widget.rateData.currentSnapshotId,
+        defaultCurrency: widget.defaultCurrency,
+      ),
+    );
+    if (tx != null) {
+      setState(() => _transactions.insert(0, tx));
+      widget.onTransactionsChanged(_transactions);
+    }
   }
 
   /// Purpose: Provide the internal delete transaction helper for this file.
@@ -117,6 +156,7 @@ class _CategoryDetailPageState extends State<CategoryDetailPage> {
         accounts: widget.accounts,
         transaction: tx,
         currentSnapshotId: widget.rateData.currentSnapshotId,
+        defaultCurrency: widget.defaultCurrency,
       ),
     );
     if (updated != null) {
@@ -140,17 +180,29 @@ class _CategoryDetailPageState extends State<CategoryDetailPage> {
     final cat = widget.category;
     final sym = currencySymbol(widget.defaultCurrency);
     final numberFormat = NumberFormat('#,##0.00');
-    final isExpense = cat.type == TransactionType.expense;
+    final isExpense = widget.transactionType == TransactionType.expense;
+    final isTransfer = widget.transactionType == TransactionType.transfer;
     final monthLabel = DateFormat('yyyy-MM').format(DateTime.now());
-    final typeLabel = isExpense ? l10n.financeExpense : l10n.financeIncome;
+    final typeLabel = switch (widget.transactionType) {
+      TransactionType.expense => l10n.financeExpense,
+      TransactionType.income => l10n.financeIncome,
+      TransactionType.transfer => l10n.financeTransfer,
+    };
+    final title = cat == null
+        ? widget.categoryId ?? l10n.financeUncategorized
+        : cat.emoji != null
+        ? '${cat.emoji} ${cat.name}'
+        : cat.name;
+    final totalColor = isExpense
+        ? theme.colorScheme.error
+        : isTransfer
+        ? theme.colorScheme.primary
+        : Colors.green;
 
     final filtered = _filtered;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(cat.emoji != null ? '${cat.emoji} ${cat.name}' : cat.name),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: Text(title), centerTitle: true),
       body: Column(
         children: [
           // Monthly summary card
@@ -159,7 +211,10 @@ class _CategoryDetailPageState extends State<CategoryDetailPage> {
             padding: const EdgeInsets.all(16),
             child: Card(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
                 child: Column(
                   children: [
                     Text(
@@ -169,16 +224,13 @@ class _CategoryDetailPageState extends State<CategoryDetailPage> {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      typeLabel,
-                      style: theme.textTheme.bodyMedium,
-                    ),
+                    Text(typeLabel, style: theme.textTheme.bodyMedium),
                     const SizedBox(height: 8),
                     Text(
                       '$sym${numberFormat.format(_monthTotal)}',
                       style: theme.textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: isExpense ? theme.colorScheme.error : Colors.green,
+                        color: totalColor,
                       ),
                     ),
                   ],
@@ -209,22 +261,29 @@ class _CategoryDetailPageState extends State<CategoryDetailPage> {
                         alignment: Alignment.centerLeft,
                         padding: const EdgeInsets.only(left: 20),
                         color: theme.colorScheme.primary,
-                        child: Icon(Icons.edit_outlined,
-                            color: theme.colorScheme.onPrimary),
+                        child: Icon(
+                          Icons.edit_outlined,
+                          color: theme.colorScheme.onPrimary,
+                        ),
                       ),
                       secondaryBackground: Container(
                         alignment: Alignment.centerRight,
                         padding: const EdgeInsets.only(right: 20),
                         color: theme.colorScheme.error,
-                        child: Icon(Icons.delete_outline,
-                            color: theme.colorScheme.onError),
+                        child: Icon(
+                          Icons.delete_outline,
+                          color: theme.colorScheme.onError,
+                        ),
                       ),
                       confirmDismiss: (direction) async {
                         if (direction == DismissDirection.startToEnd) {
                           _editTransaction(tx);
                           return false;
                         }
-                        return confirmDelete(context, l10n.financeThisTransaction);
+                        return confirmDelete(
+                          context,
+                          l10n.financeThisTransaction,
+                        );
                       },
                       onDismissed: (_) => _deleteTransaction(tx),
                       child: _TxTile(
@@ -236,6 +295,10 @@ class _CategoryDetailPageState extends State<CategoryDetailPage> {
                   ),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _addTransaction,
+        child: const Icon(Icons.add),
       ),
     );
   }
@@ -266,9 +329,18 @@ class _TxTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isExpense = transaction.type == TransactionType.expense;
+    final isTransfer = transaction.type == TransactionType.transfer;
     final dateStr = DateFormat('MM-dd HH:mm').format(transaction.date);
-    final sign = isExpense ? '-' : '+';
-    final color = isExpense ? theme.colorScheme.error : Colors.green;
+    final sign = isExpense
+        ? '-'
+        : isTransfer
+        ? ''
+        : '+';
+    final color = isExpense
+        ? theme.colorScheme.error
+        : isTransfer
+        ? theme.colorScheme.primary
+        : Colors.green;
 
     final account = accounts.isNotEmpty
         ? accounts.where((a) => a.id == transaction.accountId).firstOrNull
@@ -289,9 +361,7 @@ class _TxTile extends StatelessWidget {
 
     return ListTile(
       leading: _buildLeading(account, color, theme),
-      title: Text(
-        transaction.note.isNotEmpty ? transaction.note : dateStr,
-      ),
+      title: Text(transaction.note.isNotEmpty ? transaction.note : dateStr),
       subtitle: Text(
         subtitleParts.join('  •  '),
         style: theme.textTheme.bodySmall,
@@ -318,15 +388,17 @@ class _TxTile extends StatelessWidget {
     /// Side effects: None.
     /// Notes: Internal helper used within this function only.
     Widget defaultAvatar() => CircleAvatar(
-          backgroundColor: color.withValues(alpha: 0.1),
-          child: Icon(
-            transaction.type == TransactionType.expense
-                ? Icons.remove
-                : Icons.add,
-            color: color,
-            size: 20,
-          ),
-        );
+      backgroundColor: color.withValues(alpha: 0.1),
+      child: Icon(
+        transaction.type == TransactionType.expense
+            ? Icons.remove
+            : transaction.type == TransactionType.transfer
+            ? Icons.swap_horiz
+            : Icons.add,
+        color: color,
+        size: 20,
+      ),
+    );
 
     if (account?.imagePath != null) {
       return FutureBuilder<File>(

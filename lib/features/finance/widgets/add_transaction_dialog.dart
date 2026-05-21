@@ -15,12 +15,14 @@ class AddTransactionDialog extends StatefulWidget {
   final String? currentSnapshotId;
   final String defaultCurrency;
   final String? initialAccountId;
+  final String? initialCategoryId;
+  final TransactionType? initialType;
 
   /// Purpose: Create a add transaction dialog instance.
-  /// Inputs: `categories`, optional `initialAccountId`.
+  /// Inputs: `categories`, optional initial account, category, and type values.
   /// Returns: A new `AddTransactionDialog` instance.
   /// Side effects: None.
-  /// Notes: `initialAccountId` is used only when adding a new transaction.
+  /// Notes: Initial values are used only when adding a new transaction.
   const AddTransactionDialog({
     super.key,
     this.categories = const [],
@@ -29,6 +31,8 @@ class AddTransactionDialog extends StatefulWidget {
     this.currentSnapshotId,
     this.defaultCurrency = 'CNY',
     this.initialAccountId,
+    this.initialCategoryId,
+    this.initialType,
   });
 
   /// Purpose: Create the mutable state object for this widget.
@@ -124,7 +128,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
   /// Inputs: None.
   /// Returns: None.
   /// Side effects: Registers listeners and may kick off asynchronous loading.
-  /// Notes: Prefers the transaction account, then the caller's initial account, then the first available account.
+  /// Notes: Prefers edited values, then caller-provided initial selections, then normal defaults.
   @override
   void initState() {
     super.initState();
@@ -136,13 +140,20 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
       text: tx?.toAmount != null ? tx!.toAmount!.toStringAsFixed(2) : '',
     );
     _noteController = TextEditingController(text: tx?.note ?? '');
-    _type = tx?.type ?? TransactionType.expense;
     _date = tx?.date ?? DateTime.now();
-    if (tx?.categoryId != null) {
+    final initialCategoryId =
+        tx?.categoryId ?? (tx == null ? widget.initialCategoryId : null);
+    if (initialCategoryId != null) {
       _selectedCategory = widget.categories
-          .where((c) => c.id == tx!.categoryId)
+          .where((c) => c.id == initialCategoryId)
           .firstOrNull;
     }
+    _type =
+        tx?.type ??
+        _selectedCategory?.type ??
+        widget.initialType ??
+        TransactionType.expense;
+    if (_selectedCategory?.type != _type) _selectedCategory = null;
     if (tx?.accountId != null) {
       _selectedAccount = widget.accounts
           .where((a) => a.id == tx!.accountId)
@@ -195,6 +206,18 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
     if (result != null) setState(() => controller.text = result);
   }
 
+  /// Purpose: Change the transaction flow type and keep dependent selections valid.
+  /// Inputs: `type`.
+  /// Returns: None.
+  /// Side effects: Updates dialog state.
+  /// Notes: Clears a selected category when it belongs to a different transaction type.
+  void _setType(TransactionType type) {
+    setState(() {
+      _type = type;
+      if (_selectedCategory?.type != type) _selectedCategory = null;
+    });
+  }
+
   /// Purpose: Build the current widget subtree for the active UI state.
   /// Inputs: `context`.
   /// Returns: The widget tree for the current state.
@@ -242,9 +265,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
                   ),
                 ],
                 selected: {_type},
-                onSelectionChanged: (set) {
-                  setState(() => _type = set.first);
-                },
+                onSelectionChanged: (set) => _setType(set.first),
               ),
               const SizedBox(height: 16),
 
@@ -501,9 +522,14 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
     if (cats.isEmpty) {
       return const SizedBox.shrink();
     }
+    final selectedCategoryId =
+        cats.any((cat) => cat.id == _selectedCategory?.id)
+        ? _selectedCategory?.id
+        : null;
 
     return DropdownButtonFormField<String>(
-      initialValue: _selectedCategory?.id,
+      key: ValueKey(_type),
+      initialValue: selectedCategoryId,
       decoration: InputDecoration(
         labelText: l10n.financeCategory,
         isDense: true,

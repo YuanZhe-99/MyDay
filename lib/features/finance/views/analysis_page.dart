@@ -6,6 +6,7 @@ import '../../../l10n/app_localizations.dart';
 import '../models/finance.dart';
 import '../services/balance_util.dart';
 import '../services/exchange_rate_storage.dart';
+import 'category_detail_page.dart';
 
 enum _TimeRange { year, month, day, custom }
 
@@ -15,9 +16,10 @@ class AnalysisPage extends StatefulWidget {
   final List<Account> accounts;
   final ExchangeRateData rateData;
   final String defaultCurrency;
+  final void Function(List<Transaction>) onTransactionsChanged;
 
   /// Purpose: Create a analysis page instance.
-  /// Inputs: `accounts`.
+  /// Inputs: `transactions`, `categories`, `accounts`, `rateData`, and transaction callbacks.
   /// Returns: A new `AnalysisPage` instance.
   /// Side effects: None.
   /// Notes: None.
@@ -28,6 +30,7 @@ class AnalysisPage extends StatefulWidget {
     this.accounts = const [],
     required this.rateData,
     this.defaultCurrency = 'CNY',
+    required this.onTransactionsChanged,
   });
 
   /// Purpose: Create the mutable state object for this widget.
@@ -42,9 +45,11 @@ class AnalysisPage extends StatefulWidget {
 class _AnalysisPageState extends State<AnalysisPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  late List<Transaction> _transactions;
   DateTime _selectedMonth = DateTime.now();
   _TimeRange _timeRange = _TimeRange.month;
   DateTimeRange? _customRange;
+  TransactionType _categoryFlowType = TransactionType.expense;
 
   /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
   /// Inputs: None.
@@ -54,7 +59,21 @@ class _AnalysisPageState extends State<AnalysisPage>
   @override
   void initState() {
     super.initState();
+    _transactions = List.of(widget.transactions);
     _tabController = TabController(length: 2, vsync: this);
+  }
+
+  /// Purpose: Reconcile this state object when parent widget configuration changes.
+  /// Inputs: `oldWidget`.
+  /// Returns: None.
+  /// Side effects: Refreshes local transaction state from new widget input.
+  /// Notes: Keeps route-local edits while still accepting explicit parent updates.
+  @override
+  void didUpdateWidget(covariant AnalysisPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(widget.transactions, oldWidget.transactions)) {
+      _transactions = List.of(widget.transactions);
+    }
   }
 
   /// Purpose: Release listeners, controllers, and other owned resources.
@@ -77,11 +96,11 @@ class _AnalysisPageState extends State<AnalysisPage>
   List<Transaction> get _filteredTransactions {
     switch (_timeRange) {
       case _TimeRange.year:
-        return widget.transactions
+        return _transactions
             .where((t) => t.date.year == _selectedMonth.year)
             .toList();
       case _TimeRange.month:
-        return widget.transactions
+        return _transactions
             .where(
               (t) =>
                   t.date.year == _selectedMonth.year &&
@@ -90,7 +109,7 @@ class _AnalysisPageState extends State<AnalysisPage>
             .toList();
       case _TimeRange.day:
         final d = _selectedMonth;
-        return widget.transactions
+        return _transactions
             .where(
               (t) =>
                   t.date.year == d.year &&
@@ -100,7 +119,7 @@ class _AnalysisPageState extends State<AnalysisPage>
             .toList();
       case _TimeRange.custom:
         if (_customRange == null) return [];
-        return widget.transactions
+        return _transactions
             .where(
               (t) =>
                   !t.date.isBefore(_customRange!.start) &&
@@ -112,14 +131,13 @@ class _AnalysisPageState extends State<AnalysisPage>
     }
   }
 
-  /// Purpose: Return filtered expenses.
+  /// Purpose: Return filtered income or expense transactions for the category tab.
   /// Inputs: None.
   /// Returns: `List<Transaction>`.
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
-  List<Transaction> get _filteredExpenses => _filteredTransactions
-      .where((t) => t.type == TransactionType.expense)
-      .toList();
+  List<Transaction> get _filteredCategoryFlowTransactions =>
+      _filteredTransactions.where((t) => t.type == _categoryFlowType).toList();
 
   /// Purpose: Return range label.
   /// Inputs: `l10n`.
@@ -224,6 +242,63 @@ class _AnalysisPageState extends State<AnalysisPage>
       behavior: HitTestBehavior.opaque,
       onTap: _timeRange == _TimeRange.custom ? _pickCustomRange : null,
       child: Text(l10n.financeCustomRange),
+    );
+  }
+
+  /// Purpose: Build the income/expense selector for the category analysis tab.
+  /// Inputs: `l10n`.
+  /// Returns: `Widget`.
+  /// Side effects: May update the selected category transaction type.
+  /// Notes: Transfers are omitted because the requested drill-down is for income and expense categories.
+  Widget _buildCategoryTypeSelector(AppLocalizations l10n) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: SegmentedButton<TransactionType>(
+        segments: [
+          ButtonSegment(
+            value: TransactionType.expense,
+            label: Text(l10n.financeExpense),
+          ),
+          ButtonSegment(
+            value: TransactionType.income,
+            label: Text(l10n.financeIncome),
+          ),
+        ],
+        selected: {_categoryFlowType},
+        onSelectionChanged: (selection) {
+          setState(() => _categoryFlowType = selection.first);
+        },
+      ),
+    );
+  }
+
+  /// Purpose: Open the transaction list for a selected analysis category.
+  /// Inputs: Nullable `categoryId`; null represents uncategorized transactions.
+  /// Returns: None.
+  /// Side effects: Pushes a route and propagates transaction edits back to the finance page.
+  /// Notes: Unknown category ids can still be inspected but cannot be preselected for new entries.
+  void _openCategoryTransactions(String? categoryId) {
+    final category = categoryId == null
+        ? null
+        : widget.categories.where((cat) => cat.id == categoryId).firstOrNull;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CategoryDetailPage(
+          categoryId: categoryId,
+          category: category,
+          transactionType: category?.type ?? _categoryFlowType,
+          transactions: _transactions,
+          categories: widget.categories,
+          accounts: widget.accounts,
+          rateData: widget.rateData,
+          defaultCurrency: widget.defaultCurrency,
+          onTransactionsChanged: (transactions) {
+            setState(() => _transactions = List.of(transactions));
+            widget.onTransactionsChanged(_transactions);
+          },
+        ),
+      ),
     );
   }
 
@@ -340,23 +415,35 @@ class _AnalysisPageState extends State<AnalysisPage>
   /// Notes: Internal helper used within this file only.
   Widget _buildPieChart(BuildContext context) {
     final theme = Theme.of(context);
-    final expenses = _filteredExpenses;
+    final l10n = AppLocalizations.of(context)!;
+    final categoryTransactions = _filteredCategoryFlowTransactions;
 
-    if (expenses.isEmpty) {
-      return Center(
-        child: Text(
-          AppLocalizations.of(context)!.financeNoExpenseData,
-          style: theme.textTheme.bodyLarge?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
+    if (categoryTransactions.isEmpty) {
+      final emptyLabel = _categoryFlowType == TransactionType.expense
+          ? l10n.financeNoExpenseData
+          : l10n.financeNoTransactionData;
+      return Column(
+        children: [
+          const SizedBox(height: 16),
+          _buildCategoryTypeSelector(l10n),
+          Expanded(
+            child: Center(
+              child: Text(
+                emptyLabel,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
           ),
-        ),
+        ],
       );
     }
 
     // Group by categoryId
-    final Map<String, double> catTotals = {};
-    for (final tx in expenses) {
-      final key = tx.categoryId ?? 'Uncategorized';
+    final Map<String?, double> catTotals = {};
+    for (final tx in categoryTransactions) {
+      final key = tx.categoryId;
       final rates = widget.rateData.ratesAt(tx.rateSnapshotId);
       catTotals[key] =
           (catTotals[key] ?? 0) +
@@ -370,8 +457,9 @@ class _AnalysisPageState extends State<AnalysisPage>
 
     final total = catTotals.values.fold(0.0, (a, b) => a + b);
     final colors = _chartColors;
+    final catEntries = catTotals.entries.toList();
 
-    final sections = catTotals.entries.toList().asMap().entries.map((entry) {
+    final sections = catEntries.asMap().entries.map((entry) {
       final amount = entry.value.value;
       final pct = total > 0 ? (amount / total * 100) : 0.0;
       final color = colors[entry.key % colors.length];
@@ -391,33 +479,40 @@ class _AnalysisPageState extends State<AnalysisPage>
     }).toList();
 
     // Legend entries
-    final legendEntries = catTotals.entries.toList().asMap().entries.map((
-      entry,
-    ) {
+    final legendEntries = catEntries.asMap().entries.map((entry) {
       final catId = entry.value.key;
       final amount = entry.value.value;
       final color = colors[entry.key % colors.length];
 
-      String catName = catId;
+      String catName = catId ?? l10n.financeUncategorized;
       String? catEmoji;
-      if (catId != 'Uncategorized') {
+      if (catId != null) {
         final cat = widget.categories.where((c) => c.id == catId).firstOrNull;
         if (cat != null) {
           catName = cat.name;
           catEmoji = cat.emoji;
         }
-      } else {
-        catName = AppLocalizations.of(context)!.financeUncategorized;
       }
 
-      return MapEntry(catName, (color: color, amount: amount, emoji: catEmoji));
+      return (
+        categoryId: catId,
+        name: catName,
+        color: color,
+        amount: amount,
+        emoji: catEmoji,
+      );
     }).toList();
 
     final nf = NumberFormat('#,##0.00');
     final sym = currencySymbol(widget.defaultCurrency);
+    final totalColor = _categoryFlowType == TransactionType.expense
+        ? theme.colorScheme.error
+        : Colors.green;
 
     return Column(
       children: [
+        const SizedBox(height: 16),
+        _buildCategoryTypeSelector(l10n),
         const SizedBox(height: 16),
         SizedBox(
           height: 200,
@@ -435,15 +530,12 @@ class _AnalysisPageState extends State<AnalysisPage>
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                AppLocalizations.of(context)!.financeTotal,
-                style: theme.textTheme.titleSmall,
-              ),
+              Text(l10n.financeTotal, style: theme.textTheme.titleSmall),
               Text(
                 '$sym${nf.format(total)}',
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.error,
+                  color: totalColor,
                 ),
               ),
             ],
@@ -462,27 +554,32 @@ class _AnalysisPageState extends State<AnalysisPage>
                       width: 14,
                       height: 14,
                       decoration: BoxDecoration(
-                        color: e.value.color,
+                        color: e.color,
                         shape: BoxShape.circle,
                       ),
                     ),
-                    if (e.value.emoji != null) ...[
+                    if (e.emoji != null) ...[
                       const SizedBox(width: 8),
-                      Text(
-                        e.value.emoji!,
-                        style: const TextStyle(fontSize: 18),
-                      ),
+                      Text(e.emoji!, style: const TextStyle(fontSize: 18)),
                     ],
                   ],
                 ),
-                title: Text(e.key),
-                trailing: Text(
-                  '$sym${nf.format(e.value.amount)}',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                title: Text(e.name),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '$sym${nf.format(e.amount)}',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Icon(Icons.chevron_right, size: 20),
+                  ],
                 ),
                 dense: true,
+                onTap: () => _openCategoryTransactions(e.categoryId),
               );
             }).toList(),
           ),
@@ -675,7 +772,7 @@ class _AnalysisPageState extends State<AnalysisPage>
     final expense = List.filled(scale.pointCount, 0.0);
     final income = List.filled(scale.pointCount, 0.0);
 
-    for (final tx in widget.transactions) {
+    for (final tx in _transactions) {
       final idx = scale.bucketIndex(tx.date);
       if (idx == null) continue;
 
@@ -734,7 +831,7 @@ class _AnalysisPageState extends State<AnalysisPage>
   double _totalAssetsBefore(DateTime before) {
     if (widget.accounts.isEmpty) {
       var total = 0.0;
-      for (final tx in widget.transactions) {
+      for (final tx in _transactions) {
         if (!tx.date.isBefore(before)) continue;
         final rates = widget.rateData.ratesAt(tx.rateSnapshotId);
         final amount = convertCurrency(
@@ -759,7 +856,7 @@ class _AnalysisPageState extends State<AnalysisPage>
     return widget.accounts.fold(0.0, (sum, account) {
       final balance = accountBalanceBefore(
         account,
-        widget.transactions,
+        _transactions,
         widget.rateData,
         before,
       );

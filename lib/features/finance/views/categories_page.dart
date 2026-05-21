@@ -186,7 +186,9 @@ class _CategoriesPageState extends State<CategoriesPage>
       context,
       MaterialPageRoute(
         builder: (_) => CategoryDetailPage(
+          categoryId: cat.id,
           category: cat,
+          transactionType: cat.type,
           transactions: _transactions,
           categories: _categories,
           accounts: widget.accounts,

@@ -707,6 +707,10 @@ class _FinancePageState extends State<FinancePage> {
           accounts: _accounts,
           rateData: _rateData,
           defaultCurrency: _defaultCurrency,
+          onTransactionsChanged: (t) {
+            setState(() => _transactions = t);
+            _saveData();
+          },
         ),
       ),
     );
