@@ -388,6 +388,8 @@ class ImportExportService {
           subscriptionCustomOrder: data?.subscriptionCustomOrder,
           accountSortModes: data?.accountSortModes ?? const {},
           accountCustomOrders: data?.accountCustomOrders ?? const {},
+          accountPickerSettings:
+              data?.accountPickerSettings ?? const AccountPickerSettings(),
         ),
       );
 

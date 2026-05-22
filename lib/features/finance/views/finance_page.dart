@@ -54,6 +54,7 @@ class _FinancePageState extends State<FinancePage> {
   List<String>? _subscriptionCustomOrder;
   Map<String, String> _accountSortModes = {};
   Map<String, List<String>> _accountCustomOrders = {};
+  AccountPickerSettings _accountPickerSettings = const AccountPickerSettings();
   DateTime _settingsModifiedAt = DateTime.fromMillisecondsSinceEpoch(0);
   late DateTime _selectedFlowMonth;
   bool _loaded = false;
@@ -108,6 +109,7 @@ class _FinancePageState extends State<FinancePage> {
         _accountCustomOrders = data.accountCustomOrders.map(
           (key, value) => MapEntry(key, List<String>.of(value)),
         );
+        _accountPickerSettings = data.accountPickerSettings;
         _settingsModifiedAt = data.settingsModifiedAt;
       }
       _rateData = rateData;
@@ -184,6 +186,7 @@ class _FinancePageState extends State<FinancePage> {
         subscriptionCustomOrder: _subscriptionCustomOrder,
         accountSortModes: _accountSortModes,
         accountCustomOrders: _accountCustomOrders,
+        accountPickerSettings: _accountPickerSettings,
       ),
     );
     AutoSyncService.instance.notifySaved();
@@ -216,6 +219,7 @@ class _FinancePageState extends State<FinancePage> {
         accounts: _accounts,
         currentSnapshotId: _rateData.currentSnapshotId,
         defaultCurrency: _defaultCurrency,
+        accountPickerSettings: _accountPickerSettings,
       ),
     );
     if (tx != null) {
@@ -250,6 +254,7 @@ class _FinancePageState extends State<FinancePage> {
         transaction: tx,
         currentSnapshotId: _rateData.currentSnapshotId,
         defaultCurrency: _defaultCurrency,
+        accountPickerSettings: _accountPickerSettings,
       ),
     );
     if (updated != null) {
@@ -669,6 +674,7 @@ class _FinancePageState extends State<FinancePage> {
           rateData: _rateData,
           sortModes: _accountSortModes,
           customOrders: _accountCustomOrders,
+          accountPickerSettings: _accountPickerSettings,
           onChanged: (a) {
             setState(() => _accounts = a);
             _saveData();
@@ -683,6 +689,13 @@ class _FinancePageState extends State<FinancePage> {
               _accountCustomOrders = orders.map(
                 (key, value) => MapEntry(key, List<String>.of(value)),
               );
+              _settingsModifiedAt = DateTime.now().toUtc();
+            });
+            _saveData();
+          },
+          onAccountPickerSettingsChanged: (settings) {
+            setState(() {
+              _accountPickerSettings = settings;
               _settingsModifiedAt = DateTime.now().toUtc();
             });
             _saveData();
@@ -707,6 +720,7 @@ class _FinancePageState extends State<FinancePage> {
           accounts: _accounts,
           rateData: _rateData,
           defaultCurrency: _defaultCurrency,
+          accountPickerSettings: _accountPickerSettings,
           onTransactionsChanged: (t) {
             setState(() => _transactions = t);
             _saveData();
@@ -732,6 +746,7 @@ class _FinancePageState extends State<FinancePage> {
           accounts: _accounts,
           rateData: _rateData,
           defaultCurrency: _defaultCurrency,
+          accountPickerSettings: _accountPickerSettings,
           reminderHour: _subscriptionReminderHour,
           reminderMinute: _subscriptionReminderMinute,
           sortMode: _subscriptionSortMode,
@@ -792,6 +807,7 @@ class _FinancePageState extends State<FinancePage> {
                       accounts: _accounts,
                       rateData: _rateData,
                       defaultCurrency: _defaultCurrency,
+                      accountPickerSettings: _accountPickerSettings,
                       onChanged: (c) {
                         setState(() => _categories = c);
                         _saveData();

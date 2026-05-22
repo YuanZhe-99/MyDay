@@ -6,6 +6,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../shared/services/image_service.dart';
 import '../../../shared/widgets/unsaved_changes_guard.dart';
 import '../models/finance.dart';
+import '../services/account_picker_util.dart';
 import '../services/balance_util.dart';
 
 class AddTransactionDialog extends StatefulWidget {
@@ -17,9 +18,10 @@ class AddTransactionDialog extends StatefulWidget {
   final String? initialAccountId;
   final String? initialCategoryId;
   final TransactionType? initialType;
+  final AccountPickerSettings accountPickerSettings;
 
   /// Purpose: Create a add transaction dialog instance.
-  /// Inputs: `categories`, optional initial account, category, and type values.
+  /// Inputs: `categories`, optional initial values, and account picker settings.
   /// Returns: A new `AddTransactionDialog` instance.
   /// Side effects: None.
   /// Notes: Initial values are used only when adding a new transaction.
@@ -33,6 +35,7 @@ class AddTransactionDialog extends StatefulWidget {
     this.initialAccountId,
     this.initialCategoryId,
     this.initialType,
+    this.accountPickerSettings = const AccountPickerSettings(),
   });
 
   /// Purpose: Create the mutable state object for this widget.
@@ -54,7 +57,10 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
   Category? _selectedCategory;
   Account? _selectedAccount;
   Account? _selectedToAccount;
+  bool _showMoreAccounts = false;
   late final String _initialSignature;
+
+  static const _moreAccountsValue = '__finance_account_picker_more__';
 
   /// Purpose: Return is editing.
   /// Inputs: None.
@@ -164,7 +170,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
               .where((a) => a.id == widget.initialAccountId)
               .firstOrNull
         : null;
-    _selectedAccount ??= widget.accounts.firstOrNull;
+    _selectedAccount ??= _firstSelectableAccount();
     _currency =
         tx?.currency ?? _selectedAccount?.currency ?? widget.defaultCurrency;
     if (tx?.toAccountId != null) {
@@ -172,6 +178,9 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
           .where((a) => a.id == tx!.toAccountId)
           .firstOrNull;
     }
+    _showMoreAccounts =
+        (_selectedAccount != null && _isMoreAccount(_selectedAccount!)) ||
+        (_selectedToAccount != null && _isMoreAccount(_selectedToAccount!));
     _initialSignature = _signature();
   }
 
@@ -441,6 +450,159 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
     return Text(label, overflow: TextOverflow.ellipsis);
   }
 
+  /// Purpose: Return accounts sorted for the current transaction picker settings.
+  /// Inputs: None.
+  /// Returns: `List<Account>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  List<Account> get _sortedAccountsForPicker =>
+      sortAccountsForPicker(widget.accounts, widget.accountPickerSettings);
+
+  /// Purpose: Return whether an account is configured under the More section.
+  /// Inputs: `account`.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  bool _isMoreAccount(Account account) =>
+      widget.accountPickerSettings.moreAccountIds.contains(account.id);
+
+  /// Purpose: Pick the default account for a new transaction.
+  /// Inputs: None.
+  /// Returns: `Account?`.
+  /// Side effects: None.
+  /// Notes: Prefers accounts outside More, then falls back to the first sorted account.
+  Account? _firstSelectableAccount() {
+    final sorted = _sortedAccountsForPicker;
+    return sorted.where((account) => !_isMoreAccount(account)).firstOrNull ??
+        sorted.firstOrNull;
+  }
+
+  /// Purpose: Return the localized label for an account type.
+  /// Inputs: `type`, `l10n`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  String _accountTypeLabel(AccountType type, AppLocalizations l10n) {
+    return switch (type) {
+      AccountType.fund => l10n.financeAccountTypeFund,
+      AccountType.credit => l10n.financeAccountTypeCredit,
+      AccountType.recharge => l10n.financeAccountTypeRecharge,
+      AccountType.financial => l10n.financeAccountTypeFinancial,
+    };
+  }
+
+  /// Purpose: Build account dropdown items with optional type and More sections.
+  /// Inputs: `theme`, `l10n`.
+  /// Returns: `List<DropdownMenuItem<String>>`.
+  /// Side effects: Creates UI widgets from current picker state.
+  /// Notes: Hidden More accounts are omitted until the More item is selected.
+  List<DropdownMenuItem<String>> _accountDropdownItems(
+    ThemeData theme,
+    AppLocalizations l10n,
+  ) {
+    final settings = widget.accountPickerSettings;
+    final moreIds = settings.moreAccountIds.toSet();
+    final primary = <Account>[];
+    final more = <Account>[];
+    for (final account in _sortedAccountsForPicker) {
+      if (moreIds.contains(account.id)) {
+        more.add(account);
+      } else {
+        primary.add(account);
+      }
+    }
+
+    final items = <DropdownMenuItem<String>>[];
+
+    /// Purpose: Add a disabled section header to the dropdown item list.
+    /// Inputs: `value`, `label`.
+    /// Returns: None.
+    /// Side effects: Mutates the local `items` list.
+    /// Notes: Internal helper used within this function only.
+    void addHeader(String value, String label) {
+      items.add(
+        DropdownMenuItem(
+          value: value,
+          enabled: false,
+          child: Text(
+            label,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: theme.colorScheme.primary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      );
+    }
+
+    /// Purpose: Add selectable accounts to the dropdown item list.
+    /// Inputs: `accounts`, `sectionKey`.
+    /// Returns: None.
+    /// Side effects: Mutates the local `items` list.
+    /// Notes: Adds type headers when the settings request type grouping.
+    void addAccounts(List<Account> accounts, String sectionKey) {
+      AccountType? currentType;
+      for (final account in accounts) {
+        if (settings.groupByType && currentType != account.type) {
+          currentType = account.type;
+          addHeader(
+            '__finance_account_header_${sectionKey}_${account.type.name}',
+            _accountTypeLabel(account.type, l10n),
+          );
+        }
+        items.add(
+          DropdownMenuItem(
+            value: account.id,
+            child: _buildAccountLabel(account),
+          ),
+        );
+      }
+    }
+
+    addAccounts(primary, 'primary');
+    if (more.isNotEmpty) {
+      if (_showMoreAccounts) {
+        addHeader(
+          '__finance_account_header_more',
+          l10n.financeAccountPickerMore,
+        );
+        addAccounts(more, 'more');
+      } else {
+        items.add(
+          DropdownMenuItem(
+            value: _moreAccountsValue,
+            child: Text(l10n.financeAccountPickerShowMore(more.length)),
+          ),
+        );
+      }
+    }
+    return items;
+  }
+
+  /// Purpose: Apply account dropdown selection changes.
+  /// Inputs: `id`, `isTarget`.
+  /// Returns: None.
+  /// Side effects: Updates selected accounts, currency, and More expansion state.
+  /// Notes: The More sentinel expands the list without selecting an account.
+  void _selectAccount(String? id, {required bool isTarget}) {
+    if (id == null) return;
+    if (id == _moreAccountsValue) {
+      setState(() => _showMoreAccounts = true);
+      return;
+    }
+    final account = widget.accounts.where((a) => a.id == id).firstOrNull;
+    if (account == null) return;
+    setState(() {
+      if (isTarget) {
+        _selectedToAccount = account;
+      } else {
+        _selectedAccount = account;
+        _currency = account.currency;
+      }
+      if (_isMoreAccount(account)) _showMoreAccounts = true;
+    });
+  }
+
   /// Purpose: Provide the internal has unsaved changes helper for this file.
   /// Inputs: None.
   /// Returns: `bool`.
@@ -564,34 +726,22 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
+          key: ValueKey('from-account-more-$_showMoreAccounts'),
           initialValue: _selectedAccount?.id,
           isExpanded: true,
           decoration: const InputDecoration(
             isDense: true,
             contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           ),
-          items: widget.accounts
-              .map(
-                (a) =>
-                    DropdownMenuItem(value: a.id, child: _buildAccountLabel(a)),
-              )
-              .toList(),
-          onChanged: (id) {
-            setState(() {
-              _selectedAccount = widget.accounts
-                  .where((a) => a.id == id)
-                  .firstOrNull;
-              if (_selectedAccount != null) {
-                _currency = _selectedAccount!.currency;
-              }
-            });
-          },
+          items: _accountDropdownItems(theme, l10n),
+          onChanged: (id) => _selectAccount(id, isTarget: false),
         ),
         if (_type == TransactionType.transfer) ...[
           const SizedBox(height: 12),
           Text(l10n.financeToAccount, style: theme.textTheme.bodySmall),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
+            key: ValueKey('to-account-more-$_showMoreAccounts'),
             initialValue: _selectedToAccount?.id,
             isExpanded: true,
             decoration: const InputDecoration(
@@ -601,21 +751,8 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
                 vertical: 10,
               ),
             ),
-            items: widget.accounts
-                .map(
-                  (a) => DropdownMenuItem(
-                    value: a.id,
-                    child: _buildAccountLabel(a),
-                  ),
-                )
-                .toList(),
-            onChanged: (id) {
-              setState(() {
-                _selectedToAccount = widget.accounts
-                    .where((a) => a.id == id)
-                    .firstOrNull;
-              });
-            },
+            items: _accountDropdownItems(theme, l10n),
+            onChanged: (id) => _selectAccount(id, isTarget: true),
           ),
         ],
       ],

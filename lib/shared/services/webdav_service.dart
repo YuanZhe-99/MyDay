@@ -230,6 +230,7 @@ class WebDAVService {
       subscriptionCustomOrder: data.subscriptionCustomOrder,
       accountSortModes: data.accountSortModes,
       accountCustomOrders: data.accountCustomOrders,
+      accountPickerSettings: data.accountPickerSettings,
     );
   }
 

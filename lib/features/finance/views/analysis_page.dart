@@ -16,10 +16,11 @@ class AnalysisPage extends StatefulWidget {
   final List<Account> accounts;
   final ExchangeRateData rateData;
   final String defaultCurrency;
+  final AccountPickerSettings accountPickerSettings;
   final void Function(List<Transaction>) onTransactionsChanged;
 
   /// Purpose: Create a analysis page instance.
-  /// Inputs: `transactions`, `categories`, `accounts`, `rateData`, and transaction callbacks.
+  /// Inputs: `transactions`, `categories`, `accounts`, picker settings, `rateData`, and callbacks.
   /// Returns: A new `AnalysisPage` instance.
   /// Side effects: None.
   /// Notes: None.
@@ -30,6 +31,7 @@ class AnalysisPage extends StatefulWidget {
     this.accounts = const [],
     required this.rateData,
     this.defaultCurrency = 'CNY',
+    this.accountPickerSettings = const AccountPickerSettings(),
     required this.onTransactionsChanged,
   });
 
@@ -293,6 +295,7 @@ class _AnalysisPageState extends State<AnalysisPage>
           accounts: widget.accounts,
           rateData: widget.rateData,
           defaultCurrency: widget.defaultCurrency,
+          accountPickerSettings: widget.accountPickerSettings,
           onTransactionsChanged: (transactions) {
             setState(() => _transactions = List.of(transactions));
             widget.onTransactionsChanged(_transactions);

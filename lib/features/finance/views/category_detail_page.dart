@@ -21,10 +21,11 @@ class CategoryDetailPage extends StatefulWidget {
   final List<Account> accounts;
   final ExchangeRateData rateData;
   final String defaultCurrency;
+  final AccountPickerSettings accountPickerSettings;
   final void Function(List<Transaction>) onTransactionsChanged;
 
   /// Purpose: Create a category detail page instance.
-  /// Inputs: `categoryId`, optional `category`, `transactionType`, and transaction callbacks.
+  /// Inputs: `categoryId`, optional `category`, `transactionType`, picker settings, and callbacks.
   /// Returns: A new `CategoryDetailPage` instance.
   /// Side effects: None.
   /// Notes: A null `categoryId` represents uncategorized transactions for the given type.
@@ -38,6 +39,7 @@ class CategoryDetailPage extends StatefulWidget {
     required this.accounts,
     required this.rateData,
     required this.defaultCurrency,
+    this.accountPickerSettings = const AccountPickerSettings(),
     required this.onTransactionsChanged,
   });
 
@@ -125,6 +127,7 @@ class _CategoryDetailPageState extends State<CategoryDetailPage> {
         initialType: widget.transactionType,
         currentSnapshotId: widget.rateData.currentSnapshotId,
         defaultCurrency: widget.defaultCurrency,
+        accountPickerSettings: widget.accountPickerSettings,
       ),
     );
     if (tx != null) {
@@ -157,6 +160,7 @@ class _CategoryDetailPageState extends State<CategoryDetailPage> {
         transaction: tx,
         currentSnapshotId: widget.rateData.currentSnapshotId,
         defaultCurrency: widget.defaultCurrency,
+        accountPickerSettings: widget.accountPickerSettings,
       ),
     );
     if (updated != null) {

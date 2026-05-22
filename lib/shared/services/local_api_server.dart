@@ -30,24 +30,28 @@ class LocalApiServer {
   /// Side effects: None.
   /// Notes: None.
   static int get port => _port;
+
   /// Purpose: Return listen address.
   /// Inputs: None.
   /// Returns: `String`.
   /// Side effects: None.
   /// Notes: None.
   static String get listenAddress => _listenAddress;
+
   /// Purpose: Return enabled.
   /// Inputs: None.
   /// Returns: `bool`.
   /// Side effects: None.
   /// Notes: None.
   static bool get enabled => _enabled;
+
   /// Purpose: Return whether running is true.
   /// Inputs: None.
   /// Returns: `bool`.
   /// Side effects: None.
   /// Notes: None.
   static bool get isRunning => _server != null;
+
   /// Purpose: Return last error.
   /// Inputs: None.
   /// Returns: `String?`.
@@ -660,6 +664,7 @@ class LocalApiServer {
         subscriptionCustomOrder: finData.subscriptionCustomOrder,
         accountSortModes: finData.accountSortModes,
         accountCustomOrders: finData.accountCustomOrders,
+        accountPickerSettings: finData.accountPickerSettings,
       ),
     );
     return _json({'success': true, 'id': tx.id});

@@ -8,6 +8,7 @@ import '../../../shared/services/image_service.dart';
 import '../../../shared/widgets/delete_confirm.dart';
 import '../../../shared/widgets/unsaved_changes_guard.dart';
 import '../models/finance.dart';
+import '../services/account_picker_util.dart';
 import '../services/balance_util.dart';
 import '../services/bank_preset_service.dart';
 import '../services/exchange_rate_storage.dart';
@@ -53,6 +54,7 @@ class AccountsPage extends StatefulWidget {
   final ExchangeRateData rateData;
   final Map<String, String> sortModes;
   final Map<String, List<String>> customOrders;
+  final AccountPickerSettings accountPickerSettings;
   final void Function(List<Account>) onChanged;
   final void Function(List<Transaction>) onTransactionsChanged;
   final void Function(
@@ -60,9 +62,11 @@ class AccountsPage extends StatefulWidget {
     Map<String, List<String>> customOrders,
   )?
   onSortChanged;
+  final void Function(AccountPickerSettings settings)?
+  onAccountPickerSettingsChanged;
 
   /// Purpose: Create a accounts page instance.
-  /// Inputs: `sortModes`.
+  /// Inputs: `sortModes`, custom orders, picker settings, and change callbacks.
   /// Returns: A new `AccountsPage` instance.
   /// Side effects: None.
   /// Notes: None.
@@ -74,9 +78,11 @@ class AccountsPage extends StatefulWidget {
     required this.rateData,
     this.sortModes = const {},
     this.customOrders = const {},
+    this.accountPickerSettings = const AccountPickerSettings(),
     required this.onChanged,
     required this.onTransactionsChanged,
     this.onSortChanged,
+    this.onAccountPickerSettingsChanged,
   });
 
   /// Purpose: Create the mutable state object for this widget.
@@ -93,6 +99,7 @@ class _AccountsPageState extends State<AccountsPage> {
   late List<Transaction> _transactions;
   late Map<String, String> _sortModes;
   late Map<String, List<String>> _customOrders;
+  late AccountPickerSettings _accountPickerSettings;
   final Map<String, bool> _reordering = {};
 
   static const _sortName = 'name';
@@ -112,6 +119,10 @@ class _AccountsPageState extends State<AccountsPage> {
     _sortModes = Map.of(widget.sortModes);
     _customOrders = widget.customOrders.map(
       (key, value) => MapEntry(key, List<String>.of(value)),
+    );
+    _accountPickerSettings = normalizedAccountPickerSettings(
+      widget.accountPickerSettings,
+      _accounts,
     );
   }
 
@@ -135,6 +146,14 @@ class _AccountsPageState extends State<AccountsPage> {
   /// Side effects: May update UI state or trigger user-facing flows.
   /// Notes: Internal helper used within this file only.
   void _notifySort() => widget.onSortChanged?.call(_sortModes, _customOrders);
+
+  /// Purpose: Notify the parent page that transaction account picker settings changed.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Calls the parent settings callback when available.
+  /// Notes: Internal helper used within this file only.
+  void _notifyAccountPickerSettings() =>
+      widget.onAccountPickerSettingsChanged?.call(_accountPickerSettings);
 
   /// Purpose: Provide the internal type key helper for this file.
   /// Inputs: `type`.
@@ -272,6 +291,28 @@ class _AccountsPageState extends State<AccountsPage> {
     }
   }
 
+  /// Purpose: Normalize transaction account picker settings after account list changes.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Updates local picker settings state.
+  /// Notes: Internal helper used within this file only.
+  void _normalizeAccountPickerSettings() {
+    _accountPickerSettings = normalizedAccountPickerSettings(
+      _accountPickerSettings,
+      _accounts,
+    );
+  }
+
+  /// Purpose: Normalize and publish transaction account picker settings.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Calls the parent settings callback when available.
+  /// Notes: Internal helper used within this file only.
+  void _normalizeAndNotifyAccountPickerSettings() {
+    _normalizeAccountPickerSettings();
+    _notifyAccountPickerSettings();
+  }
+
   /// Purpose: Provide the internal reorder accounts helper for this file.
   /// Inputs: `type`, `entries`, `oldIndex`, `newIndex`.
   /// Returns: None.
@@ -328,6 +369,7 @@ class _AccountsPageState extends State<AccountsPage> {
         if (adjTx != null) _transactions.insert(0, adjTx);
       });
       _appendAccountToCustomOrderIfNeeded(account);
+      _normalizeAndNotifyAccountPickerSettings();
       if (adjTx != null) _notifyTransactions();
       _notifyAccounts();
       _notifySort();
@@ -417,6 +459,7 @@ class _AccountsPageState extends State<AccountsPage> {
     final accountId = _accounts[index].id;
     setState(() => _accounts.removeAt(index));
     _removeAccountFromCustomOrders(accountId);
+    _normalizeAndNotifyAccountPickerSettings();
     _notifyAccounts();
     _notifySort();
   }
@@ -429,6 +472,31 @@ class _AccountsPageState extends State<AccountsPage> {
   void _deleteTransaction(Transaction tx) {
     setState(() => _transactions.removeWhere((t) => t.id == tx.id));
     _notifyTransactions();
+  }
+
+  /// Purpose: Open settings for account order in new transaction dialogs.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: Pushes a settings page and may save picker settings.
+  /// Notes: Internal helper used within this file only.
+  Future<void> _openAccountPickerSettings() async {
+    final settings = await Navigator.push<AccountPickerSettings>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => _AccountPickerSettingsPage(
+          accounts: _accounts,
+          initialSettings: _accountPickerSettings,
+        ),
+      ),
+    );
+    if (settings == null) return;
+    setState(() {
+      _accountPickerSettings = normalizedAccountPickerSettings(
+        settings,
+        _accounts,
+      );
+    });
+    _notifyAccountPickerSettings();
   }
 
   /// Purpose: Build the current widget subtree for the active UI state.
@@ -454,6 +522,13 @@ class _AccountsPageState extends State<AccountsPage> {
       appBar: AppBar(
         title: Text(AppLocalizations.of(context)!.financeAccounts),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.tune),
+            tooltip: AppLocalizations.of(context)!.financeAccountPickerSettings,
+            onPressed: _openAccountPickerSettings,
+          ),
+        ],
       ),
       body: _accounts.isEmpty
           ? Center(
@@ -536,6 +611,7 @@ class _AccountsPageState extends State<AccountsPage> {
                                   transactions: _transactions,
                                   categories: widget.categories,
                                   rateData: widget.rateData,
+                                  accountPickerSettings: _accountPickerSettings,
                                   onAdd: (tx) {
                                     setState(() => _transactions.insert(0, tx));
                                     _notifyTransactions();
@@ -807,6 +883,265 @@ class _AccountsPageState extends State<AccountsPage> {
   }
 }
 
+class _AccountPickerSettingsPage extends StatefulWidget {
+  final List<Account> accounts;
+  final AccountPickerSettings initialSettings;
+
+  /// Purpose: Create an account picker settings page instance.
+  /// Inputs: `accounts`, `initialSettings`.
+  /// Returns: A new `_AccountPickerSettingsPage` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  const _AccountPickerSettingsPage({
+    required this.accounts,
+    required this.initialSettings,
+  });
+
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new `State` instance.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
+  @override
+  State<_AccountPickerSettingsPage> createState() =>
+      _AccountPickerSettingsPageState();
+}
+
+class _AccountPickerSettingsPageState
+    extends State<_AccountPickerSettingsPage> {
+  late String _sortMode;
+  late bool _groupByType;
+  late List<String> _customOrder;
+  late Set<String> _moreAccountIds;
+
+  /// Purpose: Initialize picker settings editing state.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Copies settings into local mutable state.
+  /// Notes: Normalizes stale account ids before rendering controls.
+  @override
+  void initState() {
+    super.initState();
+    final settings = normalizedAccountPickerSettings(
+      widget.initialSettings,
+      widget.accounts,
+    );
+    _sortMode = settings.sortMode;
+    _groupByType = settings.groupByType;
+    _customOrder = List<String>.of(settings.customOrder);
+    _moreAccountIds = settings.moreAccountIds.toSet();
+  }
+
+  /// Purpose: Return the account order edited by the custom-order control.
+  /// Inputs: None.
+  /// Returns: `List<Account>`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  List<Account> get _orderedAccounts {
+    final byId = {for (final account in widget.accounts) account.id: account};
+    return [
+      for (final id in normalizedAccountPickerOrder(
+        widget.accounts,
+        _customOrder,
+      ))
+        if (byId[id] != null) byId[id]!,
+    ];
+  }
+
+  /// Purpose: Return account list order for the More-account checkboxes.
+  /// Inputs: None.
+  /// Returns: `List<Account>`.
+  /// Side effects: None.
+  /// Notes: Mirrors the current picker sort controls.
+  List<Account> get _displayAccounts => sortAccountsForPicker(
+    widget.accounts,
+    AccountPickerSettings(
+      sortMode: _sortMode,
+      groupByType: _groupByType,
+      customOrder: _customOrder,
+      moreAccountIds: _moreAccountIds.toList(),
+    ),
+  );
+
+  /// Purpose: Return the localized label for an account type.
+  /// Inputs: `type`, `l10n`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  String _accountTypeLabel(AccountType type, AppLocalizations l10n) {
+    return switch (type) {
+      AccountType.fund => l10n.financeAccountTypeFund,
+      AccountType.credit => l10n.financeAccountTypeCredit,
+      AccountType.recharge => l10n.financeAccountTypeRecharge,
+      AccountType.financial => l10n.financeAccountTypeFinancial,
+    };
+  }
+
+  /// Purpose: Persist the edited picker settings back to the accounts page.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Pops the route with the normalized settings result.
+  /// Notes: Internal helper used within this file only.
+  void _save() {
+    Navigator.pop(
+      context,
+      normalizedAccountPickerSettings(
+        AccountPickerSettings(
+          sortMode: _sortMode,
+          groupByType: _groupByType,
+          customOrder: _customOrder,
+          moreAccountIds: _moreAccountIds.toList(),
+        ),
+        widget.accounts,
+      ),
+    );
+  }
+
+  /// Purpose: Reorder the custom account picker order.
+  /// Inputs: `oldIndex`, `newIndex`.
+  /// Returns: None.
+  /// Side effects: Updates local custom-order state.
+  /// Notes: Internal helper used within this file only.
+  void _reorderCustomOrder(int oldIndex, int newIndex) {
+    if (newIndex > oldIndex) newIndex--;
+    final accounts = _orderedAccounts;
+    if (oldIndex < 0 || oldIndex >= accounts.length) return;
+    if (newIndex < 0 || newIndex > accounts.length) return;
+    final ids = accounts.map((account) => account.id).toList();
+    final moved = ids.removeAt(oldIndex);
+    ids.insert(newIndex, moved);
+    setState(() => _customOrder = ids);
+  }
+
+  /// Purpose: Build the current settings editor UI.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the settings page.
+  /// Side effects: Creates UI widgets from local state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(l10n.financeAccountPickerSettings),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.check),
+            tooltip: l10n.commonSave,
+            onPressed: _save,
+          ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.only(bottom: 24),
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Text(l10n.financeSortBy, style: theme.textTheme.titleSmall),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: SegmentedButton<String>(
+              segments: [
+                ButtonSegment(
+                  value: AccountPickerSettings.sortName,
+                  label: Text(l10n.financeSortByName),
+                ),
+                ButtonSegment(
+                  value: AccountPickerSettings.sortCustom,
+                  label: Text(l10n.financeSortCustom),
+                ),
+              ],
+              selected: {_sortMode},
+              onSelectionChanged: (selection) {
+                setState(() {
+                  _sortMode = selection.first;
+                  _customOrder = normalizedAccountPickerOrder(
+                    widget.accounts,
+                    _customOrder,
+                  );
+                });
+              },
+            ),
+          ),
+          SwitchListTile(
+            title: Text(l10n.financeAccountPickerGroupByType),
+            value: _groupByType,
+            onChanged: (value) => setState(() => _groupByType = value),
+          ),
+          if (_sortMode == AccountPickerSettings.sortCustom) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+              child: Text(
+                l10n.financeAccountPickerCustomOrder,
+                style: theme.textTheme.titleSmall,
+              ),
+            ),
+            ReorderableListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              buildDefaultDragHandles: false,
+              itemCount: _orderedAccounts.length,
+              onReorder: _reorderCustomOrder,
+              itemBuilder: (context, index) {
+                final account = _orderedAccounts[index];
+                return ListTile(
+                  key: ValueKey('picker-order-${account.id}'),
+                  leading: ReorderableDragStartListener(
+                    index: index,
+                    child: const Icon(Icons.drag_handle),
+                  ),
+                  title: Text(account.name),
+                  subtitle: Text(
+                    '${_accountTypeLabel(account.type, l10n)}  •  ${account.bankOrApp}  •  ${account.currency}',
+                  ),
+                );
+              },
+            ),
+          ],
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+            child: Text(
+              l10n.financeAccountPickerMoreAccounts,
+              style: theme.textTheme.titleSmall,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              l10n.financeAccountPickerMoreDescription,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          for (final account in _displayAccounts)
+            CheckboxListTile(
+              value: _moreAccountIds.contains(account.id),
+              title: Text(account.name),
+              subtitle: Text(
+                '${_accountTypeLabel(account.type, l10n)}  •  ${account.bankOrApp}  •  ${account.currency}',
+              ),
+              onChanged: (value) {
+                setState(() {
+                  if (value == true) {
+                    _moreAccountIds.add(account.id);
+                  } else {
+                    _moreAccountIds.remove(account.id);
+                  }
+                });
+              },
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 // --------------- Account Transactions Page ---------------
 
 class _AccountTransactionsPage extends StatefulWidget {
@@ -815,12 +1150,13 @@ class _AccountTransactionsPage extends StatefulWidget {
   final List<Transaction> transactions;
   final List<Category> categories;
   final ExchangeRateData rateData;
+  final AccountPickerSettings accountPickerSettings;
   final void Function(Transaction) onAdd;
   final void Function(Transaction) onEdit;
   final void Function(Transaction) onDelete;
 
   /// Purpose: Create a account transactions page instance.
-  /// Inputs: The focused account, all accounts, and transaction callbacks.
+  /// Inputs: The focused account, all accounts, picker settings, and transaction callbacks.
   /// Returns: A new `_AccountTransactionsPage` instance.
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
@@ -830,6 +1166,7 @@ class _AccountTransactionsPage extends StatefulWidget {
     required this.transactions,
     required this.categories,
     required this.rateData,
+    required this.accountPickerSettings,
     required this.onAdd,
     required this.onEdit,
     required this.onDelete,
@@ -872,6 +1209,7 @@ class _AccountTransactionsPageState extends State<_AccountTransactionsPage> {
         accounts: widget.accounts,
         initialAccountId: widget.account.id,
         currentSnapshotId: widget.rateData.currentSnapshotId,
+        accountPickerSettings: widget.accountPickerSettings,
       ),
     );
     if (tx != null) {
@@ -904,6 +1242,7 @@ class _AccountTransactionsPageState extends State<_AccountTransactionsPage> {
         transaction: tx,
         initialAccountId: widget.account.id,
         currentSnapshotId: widget.rateData.currentSnapshotId,
+        accountPickerSettings: widget.accountPickerSettings,
       ),
     );
     if (updated != null) {

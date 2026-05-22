@@ -19,10 +19,11 @@ class SubscriptionDetailPage extends StatefulWidget {
   final List<Account> accounts;
   final ExchangeRateData rateData;
   final String defaultCurrency;
+  final AccountPickerSettings accountPickerSettings;
   final void Function(List<Transaction>) onTransactionsChanged;
 
   /// Purpose: Create a subscription detail page instance.
-  /// Inputs: None.
+  /// Inputs: Subscription, transaction, account, picker setting, and callback data.
   /// Returns: A new `SubscriptionDetailPage` instance.
   /// Side effects: None.
   /// Notes: None.
@@ -34,6 +35,7 @@ class SubscriptionDetailPage extends StatefulWidget {
     required this.accounts,
     required this.rateData,
     required this.defaultCurrency,
+    this.accountPickerSettings = const AccountPickerSettings(),
     required this.onTransactionsChanged,
   });
 
@@ -66,7 +68,9 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
   List<Transaction> get _filtered =>
-      _transactions.where((t) => t.subscriptionId == widget.subscription.id).toList()
+      _transactions
+          .where((t) => t.subscriptionId == widget.subscription.id)
+          .toList()
         ..sort((a, b) => b.date.compareTo(a.date));
 
   /// Purpose: Return total spent.
@@ -75,11 +79,17 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
   double get _totalSpent {
-    return _filtered.fold(0.0, (sum, t) => sum + convertCurrency(
-        widget.rateData.ratesAt(t.rateSnapshotId),
-        t.amount,
-        t.currency,
-        widget.defaultCurrency));
+    return _filtered.fold(
+      0.0,
+      (sum, t) =>
+          sum +
+          convertCurrency(
+            widget.rateData.ratesAt(t.rateSnapshotId),
+            t.amount,
+            t.currency,
+            widget.defaultCurrency,
+          ),
+    );
   }
 
   /// Purpose: Provide the internal delete transaction helper for this file.
@@ -105,6 +115,7 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
         accounts: widget.accounts,
         transaction: tx,
         currentSnapshotId: widget.rateData.currentSnapshotId,
+        accountPickerSettings: widget.accountPickerSettings,
       ),
     );
     if (updated != null) {
@@ -153,8 +164,12 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
 
     // Next billing / expiry date
     final bool isAtExpiry = sub.cancelType == CancelType.atExpiry;
-    final nextDate = isAtExpiry ? sub.nextBillingDate : (sub.isActive ? sub.nextBillingDate : null);
-    final nextDateLabel = isAtExpiry ? l10n.financeExpiryDate : l10n.financeNextBilling;
+    final nextDate = isAtExpiry
+        ? sub.nextBillingDate
+        : (sub.isActive ? sub.nextBillingDate : null);
+    final nextDateLabel = isAtExpiry
+        ? l10n.financeExpiryDate
+        : l10n.financeNextBilling;
 
     return Scaffold(
       appBar: AppBar(
@@ -169,7 +184,10 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
             padding: const EdgeInsets.all(16),
             child: Card(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
                 child: Column(
                   children: [
                     Text(
@@ -193,10 +211,14 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
                         ),
                       ),
                     ],
-                    if (!sub.isActive && sub.cancelledAt != null && !isAtExpiry) ...[
+                    if (!sub.isActive &&
+                        sub.cancelledAt != null &&
+                        !isAtExpiry) ...[
                       const SizedBox(height: 4),
                       Text(
-                        l10n.financeCancelledOn(DateFormat('yyyy-MM-dd').format(sub.cancelledAt!)),
+                        l10n.financeCancelledOn(
+                          DateFormat('yyyy-MM-dd').format(sub.cancelledAt!),
+                        ),
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
@@ -230,22 +252,29 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
                         alignment: Alignment.centerLeft,
                         padding: const EdgeInsets.only(left: 20),
                         color: theme.colorScheme.primary,
-                        child: Icon(Icons.edit_outlined,
-                            color: theme.colorScheme.onPrimary),
+                        child: Icon(
+                          Icons.edit_outlined,
+                          color: theme.colorScheme.onPrimary,
+                        ),
                       ),
                       secondaryBackground: Container(
                         alignment: Alignment.centerRight,
                         padding: const EdgeInsets.only(right: 20),
                         color: theme.colorScheme.error,
-                        child: Icon(Icons.delete_outline,
-                            color: theme.colorScheme.onError),
+                        child: Icon(
+                          Icons.delete_outline,
+                          color: theme.colorScheme.onError,
+                        ),
                       ),
                       confirmDismiss: (direction) async {
                         if (direction == DismissDirection.startToEnd) {
                           _editTransaction(tx);
                           return false;
                         }
-                        return confirmDelete(context, l10n.financeThisTransaction);
+                        return confirmDelete(
+                          context,
+                          l10n.financeThisTransaction,
+                        );
                       },
                       onDismissed: (_) => _deleteTransaction(tx),
                       child: _TxTile(
@@ -299,16 +328,16 @@ class _TxTile extends StatelessWidget {
         ? (cat.emoji != null ? '${cat.emoji} ${cat.name}' : cat.name)
         : null;
 
-    final account = accounts.where((a) => a.id == transaction.accountId).firstOrNull;
+    final account = accounts
+        .where((a) => a.id == transaction.accountId)
+        .firstOrNull;
     final accountLabel = account != null
-        ? (account.emoji != null ? '${account.emoji} ${account.name}' : account.name)
+        ? (account.emoji != null
+              ? '${account.emoji} ${account.name}'
+              : account.name)
         : null;
 
-    final subtitleParts = <String>[
-      ?catLabel,
-      ?accountLabel,
-      dateStr,
-    ];
+    final subtitleParts = <String>[?catLabel, ?accountLabel, dateStr];
 
     return ListTile(
       leading: _buildLeading(account, color, theme),
@@ -339,11 +368,11 @@ class _TxTile extends StatelessWidget {
     /// Side effects: None.
     /// Notes: Internal helper used within this function only.
     Widget defaultAvatar() => CircleAvatar(
-          backgroundColor: color.withValues(alpha: 0.1),
-          child: subscription.emoji != null
-              ? Text(subscription.emoji!, style: const TextStyle(fontSize: 18))
-              : Icon(Icons.repeat, color: color, size: 20),
-        );
+      backgroundColor: color.withValues(alpha: 0.1),
+      child: subscription.emoji != null
+          ? Text(subscription.emoji!, style: const TextStyle(fontSize: 18))
+          : Icon(Icons.repeat, color: color, size: 20),
+    );
 
     final imgPath = subscription.imagePath ?? account?.imagePath;
     if (imgPath != null) {

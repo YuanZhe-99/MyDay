@@ -83,6 +83,16 @@
   "financeAccount": "帳戶",
   "financeFromAccount": "轉出帳戶",
   "financeToAccount": "轉入帳戶",
+  "financeAccountPickerSettings": "流水帳戶列表",
+  "financeAccountPickerGroupByType": "依帳戶類型分組",
+  "financeAccountPickerCustomOrder": "自訂帳戶順序",
+  "financeAccountPickerMoreAccounts": "放入更多的帳戶",
+  "financeAccountPickerMoreDescription": "勾選的帳戶會在新增流水的帳戶選擇中先隱藏，點選更多後顯示。",
+  "financeAccountPickerMore": "更多",
+  "financeAccountPickerShowMore": "更多（{count}）",
+  "@financeAccountPickerShowMore": {
+    "placeholders": { "count": { "type": "int" } }
+  },
   "financeCurrency": "幣種",
   "financeDate": "日期",
   "financeNoTransactions": "暫無交易",

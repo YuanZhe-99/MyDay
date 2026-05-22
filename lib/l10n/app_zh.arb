@@ -85,6 +85,16 @@
   "financeAccount": "账户",
   "financeFromAccount": "转出账户",
   "financeToAccount": "转入账户",
+  "financeAccountPickerSettings": "流水账户列表",
+  "financeAccountPickerGroupByType": "按账户类型分组",
+  "financeAccountPickerCustomOrder": "自定义账户顺序",
+  "financeAccountPickerMoreAccounts": "放入更多的账户",
+  "financeAccountPickerMoreDescription": "勾选的账户会在新增流水的账户选择中先隐藏，点击更多后显示。",
+  "financeAccountPickerMore": "更多",
+  "financeAccountPickerShowMore": "更多（{count}）",
+  "@financeAccountPickerShowMore": {
+    "placeholders": { "count": { "type": "int" } }
+  },
   "financeCurrency": "币种",
   "financeDate": "日期",
   "financeNoTransactions": "暂无交易",

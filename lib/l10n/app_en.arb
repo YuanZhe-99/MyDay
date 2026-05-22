@@ -88,6 +88,16 @@
   "financeAccount": "Account",
   "financeFromAccount": "From Account",
   "financeToAccount": "To Account",
+  "financeAccountPickerSettings": "Transaction Account List",
+  "financeAccountPickerGroupByType": "Group by account type",
+  "financeAccountPickerCustomOrder": "Custom account order",
+  "financeAccountPickerMoreAccounts": "Accounts in More",
+  "financeAccountPickerMoreDescription": "Checked accounts stay hidden until you tap More in the transaction account picker.",
+  "financeAccountPickerMore": "More",
+  "financeAccountPickerShowMore": "More ({count})",
+  "@financeAccountPickerShowMore": {
+    "placeholders": { "count": { "type": "int" } }
+  },
   "financeCurrency": "Currency",
   "financeDate": "Date",
   "financeNoTransactions": "No transactions",

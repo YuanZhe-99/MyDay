@@ -9,6 +9,7 @@ import '../../../shared/widgets/delete_confirm.dart';
 import '../models/finance.dart';
 import '../services/balance_util.dart';
 import '../services/exchange_rate_storage.dart';
+import '../services/subscription_processor.dart';
 import '../widgets/add_subscription_dialog.dart';
 import 'subscription_detail_page.dart';
 
@@ -19,6 +20,7 @@ class SubscriptionsPage extends StatefulWidget {
   final List<Account> accounts;
   final ExchangeRateData rateData;
   final String defaultCurrency;
+  final AccountPickerSettings accountPickerSettings;
   final int? reminderHour;
   final int? reminderMinute;
   final String? sortMode;
@@ -29,7 +31,7 @@ class SubscriptionsPage extends StatefulWidget {
   final void Function(String mode, List<String>? customOrder) onSortChanged;
 
   /// Purpose: Create a subscriptions page instance.
-  /// Inputs: None.
+  /// Inputs: Subscription, transaction, account, picker setting, and callback data.
   /// Returns: A new `SubscriptionsPage` instance.
   /// Side effects: None.
   /// Notes: None.
@@ -41,6 +43,7 @@ class SubscriptionsPage extends StatefulWidget {
     required this.accounts,
     required this.rateData,
     required this.defaultCurrency,
+    this.accountPickerSettings = const AccountPickerSettings(),
     this.reminderHour,
     this.reminderMinute,
     this.sortMode,
@@ -455,24 +458,34 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
   /// Inputs: `sub`.
   /// Returns: None.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Skips existing subscription billing days so repeated imports do not duplicate history.
   void _importHistoricalTransactions(Subscription sub) {
     final now = DateTime.now();
     final dates = sub.billingDatesBefore(now);
-    final newTxs = dates
-        .map(
-          (d) => Transaction(
-            type: TransactionType.expense,
-            amount: sub.amount,
-            currency: sub.currency,
-            accountId: sub.accountId,
-            categoryId: sub.categoryId,
-            subscriptionId: sub.id,
-            note: sub.name,
-            date: d,
-          ),
-        )
-        .toList();
+    final existingKeys = {
+      for (final tx in _transactions)
+        if (tx.subscriptionId != null)
+          SubscriptionProcessor.billingDateKey(tx.subscriptionId!, tx.date),
+    };
+    final newTxs = <Transaction>[];
+    for (final date in dates) {
+      final key = SubscriptionProcessor.billingDateKey(sub.id, date);
+      if (!existingKeys.add(key)) continue;
+      newTxs.add(
+        Transaction(
+          id: SubscriptionProcessor.transactionIdForBilling(sub.id, date),
+          type: TransactionType.expense,
+          amount: sub.amount,
+          currency: sub.currency,
+          accountId: sub.accountId,
+          categoryId: sub.categoryId,
+          subscriptionId: sub.id,
+          note: sub.name,
+          date: date,
+        ),
+      );
+    }
+    if (newTxs.isEmpty) return;
     setState(() => _transactions.addAll(newTxs));
     widget.onTransactionsChanged(_transactions);
   }
@@ -493,6 +506,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
           accounts: widget.accounts,
           rateData: widget.rateData,
           defaultCurrency: widget.defaultCurrency,
+          accountPickerSettings: widget.accountPickerSettings,
           onTransactionsChanged: (t) {
             setState(() => _transactions = t);
             widget.onTransactionsChanged(_transactions);

@@ -57,10 +57,11 @@ class CategoriesPage extends StatefulWidget {
   final List<Account> accounts;
   final ExchangeRateData? rateData;
   final String defaultCurrency;
+  final AccountPickerSettings accountPickerSettings;
   final void Function(List<Transaction>)? onTransactionsChanged;
 
   /// Purpose: Create a categories page instance.
-  /// Inputs: `transactions`.
+  /// Inputs: Category, transaction, account, picker setting, and callback data.
   /// Returns: A new `CategoriesPage` instance.
   /// Side effects: None.
   /// Notes: None.
@@ -72,6 +73,7 @@ class CategoriesPage extends StatefulWidget {
     this.accounts = const [],
     this.rateData,
     this.defaultCurrency = 'CNY',
+    this.accountPickerSettings = const AccountPickerSettings(),
     this.onTransactionsChanged,
   });
 
@@ -194,6 +196,7 @@ class _CategoriesPageState extends State<CategoriesPage>
           accounts: widget.accounts,
           rateData: rateData,
           defaultCurrency: widget.defaultCurrency,
+          accountPickerSettings: widget.accountPickerSettings,
           onTransactionsChanged: (t) {
             setState(() => _transactions = t);
             widget.onTransactionsChanged?.call(t);

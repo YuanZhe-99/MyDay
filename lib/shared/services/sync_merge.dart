@@ -549,6 +549,7 @@ class FinanceMergeResult {
       subscriptionCustomOrder: settingsSource.subscriptionCustomOrder,
       accountSortModes: settingsSource.accountSortModes,
       accountCustomOrders: settingsSource.accountCustomOrders,
+      accountPickerSettings: settingsSource.accountPickerSettings,
     );
   }
 

@@ -20,9 +20,10 @@ class FinanceData {
   final List<String>? subscriptionCustomOrder;
   final Map<String, String> accountSortModes;
   final Map<String, List<String>> accountCustomOrders;
+  final AccountPickerSettings accountPickerSettings;
 
   /// Purpose: Create a finance data instance.
-  /// Inputs: `subscriptions`.
+  /// Inputs: Finance records and persisted finance settings.
   /// Returns: A new `FinanceData` instance.
   /// Side effects: None.
   /// Notes: None.
@@ -39,6 +40,7 @@ class FinanceData {
     this.subscriptionCustomOrder,
     this.accountSortModes = const {},
     this.accountCustomOrders = const {},
+    this.accountPickerSettings = const AccountPickerSettings(),
   }) : settingsModifiedAt =
            settingsModifiedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
 
@@ -65,6 +67,7 @@ class FinanceData {
     if (accountSortModes.isNotEmpty) 'accountSortModes': accountSortModes,
     if (accountCustomOrders.isNotEmpty)
       'accountCustomOrders': accountCustomOrders,
+    'accountPickerSettings': accountPickerSettings.toJson(),
   };
 
   /// Purpose: Create an instance from a JSON-compatible map.
@@ -115,6 +118,9 @@ class FinanceData {
           ),
         ) ??
         const {},
+    accountPickerSettings: AccountPickerSettings.fromJson(
+      json['accountPickerSettings'] as Map<String, dynamic>?,
+    ),
   );
 }
 
@@ -186,6 +192,7 @@ class FinanceStorage {
       subscriptionCustomOrder: data.subscriptionCustomOrder,
       accountSortModes: data.accountSortModes,
       accountCustomOrders: data.accountCustomOrders,
+      accountPickerSettings: data.accountPickerSettings,
     );
   }
 

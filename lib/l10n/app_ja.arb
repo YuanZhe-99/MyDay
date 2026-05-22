@@ -85,6 +85,16 @@
   "financeAccount": "口座",
   "financeFromAccount": "振替元口座",
   "financeToAccount": "振替先口座",
+  "financeAccountPickerSettings": "取引の口座リスト",
+  "financeAccountPickerGroupByType": "口座タイプでグループ化",
+  "financeAccountPickerCustomOrder": "カスタム口座順",
+  "financeAccountPickerMoreAccounts": "さらに表示に入れる口座",
+  "financeAccountPickerMoreDescription": "チェックした口座は取引の口座選択で非表示になり、さらに表示をタップすると表示されます。",
+  "financeAccountPickerMore": "さらに表示",
+  "financeAccountPickerShowMore": "さらに表示（{count}）",
+  "@financeAccountPickerShowMore": {
+    "placeholders": { "count": { "type": "int" } }
+  },
   "financeCurrency": "通貨",
   "financeDate": "日付",
   "financeNoTransactions": "取引なし",

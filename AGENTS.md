@@ -29,8 +29,8 @@ Maintenance rules:
 - **Package id:** Dart package `my_day`; Android namespace/application id `com.yuanzhe.my_day`; MSIX identity `com.yuanzhe.myday`; macOS bundle id `com.yuanzhe.myDay`.
 - **Author / publisher:** `yuanzhe`.
 - **License:** GPL-3.0.
-- **Current version:** `0.7.1+28` in `pubspec.yaml`, `0.7.1.0` in `msix_config.msix_version`, and `0.7.1` in `installer.iss`.
-- **Latest tag at the time this guide was written:** `v0.7.1`.
+- **Current version:** `0.7.2+29` in `pubspec.yaml`, `0.7.2.0` in `msix_config.msix_version`, and `0.7.2` in `installer.iss`.
+- **Latest tag at the time this guide was written:** `v0.7.2`.
 - **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.41.6`.
 - **Primary platforms:** Windows x64/ARM64, Android APK/AAB, iOS sideload IPA, and macOS DMG. Linux project support exists for desktop runtime features but is not a primary release artifact.
 - **Repository:** Use the current environment's workspace root / repository path instead of hard-coding an absolute local path.
@@ -190,14 +190,14 @@ Main model: `lib/features/finance/models/finance.dart`.
 
 Finance services include:
 
-- `FinanceStorage`: stores accounts including optional monthly-fee waiver criteria, categories, transactions, subscriptions, default currency, subscription reminders/sort order, account sort modes/custom orders, and `settingsModifiedAt`.
+- `FinanceStorage`: stores accounts including optional monthly-fee waiver criteria, categories, transactions, subscriptions, default currency, subscription reminders/sort order, account sort modes/custom orders, transaction account picker settings, and `settingsModifiedAt`.
 - `ExchangeRateStorage`: snapshot-based exchange-rate history with deduped `RateSnapshot`s and migration from old flat maps.
 - `ExchangeRateApi`: fetches from `https://open.er-api.com/v6/latest/{base}` with no API key, updates only configured pairs, and fetches at most once per day.
 - `balance_util.dart`: currency symbols, direct/reverse/intermediate conversion through CNY/USD/EUR, and account balance reconstruction around forced-balance anchors.
 - `BankPresetService`: loads 250+ bank presets from `assets/banks.json`, country currency defaults, search/grouping, and multiple logo URL sources.
-- `SubscriptionProcessor`: hourly renewal catch-up, persisted `nextBillingDate`, multi-cycle catch-up, and at-expiry cancellation handling.
+- `SubscriptionProcessor`: hourly renewal catch-up, persisted `nextBillingDate`, multi-cycle catch-up, idempotent subscription billing-day generation using existing random-id or stable-id transactions, and at-expiry cancellation handling.
 
-Finance views cover selectable-month home summaries and grouped monthly transactions, accounts with optional monthly-fee waiver criteria, account transaction pages with direct add-transaction support, categories, category details, exchange rates, subscriptions, subscription details, and analysis charts. The analysis page includes clickable expense/income category breakdowns including uncategorized flows, category transaction drill-down with add/edit/delete support, expense/income trends, editable custom date ranges, and a total-assets trend that reconstructs account balances at sample points.
+Finance views cover selectable-month home summaries and grouped monthly transactions, accounts with optional monthly-fee waiver criteria, account transaction pages with direct add-transaction support, transaction account picker sorting/grouping/More settings from the account page, categories, category details, exchange rates, subscriptions, subscription details, and analysis charts. The analysis page includes clickable expense/income category breakdowns including uncategorized flows, category transaction drill-down with add/edit/delete support, expense/income trends, editable custom date ranges, and a total-assets trend that reconstructs account balances at sample points.
 
 ### Intimacy
 
@@ -336,7 +336,7 @@ Default app data directory is `Documents/MyDay/` on desktop or the platform app 
 | --- | --- | --- | --- |
 | Core preferences | `storage_config.json` | No | Custom path, intimacy visibility, theme, locale, tray, backup, local API settings |
 | Todo | `todo_data.json` | Yes | Tasks, daily templates, completion log, reminders, task sort/custom order |
-| Finance | `finance_data.json` | Yes | Accounts including optional fee waiver criteria, categories, transactions, subscriptions, finance settings |
+| Finance | `finance_data.json` | Yes | Accounts including optional fee waiver criteria, categories, transactions, subscriptions, finance settings, transaction account picker settings |
 | Exchange rates | `exchange_rates.json` | Yes | Rate snapshots and `lastFetchedAt` |
 | Intimacy | `intimacy_data.json` | Yes | Partners, toys, positions, records, timer history, sort settings |
 | Weight | `weight_data.json` | Yes | Height, records, reminders, grace window |
@@ -444,3 +444,4 @@ Use the narrowest relevant command set for verification. For sync/model/persiste
 - `v0.6.7`: Finance accounts can store optional monthly-fee waiver criteria for minimum balance and/or monthly incoming transfer, with versions unified to `0.6.7+26` / MSIX `0.6.7.0` / installer `0.6.7`.
 - `v0.7.0`: Finance analysis custom date ranges can be re-edited without losing prior selections, at-expiry-cancelled subscriptions are excluded from upcoming-renewal reminders, finance home transactions are month-filtered with month selection, account transaction pages can add transactions with the account preselected, intimacy default history shows a limited recent list with a show-all sheet, and versions are unified to `0.7.0+27` / MSIX `0.7.0.0` / installer `0.7.0`.
 - `v0.7.1`: Finance analysis category rows for expenses, income, and uncategorized flows open transaction drill-down pages with add/edit/delete support, category add flows preselect the category/type automatically, and versions are unified to `0.7.1+28` / MSIX `0.7.1.0` / installer `0.7.1`.
+- `v0.7.2`: Subscription billing generation is idempotent per subscription billing day, newly generated subscription transactions use stable IDs, historical subscription import skips existing billing days, transaction account picker settings support name/custom sorting, type grouping, and More accounts from the account page, and versions are unified to `0.7.2+29` / MSIX `0.7.2.0` / installer `0.7.2`.

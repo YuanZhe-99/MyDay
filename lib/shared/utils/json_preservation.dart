@@ -384,6 +384,10 @@ const _subscriptionSchema = JsonPreservationSchema(
   },
 );
 
+const _accountPickerSettingsSchema = JsonPreservationSchema(
+  knownKeys: {'sortMode', 'groupByType', 'customOrder', 'moreAccountIds'},
+);
+
 const _financeDataSchema = JsonPreservationSchema(
   knownKeys: {
     'accounts',
@@ -398,7 +402,9 @@ const _financeDataSchema = JsonPreservationSchema(
     'subscriptionCustomOrder',
     'accountSortModes',
     'accountCustomOrders',
+    'accountPickerSettings',
   },
+  objectFields: {'accountPickerSettings': _accountPickerSettingsSchema},
   listFields: {
     'accounts': JsonListPreservation(
       keyField: 'id',

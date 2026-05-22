@@ -3,6 +3,80 @@ import 'package:uuid/uuid.dart';
 
 enum AccountType { fund, credit, recharge, financial }
 
+class AccountPickerSettings {
+  static const sortName = 'name';
+  static const sortCustom = 'custom';
+
+  final String sortMode;
+  final bool groupByType;
+  final List<String> customOrder;
+  final List<String> moreAccountIds;
+
+  /// Purpose: Create account picker settings for transaction dialogs.
+  /// Inputs: Optional sort, grouping, custom order, and more-list account ids.
+  /// Returns: A new `AccountPickerSettings` instance.
+  /// Side effects: None.
+  /// Notes: The default preserves the incoming account order without type grouping.
+  const AccountPickerSettings({
+    this.sortMode = sortCustom,
+    this.groupByType = false,
+    this.customOrder = const [],
+    this.moreAccountIds = const [],
+  });
+
+  /// Purpose: Serialize this value into a JSON-compatible map.
+  /// Inputs: None.
+  /// Returns: A JSON-compatible map.
+  /// Side effects: None.
+  /// Notes: Keep the output aligned with finance settings persistence and sync.
+  Map<String, dynamic> toJson() => {
+    'sortMode': sortMode,
+    'groupByType': groupByType,
+    if (customOrder.isNotEmpty) 'customOrder': customOrder,
+    if (moreAccountIds.isNotEmpty) 'moreAccountIds': moreAccountIds,
+  };
+
+  /// Purpose: Create an instance from a JSON-compatible map.
+  /// Inputs: `json`.
+  /// Returns: A new `AccountPickerSettings` instance.
+  /// Side effects: None.
+  /// Notes: Invalid or missing values fall back to the default settings.
+  factory AccountPickerSettings.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return const AccountPickerSettings();
+    final sortMode = json['sortMode'] as String? ?? sortCustom;
+    return AccountPickerSettings(
+      sortMode: sortMode == sortName || sortMode == sortCustom
+          ? sortMode
+          : sortCustom,
+      groupByType: json['groupByType'] as bool? ?? false,
+      customOrder:
+          (json['customOrder'] as List<dynamic>?)?.cast<String>() ?? const [],
+      moreAccountIds:
+          (json['moreAccountIds'] as List<dynamic>?)?.cast<String>() ??
+          const [],
+    );
+  }
+
+  /// Purpose: Create a modified copy of this settings value.
+  /// Inputs: Optional replacement fields.
+  /// Returns: A new `AccountPickerSettings` instance.
+  /// Side effects: None.
+  /// Notes: Use this for immutable state updates in UI settings pages.
+  AccountPickerSettings copyWith({
+    String? sortMode,
+    bool? groupByType,
+    List<String>? customOrder,
+    List<String>? moreAccountIds,
+  }) {
+    return AccountPickerSettings(
+      sortMode: sortMode ?? this.sortMode,
+      groupByType: groupByType ?? this.groupByType,
+      customOrder: customOrder ?? this.customOrder,
+      moreAccountIds: moreAccountIds ?? this.moreAccountIds,
+    );
+  }
+}
+
 class Account {
   final String id;
   final AccountType type;
@@ -50,25 +124,25 @@ class Account {
   /// Side effects: None.
   /// Notes: Keep the output aligned with the persisted file and sync format.
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'type': type.name,
-        'bankOrApp': bankOrApp,
-        'name': name,
-        'currency': currency,
-        if (cardNumber != null) 'cardNumber': cardNumber,
-        if (expiryDate != null) 'expiryDate': expiryDate,
-        if (securityCode != null) 'securityCode': securityCode,
-        if (emoji != null) 'emoji': emoji,
-        if (imagePath != null) 'imagePath': imagePath,
-        if (feeWaiverMinimumBalance != null)
-          'feeWaiverMinimumBalance': feeWaiverMinimumBalance,
-        if (feeWaiverMonthlyDeposit != null)
-          'feeWaiverMonthlyDeposit': feeWaiverMonthlyDeposit,
-        if (forcedBalance != null) 'forcedBalance': forcedBalance,
-        if (forcedBalanceDate != null)
-          'forcedBalanceDate': forcedBalanceDate!.toIso8601String(),
-        'modifiedAt': modifiedAt.toIso8601String(),
-      };
+    'id': id,
+    'type': type.name,
+    'bankOrApp': bankOrApp,
+    'name': name,
+    'currency': currency,
+    if (cardNumber != null) 'cardNumber': cardNumber,
+    if (expiryDate != null) 'expiryDate': expiryDate,
+    if (securityCode != null) 'securityCode': securityCode,
+    if (emoji != null) 'emoji': emoji,
+    if (imagePath != null) 'imagePath': imagePath,
+    if (feeWaiverMinimumBalance != null)
+      'feeWaiverMinimumBalance': feeWaiverMinimumBalance,
+    if (feeWaiverMonthlyDeposit != null)
+      'feeWaiverMonthlyDeposit': feeWaiverMonthlyDeposit,
+    if (forcedBalance != null) 'forcedBalance': forcedBalance,
+    if (forcedBalanceDate != null)
+      'forcedBalanceDate': forcedBalanceDate!.toIso8601String(),
+    'modifiedAt': modifiedAt.toIso8601String(),
+  };
 
   /// Purpose: Create an instance from a JSON-compatible map.
   /// Inputs: `json`.
@@ -76,28 +150,28 @@ class Account {
   /// Side effects: None.
   /// Notes: Use this path when reading the persisted or transferred data format for this type.
   factory Account.fromJson(Map<String, dynamic> json) => Account(
-        id: json['id'] as String,
-        type: AccountType.values.byName(json['type'] as String),
-        bankOrApp: json['bankOrApp'] as String,
-        name: json['name'] as String,
-        currency: json['currency'] as String? ?? 'CNY',
-        cardNumber: json['cardNumber'] as String?,
-        expiryDate: json['expiryDate'] as String?,
-        securityCode: json['securityCode'] as String?,
-        emoji: json['emoji'] as String?,
-        imagePath: json['imagePath'] as String?,
-        feeWaiverMinimumBalance:
-            (json['feeWaiverMinimumBalance'] as num?)?.toDouble(),
-        feeWaiverMonthlyDeposit:
-            (json['feeWaiverMonthlyDeposit'] as num?)?.toDouble(),
-        forcedBalance: (json['forcedBalance'] as num?)?.toDouble(),
-        forcedBalanceDate: json['forcedBalanceDate'] != null
-            ? DateTime.parse(json['forcedBalanceDate'] as String)
-            : null,
-        modifiedAt: json['modifiedAt'] != null
-            ? DateTime.parse(json['modifiedAt'] as String)
-            : DateTime.fromMillisecondsSinceEpoch(0),
-      );
+    id: json['id'] as String,
+    type: AccountType.values.byName(json['type'] as String),
+    bankOrApp: json['bankOrApp'] as String,
+    name: json['name'] as String,
+    currency: json['currency'] as String? ?? 'CNY',
+    cardNumber: json['cardNumber'] as String?,
+    expiryDate: json['expiryDate'] as String?,
+    securityCode: json['securityCode'] as String?,
+    emoji: json['emoji'] as String?,
+    imagePath: json['imagePath'] as String?,
+    feeWaiverMinimumBalance: (json['feeWaiverMinimumBalance'] as num?)
+        ?.toDouble(),
+    feeWaiverMonthlyDeposit: (json['feeWaiverMonthlyDeposit'] as num?)
+        ?.toDouble(),
+    forcedBalance: (json['forcedBalance'] as num?)?.toDouble(),
+    forcedBalanceDate: json['forcedBalanceDate'] != null
+        ? DateTime.parse(json['forcedBalanceDate'] as String)
+        : null,
+    modifiedAt: json['modifiedAt'] != null
+        ? DateTime.parse(json['modifiedAt'] as String)
+        : DateTime.fromMillisecondsSinceEpoch(0),
+  );
 }
 
 enum TransactionType { expense, income, transfer }
@@ -107,7 +181,8 @@ class Transaction {
   final TransactionType type;
   final double amount;
   final String currency;
-  final String? rateSnapshotId; // references RateSnapshot with all rates at recording time
+  final String?
+  rateSnapshotId; // references RateSnapshot with all rates at recording time
   final String accountId;
   final String? toAccountId; // for transfers
   final double? toAmount; // amount received in target currency (cross-currency)
@@ -138,9 +213,9 @@ class Transaction {
     this.note = '',
     DateTime? date,
     DateTime? modifiedAt,
-  })  : id = id ?? const Uuid().v4(),
-        date = date ?? DateTime.now(),
-        modifiedAt = modifiedAt ?? DateTime.now();
+  }) : id = id ?? const Uuid().v4(),
+       date = date ?? DateTime.now(),
+       modifiedAt = modifiedAt ?? DateTime.now();
 
   /// Purpose: Serialize this value into a JSON-compatible map.
   /// Inputs: None.
@@ -148,21 +223,21 @@ class Transaction {
   /// Side effects: None.
   /// Notes: Keep the output aligned with the persisted file and sync format.
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'type': type.name,
-        'amount': amount,
-        'currency': currency,
-        if (rateSnapshotId != null) 'rateSnapshotId': rateSnapshotId,
-        'accountId': accountId,
-        if (toAccountId != null) 'toAccountId': toAccountId,
-        if (toAmount != null) 'toAmount': toAmount,
-        if (toCurrency != null) 'toCurrency': toCurrency,
-        if (categoryId != null) 'categoryId': categoryId,
-        if (subscriptionId != null) 'subscriptionId': subscriptionId,
-        'note': note,
-        'date': date.toIso8601String(),
-        'modifiedAt': modifiedAt.toIso8601String(),
-      };
+    'id': id,
+    'type': type.name,
+    'amount': amount,
+    'currency': currency,
+    if (rateSnapshotId != null) 'rateSnapshotId': rateSnapshotId,
+    'accountId': accountId,
+    if (toAccountId != null) 'toAccountId': toAccountId,
+    if (toAmount != null) 'toAmount': toAmount,
+    if (toCurrency != null) 'toCurrency': toCurrency,
+    if (categoryId != null) 'categoryId': categoryId,
+    if (subscriptionId != null) 'subscriptionId': subscriptionId,
+    'note': note,
+    'date': date.toIso8601String(),
+    'modifiedAt': modifiedAt.toIso8601String(),
+  };
 
   /// Purpose: Create an instance from a JSON-compatible map.
   /// Inputs: `json`.
@@ -170,23 +245,23 @@ class Transaction {
   /// Side effects: None.
   /// Notes: Use this path when reading the persisted or transferred data format for this type.
   factory Transaction.fromJson(Map<String, dynamic> json) => Transaction(
-        id: json['id'] as String,
-        type: TransactionType.values.byName(json['type'] as String),
-        amount: (json['amount'] as num).toDouble(),
-        currency: json['currency'] as String? ?? 'CNY',
-        rateSnapshotId: json['rateSnapshotId'] as String?,
-        accountId: json['accountId'] as String,
-        toAccountId: json['toAccountId'] as String?,
-        toAmount: (json['toAmount'] as num?)?.toDouble(),
-        toCurrency: json['toCurrency'] as String?,
-        categoryId: json['categoryId'] as String?,
-        subscriptionId: json['subscriptionId'] as String?,
-        note: json['note'] as String? ?? '',
-        date: DateTime.parse(json['date'] as String),
-        modifiedAt: json['modifiedAt'] != null
-            ? DateTime.parse(json['modifiedAt'] as String)
-            : DateTime.fromMillisecondsSinceEpoch(0),
-      );
+    id: json['id'] as String,
+    type: TransactionType.values.byName(json['type'] as String),
+    amount: (json['amount'] as num).toDouble(),
+    currency: json['currency'] as String? ?? 'CNY',
+    rateSnapshotId: json['rateSnapshotId'] as String?,
+    accountId: json['accountId'] as String,
+    toAccountId: json['toAccountId'] as String?,
+    toAmount: (json['toAmount'] as num?)?.toDouble(),
+    toCurrency: json['toCurrency'] as String?,
+    categoryId: json['categoryId'] as String?,
+    subscriptionId: json['subscriptionId'] as String?,
+    note: json['note'] as String? ?? '',
+    date: DateTime.parse(json['date'] as String),
+    modifiedAt: json['modifiedAt'] != null
+        ? DateTime.parse(json['modifiedAt'] as String)
+        : DateTime.fromMillisecondsSinceEpoch(0),
+  );
 }
 
 class Category {
@@ -218,13 +293,13 @@ class Category {
   /// Side effects: None.
   /// Notes: Keep the output aligned with the persisted file and sync format.
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'icon': icon.toJson(),
-        if (emoji != null) 'emoji': emoji,
-        'type': type.name,
-        'modifiedAt': modifiedAt.toIso8601String(),
-      };
+    'id': id,
+    'name': name,
+    'icon': icon.toJson(),
+    if (emoji != null) 'emoji': emoji,
+    'type': type.name,
+    'modifiedAt': modifiedAt.toIso8601String(),
+  };
 
   /// Purpose: Create an instance from a JSON-compatible map.
   /// Inputs: `json`.
@@ -232,15 +307,15 @@ class Category {
   /// Side effects: None.
   /// Notes: Use this path when reading the persisted or transferred data format for this type.
   factory Category.fromJson(Map<String, dynamic> json) => Category(
-        id: json['id'] as String,
-        name: json['name'] as String,
-        icon: IconRef.fromJson(json['icon'] as Map<String, dynamic>),
-        emoji: json['emoji'] as String?,
-        type: TransactionType.values.byName(json['type'] as String),
-        modifiedAt: json['modifiedAt'] != null
-            ? DateTime.parse(json['modifiedAt'] as String)
-            : DateTime.fromMillisecondsSinceEpoch(0),
-      );
+    id: json['id'] as String,
+    name: json['name'] as String,
+    icon: IconRef.fromJson(json['icon'] as Map<String, dynamic>),
+    emoji: json['emoji'] as String?,
+    type: TransactionType.values.byName(json['type'] as String),
+    modifiedAt: json['modifiedAt'] != null
+        ? DateTime.parse(json['modifiedAt'] as String)
+        : DateTime.fromMillisecondsSinceEpoch(0),
+  );
 }
 
 enum BillingCycleType { monthly, yearly }
@@ -291,8 +366,8 @@ class Subscription {
     this.cancelType,
     this.nextBillingDate,
     DateTime? modifiedAt,
-  })  : id = id ?? const Uuid().v4(),
-        modifiedAt = modifiedAt ?? DateTime.now();
+  }) : id = id ?? const Uuid().v4(),
+       modifiedAt = modifiedAt ?? DateTime.now();
 
   /// The first billing date (start + trial days).
   /// Purpose: Return first billing date.
@@ -314,12 +389,22 @@ class Subscription {
     var cursor = first;
     while (!cursor.isAfter(after)) {
       if (billingCycleType == BillingCycleType.monthly) {
-        cursor = DateTime(cursor.year, cursor.month + billingInterval, first.day);
+        cursor = DateTime(
+          cursor.year,
+          cursor.month + billingInterval,
+          first.day,
+        );
       } else {
-        cursor = DateTime(cursor.year + billingInterval, first.month, first.day);
+        cursor = DateTime(
+          cursor.year + billingInterval,
+          first.month,
+          first.day,
+        );
       }
     }
-    if (cancelType == CancelType.atExpiry && cancelledAt != null && cursor.isAfter(cancelledAt!)) {
+    if (cancelType == CancelType.atExpiry &&
+        cancelledAt != null &&
+        cursor.isAfter(cancelledAt!)) {
       return null;
     }
     return cursor;
@@ -338,9 +423,17 @@ class Subscription {
     while (!cursor.isAfter(until)) {
       dates.add(cursor);
       if (billingCycleType == BillingCycleType.monthly) {
-        cursor = DateTime(cursor.year, cursor.month + billingInterval, first.day);
+        cursor = DateTime(
+          cursor.year,
+          cursor.month + billingInterval,
+          first.day,
+        );
       } else {
-        cursor = DateTime(cursor.year + billingInterval, first.month, first.day);
+        cursor = DateTime(
+          cursor.year + billingInterval,
+          first.month,
+          first.day,
+        );
       }
     }
     return dates;
@@ -352,25 +445,26 @@ class Subscription {
   /// Side effects: None.
   /// Notes: Keep the output aligned with the persisted file and sync format.
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        if (emoji != null) 'emoji': emoji,
-        if (imagePath != null) 'imagePath': imagePath,
-        'startDate': startDate.toIso8601String(),
-        'trialDays': trialDays,
-        'billingCycleType': billingCycleType.name,
-        'billingInterval': billingInterval,
-        'amount': amount,
-        'currency': currency,
-        'accountId': accountId,
-        if (categoryId != null) 'categoryId': categoryId,
-        'note': note,
-        'isActive': isActive,
-        if (cancelledAt != null) 'cancelledAt': cancelledAt!.toIso8601String(),
-        if (cancelType != null) 'cancelType': cancelType!.name,
-        if (nextBillingDate != null) 'nextBillingDate': nextBillingDate!.toIso8601String(),
-        'modifiedAt': modifiedAt.toIso8601String(),
-      };
+    'id': id,
+    'name': name,
+    if (emoji != null) 'emoji': emoji,
+    if (imagePath != null) 'imagePath': imagePath,
+    'startDate': startDate.toIso8601String(),
+    'trialDays': trialDays,
+    'billingCycleType': billingCycleType.name,
+    'billingInterval': billingInterval,
+    'amount': amount,
+    'currency': currency,
+    'accountId': accountId,
+    if (categoryId != null) 'categoryId': categoryId,
+    'note': note,
+    'isActive': isActive,
+    if (cancelledAt != null) 'cancelledAt': cancelledAt!.toIso8601String(),
+    if (cancelType != null) 'cancelType': cancelType!.name,
+    if (nextBillingDate != null)
+      'nextBillingDate': nextBillingDate!.toIso8601String(),
+    'modifiedAt': modifiedAt.toIso8601String(),
+  };
 
   /// Purpose: Create an instance from a JSON-compatible map.
   /// Inputs: `json`.
@@ -378,34 +472,35 @@ class Subscription {
   /// Side effects: None.
   /// Notes: Use this path when reading the persisted or transferred data format for this type.
   factory Subscription.fromJson(Map<String, dynamic> json) => Subscription(
-        id: json['id'] as String,
-        name: json['name'] as String,
-        emoji: json['emoji'] as String?,
-        imagePath: json['imagePath'] as String?,
-        startDate: DateTime.parse(json['startDate'] as String),
-        trialDays: json['trialDays'] as int? ?? 0,
-        billingCycleType: BillingCycleType.values.byName(
-            json['billingCycleType'] as String? ?? 'monthly'),
-        billingInterval: json['billingInterval'] as int? ?? 1,
-        amount: (json['amount'] as num).toDouble(),
-        currency: json['currency'] as String? ?? 'CNY',
-        accountId: json['accountId'] as String,
-        categoryId: json['categoryId'] as String?,
-        note: json['note'] as String? ?? '',
-        isActive: json['isActive'] as bool? ?? true,
-        cancelledAt: json['cancelledAt'] != null
-            ? DateTime.parse(json['cancelledAt'] as String)
-            : null,
-        cancelType: json['cancelType'] != null
-            ? CancelType.values.byName(json['cancelType'] as String)
-            : null,
-        nextBillingDate: json['nextBillingDate'] != null
-            ? DateTime.parse(json['nextBillingDate'] as String)
-            : null,
-        modifiedAt: json['modifiedAt'] != null
-            ? DateTime.parse(json['modifiedAt'] as String)
-            : DateTime.fromMillisecondsSinceEpoch(0),
-      );
+    id: json['id'] as String,
+    name: json['name'] as String,
+    emoji: json['emoji'] as String?,
+    imagePath: json['imagePath'] as String?,
+    startDate: DateTime.parse(json['startDate'] as String),
+    trialDays: json['trialDays'] as int? ?? 0,
+    billingCycleType: BillingCycleType.values.byName(
+      json['billingCycleType'] as String? ?? 'monthly',
+    ),
+    billingInterval: json['billingInterval'] as int? ?? 1,
+    amount: (json['amount'] as num).toDouble(),
+    currency: json['currency'] as String? ?? 'CNY',
+    accountId: json['accountId'] as String,
+    categoryId: json['categoryId'] as String?,
+    note: json['note'] as String? ?? '',
+    isActive: json['isActive'] as bool? ?? true,
+    cancelledAt: json['cancelledAt'] != null
+        ? DateTime.parse(json['cancelledAt'] as String)
+        : null,
+    cancelType: json['cancelType'] != null
+        ? CancelType.values.byName(json['cancelType'] as String)
+        : null,
+    nextBillingDate: json['nextBillingDate'] != null
+        ? DateTime.parse(json['nextBillingDate'] as String)
+        : null,
+    modifiedAt: json['modifiedAt'] != null
+        ? DateTime.parse(json['modifiedAt'] as String)
+        : DateTime.fromMillisecondsSinceEpoch(0),
+  );
 }
 
 // Lightweight icon reference (icon code point + font family)
@@ -426,9 +521,9 @@ class IconRef {
   /// Side effects: None.
   /// Notes: Keep the output aligned with the persisted file and sync format.
   Map<String, dynamic> toJson() => {
-        'codePoint': codePoint,
-        'fontFamily': fontFamily,
-      };
+    'codePoint': codePoint,
+    'fontFamily': fontFamily,
+  };
 
   /// Purpose: Create an instance from a JSON-compatible map.
   /// Inputs: `json`.
@@ -436,9 +531,9 @@ class IconRef {
   /// Side effects: None.
   /// Notes: Use this path when reading the persisted or transferred data format for this type.
   factory IconRef.fromJson(Map<String, dynamic> json) => IconRef(
-        codePoint: json['codePoint'] as int,
-        fontFamily: json['fontFamily'] as String? ?? 'MaterialIcons',
-      );
+    codePoint: json['codePoint'] as int,
+    fontFamily: json['fontFamily'] as String? ?? 'MaterialIcons',
+  );
 
   /// Purpose: Implement the to icon data behavior for this file.
   /// Inputs: None.
