@@ -29,8 +29,8 @@ Maintenance rules:
 - **Package id:** Dart package `my_day`; Android namespace/application id `com.yuanzhe.my_day`; MSIX identity `com.yuanzhe.myday`; macOS bundle id `com.yuanzhe.myDay`.
 - **Author / publisher:** `yuanzhe`.
 - **License:** GPL-3.0.
-- **Current version:** `0.7.2+29` in `pubspec.yaml`, `0.7.2.0` in `msix_config.msix_version`, and `0.7.2` in `installer.iss`.
-- **Latest tag at the time this guide was written:** `v0.7.2`.
+- **Current version:** `0.7.3+30` in `pubspec.yaml`, `0.7.3.0` in `msix_config.msix_version`, and `0.7.3` in `installer.iss`.
+- **Latest tag at the time this guide was written:** `v0.7.3`.
 - **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.41.6`.
 - **Primary platforms:** Windows x64/ARM64, Android APK/AAB, iOS sideload IPA, and macOS DMG. Linux project support exists for desktop runtime features but is not a primary release artifact.
 - **Repository:** Use the current environment's workspace root / repository path instead of hard-coding an absolute local path.
@@ -445,3 +445,4 @@ Use the narrowest relevant command set for verification. For sync/model/persiste
 - `v0.7.0`: Finance analysis custom date ranges can be re-edited without losing prior selections, at-expiry-cancelled subscriptions are excluded from upcoming-renewal reminders, finance home transactions are month-filtered with month selection, account transaction pages can add transactions with the account preselected, intimacy default history shows a limited recent list with a show-all sheet, and versions are unified to `0.7.0+27` / MSIX `0.7.0.0` / installer `0.7.0`.
 - `v0.7.1`: Finance analysis category rows for expenses, income, and uncategorized flows open transaction drill-down pages with add/edit/delete support, category add flows preselect the category/type automatically, and versions are unified to `0.7.1+28` / MSIX `0.7.1.0` / installer `0.7.1`.
 - `v0.7.2`: Subscription billing generation is idempotent per subscription billing day, newly generated subscription transactions use stable IDs, historical subscription import skips existing billing days, transaction account picker settings support name/custom sorting, type grouping, and More accounts from the account page, and versions are unified to `0.7.2+29` / MSIX `0.7.2.0` / installer `0.7.2`.
+- `v0.7.3`: Intimacy partner and toy record detail pages support adding, editing, and deleting related records, show average pleasure and duration summaries, include filtered pleasure/duration trend charts, and versions are unified to `0.7.3+30` / MSIX `0.7.3.0` / installer `0.7.3`.

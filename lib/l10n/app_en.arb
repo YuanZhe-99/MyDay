@@ -158,6 +158,8 @@
   "intimacyEditToy": "Edit Toy",
   "intimacyPleasure": "Pleasure",
   "intimacyDuration": "Duration",
+  "intimacyAvgPleasure": "Avg pleasure",
+  "intimacyAvgDuration": "Avg duration",
   "intimacyLocation": "Location (optional)",
   "intimacyNotes": "Notes (optional)",
   "intimacyOrgasm": "Had Orgasm?",

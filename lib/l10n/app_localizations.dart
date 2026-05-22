@@ -857,6 +857,18 @@ abstract class AppLocalizations {
   /// **'Duration'**
   String get intimacyDuration;
 
+  /// No description provided for @intimacyAvgPleasure.
+  ///
+  /// In en, this message translates to:
+  /// **'Avg pleasure'**
+  String get intimacyAvgPleasure;
+
+  /// No description provided for @intimacyAvgDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Avg duration'**
+  String get intimacyAvgDuration;
+
   /// No description provided for @intimacyLocation.
   ///
   /// In en, this message translates to:

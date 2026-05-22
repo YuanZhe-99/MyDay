@@ -152,6 +152,8 @@
   "intimacyEditToy": "トイを編集",
   "intimacyPleasure": "満足度",
   "intimacyDuration": "時間",
+  "intimacyAvgPleasure": "平均満足度",
+  "intimacyAvgDuration": "平均時間",
   "intimacyLocation": "場所（任意）",
   "intimacyNotes": "メモ（任意）",
   "intimacyOrgasm": "オーガズムあり？",

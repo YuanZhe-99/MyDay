@@ -11,9 +11,11 @@ class AddRecordDialog extends StatefulWidget {
   final List<Partner> partners;
   final List<Toy> toys;
   final List<Position> positions;
+  final String? initialPartnerId;
+  final List<String> initialToyIds;
 
   /// Purpose: Create a add record dialog instance.
-  /// Inputs: `positions`.
+  /// Inputs: `positions`, optional initial partner and toy selections.
   /// Returns: A new `AddRecordDialog` instance.
   /// Side effects: None.
   /// Notes: None.
@@ -24,6 +26,8 @@ class AddRecordDialog extends StatefulWidget {
     required this.partners,
     required this.toys,
     this.positions = const [],
+    this.initialPartnerId,
+    this.initialToyIds = const [],
   });
 
   /// Purpose: Create the mutable state object for this widget.
@@ -66,9 +70,11 @@ class _AddRecordDialogState extends State<AddRecordDialog> {
   void initState() {
     super.initState();
     final r = widget.record;
-    _isSolo = r?.isSolo ?? (widget.partners.isEmpty);
-    _selectedPartnerId = r?.partnerId;
-    _selectedToyIds = Set.of(r?.toyIds ?? []);
+    _isSolo =
+        r?.isSolo ??
+        (widget.initialPartnerId == null && widget.partners.isEmpty);
+    _selectedPartnerId = r?.partnerId ?? widget.initialPartnerId;
+    _selectedToyIds = Set.of(r?.toyIds ?? widget.initialToyIds);
     _selectedPositionIds = Set.of(r?.positionIds ?? []);
     _locationController = TextEditingController(text: r?.location ?? '');
     _notesController = TextEditingController(text: r?.notes ?? '');

@@ -407,6 +407,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get intimacyDuration => 'Duration';
 
   @override
+  String get intimacyAvgPleasure => 'Avg pleasure';
+
+  @override
+  String get intimacyAvgDuration => 'Avg duration';
+
+  @override
   String get intimacyLocation => 'Location (optional)';
 
   @override

@@ -1400,10 +1400,15 @@ class _IntimacyPageState extends State<IntimacyPage> {
           partners: _partners,
           records: _records,
           toys: _toys,
+          positions: _positions,
           sortModes: _partnerSortModes,
           customOrders: _partnerCustomOrders,
           onChanged: (updated) {
             setState(() => _partners = updated);
+            _saveData();
+          },
+          onRecordsChanged: (updated) {
+            setState(() => _records = updated);
             _saveData();
           },
           onSortChanged: (modes, orders) {
@@ -1434,10 +1439,15 @@ class _IntimacyPageState extends State<IntimacyPage> {
           toys: _toys,
           records: _records,
           partners: _partners,
+          positions: _positions,
           sortModes: _toySortModes,
           customOrders: _toyCustomOrders,
           onChanged: (updated) {
             setState(() => _toys = updated);
+            _saveData();
+          },
+          onRecordsChanged: (updated) {
+            setState(() => _records = updated);
             _saveData();
           },
           onSortChanged: (modes, orders) {
@@ -1870,9 +1880,11 @@ class _PartnerManagementPage extends StatefulWidget {
   final List<Partner> partners;
   final List<IntimacyRecord> records;
   final List<Toy> toys;
+  final List<Position> positions;
   final Map<String, String> sortModes;
   final Map<String, List<String>> customOrders;
   final ValueChanged<List<Partner>> onChanged;
+  final ValueChanged<List<IntimacyRecord>> onRecordsChanged;
   final void Function(
     Map<String, String> sortModes,
     Map<String, List<String>> customOrders,
@@ -1888,9 +1900,11 @@ class _PartnerManagementPage extends StatefulWidget {
     required this.partners,
     required this.records,
     required this.toys,
+    required this.positions,
     required this.sortModes,
     required this.customOrders,
     required this.onChanged,
+    required this.onRecordsChanged,
     required this.onSortChanged,
   });
 
@@ -1905,6 +1919,7 @@ class _PartnerManagementPage extends StatefulWidget {
 
 class _PartnerManagementPageState extends State<_PartnerManagementPage> {
   late List<Partner> _partners;
+  late List<IntimacyRecord> _records;
   late Map<String, String> _sortModes;
   late Map<String, List<String>> _customOrders;
   final Map<String, bool> _reordering = {};
@@ -1944,6 +1959,7 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
   void initState() {
     super.initState();
     _partners = List.of(widget.partners);
+    _records = List.of(widget.records);
     _sortModes = Map.of(widget.sortModes);
     _customOrders = widget.customOrders.map(
       (key, value) => MapEntry(key, List<String>.of(value)),
@@ -1998,7 +2014,7 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
   /// Side effects: May update UI state or trigger user-facing flows.
   /// Notes: Internal helper used within this file only.
   int _partnerRecordCount(Partner partner) =>
-      widget.records.where((r) => r.partnerId == partner.id).length;
+      _records.where((r) => r.partnerId == partner.id).length;
 
   /// Purpose: Provide the internal normalized order helper for this file.
   /// Inputs: `statusKey`.
@@ -2200,15 +2216,20 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
   /// Side effects: May update UI state or trigger user-facing flows.
   /// Notes: Internal helper used within this file only.
   void _showPartnerRecords(Partner p) {
-    final related = widget.records.where((r) => r.partnerId == p.id).toList();
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => _FilteredRecordsPage(
           title: p.name,
-          records: related,
+          records: _records,
+          partnerId: p.id,
           partners: _partners,
           toys: widget.toys,
+          positions: widget.positions,
+          onRecordsChanged: (updated) {
+            setState(() => _records = updated);
+            widget.onRecordsChanged(_records);
+          },
         ),
       ),
     );
@@ -2842,9 +2863,11 @@ class _ToyManagementPage extends StatefulWidget {
   final List<Toy> toys;
   final List<IntimacyRecord> records;
   final List<Partner> partners;
+  final List<Position> positions;
   final Map<String, String> sortModes;
   final Map<String, List<String>> customOrders;
   final ValueChanged<List<Toy>> onChanged;
+  final ValueChanged<List<IntimacyRecord>> onRecordsChanged;
   final void Function(
     Map<String, String> sortModes,
     Map<String, List<String>> customOrders,
@@ -2860,9 +2883,11 @@ class _ToyManagementPage extends StatefulWidget {
     required this.toys,
     required this.records,
     required this.partners,
+    required this.positions,
     required this.sortModes,
     required this.customOrders,
     required this.onChanged,
+    required this.onRecordsChanged,
     required this.onSortChanged,
   });
 
@@ -2877,6 +2902,7 @@ class _ToyManagementPage extends StatefulWidget {
 
 class _ToyManagementPageState extends State<_ToyManagementPage> {
   late List<Toy> _toys;
+  late List<IntimacyRecord> _records;
   late Map<String, String> _sortModes;
   late Map<String, List<String>> _customOrders;
   final Map<String, bool> _reordering = {};
@@ -2916,6 +2942,7 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
   void initState() {
     super.initState();
     _toys = List.of(widget.toys);
+    _records = List.of(widget.records);
     _sortModes = Map.of(widget.sortModes);
     _customOrders = widget.customOrders.map(
       (key, value) => MapEntry(key, List<String>.of(value)),
@@ -2970,7 +2997,7 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
   /// Side effects: May update UI state or trigger user-facing flows.
   /// Notes: Internal helper used within this file only.
   int _toyRecordCount(Toy toy) =>
-      widget.records.where((r) => r.toyIds.contains(toy.id)).length;
+      _records.where((r) => r.toyIds.contains(toy.id)).length;
 
   /// Purpose: Provide the internal normalized order helper for this file.
   /// Inputs: `statusKey`.
@@ -3169,17 +3196,20 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
   /// Side effects: May update UI state or trigger user-facing flows.
   /// Notes: Internal helper used within this file only.
   void _showToyRecords(Toy t) {
-    final related = widget.records
-        .where((r) => r.toyIds.contains(t.id))
-        .toList();
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => _FilteredRecordsPage(
           title: t.name,
-          records: related,
+          records: _records,
+          toyId: t.id,
           partners: widget.partners,
           toys: _toys,
+          positions: widget.positions,
+          onRecordsChanged: (updated) {
+            setState(() => _records = updated);
+            widget.onRecordsChanged(_records);
+          },
         ),
       ),
     );
@@ -4192,23 +4222,381 @@ class _PositionManagementPageState extends State<_PositionManagementPage> {
 }
 
 // ─── Filtered Records (by partner or toy) ───────────────────────────
-class _FilteredRecordsPage extends StatelessWidget {
+class _FilteredRecordsPage extends StatefulWidget {
   final String title;
   final List<IntimacyRecord> records;
+  final String? partnerId;
+  final String? toyId;
   final List<Partner> partners;
   final List<Toy> toys;
+  final List<Position> positions;
+  final ValueChanged<List<IntimacyRecord>> onRecordsChanged;
 
   /// Purpose: Create a filtered records page instance.
-  /// Inputs: None.
+  /// Inputs: The title, records, optional partner/toy filter, and update callback.
   /// Returns: A new `_FilteredRecordsPage` instance.
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
   const _FilteredRecordsPage({
     required this.title,
     required this.records,
+    this.partnerId,
+    this.toyId,
     required this.partners,
     required this.toys,
+    required this.positions,
+    required this.onRecordsChanged,
   });
+
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new `State` instance.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
+  @override
+  State<_FilteredRecordsPage> createState() => _FilteredRecordsPageState();
+}
+
+class _FilteredRecordsPageState extends State<_FilteredRecordsPage> {
+  late List<IntimacyRecord> _records;
+
+  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Registers listeners and may kick off asynchronous loading.
+  /// Notes: Copies incoming records so detail edits can update the visible page immediately.
+  @override
+  void initState() {
+    super.initState();
+    _records = List.of(widget.records);
+  }
+
+  /// Purpose: React to parent widget changes after this state has been created.
+  /// Inputs: `oldWidget`.
+  /// Returns: None.
+  /// Side effects: May refresh the local record copy.
+  /// Notes: Keeps this page aligned if the parent supplies a replaced records list.
+  @override
+  void didUpdateWidget(covariant _FilteredRecordsPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(widget.records, oldWidget.records)) {
+      _records = List.of(widget.records);
+    }
+  }
+
+  /// Purpose: Return records matching this detail page's partner or toy filter.
+  /// Inputs: None.
+  /// Returns: `List<IntimacyRecord>`.
+  /// Side effects: None.
+  /// Notes: Records are shown newest first, matching account transaction details.
+  List<IntimacyRecord> get _filteredRecords {
+    final filtered = _records.where((record) {
+      if (widget.partnerId != null) return record.partnerId == widget.partnerId;
+      if (widget.toyId != null) return record.toyIds.contains(widget.toyId);
+      return true;
+    }).toList();
+    filtered.sort((a, b) => b.datetime.compareTo(a.datetime));
+    return filtered;
+  }
+
+  /// Purpose: Return partners available in the add/edit record dialog.
+  /// Inputs: Optional partner id that must be included.
+  /// Returns: `List<Partner>`.
+  /// Side effects: None.
+  /// Notes: Active partners are shown, plus the current detail or edited record partner if inactive.
+  List<Partner> _dialogPartners({String? includePartnerId}) {
+    final includeIds = {?widget.partnerId, ?includePartnerId};
+    final seen = <String>{};
+    return [
+      for (final partner in widget.partners)
+        if ((partner.endDate == null || includeIds.contains(partner.id)) &&
+            seen.add(partner.id))
+          partner,
+    ];
+  }
+
+  /// Purpose: Return toys available in the add/edit record dialog.
+  /// Inputs: Optional toy ids that must be included.
+  /// Returns: `List<Toy>`.
+  /// Side effects: None.
+  /// Notes: Active toys are shown, plus the current detail or edited record toys if retired.
+  List<Toy> _dialogToys({Iterable<String> includeToyIds = const []}) {
+    final includeIds = {?widget.toyId, ...includeToyIds};
+    final seen = <String>{};
+    return [
+      for (final toy in widget.toys)
+        if ((toy.retiredDate == null || includeIds.contains(toy.id)) &&
+            seen.add(toy.id))
+          toy,
+    ];
+  }
+
+  /// Purpose: Notify the parent that the full record list changed.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Triggers parent persistence through the provided callback.
+  /// Notes: Sends a defensive copy so the parent owns its list instance.
+  void _notifyRecordsChanged() => widget.onRecordsChanged(List.of(_records));
+
+  /// Purpose: Add a new record from this filtered detail page.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: Opens a dialog, updates local records, and notifies the parent.
+  /// Notes: The current partner or toy is preselected for faster entry.
+  Future<void> _addRecord() async {
+    final record = await showDialog<IntimacyRecord>(
+      context: context,
+      builder: (_) => AddRecordDialog(
+        partners: _dialogPartners(includePartnerId: widget.partnerId),
+        toys: _dialogToys(
+          includeToyIds: widget.toyId != null ? [widget.toyId!] : const [],
+        ),
+        positions: widget.positions,
+        initialPartnerId: widget.partnerId,
+        initialToyIds: widget.toyId != null ? [widget.toyId!] : const [],
+      ),
+    );
+    if (record == null) return;
+    setState(() => _records.insert(0, record));
+    _notifyRecordsChanged();
+  }
+
+  /// Purpose: Edit an existing record from this filtered detail page.
+  /// Inputs: `record`.
+  /// Returns: `Future<void>`.
+  /// Side effects: Opens a dialog, updates local records, and notifies the parent.
+  /// Notes: If the edit removes the current partner or toy, the record disappears from this filter.
+  Future<void> _editRecord(IntimacyRecord record) async {
+    final updated = await showDialog<IntimacyRecord>(
+      context: context,
+      builder: (_) => AddRecordDialog(
+        record: record,
+        partners: _dialogPartners(includePartnerId: record.partnerId),
+        toys: _dialogToys(includeToyIds: record.toyIds),
+        positions: widget.positions,
+      ),
+    );
+    if (updated == null) return;
+    setState(() {
+      final index = _records.indexWhere((r) => r.id == updated.id);
+      if (index != -1) _records[index] = updated;
+    });
+    _notifyRecordsChanged();
+  }
+
+  /// Purpose: Delete an existing record from this filtered detail page.
+  /// Inputs: `record`.
+  /// Returns: None.
+  /// Side effects: Updates local records and notifies the parent.
+  /// Notes: The Dismissible confirmation is handled by the caller before this runs.
+  void _deleteRecord(IntimacyRecord record) {
+    setState(() => _records.removeWhere((r) => r.id == record.id));
+    _notifyRecordsChanged();
+  }
+
+  /// Purpose: Format a duration for summary metrics.
+  /// Inputs: `duration`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Keeps short values compact and longer values readable.
+  String _formatDuration(Duration duration) {
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes.remainder(60);
+    if (hours > 0) return '${hours}h ${minutes}m';
+    return '${duration.inMinutes}m';
+  }
+
+  /// Purpose: Build the top summary card for this filtered record set.
+  /// Inputs: `theme`, `records`.
+  /// Returns: `Widget`.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Empty record sets show placeholders instead of averages.
+  Widget _buildSummaryCard(ThemeData theme, List<IntimacyRecord> records) {
+    final l10n = AppLocalizations.of(context)!;
+    final avgPleasure = records.isEmpty
+        ? null
+        : records.fold<int>(0, (sum, record) => sum + record.pleasureLevel) /
+              records.length;
+    final avgDuration = records.isEmpty
+        ? null
+        : Duration(
+            seconds:
+                (records.fold<int>(
+                          0,
+                          (sum, record) => sum + record.duration.inSeconds,
+                        ) /
+                        records.length)
+                    .round(),
+          );
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                l10n.intimacyRecordCount(records.length),
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildSummaryMetric(
+                      theme,
+                      l10n.intimacyAvgPleasure,
+                      avgPleasure == null
+                          ? '-'
+                          : '${avgPleasure.toStringAsFixed(1)}/5',
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _buildSummaryMetric(
+                      theme,
+                      l10n.intimacyAvgDuration,
+                      avgDuration == null ? '-' : _formatDuration(avgDuration),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Purpose: Build one summary metric inside the detail summary card.
+  /// Inputs: `theme`, `label`, `value`.
+  /// Returns: `Widget`.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Internal helper used within this file only.
+  Widget _buildSummaryMetric(ThemeData theme, String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Purpose: Build a dismissible record row for this filtered detail page.
+  /// Inputs: `record`.
+  /// Returns: `Widget`.
+  /// Side effects: May trigger edit or delete flows.
+  /// Notes: Mirrors the main intimacy record list behavior.
+  Widget _buildRecordDismissible(IntimacyRecord record) {
+    final theme = Theme.of(context);
+    return Dismissible(
+      key: ValueKey(record.id),
+      direction: DismissDirection.horizontal,
+      background: Container(
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.only(left: 20),
+        color: theme.colorScheme.primary,
+        child: Icon(Icons.edit_outlined, color: theme.colorScheme.onPrimary),
+      ),
+      secondaryBackground: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        color: theme.colorScheme.error,
+        child: Icon(Icons.delete_outline, color: theme.colorScheme.onError),
+      ),
+      confirmDismiss: (direction) async {
+        if (direction == DismissDirection.startToEnd) {
+          _editRecord(record);
+          return false;
+        }
+        return confirmDelete(
+          context,
+          AppLocalizations.of(context)!.commonThisRecord,
+        );
+      },
+      onDismissed: (_) => _deleteRecord(record),
+      child: _RecordTile(
+        record: record,
+        partner: record.partnerId != null
+            ? widget.partners
+                  .where((partner) => partner.id == record.partnerId)
+                  .firstOrNull
+            : null,
+        toys: record.toyIds
+            .map((id) => widget.toys.where((toy) => toy.id == id).firstOrNull)
+            .whereType<Toy>()
+            .toList(),
+        positions: record.positionIds
+            .map(
+              (id) => widget.positions
+                  .where((position) => position.id == id)
+                  .firstOrNull,
+            )
+            .whereType<Position>()
+            .toList(),
+      ),
+    );
+  }
+
+  /// Purpose: Build grouped record list widgets for this filtered detail page.
+  /// Inputs: `theme`, `records`.
+  /// Returns: `List<Widget>`.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Uses the same ISO-week grouping style as the main intimacy history.
+  List<Widget> _buildRecordListWidgets(
+    ThemeData theme,
+    List<IntimacyRecord> records,
+  ) {
+    final groups = groupByIsoWeek(
+      records,
+      (record) => record.datetime,
+      descending: true,
+    );
+    return [
+      for (final group in groups) ...[
+        _buildWeekHeader(theme, group),
+        ...group.items.map(_buildRecordDismissible),
+      ],
+    ];
+  }
+
+  /// Purpose: Build an ISO-week header for a filtered record group.
+  /// Inputs: `theme`, `group`.
+  /// Returns: `Widget`.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Internal helper used within this file only.
+  Widget _buildWeekHeader(ThemeData theme, WeekGroup<IntimacyRecord> group) {
+    final l10n = AppLocalizations.of(context)!;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
+      child: Text(
+        l10n.commonWeekGroup(
+          group.year,
+          group.week,
+          formatMonthDayRange(group.start, group.end),
+        ),
+        style: theme.textTheme.labelLarge?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
 
   /// Purpose: Build the current widget subtree for the active UI state.
   /// Inputs: `context`.
@@ -4217,32 +4605,644 @@ class _FilteredRecordsPage extends StatelessWidget {
   /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
+    final records = _filteredRecords;
     return Scaffold(
-      appBar: AppBar(title: Text(title), centerTitle: true),
-      body: records.isEmpty
-          ? Center(child: Text(l10n.intimacyNoRecords))
-          : ListView.builder(
-              itemCount: records.length,
-              itemBuilder: (context, index) {
-                final record = records[index];
-                final partner = record.partnerId != null
-                    ? partners
-                          .where((p) => p.id == record.partnerId)
-                          .firstOrNull
-                    : null;
-                final recordToys = record.toyIds
-                    .map((id) => toys.where((t) => t.id == id).firstOrNull)
-                    .whereType<Toy>()
-                    .toList();
-                return _RecordTile(
-                  record: record,
-                  partner: partner,
-                  toys: recordToys,
+      appBar: AppBar(title: Text(widget.title), centerTitle: true),
+      body: ListView(
+        children: [
+          _buildSummaryCard(theme, records),
+          if (records.length >= 2)
+            _FilteredRecordsTrendSection(records: records),
+          const Divider(height: 1),
+          if (records.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 48),
+              child: Center(
+                child: Text(
+                  l10n.intimacyNoRecords,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            )
+          else
+            ..._buildRecordListWidgets(theme, records),
+          const SizedBox(height: 80),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _addRecord,
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+}
+
+class _FilteredRecordsTrendSection extends StatefulWidget {
+  final List<IntimacyRecord> records;
+
+  /// Purpose: Create a filtered record trend section instance.
+  /// Inputs: `records`.
+  /// Returns: A new `_FilteredRecordsTrendSection` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  const _FilteredRecordsTrendSection({required this.records});
+
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new `State` instance.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
+  @override
+  State<_FilteredRecordsTrendSection> createState() =>
+      _FilteredRecordsTrendSectionState();
+}
+
+class _FilteredRecordsTrendSectionState
+    extends State<_FilteredRecordsTrendSection> {
+  _IntimacyChartRange _chartRange = _IntimacyChartRange.threeMonths;
+
+  /// Purpose: Return chart records for the current selected range.
+  /// Inputs: None.
+  /// Returns: `List<IntimacyRecord>`.
+  /// Side effects: None.
+  /// Notes: The source records are already filtered to the current partner or toy.
+  List<IntimacyRecord> get _chartRecords {
+    final now = DateTime.now();
+    final cutoff = switch (_chartRange) {
+      _IntimacyChartRange.oneWeek => now.subtract(const Duration(days: 7)),
+      _IntimacyChartRange.oneMonth => DateTime(
+        now.year,
+        now.month - 1,
+        now.day,
+      ),
+      _IntimacyChartRange.threeMonths => DateTime(
+        now.year,
+        now.month - 3,
+        now.day,
+      ),
+      _IntimacyChartRange.sixMonths => DateTime(
+        now.year,
+        now.month - 6,
+        now.day,
+      ),
+      _IntimacyChartRange.oneYear => DateTime(now.year - 1, now.month, now.day),
+      _IntimacyChartRange.all => DateTime(2000),
+    };
+    return widget.records.where((r) => r.datetime.isAfter(cutoff)).toList()
+      ..sort((a, b) => a.datetime.compareTo(b.datetime));
+  }
+
+  /// Purpose: Build EWMA smoothed pleasure spots for a filtered chart.
+  /// Inputs: `allData`, `visibleFrom`, `halfLifeDays`.
+  /// Returns: `List<FlSpot>`.
+  /// Side effects: None.
+  /// Notes: Uses earlier records for warm-up but only emits visible-range spots.
+  List<FlSpot> _buildEwmaPleasureSpots(
+    List<IntimacyRecord> allData,
+    DateTime visibleFrom, {
+    double halfLifeDays = 7,
+  }) {
+    final validData = allData
+        .where((record) => record.pleasureLevel > 0)
+        .toList();
+    if (validData.isEmpty) return [];
+    final tau = halfLifeDays * 86400 * 1000;
+    final spots = <FlSpot>[];
+    double ewma = validData.first.pleasureLevel.toDouble();
+    DateTime prevTime = validData.first.datetime;
+
+    for (final record in validData) {
+      final dtMs = record.datetime
+          .difference(prevTime)
+          .inMilliseconds
+          .toDouble();
+      final alpha = 1.0 - math.exp(-dtMs / tau);
+      ewma = alpha * record.pleasureLevel + (1 - alpha) * ewma;
+      if (!record.datetime.isBefore(visibleFrom)) {
+        spots.add(
+          FlSpot(record.datetime.millisecondsSinceEpoch.toDouble(), ewma),
+        );
+      }
+      prevTime = record.datetime;
+    }
+    return spots;
+  }
+
+  /// Purpose: Build EWMA smoothed duration spots for a filtered chart.
+  /// Inputs: `allData`, `visibleFrom`, `halfLifeDays`.
+  /// Returns: `List<FlSpot>`.
+  /// Side effects: None.
+  /// Notes: Durations are charted in minutes.
+  List<FlSpot> _buildEwmaDurationSpots(
+    List<IntimacyRecord> allData,
+    DateTime visibleFrom, {
+    double halfLifeDays = 7,
+  }) {
+    final validData = allData
+        .where((record) => record.duration.inSeconds > 0)
+        .toList();
+    if (validData.isEmpty) return [];
+    final tau = halfLifeDays * 86400 * 1000;
+    final spots = <FlSpot>[];
+    double ewma = validData.first.duration.inSeconds / 60.0;
+    DateTime prevTime = validData.first.datetime;
+
+    for (final record in validData) {
+      final dtMs = record.datetime
+          .difference(prevTime)
+          .inMilliseconds
+          .toDouble();
+      final alpha = 1.0 - math.exp(-dtMs / tau);
+      final durationMin = record.duration.inSeconds / 60.0;
+      ewma = alpha * durationMin + (1 - alpha) * ewma;
+      if (!record.datetime.isBefore(visibleFrom)) {
+        spots.add(
+          FlSpot(record.datetime.millisecondsSinceEpoch.toDouble(), ewma),
+        );
+      }
+      prevTime = record.datetime;
+    }
+    return spots;
+  }
+
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final labels = {
+      _IntimacyChartRange.oneWeek: '1W',
+      _IntimacyChartRange.oneMonth: '1M',
+      _IntimacyChartRange.threeMonths: '3M',
+      _IntimacyChartRange.sixMonths: '6M',
+      _IntimacyChartRange.oneYear: '1Y',
+      _IntimacyChartRange.all: l10n.weightAll,
+    };
+    final data = _chartRecords;
+    final allSorted = List<IntimacyRecord>.from(widget.records)
+      ..sort((a, b) => a.datetime.compareTo(b.datetime));
+    final cutoff = data.isNotEmpty ? data.first.datetime : DateTime.now();
+    final pleasureData = data
+        .where((record) => record.pleasureLevel > 0)
+        .toList();
+    final durationData = data
+        .where((record) => record.duration.inSeconds > 0)
+        .toList();
+    final rawPleasureSpots = pleasureData
+        .map(
+          (record) => FlSpot(
+            record.datetime.millisecondsSinceEpoch.toDouble(),
+            record.pleasureLevel.toDouble(),
+          ),
+        )
+        .toList();
+    final pleasureSpots = _buildEwmaPleasureSpots(allSorted, cutoff);
+    final rawDurationSpots = durationData
+        .map(
+          (record) => FlSpot(
+            record.datetime.millisecondsSinceEpoch.toDouble(),
+            record.duration.inSeconds / 60.0,
+          ),
+        )
+        .toList();
+    final durationSpots = _buildEwmaDurationSpots(allSorted, cutoff);
+    final hasDurationData =
+        rawDurationSpots.length >= 2 || durationSpots.length >= 2;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                l10n.intimacyTrend,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const Spacer(),
+              ...labels.entries.map(
+                (entry) => Padding(
+                  padding: const EdgeInsets.only(left: 4),
+                  child: ChoiceChip(
+                    label: Text(
+                      entry.value,
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                    selected: _chartRange == entry.key,
+                    onSelected: (_) => setState(() => _chartRange = entry.key),
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    labelPadding: const EdgeInsets.symmetric(horizontal: 6),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              _legendItem(
+                theme.colorScheme.primary,
+                theme.textTheme.labelSmall,
+                l10n.intimacyPleasure,
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 180,
+            child: data.length < 2
+                ? Center(
+                    child: Text(
+                      l10n.intimacyChartNoData,
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  )
+                : _buildPleasureChart(
+                    theme,
+                    rawPleasureSpots,
+                    pleasureSpots,
+                    data,
+                  ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _legendItem(
+                theme.colorScheme.secondary,
+                theme.textTheme.labelSmall,
+                l10n.intimacyDuration,
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 150,
+            child: !hasDurationData
+                ? Center(
+                    child: Text(
+                      l10n.intimacyChartNoData,
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  )
+                : _buildDurationChart(
+                    theme,
+                    rawDurationSpots,
+                    durationSpots,
+                    durationData,
+                  ),
+          ),
+          const Divider(height: 16),
+        ],
+      ),
+    );
+  }
+
+  /// Purpose: Build the filtered pleasure trend chart.
+  /// Inputs: `theme`, `rawPleasureSpots`, `pleasureSpots`, `data`.
+  /// Returns: `Widget`.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Raw values are solid and EWMA values are dashed, matching the main chart style.
+  Widget _buildPleasureChart(
+    ThemeData theme,
+    List<FlSpot> rawPleasureSpots,
+    List<FlSpot> pleasureSpots,
+    List<IntimacyRecord> data,
+  ) {
+    return LineChart(
+      LineChartData(
+        gridData: FlGridData(
+          show: true,
+          horizontalInterval: 1,
+          getDrawingHorizontalLine: (value) => FlLine(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+            strokeWidth: 0.5,
+          ),
+          getDrawingVerticalLine: (value) => FlLine(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
+            strokeWidth: 0.5,
+            dashArray: [4, 4],
+          ),
+        ),
+        titlesData: FlTitlesData(
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 28,
+              interval: _chartDateInterval(data),
+              minIncluded: false,
+              maxIncluded: false,
+              getTitlesWidget: (value, meta) {
+                final date = DateTime.fromMillisecondsSinceEpoch(value.toInt());
+                final spanDays = data.last.datetime
+                    .difference(data.first.datetime)
+                    .inDays;
+                final fmt = spanDays > 730
+                    ? DateFormat('yyyy')
+                    : spanDays > 365
+                    ? DateFormat('M/yy')
+                    : DateFormat('M/d');
+                return SideTitleWidget(
+                  meta: meta,
+                  child: Text(
+                    fmt.format(date),
+                    style: theme.textTheme.labelSmall?.copyWith(fontSize: 9),
+                  ),
                 );
               },
             ),
+          ),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 24,
+              interval: 1,
+              getTitlesWidget: (value, meta) {
+                if (value != value.roundToDouble()) {
+                  return const SizedBox.shrink();
+                }
+                return SideTitleWidget(
+                  meta: meta,
+                  child: Text(
+                    '${value.toInt()}',
+                    style: theme.textTheme.labelSmall?.copyWith(fontSize: 10),
+                  ),
+                );
+              },
+            ),
+          ),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+        ),
+        borderData: FlBorderData(
+          show: true,
+          border: Border.all(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+          ),
+        ),
+        minY: 0,
+        maxY: 5.5,
+        lineBarsData: [
+          LineChartBarData(
+            spots: rawPleasureSpots,
+            isCurved: false,
+            color: theme.colorScheme.primary.withValues(alpha: 0.45),
+            barWidth: 1.5,
+            dotData: const FlDotData(show: false),
+          ),
+          LineChartBarData(
+            spots: pleasureSpots,
+            isCurved: true,
+            curveSmoothness: 0.3,
+            color: theme.colorScheme.primary,
+            barWidth: 2.5,
+            dashArray: [6, 4],
+            dotData: const FlDotData(show: false),
+            belowBarData: BarAreaData(
+              show: true,
+              color: theme.colorScheme.primary.withValues(alpha: 0.08),
+            ),
+          ),
+        ],
+        lineTouchData: LineTouchData(
+          touchTooltipData: LineTouchTooltipData(
+            getTooltipItems: (spots) {
+              return spots.asMap().entries.map((entry) {
+                if (entry.key == 0) return null;
+                final spot = entry.value;
+                final date = DateTime.fromMillisecondsSinceEpoch(
+                  spot.x.toInt(),
+                );
+                return LineTooltipItem(
+                  '${AppLocalizations.of(context)!.intimacyPleasure}: ${spot.y.toStringAsFixed(1)}\n${DateFormat('MMM d').format(date)}',
+                  TextStyle(
+                    color: theme.colorScheme.onPrimary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                );
+              }).toList();
+            },
+          ),
+        ),
+      ),
     );
+  }
+
+  /// Purpose: Build the filtered duration trend chart.
+  /// Inputs: `theme`, `rawDurationSpots`, `durationSpots`, `data`.
+  /// Returns: `Widget`.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Durations are shown in minutes with raw and EWMA series.
+  Widget _buildDurationChart(
+    ThemeData theme,
+    List<FlSpot> rawDurationSpots,
+    List<FlSpot> durationSpots,
+    List<IntimacyRecord> data,
+  ) {
+    final allDurationSpots = [...durationSpots, ...rawDurationSpots];
+    final maxMinutes = allDurationSpots.isEmpty
+        ? 30.0
+        : allDurationSpots.map((spot) => spot.y).reduce(math.max);
+
+    /// Purpose: Return a rounded-up duration ceiling for chart labels.
+    /// Inputs: `value`.
+    /// Returns: `double`.
+    /// Side effects: None.
+    /// Notes: Internal helper used within this function only.
+    double minuteCeil(double value) {
+      const steps = [5.0, 10.0, 15.0, 20.0, 30.0, 45.0, 60.0, 90.0, 120.0];
+      for (final step in steps) {
+        if (step >= value) return step;
+      }
+      return (value / 30).ceil() * 30.0;
+    }
+
+    final yMax = minuteCeil(math.max(maxMinutes * 1.15, 5.0));
+
+    return LineChart(
+      LineChartData(
+        gridData: FlGridData(
+          show: true,
+          getDrawingHorizontalLine: (value) => FlLine(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+            strokeWidth: 0.5,
+          ),
+          getDrawingVerticalLine: (value) => FlLine(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
+            strokeWidth: 0.5,
+            dashArray: [4, 4],
+          ),
+        ),
+        titlesData: FlTitlesData(
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 28,
+              interval: _chartDateInterval(data),
+              minIncluded: false,
+              maxIncluded: false,
+              getTitlesWidget: (value, meta) {
+                final date = DateTime.fromMillisecondsSinceEpoch(value.toInt());
+                final spanDays = data.last.datetime
+                    .difference(data.first.datetime)
+                    .inDays;
+                final fmt = spanDays > 730
+                    ? DateFormat('yyyy')
+                    : spanDays > 365
+                    ? DateFormat('M/yy')
+                    : DateFormat('M/d');
+                return SideTitleWidget(
+                  meta: meta,
+                  child: Text(
+                    fmt.format(date),
+                    style: theme.textTheme.labelSmall?.copyWith(fontSize: 9),
+                  ),
+                );
+              },
+            ),
+          ),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 32,
+              getTitlesWidget: (value, meta) {
+                if (value != value.roundToDouble()) {
+                  return const SizedBox.shrink();
+                }
+                return SideTitleWidget(
+                  meta: meta,
+                  child: Text(
+                    '${value.toInt()}m',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      fontSize: 9,
+                      color: theme.colorScheme.secondary,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+        ),
+        borderData: FlBorderData(
+          show: true,
+          border: Border.all(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+          ),
+        ),
+        minY: 0,
+        maxY: yMax,
+        lineBarsData: [
+          LineChartBarData(
+            spots: rawDurationSpots,
+            isCurved: false,
+            color: theme.colorScheme.secondary.withValues(alpha: 0.45),
+            barWidth: 1.5,
+            dotData: const FlDotData(show: false),
+          ),
+          LineChartBarData(
+            spots: durationSpots,
+            isCurved: true,
+            curveSmoothness: 0.3,
+            color: theme.colorScheme.secondary,
+            barWidth: 2,
+            dashArray: [6, 4],
+            dotData: const FlDotData(show: false),
+            belowBarData: BarAreaData(
+              show: true,
+              color: theme.colorScheme.secondary.withValues(alpha: 0.08),
+            ),
+          ),
+        ],
+        lineTouchData: LineTouchData(
+          touchTooltipData: LineTouchTooltipData(
+            getTooltipItems: (spots) {
+              return spots.asMap().entries.map((entry) {
+                if (entry.key == 0) return null;
+                final spot = entry.value;
+                final date = DateTime.fromMillisecondsSinceEpoch(
+                  spot.x.toInt(),
+                );
+                return LineTooltipItem(
+                  '${AppLocalizations.of(context)!.intimacyDuration}: ${spot.y.toStringAsFixed(1)}min\n${DateFormat('MMM d').format(date)}',
+                  TextStyle(
+                    color: theme.colorScheme.onPrimary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                );
+              }).toList();
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Purpose: Build a legend item for the filtered charts.
+  /// Inputs: `color`, `labelStyle`, `label`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Matches the main intimacy chart legend style.
+  Widget _legendItem(Color color, TextStyle? labelStyle, String label) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(width: 10, height: 2, color: color),
+        const SizedBox(width: 2),
+        Container(width: 4, height: 2, color: color.withValues(alpha: 0)),
+        Container(width: 6, height: 2, color: color.withValues(alpha: 0.7)),
+        const SizedBox(width: 4),
+        Text(label, style: labelStyle),
+      ],
+    );
+  }
+
+  /// Purpose: Return the chart date-axis interval for filtered charts.
+  /// Inputs: `data`.
+  /// Returns: `double`.
+  /// Side effects: None.
+  /// Notes: Uses the same interval thresholds as the main intimacy charts.
+  double _chartDateInterval(List<IntimacyRecord> data) {
+    if (data.length < 2) return 1;
+    final spanMs = data.last.datetime
+        .difference(data.first.datetime)
+        .inMilliseconds
+        .toDouble();
+    final spanDays = spanMs / (86400 * 1000);
+    const day = 86400 * 1000.0;
+    if (spanDays <= 7) return 2 * day;
+    if (spanDays <= 30) return 7 * day;
+    if (spanDays <= 90) return 21 * day;
+    if (spanDays <= 180) return 45 * day;
+    if (spanDays <= 365) return 90 * day;
+    if (spanDays <= 730) return 180 * day;
+    return 365 * day;
   }
 }
 

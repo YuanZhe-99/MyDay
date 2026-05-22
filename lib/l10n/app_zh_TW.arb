@@ -150,6 +150,8 @@
   "intimacyEditToy": "編輯玩具",
   "intimacyPleasure": "愉悅度",
   "intimacyDuration": "持續時間",
+  "intimacyAvgPleasure": "平均愉悅度",
+  "intimacyAvgDuration": "平均時長",
   "intimacyLocation": "地點（可選）",
   "intimacyNotes": "備註（可選）",
   "intimacyOrgasm": "是否高潮？",
