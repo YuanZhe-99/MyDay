@@ -406,6 +406,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get intimacyDuration => '持续时间';
 
   @override
+  String get intimacyThrustCount => '抽插次数';
+
+  @override
+  String get intimacyThrustCountShort => '抽插';
+
+  @override
+  String get intimacyThrustCountHint => '可选。估算选 x100，精确记录选 x1。';
+
+  @override
   String get intimacyAvgPleasure => '平均愉悦度';
 
   @override
@@ -2074,6 +2083,15 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get intimacyDuration => '持續時間';
+
+  @override
+  String get intimacyThrustCount => '抽插次數';
+
+  @override
+  String get intimacyThrustCountShort => '抽插';
+
+  @override
+  String get intimacyThrustCountHint => '可選。估算選 x100，精確記錄選 x1。';
 
   @override
   String get intimacyAvgPleasure => '平均愉悅度';

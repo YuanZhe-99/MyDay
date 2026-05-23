@@ -48,6 +48,8 @@ class _AddRecordDialogState extends State<AddRecordDialog> {
   late final TextEditingController _notesController;
   late final TextEditingController _hoursController;
   late final TextEditingController _minutesController;
+  late final TextEditingController _thrustCountController;
+  late int _thrustCountUnit;
   late int _pleasureLevel;
   late DateTime _datetime;
   late bool _hadOrgasm;
@@ -80,6 +82,10 @@ class _AddRecordDialogState extends State<AddRecordDialog> {
     _notesController = TextEditingController(text: r?.notes ?? '');
     _pleasureLevel = r?.pleasureLevel ?? 3;
     var initMinutes = r?.duration.inMinutes ?? 15;
+    _thrustCountController = TextEditingController(
+      text: r?.thrustCount?.toString() ?? '',
+    );
+    _thrustCountUnit = r?.thrustCountUnit ?? 100;
     _datetime = r?.datetime ?? DateTime.now();
     _hadOrgasm = r?.hadOrgasm ?? false;
     _watchedPorn = r?.watchedPorn ?? false;
@@ -110,6 +116,7 @@ class _AddRecordDialogState extends State<AddRecordDialog> {
     _notesController.dispose();
     _hoursController.dispose();
     _minutesController.dispose();
+    _thrustCountController.dispose();
     super.dispose();
   }
 
@@ -324,6 +331,35 @@ class _AddRecordDialogState extends State<AddRecordDialog> {
                   ),
                 ],
               ),
+              const SizedBox(height: 12),
+
+              // Estimated thrust count, recorded in the chosen multiplier.
+              TextField(
+                controller: _thrustCountController,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                decoration: InputDecoration(
+                  labelText: l10n.intimacyThrustCount,
+                  helperText: l10n.intimacyThrustCountHint,
+                  suffixIcon: Padding(
+                    padding: const EdgeInsetsDirectional.only(end: 8),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<int>(
+                        value: _thrustCountUnit,
+                        items: const [
+                          DropdownMenuItem(value: 100, child: Text('x100')),
+                          DropdownMenuItem(value: 1, child: Text('x1')),
+                        ],
+                        onChanged: (value) {
+                          if (value != null) {
+                            setState(() => _thrustCountUnit = value);
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ),
 
               // Orgasm toggle
               SwitchListTile(
@@ -435,6 +471,8 @@ class _AddRecordDialogState extends State<AddRecordDialog> {
     _notesController.text.trim(),
     _hoursController.text.trim(),
     _minutesController.text.trim(),
+    _thrustCountController.text.trim(),
+    _thrustCountUnit,
     _pleasureLevel,
     _datetime,
     _hadOrgasm,
@@ -450,6 +488,10 @@ class _AddRecordDialogState extends State<AddRecordDialog> {
     final hours = int.tryParse(_hoursController.text) ?? 0;
     final minutes = int.tryParse(_minutesController.text) ?? 0;
     final totalMinutes = (hours * 60 + minutes).clamp(0, 5999);
+    final thrustCount = int.tryParse(_thrustCountController.text.trim());
+    final normalizedThrustCount = thrustCount != null && thrustCount > 0
+        ? thrustCount
+        : null;
     final record = IntimacyRecord(
       id: widget.record?.id,
       type: _isSolo ? 'Solo' : 'Regular',
@@ -457,6 +499,8 @@ class _AddRecordDialogState extends State<AddRecordDialog> {
       isSolo: _isSolo,
       pleasureLevel: _pleasureLevel,
       duration: Duration(minutes: totalMinutes),
+      thrustCount: normalizedThrustCount,
+      thrustCountUnit: _thrustCountUnit,
       datetime: _datetime,
       toyIds: _selectedToyIds.toList(),
       positionIds: _selectedPositionIds.toList(),

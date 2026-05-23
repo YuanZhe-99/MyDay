@@ -184,6 +184,8 @@ class IntimacyRecord {
   final List<String> positionIds;
   final int pleasureLevel; // 1-5
   final Duration duration;
+  final int? thrustCount;
+  final int thrustCountUnit;
   final DateTime datetime;
   final String? notes;
   final bool hadOrgasm;
@@ -191,7 +193,7 @@ class IntimacyRecord {
   final DateTime modifiedAt;
 
   /// Purpose: Create a intimacy record instance.
-  /// Inputs: `isSolo`.
+  /// Inputs: `isSolo`, optional thrust count value and unit.
   /// Returns: A new `IntimacyRecord` instance.
   /// Side effects: None.
   /// Notes: None.
@@ -205,12 +207,15 @@ class IntimacyRecord {
     this.positionIds = const [],
     required this.pleasureLevel,
     required this.duration,
+    this.thrustCount,
+    int? thrustCountUnit,
     DateTime? datetime,
     this.notes,
     this.hadOrgasm = false,
     this.watchedPorn = false,
     DateTime? modifiedAt,
   }) : id = id ?? const Uuid().v4(),
+       thrustCountUnit = thrustCountUnit == 1 ? 1 : 100,
        datetime = datetime ?? DateTime.now(),
        modifiedAt = modifiedAt ?? DateTime.now();
 
@@ -229,6 +234,8 @@ class IntimacyRecord {
     if (positionIds.isNotEmpty) 'positionIds': positionIds,
     'pleasureLevel': pleasureLevel,
     'duration': duration.inSeconds,
+    if (thrustCount != null) 'thrustCount': thrustCount,
+    if (thrustCount != null) 'thrustCountUnit': thrustCountUnit,
     'datetime': datetime.toIso8601String(),
     if (notes != null) 'notes': notes,
     'hadOrgasm': hadOrgasm,
@@ -262,6 +269,8 @@ class IntimacyRecord {
           const [],
       pleasureLevel: json['pleasureLevel'] as int,
       duration: Duration(seconds: json['duration'] as int),
+      thrustCount: (json['thrustCount'] as num?)?.toInt(),
+      thrustCountUnit: json['thrustCountUnit'] == 1 ? 1 : 100,
       datetime: DateTime.parse(json['datetime'] as String),
       notes: json['notes'] as String?,
       hadOrgasm: json['hadOrgasm'] as bool? ?? false,
@@ -277,6 +286,7 @@ class IntimacyRecord {
 class TimerHistoryEntry {
   final DateTime start;
   final Duration duration;
+
   /// Purpose: Create a timer history entry instance.
   /// Inputs: `duration`.
   /// Returns: A new `TimerHistoryEntry` instance.

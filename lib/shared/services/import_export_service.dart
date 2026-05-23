@@ -119,7 +119,7 @@ class ImportExportService {
 
       final buf = StringBuffer();
       buf.writeln(
-        'Date,Type,IsSolo,Partner,Toys,PleasureLevel,Duration(min),HadOrgasm,WatchedPorn,Location,Notes',
+        'Date,Type,IsSolo,Partner,Toys,PleasureLevel,Duration(min),ThrustCount,ThrustUnit,HadOrgasm,WatchedPorn,Location,Notes',
       );
       for (final r in data.records) {
         final date = DateFormat('yyyy-MM-dd HH:mm').format(r.datetime);
@@ -138,11 +138,13 @@ class ImportExportService {
             .where((n) => n.isNotEmpty)
             .join(';');
         final durMin = (r.duration.inSeconds / 60.0).toStringAsFixed(1);
+        final thrustCount = r.thrustCount?.toString() ?? '';
+        final thrustUnit = r.thrustCount != null ? 'x${r.thrustCountUnit}' : '';
         final location = (r.location ?? '').replaceAll('"', '""');
         final notes = (r.notes ?? '').replaceAll('"', '""');
         final partnerEscaped = partner.replaceAll('"', '""');
         buf.writeln(
-          '$date,${r.type},${r.isSolo},"$partnerEscaped","$toyNames",${r.pleasureLevel},$durMin,${r.hadOrgasm},${r.watchedPorn},"$location","$notes"',
+          '$date,${r.type},${r.isSolo},"$partnerEscaped","$toyNames",${r.pleasureLevel},$durMin,$thrustCount,$thrustUnit,${r.hadOrgasm},${r.watchedPorn},"$location","$notes"',
         );
       }
 
@@ -401,7 +403,7 @@ class ImportExportService {
 
   /// Import intimacy records from CSV and merge into existing data.
   /// CSV columns: Date,Type,IsSolo,Partner,Toys,PleasureLevel,Duration(min),
-  ///              HadOrgasm,WatchedPorn,Location,Notes
+  ///              ThrustCount,ThrustUnit,HadOrgasm,WatchedPorn,Location,Notes
   /// Returns (success, importedCount) tuple.
   /// Purpose: Implement the import intimacy csv behavior for this file.
   /// Inputs: `filePath`.
@@ -428,6 +430,7 @@ class ImportExportService {
       for (var i = 1; i < lines.length; i++) {
         final fields = _parseCsvLine(lines[i]);
         if (fields.length < 11) continue;
+        final hasThrustColumns = fields.length >= 13;
 
         final dateStr = fields[0].trim();
         final type = fields[1].trim();
@@ -436,10 +439,14 @@ class ImportExportService {
         final toysStr = fields[4].trim();
         final plStr = fields[5].trim();
         final durStr = fields[6].trim();
-        final orgasmStr = fields[7].trim().toLowerCase();
-        final pornStr = fields[8].trim().toLowerCase();
-        final location = fields[9].trim();
-        final notes = fields[10].trim();
+        final thrustCountStr = hasThrustColumns ? fields[7].trim() : '';
+        final thrustUnitStr = hasThrustColumns
+            ? fields[8].trim().toLowerCase()
+            : '';
+        final orgasmStr = fields[hasThrustColumns ? 9 : 7].trim().toLowerCase();
+        final pornStr = fields[hasThrustColumns ? 10 : 8].trim().toLowerCase();
+        final location = fields[hasThrustColumns ? 11 : 9].trim();
+        final notes = fields[hasThrustColumns ? 12 : 10].trim();
 
         // Parse date
         DateTime datetime;
@@ -458,6 +465,13 @@ class ImportExportService {
         if (pleasureLevel < 0 || pleasureLevel > 5) continue;
 
         final durationMin = double.tryParse(durStr) ?? 0;
+        final parsedThrustCount = int.tryParse(thrustCountStr);
+        final thrustCount = parsedThrustCount != null && parsedThrustCount > 0
+            ? parsedThrustCount
+            : null;
+        final thrustCountUnit = thrustUnitStr == 'x1' || thrustUnitStr == '1'
+            ? 1
+            : 100;
 
         final hadOrgasm = orgasmStr == 'true' || orgasmStr == '1';
         final watchedPorn = pornStr == 'true' || pornStr == '1';
@@ -499,6 +513,8 @@ class ImportExportService {
           toyIds: toyIds,
           pleasureLevel: pleasureLevel,
           duration: Duration(seconds: (durationMin * 60).round()),
+          thrustCount: thrustCount,
+          thrustCountUnit: thrustCountUnit,
           datetime: datetime,
           hadOrgasm: hadOrgasm,
           watchedPorn: watchedPorn,

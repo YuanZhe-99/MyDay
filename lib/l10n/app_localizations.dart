@@ -857,6 +857,24 @@ abstract class AppLocalizations {
   /// **'Duration'**
   String get intimacyDuration;
 
+  /// No description provided for @intimacyThrustCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Thrust count'**
+  String get intimacyThrustCount;
+
+  /// No description provided for @intimacyThrustCountShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Thrust'**
+  String get intimacyThrustCountShort;
+
+  /// No description provided for @intimacyThrustCountHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional. Choose x100 for estimates or x1 for exact counts.'**
+  String get intimacyThrustCountHint;
+
   /// No description provided for @intimacyAvgPleasure.
   ///
   /// In en, this message translates to:

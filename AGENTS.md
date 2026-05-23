@@ -29,8 +29,8 @@ Maintenance rules:
 - **Package id:** Dart package `my_day`; Android namespace/application id `com.yuanzhe.my_day`; MSIX identity `com.yuanzhe.myday`; macOS bundle id `com.yuanzhe.myDay`.
 - **Author / publisher:** `yuanzhe`.
 - **License:** GPL-3.0.
-- **Current version:** `0.7.3+30` in `pubspec.yaml`, `0.7.3.0` in `msix_config.msix_version`, and `0.7.3` in `installer.iss`.
-- **Latest tag at the time this guide was written:** `v0.7.3`.
+- **Current version:** `0.7.4+31` in `pubspec.yaml`, `0.7.4.0` in `msix_config.msix_version`, and `0.7.4` in `installer.iss`.
+- **Latest tag at the time this guide was written:** `v0.7.4`.
 - **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.41.6`.
 - **Primary platforms:** Windows x64/ARM64, Android APK/AAB, iOS sideload IPA, and macOS DMG. Linux project support exists for desktop runtime features but is not a primary release artifact.
 - **Repository:** Use the current environment's workspace root / repository path instead of hard-coding an absolute local path.
@@ -208,11 +208,11 @@ Main model: `lib/features/intimacy/models/intimacy_record.dart`.
 - `Partner`: optional emoji/image, relationship start/end dates, `modifiedAt`.
 - `Toy`: optional emoji/image, purchase/retired dates, purchase link, price, `modifiedAt`.
 - `Position`: name, optional emoji, `modifiedAt`.
-- `IntimacyRecord`: solo/partnered type, location, partner id, toy ids, position ids, pleasure level, duration, datetime, notes, orgasm/porn flags, `modifiedAt`.
+- `IntimacyRecord`: solo/partnered type, location, partner id, toy ids, position ids, pleasure level, duration, optional thrust count with x100/x1 unit, datetime, notes, orgasm/porn flags, `modifiedAt`.
 - `TimerHistoryEntry`: timer start and duration, with legacy `end` migration.
 - `IntimacyData`: partners, toys, positions, records, timer history, timer retention setting, partner/toy sort modes/custom orders, and `settingsModifiedAt`.
 
-The UI supports record list sorting/filtering, a limited default recent-history list with a show-all sheet, partner/toy/position management, default position import, partner break-up state, toy retirement state, exclusion of inactive partners/toys from new record pickers, EWMA/raw trend charts for pleasure/frequency/duration, weekly grouping, and a stopwatch timer whose history is stored in `intimacy_data.json`.
+The UI supports record list sorting/filtering, a limited default recent-history list with a show-all sheet, partner/toy/position management, default position import, partner break-up state, toy retirement state, exclusion of inactive partners/toys from new record pickers, EWMA/raw trend charts for pleasure/frequency and duration/thrust-count with dual axes, weekly grouping, and a stopwatch timer whose history is stored in `intimacy_data.json`.
 
 ### Weight
 
@@ -292,7 +292,7 @@ Auto-sync silently ignores failures; users can run manual sync from the WebDAV p
 
 - `BackupService`: manual backups, daily auto-backup, retention, module-selective restore, JSON bundle with base64 images.
 - `ImportExportService`: ZIP export/import for all five data JSON files plus images; path traversal protection on ZIP import; CSV export/import for finance, intimacy, and weight.
-- CSV import merges into existing data. Finance requires matching account name and can create categories; intimacy can create partners/toys; weight accepts `M/d/yyyy` and `yyyy-MM-dd` style dates.
+- CSV import merges into existing data. Finance requires matching account name and can create categories; intimacy can create partners/toys and optional thrust count/unit columns; weight accepts `M/d/yyyy` and `yyyy-MM-dd` style dates.
 - `ImageService`: picks local images, downloads logos/photos, stores UUID filenames under `images/`, resolves relative paths, and rejects tiny placeholder downloads.
 
 ### Local HTTP API
@@ -446,3 +446,4 @@ Use the narrowest relevant command set for verification. For sync/model/persiste
 - `v0.7.1`: Finance analysis category rows for expenses, income, and uncategorized flows open transaction drill-down pages with add/edit/delete support, category add flows preselect the category/type automatically, and versions are unified to `0.7.1+28` / MSIX `0.7.1.0` / installer `0.7.1`.
 - `v0.7.2`: Subscription billing generation is idempotent per subscription billing day, newly generated subscription transactions use stable IDs, historical subscription import skips existing billing days, transaction account picker settings support name/custom sorting, type grouping, and More accounts from the account page, and versions are unified to `0.7.2+29` / MSIX `0.7.2.0` / installer `0.7.2`.
 - `v0.7.3`: Intimacy partner and toy record detail pages support adding, editing, and deleting related records, show average pleasure and duration summaries, include filtered pleasure/duration trend charts, and versions are unified to `0.7.3+30` / MSIX `0.7.3.0` / installer `0.7.3`.
+- `v0.7.4`: Intimacy records support optional thrust counts with x100/x1 units, duration charts on the main and partner/toy trend pages add a separate thrust-count axis, intimacy CSV import/export includes the new fields, and versions are unified to `0.7.4+31` / MSIX `0.7.4.0` / installer `0.7.4`.

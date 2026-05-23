@@ -475,6 +475,8 @@ const _intimacyRecordSchema = JsonPreservationSchema(
     'positionIds',
     'pleasureLevel',
     'duration',
+    'thrustCount',
+    'thrustCountUnit',
     'datetime',
     'notes',
     'hadOrgasm',

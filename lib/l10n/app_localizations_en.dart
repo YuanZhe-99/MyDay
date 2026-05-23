@@ -407,6 +407,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get intimacyDuration => 'Duration';
 
   @override
+  String get intimacyThrustCount => 'Thrust count';
+
+  @override
+  String get intimacyThrustCountShort => 'Thrust';
+
+  @override
+  String get intimacyThrustCountHint =>
+      'Optional. Choose x100 for estimates or x1 for exact counts.';
+
+  @override
   String get intimacyAvgPleasure => 'Avg pleasure';
 
   @override

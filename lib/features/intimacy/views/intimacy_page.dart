@@ -29,6 +29,51 @@ enum _IntimacyChartRange {
   all,
 }
 
+/// Purpose: Return a record's estimated thrust count in actual repetitions.
+/// Inputs: `record`.
+/// Returns: `double?`.
+/// Side effects: None.
+/// Notes: The stored value is multiplied by the user-selected x1 or x100 unit.
+double? _recordThrustCount(IntimacyRecord record) {
+  final count = record.thrustCount;
+  if (count == null || count <= 0) return null;
+  return count * record.thrustCountUnit.toDouble();
+}
+
+/// Purpose: Build EWMA smoothed thrust-count spots for a trend chart.
+/// Inputs: `allData`, `visibleFrom`, `halfLifeDays`.
+/// Returns: `List<FlSpot>`.
+/// Side effects: None.
+/// Notes: Uses earlier records for warm-up but only emits visible-range spots.
+List<FlSpot> _buildEwmaThrustCountSpots(
+  List<IntimacyRecord> allData,
+  DateTime visibleFrom, {
+  double halfLifeDays = 7,
+}) {
+  final validData = allData
+      .where((record) => _recordThrustCount(record) != null)
+      .toList();
+  if (validData.isEmpty) return [];
+  final tau = halfLifeDays * 86400 * 1000;
+  final spots = <FlSpot>[];
+  double ewma = _recordThrustCount(validData.first)!;
+  DateTime prevTime = validData.first.datetime;
+
+  for (final record in validData) {
+    final dtMs = record.datetime.difference(prevTime).inMilliseconds.toDouble();
+    final alpha = 1.0 - math.exp(-dtMs / tau);
+    final count = _recordThrustCount(record)!;
+    ewma = alpha * count + (1 - alpha) * ewma;
+    if (!record.datetime.isBefore(visibleFrom)) {
+      spots.add(
+        FlSpot(record.datetime.millisecondsSinceEpoch.toDouble(), ewma),
+      );
+    }
+    prevTime = record.datetime;
+  }
+  return spots;
+}
+
 class IntimacyPage extends StatefulWidget {
   /// Purpose: Create an intimacy page instance.
   /// Inputs: None.
@@ -804,10 +849,14 @@ class _IntimacyPageState extends State<IntimacyPage> {
     final durationData = data
         .where((record) => record.duration.inSeconds > 0)
         .toList();
+    final thrustData = data
+        .where((record) => _recordThrustCount(record) != null)
+        .toList();
     final cutoff = data.isNotEmpty ? data.first.datetime : DateTime.now();
     final pleasureSpots = _buildEwmaPleasureSpots(allSorted, cutoff);
     final frequencySpots = _buildEwmaFrequencySpots(allSorted, cutoff);
     final durationSpots = _buildEwmaDurationSpots(allSorted, cutoff);
+    final thrustSpots = _buildEwmaThrustCountSpots(allSorted, cutoff);
     // Raw (actual) spots — no EWMA smoothing
     final rawPleasureSpots = pleasureData
         .map(
@@ -826,8 +875,19 @@ class _IntimacyPageState extends State<IntimacyPage> {
           ),
         )
         .toList();
-    final hasDurationData =
-        rawDurationSpots.length >= 2 || durationSpots.length >= 2;
+    final rawThrustSpots = thrustData
+        .map(
+          (r) => FlSpot(
+            r.datetime.millisecondsSinceEpoch.toDouble(),
+            _recordThrustCount(r)!,
+          ),
+        )
+        .toList();
+    final hasDurationOrThrustData =
+        rawDurationSpots.length >= 2 ||
+        durationSpots.length >= 2 ||
+        rawThrustSpots.length >= 2 ||
+        thrustSpots.length >= 2;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -905,12 +965,18 @@ class _IntimacyPageState extends State<IntimacyPage> {
                 theme.textTheme.labelSmall,
                 l10n.intimacyDuration,
               ),
+              const SizedBox(width: 16),
+              _legendItem(
+                theme.colorScheme.tertiary,
+                theme.textTheme.labelSmall,
+                l10n.intimacyThrustCount,
+              ),
             ],
           ),
           const SizedBox(height: 8),
           SizedBox(
             height: 150,
-            child: !hasDurationData
+            child: !hasDurationOrThrustData
                 ? Center(
                     child: Text(
                       l10n.intimacyChartNoData,
@@ -923,7 +989,9 @@ class _IntimacyPageState extends State<IntimacyPage> {
                     theme,
                     rawDurationSpots,
                     durationSpots,
-                    durationData,
+                    rawThrustSpots,
+                    thrustSpots,
+                    data,
                   ),
           ),
           const Divider(height: 16),
@@ -1119,7 +1187,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
                 final s = entry.value;
                 final date = DateTime.fromMillisecondsSinceEpoch(s.x.toInt());
                 // Only show tooltip for EWMA series (indices 1 and 3); skip raw (0 and 2)
-                if (entry.key == 1) {
+                if (s.barIndex == 1) {
                   return LineTooltipItem(
                     '${AppLocalizations.of(context)!.intimacyPleasure}: ${s.y.toStringAsFixed(1)}\n${DateFormat('MMM d').format(date)}',
                     TextStyle(
@@ -1128,7 +1196,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
                       fontWeight: FontWeight.w600,
                     ),
                   );
-                } else if (entry.key == 3) {
+                } else if (s.barIndex == 3) {
                   final actualFreq = s.y / 5 * freqMax;
                   return LineTooltipItem(
                     '${AppLocalizations.of(context)!.intimacyFrequency}: ${actualFreq.toStringAsFixed(1)}/wk',
@@ -1145,7 +1213,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
   }
 
   /// Purpose: Provide the internal build duration chart helper for this file.
-  /// Inputs: `theme`, `rawDurationSpots`, `durationSpots`, `data`.
+  /// Inputs: `theme`, duration spots, thrust-count spots, and `data`.
   /// Returns: `Widget`.
   /// Side effects: May update UI state or trigger user-facing flows.
   /// Notes: Internal helper used within this file only.
@@ -1153,12 +1221,18 @@ class _IntimacyPageState extends State<IntimacyPage> {
     ThemeData theme,
     List<FlSpot> rawDurationSpots,
     List<FlSpot> durationSpots,
+    List<FlSpot> rawThrustSpots,
+    List<FlSpot> thrustSpots,
     List<IntimacyRecord> data,
   ) {
     final allDurSpots = [...durationSpots, ...rawDurationSpots];
     final maxMin = allDurSpots.isEmpty
         ? 30.0
         : allDurSpots.map((s) => s.y).reduce(math.max);
+    final allThrustSpots = [...thrustSpots, ...rawThrustSpots];
+    final maxThrust = allThrustSpots.isEmpty
+        ? 100.0
+        : allThrustSpots.map((s) => s.y).reduce(math.max);
     // Snap to a clean ceiling (minutes)
     /// Purpose: Return a rounded-up duration ceiling for chart labels.
     /// Inputs: `v`.
@@ -1173,7 +1247,21 @@ class _IntimacyPageState extends State<IntimacyPage> {
       return (v / 30).ceil() * 30.0;
     }
 
+    /// Purpose: Return a rounded-up thrust-count ceiling for chart labels.
+    /// Inputs: `v`.
+    /// Returns: `double`.
+    /// Side effects: None.
+    /// Notes: Internal helper used within this function only.
+    double thrustCeil(double v) {
+      const steps = [100.0, 200.0, 300.0, 500.0, 800.0, 1000.0, 1500.0];
+      for (final s in steps) {
+        if (s >= v) return s;
+      }
+      return (v / 500).ceil() * 500.0;
+    }
+
     final yMax = minCeil(math.max(maxMin * 1.15, 5.0));
+    final thrustMax = thrustCeil(math.max(maxThrust * 1.1, 100.0));
 
     return LineChart(
       LineChartData(
@@ -1238,8 +1326,25 @@ class _IntimacyPageState extends State<IntimacyPage> {
               },
             ),
           ),
-          rightTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
+          rightTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: allThrustSpots.isNotEmpty,
+              reservedSize: 38,
+              interval: math.max(yMax / 4, 1),
+              getTitlesWidget: (value, meta) {
+                final actual = value / yMax * thrustMax;
+                return SideTitleWidget(
+                  meta: meta,
+                  child: Text(
+                    actual.toStringAsFixed(0),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      fontSize: 9,
+                      color: theme.colorScheme.tertiary,
+                    ),
+                  ),
+                );
+              },
+            ),
           ),
           topTitles: const AxisTitles(
             sideTitles: SideTitles(showTitles: false),
@@ -1276,22 +1381,59 @@ class _IntimacyPageState extends State<IntimacyPage> {
               color: theme.colorScheme.secondary.withValues(alpha: 0.08),
             ),
           ),
+          // Raw thrust count — thin solid tertiary (scaled to duration axis)
+          LineChartBarData(
+            spots: rawThrustSpots
+                .map(
+                  (s) =>
+                      FlSpot(s.x, (s.y.clamp(0, thrustMax) / thrustMax) * yMax),
+                )
+                .toList(),
+            isCurved: false,
+            color: theme.colorScheme.tertiary.withValues(alpha: 0.45),
+            barWidth: 1.5,
+            dotData: const FlDotData(show: false),
+          ),
+          // Thrust count EWMA — dashed tertiary (scaled to duration axis)
+          LineChartBarData(
+            spots: thrustSpots
+                .map((s) => FlSpot(s.x, (s.y / thrustMax) * yMax))
+                .toList(),
+            isCurved: true,
+            curveSmoothness: 0.3,
+            color: theme.colorScheme.tertiary,
+            barWidth: 2,
+            dashArray: [6, 4],
+            dotData: const FlDotData(show: false),
+          ),
         ],
         lineTouchData: LineTouchData(
           touchTooltipData: LineTouchTooltipData(
             getTooltipItems: (spots) {
               return spots.asMap().entries.map((entry) {
-                if (entry.key == 0) return null; // skip raw series
                 final s = entry.value;
                 final date = DateTime.fromMillisecondsSinceEpoch(s.x.toInt());
-                return LineTooltipItem(
-                  '${AppLocalizations.of(context)!.intimacyDuration}: ${s.y.toStringAsFixed(1)}min\n${DateFormat('MMM d').format(date)}',
-                  TextStyle(
-                    color: theme.colorScheme.onPrimary,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                );
+                if (s.barIndex == 1) {
+                  return LineTooltipItem(
+                    '${AppLocalizations.of(context)!.intimacyDuration}: ${s.y.toStringAsFixed(1)}min\n${DateFormat('MMM d').format(date)}',
+                    TextStyle(
+                      color: theme.colorScheme.onPrimary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  );
+                } else if (s.barIndex == 3) {
+                  final actual = s.y / yMax * thrustMax;
+                  return LineTooltipItem(
+                    '${AppLocalizations.of(context)!.intimacyThrustCount}: ${actual.toStringAsFixed(0)}\n${DateFormat('MMM d').format(date)}',
+                    TextStyle(
+                      color: theme.colorScheme.onPrimary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  );
+                }
+                return null;
               }).toList();
             },
           ),
@@ -1686,8 +1828,12 @@ class _RecordTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final dateStr = DateFormat('MMM d, HH:mm').format(record.datetime);
     final durationStr = '${record.duration.inMinutes}min';
+    final thrustStr = record.thrustCount != null && record.thrustCount! > 0
+        ? '${l10n.intimacyThrustCountShort}: ${record.thrustCount} x${record.thrustCountUnit}'
+        : null;
     final stars = '★' * record.pleasureLevel + '☆' * (5 - record.pleasureLevel);
 
     final partnerLabel = partner != null
@@ -1730,9 +1876,7 @@ class _RecordTile extends StatelessWidget {
                   ),
                 const SizedBox(width: 8),
                 Text(
-                  record.isSolo
-                      ? AppLocalizations.of(context)!.intimacySolo
-                      : partnerLabel,
+                  record.isSolo ? l10n.intimacySolo : partnerLabel,
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
@@ -1747,7 +1891,10 @@ class _RecordTile extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 6),
-            Row(
+            Wrap(
+              spacing: 12,
+              runSpacing: 4,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 Text(
                   stars,
@@ -1756,14 +1903,31 @@ class _RecordTile extends StatelessWidget {
                     fontSize: 14,
                   ),
                 ),
-                const SizedBox(width: 12),
-                Icon(
-                  Icons.timer_outlined,
-                  size: 14,
-                  color: theme.colorScheme.onSurfaceVariant,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.timer_outlined,
+                      size: 14,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(durationStr, style: theme.textTheme.bodySmall),
+                  ],
                 ),
-                const SizedBox(width: 4),
-                Text(durationStr, style: theme.textTheme.bodySmall),
+                if (thrustStr != null)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.swap_horiz,
+                        size: 14,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(thrustStr, style: theme.textTheme.bodySmall),
+                    ],
+                  ),
                 if (record.hadOrgasm)
                   Icon(
                     Icons.favorite,
@@ -1771,23 +1935,25 @@ class _RecordTile extends StatelessWidget {
                     color: theme.colorScheme.tertiary,
                   ),
                 if (record.watchedPorn) ...[
-                  const SizedBox(width: 4),
                   Icon(
                     Icons.ondemand_video,
                     size: 14,
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ],
-                if (record.location != null) ...[
-                  const SizedBox(width: 12),
-                  Icon(
-                    Icons.location_on_outlined,
-                    size: 14,
-                    color: theme.colorScheme.onSurfaceVariant,
+                if (record.location != null)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.location_on_outlined,
+                        size: 14,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(record.location!, style: theme.textTheme.bodySmall),
+                    ],
                   ),
-                  const SizedBox(width: 4),
-                  Text(record.location!, style: theme.textTheme.bodySmall),
-                ],
               ],
             ),
             if (toys.isNotEmpty) ...[
@@ -4796,6 +4962,9 @@ class _FilteredRecordsTrendSectionState
     final durationData = data
         .where((record) => record.duration.inSeconds > 0)
         .toList();
+    final thrustData = data
+        .where((record) => _recordThrustCount(record) != null)
+        .toList();
     final rawPleasureSpots = pleasureData
         .map(
           (record) => FlSpot(
@@ -4814,8 +4983,20 @@ class _FilteredRecordsTrendSectionState
         )
         .toList();
     final durationSpots = _buildEwmaDurationSpots(allSorted, cutoff);
-    final hasDurationData =
-        rawDurationSpots.length >= 2 || durationSpots.length >= 2;
+    final rawThrustSpots = thrustData
+        .map(
+          (record) => FlSpot(
+            record.datetime.millisecondsSinceEpoch.toDouble(),
+            _recordThrustCount(record)!,
+          ),
+        )
+        .toList();
+    final thrustSpots = _buildEwmaThrustCountSpots(allSorted, cutoff);
+    final hasDurationOrThrustData =
+        rawDurationSpots.length >= 2 ||
+        durationSpots.length >= 2 ||
+        rawThrustSpots.length >= 2 ||
+        thrustSpots.length >= 2;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -4886,12 +5067,18 @@ class _FilteredRecordsTrendSectionState
                 theme.textTheme.labelSmall,
                 l10n.intimacyDuration,
               ),
+              const SizedBox(width: 16),
+              _legendItem(
+                theme.colorScheme.tertiary,
+                theme.textTheme.labelSmall,
+                l10n.intimacyThrustCount,
+              ),
             ],
           ),
           const SizedBox(height: 8),
           SizedBox(
             height: 150,
-            child: !hasDurationData
+            child: !hasDurationOrThrustData
                 ? Center(
                     child: Text(
                       l10n.intimacyChartNoData,
@@ -4904,7 +5091,9 @@ class _FilteredRecordsTrendSectionState
                     theme,
                     rawDurationSpots,
                     durationSpots,
-                    durationData,
+                    rawThrustSpots,
+                    thrustSpots,
+                    data,
                   ),
           ),
           const Divider(height: 16),
@@ -5049,7 +5238,7 @@ class _FilteredRecordsTrendSectionState
   }
 
   /// Purpose: Build the filtered duration trend chart.
-  /// Inputs: `theme`, `rawDurationSpots`, `durationSpots`, `data`.
+  /// Inputs: `theme`, duration spots, thrust-count spots, and `data`.
   /// Returns: `Widget`.
   /// Side effects: Creates UI widgets from the current state.
   /// Notes: Durations are shown in minutes with raw and EWMA series.
@@ -5057,12 +5246,18 @@ class _FilteredRecordsTrendSectionState
     ThemeData theme,
     List<FlSpot> rawDurationSpots,
     List<FlSpot> durationSpots,
+    List<FlSpot> rawThrustSpots,
+    List<FlSpot> thrustSpots,
     List<IntimacyRecord> data,
   ) {
     final allDurationSpots = [...durationSpots, ...rawDurationSpots];
     final maxMinutes = allDurationSpots.isEmpty
         ? 30.0
         : allDurationSpots.map((spot) => spot.y).reduce(math.max);
+    final allThrustSpots = [...thrustSpots, ...rawThrustSpots];
+    final maxThrust = allThrustSpots.isEmpty
+        ? 100.0
+        : allThrustSpots.map((spot) => spot.y).reduce(math.max);
 
     /// Purpose: Return a rounded-up duration ceiling for chart labels.
     /// Inputs: `value`.
@@ -5077,7 +5272,21 @@ class _FilteredRecordsTrendSectionState
       return (value / 30).ceil() * 30.0;
     }
 
+    /// Purpose: Return a rounded-up thrust-count ceiling for chart labels.
+    /// Inputs: `value`.
+    /// Returns: `double`.
+    /// Side effects: None.
+    /// Notes: Internal helper used within this function only.
+    double thrustCeil(double value) {
+      const steps = [100.0, 200.0, 300.0, 500.0, 800.0, 1000.0, 1500.0];
+      for (final step in steps) {
+        if (step >= value) return step;
+      }
+      return (value / 500).ceil() * 500.0;
+    }
+
     final yMax = minuteCeil(math.max(maxMinutes * 1.15, 5.0));
+    final thrustMax = thrustCeil(math.max(maxThrust * 1.1, 100.0));
 
     return LineChart(
       LineChartData(
@@ -5142,8 +5351,25 @@ class _FilteredRecordsTrendSectionState
               },
             ),
           ),
-          rightTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
+          rightTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: allThrustSpots.isNotEmpty,
+              reservedSize: 38,
+              interval: math.max(yMax / 4, 1),
+              getTitlesWidget: (value, meta) {
+                final actual = value / yMax * thrustMax;
+                return SideTitleWidget(
+                  meta: meta,
+                  child: Text(
+                    actual.toStringAsFixed(0),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      fontSize: 9,
+                      color: theme.colorScheme.tertiary,
+                    ),
+                  ),
+                );
+              },
+            ),
           ),
           topTitles: const AxisTitles(
             sideTitles: SideTitles(showTitles: false),
@@ -5178,24 +5404,61 @@ class _FilteredRecordsTrendSectionState
               color: theme.colorScheme.secondary.withValues(alpha: 0.08),
             ),
           ),
+          LineChartBarData(
+            spots: rawThrustSpots
+                .map(
+                  (spot) => FlSpot(
+                    spot.x,
+                    (spot.y.clamp(0, thrustMax) / thrustMax) * yMax,
+                  ),
+                )
+                .toList(),
+            isCurved: false,
+            color: theme.colorScheme.tertiary.withValues(alpha: 0.45),
+            barWidth: 1.5,
+            dotData: const FlDotData(show: false),
+          ),
+          LineChartBarData(
+            spots: thrustSpots
+                .map((spot) => FlSpot(spot.x, (spot.y / thrustMax) * yMax))
+                .toList(),
+            isCurved: true,
+            curveSmoothness: 0.3,
+            color: theme.colorScheme.tertiary,
+            barWidth: 2,
+            dashArray: [6, 4],
+            dotData: const FlDotData(show: false),
+          ),
         ],
         lineTouchData: LineTouchData(
           touchTooltipData: LineTouchTooltipData(
             getTooltipItems: (spots) {
               return spots.asMap().entries.map((entry) {
-                if (entry.key == 0) return null;
                 final spot = entry.value;
                 final date = DateTime.fromMillisecondsSinceEpoch(
                   spot.x.toInt(),
                 );
-                return LineTooltipItem(
-                  '${AppLocalizations.of(context)!.intimacyDuration}: ${spot.y.toStringAsFixed(1)}min\n${DateFormat('MMM d').format(date)}',
-                  TextStyle(
-                    color: theme.colorScheme.onPrimary,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                );
+                if (spot.barIndex == 1) {
+                  return LineTooltipItem(
+                    '${AppLocalizations.of(context)!.intimacyDuration}: ${spot.y.toStringAsFixed(1)}min\n${DateFormat('MMM d').format(date)}',
+                    TextStyle(
+                      color: theme.colorScheme.onPrimary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  );
+                } else if (spot.barIndex == 3) {
+                  final actual = spot.y / yMax * thrustMax;
+                  return LineTooltipItem(
+                    '${AppLocalizations.of(context)!.intimacyThrustCount}: ${actual.toStringAsFixed(0)}\n${DateFormat('MMM d').format(date)}',
+                    TextStyle(
+                      color: theme.colorScheme.onPrimary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  );
+                }
+                return null;
               }).toList();
             },
           ),

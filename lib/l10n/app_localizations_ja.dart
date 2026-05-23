@@ -406,6 +406,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get intimacyDuration => '時間';
 
   @override
+  String get intimacyThrustCount => '挿入回数';
+
+  @override
+  String get intimacyThrustCountShort => '回数';
+
+  @override
+  String get intimacyThrustCountHint => '任意。概算は x100、正確な記録は x1 を選択。';
+
+  @override
   String get intimacyAvgPleasure => '平均満足度';
 
   @override
