@@ -647,6 +647,11 @@ IntimacyMergeResult mergeIntimacyData(
     ),
   ];
 
+  // Timer session: use the side with the newer session timestamp.
+  final useLocalTimerSession =
+      local.timerSessionModifiedAt.isAfter(remote.timerSessionModifiedAt) ||
+      local.timerSessionModifiedAt == remote.timerSessionModifiedAt;
+
   // Settings: use the side with newer settingsModifiedAt
   final useLocalSettings =
       local.settingsModifiedAt.isAfter(remote.settingsModifiedAt) ||
@@ -678,6 +683,12 @@ IntimacyMergeResult mergeIntimacyData(
     toyConflicts: toyResult.conflicts,
     positionConflicts: positionResult.conflicts,
     recordConflicts: recordResult.conflicts,
+    timerSession: useLocalTimerSession
+        ? local.timerSession
+        : remote.timerSession,
+    timerSessionModifiedAt: useLocalTimerSession
+        ? local.timerSessionModifiedAt
+        : remote.timerSessionModifiedAt,
   );
 }
 
@@ -687,6 +698,8 @@ class IntimacyMergeResult {
   final List<Position> positionsMerged;
   final List<IntimacyRecord> recordsMerged;
   final List<TimerHistoryEntry> timerHistoryMerged;
+  final IntimacyTimerSession? timerSession;
+  final DateTime timerSessionModifiedAt;
   final int? timerHistoryRetentionDays;
   final Map<String, String> partnerSortModes;
   final Map<String, List<String>> partnerCustomOrders;
@@ -709,6 +722,8 @@ class IntimacyMergeResult {
     required this.positionsMerged,
     required this.recordsMerged,
     required this.timerHistoryMerged,
+    required this.timerSession,
+    required this.timerSessionModifiedAt,
     required this.timerHistoryRetentionDays,
     required this.partnerSortModes,
     required this.partnerCustomOrders,
@@ -744,6 +759,8 @@ class IntimacyMergeResult {
       positions: _resolveList(positionsMerged, positionConflicts, resolutions),
       records: _resolveList(recordsMerged, recordConflicts, resolutions),
       timerHistory: timerHistoryMerged,
+      timerSession: timerSession,
+      timerSessionModifiedAt: timerSessionModifiedAt,
       timerHistoryRetentionDays: timerHistoryRetentionDays,
       partnerSortModes: partnerSortModes,
       partnerCustomOrders: partnerCustomOrders,

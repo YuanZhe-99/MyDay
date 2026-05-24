@@ -102,6 +102,11 @@ class _IntimacyPageState extends State<IntimacyPage> {
   List<Position> _positions = [];
   List<IntimacyRecord> _records = [];
   List<TimerHistoryEntry> _timerHistory = [];
+  IntimacyTimerSession? _timerSession;
+  DateTime _timerSessionModifiedAt = DateTime.fromMillisecondsSinceEpoch(
+    0,
+    isUtc: true,
+  );
   int? _timerHistoryRetentionDays;
   Map<String, String> _partnerSortModes = {};
   Map<String, List<String>> _partnerCustomOrders = {};
@@ -152,6 +157,8 @@ class _IntimacyPageState extends State<IntimacyPage> {
         _positions = data.positions;
         _records = data.records;
         _timerHistory = data.timerHistory;
+        _timerSession = data.timerSession;
+        _timerSessionModifiedAt = data.timerSessionModifiedAt;
         _timerHistoryRetentionDays = data.timerHistoryRetentionDays;
         _partnerSortModes = Map.of(data.partnerSortModes);
         _partnerCustomOrders = data.partnerCustomOrders.map(
@@ -180,6 +187,8 @@ class _IntimacyPageState extends State<IntimacyPage> {
         positions: _positions,
         records: _records,
         timerHistory: _timerHistory,
+        timerSession: _timerSession,
+        timerSessionModifiedAt: _timerSessionModifiedAt,
         timerHistoryRetentionDays: _timerHistoryRetentionDays,
         partnerSortModes: _partnerSortModes,
         partnerCustomOrders: _partnerCustomOrders,
@@ -189,6 +198,35 @@ class _IntimacyPageState extends State<IntimacyPage> {
       ),
     );
     AutoSyncService.instance.notifySaved();
+  }
+
+  /// Purpose: Persist timer page changes while the timer page is still open.
+  /// Inputs: Timer history/session values plus change flags from `TimerPage`.
+  /// Returns: `Future<void>`.
+  /// Side effects: Updates page state, writes intimacy data, and notifies auto-sync.
+  /// Notes: Timer session timestamps are separate from general settings timestamps.
+  Future<void> _saveTimerState({
+    required List<TimerHistoryEntry> history,
+    required IntimacyTimerSession? session,
+    required bool historyChanged,
+    required bool timerSessionChanged,
+    required int? retentionDays,
+    required bool retentionChanged,
+  }) async {
+    setState(() {
+      _timerHistory = List<TimerHistoryEntry>.of(history);
+      _timerSession = session;
+      _timerHistoryRetentionDays = retentionDays;
+      if (timerSessionChanged) {
+        _timerSessionModifiedAt = DateTime.now().toUtc();
+      }
+      if (retentionChanged) {
+        _settingsModifiedAt = DateTime.now().toUtc();
+      }
+    });
+    if (historyChanged || timerSessionChanged || retentionChanged) {
+      await _saveData();
+    }
   }
 
   /// Purpose: Return marked dates.
@@ -338,7 +376,9 @@ class _IntimacyPageState extends State<IntimacyPage> {
                     toys: _toys.where((t) => t.retiredDate == null).toList(),
                     positions: _positions,
                     timerHistory: _timerHistory,
+                    timerSession: _timerSession,
                     timerHistoryRetentionDays: _timerHistoryRetentionDays,
+                    onStateChanged: _saveTimerState,
                   ),
                 ),
               );
@@ -348,8 +388,15 @@ class _IntimacyPageState extends State<IntimacyPage> {
                   setState(() => _records.insert(0, result.record!));
                   needSave = true;
                 }
-                if (result.updatedHistory != null) {
+                if (result.updatedHistory != null && result.historyChanged) {
                   setState(() => _timerHistory = result.updatedHistory!);
+                  needSave = true;
+                }
+                if (result.timerSessionChanged) {
+                  setState(() {
+                    _timerSession = result.updatedTimerSession;
+                    _timerSessionModifiedAt = DateTime.now().toUtc();
+                  });
                   needSave = true;
                 }
                 if (result.retentionChanged) {
@@ -1941,6 +1988,22 @@ class _RecordTile extends StatelessWidget {
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ],
+                if (record.usedCondom)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.health_and_safety_outlined,
+                        size: 14,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        l10n.intimacyUsedCondom,
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
                 if (record.location != null)
                   Row(
                     mainAxisSize: MainAxisSize.min,

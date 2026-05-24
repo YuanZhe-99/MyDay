@@ -435,6 +435,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get intimacyWatchedPorn => 'Watched Porn?';
 
   @override
+  String get intimacyUsedCondom => 'Used condom?';
+
+  @override
   String get intimacyTimer => 'Timer';
 
   @override
@@ -478,6 +481,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get intimacyTimerHistory => 'History';
+
+  @override
+  String get intimacyTimerRestore => 'Restore';
+
+  @override
+  String get intimacyTimerRestoreConfirmTitle => 'Restore this timer?';
+
+  @override
+  String get intimacyTimerRestoreConfirmMessage =>
+      'This will replace the current timer with this history entry and remove it from history.';
 
   @override
   String get intimacyTimerClearHistory => 'Clear';

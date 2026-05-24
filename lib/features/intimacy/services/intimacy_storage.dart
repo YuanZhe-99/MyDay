@@ -92,6 +92,8 @@ class IntimacyStorage {
             positions: data.positions,
             records: data.records,
             timerHistory: [...data.timerHistory, ...newEntries],
+            timerSession: data.timerSession,
+            timerSessionModifiedAt: data.timerSessionModifiedAt,
             timerHistoryRetentionDays: data.timerHistoryRetentionDays,
             partnerSortModes: data.partnerSortModes,
             partnerCustomOrders: data.partnerCustomOrders,

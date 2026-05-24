@@ -911,6 +911,12 @@ abstract class AppLocalizations {
   /// **'Watched Porn?'**
   String get intimacyWatchedPorn;
 
+  /// No description provided for @intimacyUsedCondom.
+  ///
+  /// In en, this message translates to:
+  /// **'Used condom?'**
+  String get intimacyUsedCondom;
+
   /// No description provided for @intimacyTimer.
   ///
   /// In en, this message translates to:
@@ -1000,6 +1006,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'History'**
   String get intimacyTimerHistory;
+
+  /// No description provided for @intimacyTimerRestore.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get intimacyTimerRestore;
+
+  /// No description provided for @intimacyTimerRestoreConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore this timer?'**
+  String get intimacyTimerRestoreConfirmTitle;
+
+  /// No description provided for @intimacyTimerRestoreConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This will replace the current timer with this history entry and remove it from history.'**
+  String get intimacyTimerRestoreConfirmMessage;
 
   /// No description provided for @intimacyTimerClearHistory.
   ///

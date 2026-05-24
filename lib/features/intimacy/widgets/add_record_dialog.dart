@@ -54,6 +54,7 @@ class _AddRecordDialogState extends State<AddRecordDialog> {
   late DateTime _datetime;
   late bool _hadOrgasm;
   late bool _watchedPorn;
+  late bool _usedCondom;
   late final String _initialSignature;
 
   /// Purpose: Return is editing.
@@ -89,6 +90,7 @@ class _AddRecordDialogState extends State<AddRecordDialog> {
     _datetime = r?.datetime ?? DateTime.now();
     _hadOrgasm = r?.hadOrgasm ?? false;
     _watchedPorn = r?.watchedPorn ?? false;
+    _usedCondom = r?.usedCondom ?? false;
     if (widget.prefillDuration != null && r == null) {
       initMinutes = widget.prefillDuration!.inMinutes.clamp(0, 5999);
     }
@@ -377,6 +379,14 @@ class _AddRecordDialogState extends State<AddRecordDialog> {
                 onChanged: (v) => setState(() => _watchedPorn = v),
               ),
 
+              // Condom toggle
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(l10n.intimacyUsedCondom),
+                value: _usedCondom,
+                onChanged: (v) => setState(() => _usedCondom = v),
+              ),
+
               // Location
               TextField(
                 controller: _locationController,
@@ -477,6 +487,7 @@ class _AddRecordDialogState extends State<AddRecordDialog> {
     _datetime,
     _hadOrgasm,
     _watchedPorn,
+    _usedCondom,
   ]);
 
   /// Purpose: Provide the internal submit helper for this file.
@@ -506,6 +517,7 @@ class _AddRecordDialogState extends State<AddRecordDialog> {
       positionIds: _selectedPositionIds.toList(),
       hadOrgasm: _hadOrgasm,
       watchedPorn: _watchedPorn,
+      usedCondom: _usedCondom,
       location: _locationController.text.trim().isEmpty
           ? null
           : _locationController.text.trim(),

@@ -190,10 +190,11 @@ class IntimacyRecord {
   final String? notes;
   final bool hadOrgasm;
   final bool watchedPorn;
+  final bool usedCondom;
   final DateTime modifiedAt;
 
   /// Purpose: Create a intimacy record instance.
-  /// Inputs: `isSolo`, optional thrust count value and unit.
+  /// Inputs: `isSolo`, optional thrust count value/unit, and protection flag.
   /// Returns: A new `IntimacyRecord` instance.
   /// Side effects: None.
   /// Notes: None.
@@ -213,6 +214,7 @@ class IntimacyRecord {
     this.notes,
     this.hadOrgasm = false,
     this.watchedPorn = false,
+    this.usedCondom = false,
     DateTime? modifiedAt,
   }) : id = id ?? const Uuid().v4(),
        thrustCountUnit = thrustCountUnit == 1 ? 1 : 100,
@@ -240,6 +242,7 @@ class IntimacyRecord {
     if (notes != null) 'notes': notes,
     'hadOrgasm': hadOrgasm,
     'watchedPorn': watchedPorn,
+    'usedCondom': usedCondom,
     'modifiedAt': modifiedAt.toIso8601String(),
   };
 
@@ -275,6 +278,7 @@ class IntimacyRecord {
       notes: json['notes'] as String?,
       hadOrgasm: json['hadOrgasm'] as bool? ?? false,
       watchedPorn: json['watchedPorn'] as bool? ?? false,
+      usedCondom: json['usedCondom'] as bool? ?? false,
       modifiedAt: json['modifiedAt'] != null
           ? DateTime.parse(json['modifiedAt'] as String)
           : DateTime.fromMillisecondsSinceEpoch(0),
@@ -323,12 +327,74 @@ class TimerHistoryEntry {
   }
 }
 
+class IntimacyTimerSession {
+  final DateTime firstStartedAt;
+  final DateTime? startedAt;
+  final Duration accumulated;
+  final bool running;
+
+  /// Purpose: Create an intimacy timer session snapshot.
+  /// Inputs: `firstStartedAt`, optional `startedAt`, elapsed `accumulated`, and `running`.
+  /// Returns: A new `IntimacyTimerSession` instance.
+  /// Side effects: None.
+  /// Notes: `accumulated` stores elapsed time before the latest running segment.
+  const IntimacyTimerSession({
+    required this.firstStartedAt,
+    this.startedAt,
+    required this.accumulated,
+    required this.running,
+  });
+
+  /// Purpose: Calculate elapsed timer duration at a wall-clock instant.
+  /// Inputs: `now`.
+  /// Returns: `Duration`.
+  /// Side effects: None.
+  /// Notes: Running sessions continue over app restarts; paused sessions return `accumulated`.
+  Duration elapsedAt(DateTime now) {
+    if (!running || startedAt == null) return accumulated;
+    return accumulated + now.difference(startedAt!);
+  }
+
+  /// Purpose: Serialize this timer session into a JSON-compatible map.
+  /// Inputs: None.
+  /// Returns: A JSON-compatible map.
+  /// Side effects: None.
+  /// Notes: Keep this aligned with `intimacy_data.json` and sync merge behavior.
+  Map<String, dynamic> toJson() => {
+    'firstStartedAt': firstStartedAt.toIso8601String(),
+    if (startedAt != null) 'startedAt': startedAt!.toIso8601String(),
+    'accumulatedMs': accumulated.inMilliseconds,
+    'running': running,
+  };
+
+  /// Purpose: Create a timer session from a JSON-compatible map.
+  /// Inputs: `json`.
+  /// Returns: A new `IntimacyTimerSession.fromJson` instance.
+  /// Side effects: None.
+  /// Notes: Use this path when restoring an interrupted stopwatch session.
+  factory IntimacyTimerSession.fromJson(Map<String, dynamic> json) {
+    final firstStartedAt = DateTime.parse(json['firstStartedAt'] as String);
+    final startedAt = json['startedAt'] != null
+        ? DateTime.parse(json['startedAt'] as String)
+        : null;
+    final running = json['running'] as bool? ?? startedAt != null;
+    return IntimacyTimerSession(
+      firstStartedAt: firstStartedAt,
+      startedAt: running ? (startedAt ?? firstStartedAt) : null,
+      accumulated: Duration(milliseconds: json['accumulatedMs'] as int? ?? 0),
+      running: running,
+    );
+  }
+}
+
 class IntimacyData {
   final List<Partner> partners;
   final List<Toy> toys;
   final List<Position> positions;
   final List<IntimacyRecord> records;
   final List<TimerHistoryEntry> timerHistory;
+  final IntimacyTimerSession? timerSession;
+  final DateTime timerSessionModifiedAt;
 
   /// null = permanent, otherwise days (3, 7, 14)
   final int? timerHistoryRetentionDays;
@@ -339,7 +405,7 @@ class IntimacyData {
   final DateTime settingsModifiedAt;
 
   /// Purpose: Create a intimacy data instance.
-  /// Inputs: `positions`.
+  /// Inputs: `positions` and persisted timer session state.
   /// Returns: A new `IntimacyData` instance.
   /// Side effects: None.
   /// Notes: None.
@@ -349,13 +415,18 @@ class IntimacyData {
     this.positions = const [],
     required this.records,
     this.timerHistory = const [],
+    this.timerSession,
+    DateTime? timerSessionModifiedAt,
     this.timerHistoryRetentionDays,
     this.partnerSortModes = const {},
     this.partnerCustomOrders = const {},
     this.toySortModes = const {},
     this.toyCustomOrders = const {},
     DateTime? settingsModifiedAt,
-  }) : settingsModifiedAt = settingsModifiedAt ?? DateTime.now().toUtc();
+  }) : timerSessionModifiedAt =
+           timerSessionModifiedAt ??
+           DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+       settingsModifiedAt = settingsModifiedAt ?? DateTime.now().toUtc();
 
   /// Purpose: Serialize this value into a JSON-compatible map.
   /// Inputs: None.
@@ -368,6 +439,8 @@ class IntimacyData {
     'positions': positions.map((p) => p.toJson()).toList(),
     'records': records.map((r) => r.toJson()).toList(),
     'timerHistory': timerHistory.map((e) => e.toJson()).toList(),
+    if (timerSession != null) 'timerSession': timerSession!.toJson(),
+    'timerSessionModifiedAt': timerSessionModifiedAt.toIso8601String(),
     if (timerHistoryRetentionDays != null)
       'timerHistoryRetentionDays': timerHistoryRetentionDays,
     if (partnerSortModes.isNotEmpty) 'partnerSortModes': partnerSortModes,
@@ -409,6 +482,14 @@ class IntimacyData {
             ?.map((e) => TimerHistoryEntry.fromJson(e as Map<String, dynamic>))
             .toList() ??
         [],
+    timerSession: json['timerSession'] is Map<String, dynamic>
+        ? IntimacyTimerSession.fromJson(
+            json['timerSession'] as Map<String, dynamic>,
+          )
+        : null,
+    timerSessionModifiedAt: json['timerSessionModifiedAt'] != null
+        ? DateTime.parse(json['timerSessionModifiedAt'] as String)
+        : DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
     timerHistoryRetentionDays: json['timerHistoryRetentionDays'] as int?,
     partnerSortModes:
         (json['partnerSortModes'] as Map<String, dynamic>?)?.map(

@@ -5,7 +5,7 @@ import 'package:my_day/features/intimacy/models/intimacy_record.dart';
 /// Inputs: None.
 /// Returns: None.
 /// Side effects: Runs test assertions.
-/// Notes: Keeps optional thrust-count persistence covered.
+/// Notes: Keeps intimacy record and timer-session persistence covered.
 void main() {
   test('round-trips optional thrust count and unit', () {
     final record = IntimacyRecord(
@@ -42,5 +42,65 @@ void main() {
     expect(json.containsKey('thrustCountUnit'), isFalse);
     expect(restored.thrustCount, isNull);
     expect(restored.thrustCountUnit, 100);
+    expect(restored.usedCondom, isFalse);
+  });
+
+  test('round-trips condom flag', () {
+    final record = IntimacyRecord(
+      type: 'Regular',
+      pleasureLevel: 4,
+      duration: const Duration(minutes: 30),
+      datetime: DateTime(2026, 5, 23, 22),
+      usedCondom: true,
+    );
+
+    final json = record.toJson();
+    final restored = IntimacyRecord.fromJson(json);
+
+    expect(json['usedCondom'], isTrue);
+    expect(restored.usedCondom, isTrue);
+  });
+
+  test('round-trips running timer session', () {
+    final session = IntimacyTimerSession(
+      firstStartedAt: DateTime.utc(2026, 5, 23, 20),
+      startedAt: DateTime.utc(2026, 5, 23, 20, 10),
+      accumulated: const Duration(minutes: 5),
+      running: true,
+    );
+
+    final json = session.toJson();
+    final restored = IntimacyTimerSession.fromJson(json);
+
+    expect(restored.firstStartedAt, DateTime.utc(2026, 5, 23, 20));
+    expect(restored.startedAt, DateTime.utc(2026, 5, 23, 20, 10));
+    expect(restored.accumulated, const Duration(minutes: 5));
+    expect(restored.running, isTrue);
+  });
+
+  test('round-trips intimacy data timer session metadata', () {
+    final session = IntimacyTimerSession(
+      firstStartedAt: DateTime.utc(2026, 5, 23, 20),
+      accumulated: const Duration(minutes: 15),
+      running: false,
+    );
+    final modifiedAt = DateTime.utc(2026, 5, 23, 21);
+    final data = IntimacyData(
+      partners: const [],
+      toys: const [],
+      records: const [],
+      timerSession: session,
+      timerSessionModifiedAt: modifiedAt,
+    );
+
+    final json = data.toJson();
+    final restored = IntimacyData.fromJson(json);
+
+    expect(json['timerSession'], isA<Map<String, dynamic>>());
+    expect(json['timerSessionModifiedAt'], modifiedAt.toIso8601String());
+    expect(restored.timerSession?.firstStartedAt, session.firstStartedAt);
+    expect(restored.timerSession?.accumulated, session.accumulated);
+    expect(restored.timerSession?.running, isFalse);
+    expect(restored.timerSessionModifiedAt, modifiedAt);
   });
 }

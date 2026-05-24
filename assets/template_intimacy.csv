@@ -1,4 +1,4 @@
-Date,Type,IsSolo,Partner,Toys,PleasureLevel,Duration(min),ThrustCount,ThrustUnit,HadOrgasm,WatchedPorn,Location,Notes
-2025-01-15 22:00,Regular,false,"Partner Name","Toy1;Toy2",4,30.0,3,x100,true,false,"Home","Notes here"
-2025-01-16 23:30,Solo,true,,"",3,15.5,250,x1,true,false,,"Solo session"
-2025-01-17 08:00,Solo,true,,"",0,,,,true,false,,
+Date,Type,IsSolo,Partner,Toys,PleasureLevel,Duration(min),ThrustCount,ThrustUnit,HadOrgasm,WatchedPorn,UsedCondom,Location,Notes
+2025-01-15 22:00,Regular,false,"Partner Name","Toy1;Toy2",4,30.0,3,x100,true,false,true,"Home","Notes here"
+2025-01-16 23:30,Solo,true,,"",3,15.5,250,x1,true,false,false,,"Solo session"
+2025-01-17 08:00,Solo,true,,"",0,,,,true,false,false,,

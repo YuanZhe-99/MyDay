@@ -481,12 +481,17 @@ const _intimacyRecordSchema = JsonPreservationSchema(
     'notes',
     'hadOrgasm',
     'watchedPorn',
+    'usedCondom',
     'modifiedAt',
   },
 );
 
 const _timerHistorySchema = JsonPreservationSchema(
   knownKeys: {'start', 'durationMs', 'end'},
+);
+
+const _timerSessionSchema = JsonPreservationSchema(
+  knownKeys: {'firstStartedAt', 'startedAt', 'accumulatedMs', 'running'},
 );
 
 const _intimacyDataSchema = JsonPreservationSchema(
@@ -496,6 +501,8 @@ const _intimacyDataSchema = JsonPreservationSchema(
     'positions',
     'records',
     'timerHistory',
+    'timerSession',
+    'timerSessionModifiedAt',
     'timerHistoryRetentionDays',
     'partnerSortModes',
     'partnerCustomOrders',
@@ -503,6 +510,7 @@ const _intimacyDataSchema = JsonPreservationSchema(
     'toyCustomOrders',
     'settingsModifiedAt',
   },
+  objectFields: {'timerSession': _timerSessionSchema},
   listFields: {
     'partners': JsonListPreservation(
       keyField: 'id',

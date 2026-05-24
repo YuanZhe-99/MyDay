@@ -433,6 +433,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get intimacyWatchedPorn => '是否观看色情片？';
 
   @override
+  String get intimacyUsedCondom => '是否戴避孕套？';
+
+  @override
   String get intimacyTimer => '计时器';
 
   @override
@@ -476,6 +479,16 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get intimacyTimerHistory => '历史记录';
+
+  @override
+  String get intimacyTimerRestore => '恢复';
+
+  @override
+  String get intimacyTimerRestoreConfirmTitle => '恢复这条计时？';
+
+  @override
+  String get intimacyTimerRestoreConfirmMessage =>
+      '这会用这条历史记录替换当前秒表，并将它从历史记录中移除。';
 
   @override
   String get intimacyTimerClearHistory => '清除';
@@ -2112,6 +2125,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get intimacyWatchedPorn => '是否觀看色情片？';
 
   @override
+  String get intimacyUsedCondom => '是否戴保險套？';
+
+  @override
   String get intimacyTimer => '計時器';
 
   @override
@@ -2155,6 +2171,16 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get intimacyTimerHistory => '歷史記錄';
+
+  @override
+  String get intimacyTimerRestore => '恢復';
+
+  @override
+  String get intimacyTimerRestoreConfirmTitle => '恢復這條計時？';
+
+  @override
+  String get intimacyTimerRestoreConfirmMessage =>
+      '這會用這條歷史記錄取代目前秒表，並將它從歷史記錄中移除。';
 
   @override
   String get intimacyTimerClearHistory => '清除';
