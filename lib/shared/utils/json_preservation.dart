@@ -487,11 +487,18 @@ const _intimacyRecordSchema = JsonPreservationSchema(
 );
 
 const _timerHistorySchema = JsonPreservationSchema(
-  knownKeys: {'start', 'durationMs', 'end'},
+  knownKeys: {'start', 'durationMs', 'end', 'thrustCount', 'thrustCountUnit'},
 );
 
 const _timerSessionSchema = JsonPreservationSchema(
-  knownKeys: {'firstStartedAt', 'startedAt', 'accumulatedMs', 'running'},
+  knownKeys: {
+    'firstStartedAt',
+    'startedAt',
+    'accumulatedMs',
+    'running',
+    'thrustCount',
+    'thrustCountUnit',
+  },
 );
 
 const _intimacyDataSchema = JsonPreservationSchema(

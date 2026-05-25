@@ -86,12 +86,15 @@ class TimerPage extends StatefulWidget {
 }
 
 class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
+  static const int _thrustStep = 100;
+
   // Wall-clock based timer: immune to screen-off / app-suspend.
   DateTime? _firstStartedAt; // wall-clock moment the user first pressed Start
   DateTime? _startedAt; // wall-clock moment the timer was (re)started
   Duration _accumulated = Duration.zero; // elapsed before last pause
   Timer? _ticker;
   bool _running = false;
+  int _thrustCount = 0;
 
   late List<TimerHistoryEntry> _history;
   late int? _retentionDays;
@@ -132,6 +135,9 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
       _startedAt = session.running ? session.startedAt : null;
       _accumulated = session.accumulated;
       _running = session.running;
+      _thrustCount = session.thrustCountUnit == _thrustStep
+          ? session.thrustCount
+          : session.thrustCount ~/ _thrustStep;
       if (_running) _ensureTicker();
     }
   }
@@ -206,6 +212,18 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
     await _persistState(timerSessionChanged: true);
   }
 
+  /// Purpose: Adjust the timer's thrust count in x100 units.
+  /// Inputs: `deltaUnits`.
+  /// Returns: `Future<void>`.
+  /// Side effects: Updates UI state and persists the timer session snapshot.
+  /// Notes: The counter is clamped at zero so accidental decrements never go negative.
+  Future<void> _changeThrustCount(int deltaUnits) async {
+    final next = (_thrustCount + deltaUnits).clamp(0, 999999).toInt();
+    if (next == _thrustCount) return;
+    setState(() => _thrustCount = next);
+    await _persistState(timerSessionChanged: true);
+  }
+
   /// Purpose: Provide the internal reset helper for this file.
   /// Inputs: None.
   /// Returns: `Future<void>`.
@@ -216,6 +234,7 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
     _firstStartedAt = null;
     _startedAt = null;
     _running = false;
+    _thrustCount = 0;
     _ticker?.cancel();
     setState(() {});
     await _persistState(timerSessionChanged: true);
@@ -253,6 +272,8 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
       startedAt: _running ? _startedAt : null,
       accumulated: _accumulated,
       running: _running,
+      thrustCount: _thrustCount,
+      thrustCountUnit: _thrustStep,
     );
   }
 
@@ -308,20 +329,27 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
   // ── save ────────────────────────────────────────────────────────────
 
   /// Purpose: Provide the internal save record helper for this file.
-  /// Inputs: `prefillDuration`.
+  /// Inputs: Optional `prefillEntry` from timer history.
   /// Returns: `Future<void>`.
   /// Side effects: May update UI state or trigger user-facing flows.
   /// Notes: Internal helper used within this file only.
-  Future<void> _saveRecord({Duration? prefillDuration}) async {
-    final elapsed = prefillDuration ?? _elapsed;
-    final sessionStart = prefillDuration != null
-        ? DateTime.now().subtract(elapsed)
+  Future<void> _saveRecord({TimerHistoryEntry? prefillEntry}) async {
+    final elapsed = prefillEntry?.duration ?? _elapsed;
+    final prefillThrustCount = prefillEntry?.thrustCount ?? _thrustCount;
+    final prefillThrustCountUnit = prefillEntry?.thrustCountUnit ?? _thrustStep;
+    final sessionStart = prefillEntry != null
+        ? prefillEntry.start
         : (_sessionStartTime ?? DateTime.now().subtract(elapsed));
-    if (prefillDuration == null) await _pause();
+    if (prefillEntry == null) await _pause();
 
     // Add to history
-    if (prefillDuration == null) {
-      final entry = TimerHistoryEntry(start: sessionStart, duration: elapsed);
+    if (prefillEntry == null) {
+      final entry = TimerHistoryEntry(
+        start: sessionStart,
+        duration: elapsed,
+        thrustCount: _thrustCount,
+        thrustCountUnit: _thrustStep,
+      );
       setState(() {
         _history.insert(0, entry);
         _history = _applyRetention(_history);
@@ -335,6 +363,8 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
       context: context,
       builder: (_) => AddRecordDialog(
         prefillDuration: elapsed,
+        initialThrustCount: prefillThrustCount > 0 ? prefillThrustCount : null,
+        initialThrustCountUnit: prefillThrustCountUnit,
         partners: widget.partners,
         toys: widget.toys,
         positions: widget.positions,
@@ -342,12 +372,13 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
     );
 
     if (record != null && mounted) {
-      final clearedTimerSession = prefillDuration == null;
+      final clearedTimerSession = prefillEntry == null;
       if (clearedTimerSession) {
         _accumulated = Duration.zero;
         _firstStartedAt = null;
         _startedAt = null;
         _running = false;
+        _thrustCount = 0;
         _ticker?.cancel();
         await _persistState(timerSessionChanged: true);
         if (!mounted) return;
@@ -423,6 +454,9 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
       _startedAt = DateTime.now();
       _accumulated = entry.duration;
       _running = true;
+      _thrustCount = entry.thrustCountUnit == _thrustStep
+          ? entry.thrustCount
+          : entry.thrustCount ~/ _thrustStep;
       _timerSessionChanged = true;
     });
     _ensureTicker();
@@ -478,7 +512,35 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
                         fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),
-                    const SizedBox(height: 48),
+                    if (sessionStart != null || hasElapsed) ...[
+                      const SizedBox(height: 16),
+                      Text(
+                        '${l10n.intimacyThrustCountShort}: $_thrustCount x$_thrustStep',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 12,
+                        children: [
+                          OutlinedButton.icon(
+                            onPressed: _thrustCount > 0
+                                ? () => _changeThrustCount(-1)
+                                : null,
+                            icon: const Icon(Icons.remove),
+                            label: const Text('-100'),
+                          ),
+                          FilledButton.icon(
+                            onPressed: () => _changeThrustCount(1),
+                            icon: const Icon(Icons.add),
+                            label: const Text('+100'),
+                          ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 32),
 
                     Wrap(
                       alignment: WrapAlignment.center,
@@ -608,10 +670,12 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
                     ),
                   ),
                   subtitle: Text(
-                    _formatDateTime(entry.start),
+                    entry.thrustCount > 0
+                        ? '${_formatDateTime(entry.start)} - ${l10n.intimacyThrustCountShort}: ${entry.thrustCount} x${entry.thrustCountUnit}'
+                        : _formatDateTime(entry.start),
                     style: theme.textTheme.bodySmall,
                   ),
-                  onTap: () => _saveRecord(prefillDuration: entry.duration),
+                  onTap: () => _saveRecord(prefillEntry: entry),
                   trailing: IconButton(
                     tooltip: l10n.intimacyTimerRestore,
                     icon: const Icon(Icons.restore, size: 20),

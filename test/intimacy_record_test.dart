@@ -5,7 +5,7 @@ import 'package:my_day/features/intimacy/models/intimacy_record.dart';
 /// Inputs: None.
 /// Returns: None.
 /// Side effects: Runs test assertions.
-/// Notes: Keeps intimacy record and timer-session persistence covered.
+/// Notes: Keeps intimacy record and timer persistence covered.
 void main() {
   test('round-trips optional thrust count and unit', () {
     final record = IntimacyRecord(
@@ -67,6 +67,8 @@ void main() {
       startedAt: DateTime.utc(2026, 5, 23, 20, 10),
       accumulated: const Duration(minutes: 5),
       running: true,
+      thrustCount: 4,
+      thrustCountUnit: 100,
     );
 
     final json = session.toJson();
@@ -76,6 +78,40 @@ void main() {
     expect(restored.startedAt, DateTime.utc(2026, 5, 23, 20, 10));
     expect(restored.accumulated, const Duration(minutes: 5));
     expect(restored.running, isTrue);
+    expect(restored.thrustCount, 4);
+    expect(restored.thrustCountUnit, 100);
+  });
+
+  test('round-trips timer history thrust count and clamps negatives', () {
+    final start = DateTime.utc(2026, 5, 23, 20);
+    final entry = TimerHistoryEntry(
+      start: start,
+      duration: const Duration(minutes: 12),
+      thrustCount: 3,
+      thrustCountUnit: 100,
+    );
+    final negativeEntry = TimerHistoryEntry(
+      start: start,
+      duration: const Duration(minutes: 12),
+      thrustCount: -1,
+    );
+    final restoredNegativeSession = IntimacyTimerSession.fromJson({
+      'firstStartedAt': start.toIso8601String(),
+      'accumulatedMs': 0,
+      'running': false,
+      'thrustCount': -1,
+    });
+
+    final json = entry.toJson();
+    final restored = TimerHistoryEntry.fromJson(json);
+
+    expect(json['thrustCount'], 3);
+    expect(json['thrustCountUnit'], 100);
+    expect(restored.thrustCount, 3);
+    expect(restored.thrustCountUnit, 100);
+    expect(negativeEntry.thrustCount, 0);
+    expect(negativeEntry.toJson().containsKey('thrustCount'), isFalse);
+    expect(restoredNegativeSession.thrustCount, 0);
   });
 
   test('round-trips intimacy data timer session metadata', () {

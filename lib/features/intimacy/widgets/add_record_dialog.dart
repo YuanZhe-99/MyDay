@@ -13,9 +13,11 @@ class AddRecordDialog extends StatefulWidget {
   final List<Position> positions;
   final String? initialPartnerId;
   final List<String> initialToyIds;
+  final int? initialThrustCount;
+  final int? initialThrustCountUnit;
 
   /// Purpose: Create a add record dialog instance.
-  /// Inputs: `positions`, optional initial partner and toy selections.
+  /// Inputs: `positions`, optional initial partner, toy, and thrust selections.
   /// Returns: A new `AddRecordDialog` instance.
   /// Side effects: None.
   /// Notes: None.
@@ -28,6 +30,8 @@ class AddRecordDialog extends StatefulWidget {
     this.positions = const [],
     this.initialPartnerId,
     this.initialToyIds = const [],
+    this.initialThrustCount,
+    this.initialThrustCountUnit,
   });
 
   /// Purpose: Create the mutable state object for this widget.
@@ -83,10 +87,14 @@ class _AddRecordDialogState extends State<AddRecordDialog> {
     _notesController = TextEditingController(text: r?.notes ?? '');
     _pleasureLevel = r?.pleasureLevel ?? 3;
     var initMinutes = r?.duration.inMinutes ?? 15;
+    final initialThrustCount = r?.thrustCount ?? widget.initialThrustCount;
     _thrustCountController = TextEditingController(
-      text: r?.thrustCount?.toString() ?? '',
+      text: initialThrustCount != null && initialThrustCount > 0
+          ? initialThrustCount.toString()
+          : '',
     );
-    _thrustCountUnit = r?.thrustCountUnit ?? 100;
+    _thrustCountUnit =
+        r?.thrustCountUnit ?? widget.initialThrustCountUnit ?? 100;
     _datetime = r?.datetime ?? DateTime.now();
     _hadOrgasm = r?.hadOrgasm ?? false;
     _watchedPorn = r?.watchedPorn ?? false;

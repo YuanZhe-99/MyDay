@@ -29,8 +29,8 @@ Maintenance rules:
 - **Package id:** Dart package `my_day`; Android namespace/application id `com.yuanzhe.my_day`; MSIX identity `com.yuanzhe.myday`; macOS bundle id `com.yuanzhe.myDay`.
 - **Author / publisher:** `yuanzhe`.
 - **License:** GPL-3.0.
-- **Current version:** `0.7.5+32` in `pubspec.yaml`, `0.7.5.0` in `msix_config.msix_version`, and `0.7.5` in `installer.iss`.
-- **Latest tag at the time this guide was written:** `v0.7.5`.
+- **Current version:** `0.7.6+33` in `pubspec.yaml`, `0.7.6.0` in `msix_config.msix_version`, and `0.7.6` in `installer.iss`.
+- **Latest tag at the time this guide was written:** `v0.7.6`.
 - **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.41.6`.
 - **Primary platforms:** Windows x64/ARM64, Android APK/AAB, iOS sideload IPA, and macOS DMG. Linux project support exists for desktop runtime features but is not a primary release artifact.
 - **Repository:** Use the current environment's workspace root / repository path instead of hard-coding an absolute local path.
@@ -209,11 +209,11 @@ Main model: `lib/features/intimacy/models/intimacy_record.dart`.
 - `Toy`: optional emoji/image, purchase/retired dates, purchase link, price, `modifiedAt`.
 - `Position`: name, optional emoji, `modifiedAt`.
 - `IntimacyRecord`: solo/partnered type, location, partner id, toy ids, position ids, pleasure level, duration, optional thrust count with x100/x1 unit, datetime, notes, orgasm/porn/condom flags, `modifiedAt`.
-- `TimerHistoryEntry`: timer start and duration, with legacy `end` migration.
-- `IntimacyTimerSession`: persisted active/paused stopwatch session with original start time, last resume time, accumulated elapsed time, running flag, and independent `timerSessionModifiedAt` for LWW sync.
+- `TimerHistoryEntry`: timer start, duration, optional x100/x1 thrust count, with legacy `end` migration.
+- `IntimacyTimerSession`: persisted active/paused stopwatch session with original start time, last resume time, accumulated elapsed time, running flag, optional x100/x1 thrust count, and independent `timerSessionModifiedAt` for LWW sync.
 - `IntimacyData`: partners, toys, positions, records, timer history, active timer session, timer retention setting, partner/toy sort modes/custom orders, and `settingsModifiedAt`.
 
-The UI supports record list sorting/filtering, a limited default recent-history list with a show-all sheet, partner/toy/position management, default position import, partner break-up state, toy retirement state, exclusion of inactive partners/toys from new record pickers, EWMA/raw trend charts for pleasure/frequency and duration/thrust-count with dual axes, weekly grouping, condom tracking, and a stopwatch timer whose history and interrupted active/paused session are stored in `intimacy_data.json`. Stopped-and-saved timer sessions are cleared; stopped-but-unsaved and paused sessions restore as paused; running sessions resume from wall-clock time; history rows can be confirmed and restored as running sessions while removing that history row.
+The UI supports record list sorting/filtering, a limited default recent-history list with a show-all sheet, partner/toy/position management, default position import, partner break-up state, toy retirement state, exclusion of inactive partners/toys from new record pickers, EWMA/raw trend charts for pleasure/frequency and duration/thrust-count with dual axes, weekly grouping, condom tracking, and a stopwatch timer with a non-negative x100 thrust counter whose history and interrupted active/paused session are stored in `intimacy_data.json`. Stopped-and-saved timer sessions are cleared; stopped-but-unsaved and paused sessions restore as paused; running sessions resume from wall-clock time; history rows can be confirmed and restored as running sessions while removing that history row.
 
 ### Weight
 
@@ -339,7 +339,7 @@ Default app data directory is `Documents/MyDay/` on desktop or the platform app 
 | Todo | `todo_data.json` | Yes | Tasks, daily templates, completion log, reminders, task sort/custom order |
 | Finance | `finance_data.json` | Yes | Accounts including optional fee waiver criteria, categories, transactions, subscriptions, finance settings, transaction account picker settings |
 | Exchange rates | `exchange_rates.json` | Yes | Rate snapshots and `lastFetchedAt` |
-| Intimacy | `intimacy_data.json` | Yes | Partners, toys, positions, records, timer history, active timer session, sort settings |
+| Intimacy | `intimacy_data.json` | Yes | Partners, toys, positions, records, timer history/session including thrust counts, sort settings |
 | Weight | `weight_data.json` | Yes | Height, records, reminders, grace window |
 | WebDAV config | `webdav_config.json` | No | User server config and credentials; moved with custom storage path |
 | Sync base | `.sync_base/*.json` | No | Last-synced snapshots for three-way merge |
@@ -449,3 +449,4 @@ Use the narrowest relevant command set for verification. For sync/model/persiste
 - `v0.7.3`: Intimacy partner and toy record detail pages support adding, editing, and deleting related records, show average pleasure and duration summaries, include filtered pleasure/duration trend charts, and versions are unified to `0.7.3+30` / MSIX `0.7.3.0` / installer `0.7.3`.
 - `v0.7.4`: Intimacy records support optional thrust counts with x100/x1 units, duration charts on the main and partner/toy trend pages add a separate thrust-count axis, intimacy CSV import/export includes the new fields, and versions are unified to `0.7.4+31` / MSIX `0.7.4.0` / installer `0.7.4`.
 - `v0.7.5`: Intimacy stopwatch sessions persist across accidental page/app exits, timer history entries can be confirmed and restored as running sessions, intimacy records track condom use, CSV import/export includes the condom field, and versions are unified to `0.7.5+32` / MSIX `0.7.5.0` / installer `0.7.5`.
+- `v0.7.6`: Intimacy timer adds a non-negative x100 thrust counter with +100/-100 controls, timer sessions/history preserve that count for record prefill and restoration, and versions are unified to `0.7.6+33` / MSIX `0.7.6.0` / installer `0.7.6`.

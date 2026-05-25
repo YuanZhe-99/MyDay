@@ -290,13 +290,21 @@ class IntimacyRecord {
 class TimerHistoryEntry {
   final DateTime start;
   final Duration duration;
+  final int thrustCount;
+  final int thrustCountUnit;
 
   /// Purpose: Create a timer history entry instance.
-  /// Inputs: `duration`.
+  /// Inputs: `duration` and optional thrust count value/unit.
   /// Returns: A new `TimerHistoryEntry` instance.
   /// Side effects: None.
   /// Notes: None.
-  const TimerHistoryEntry({required this.start, required this.duration});
+  TimerHistoryEntry({
+    required this.start,
+    required this.duration,
+    int thrustCount = 0,
+    int? thrustCountUnit,
+  }) : thrustCount = thrustCount < 0 ? 0 : thrustCount,
+       thrustCountUnit = thrustCountUnit == 1 ? 1 : 100;
 
   /// Purpose: Serialize this value into a JSON-compatible map.
   /// Inputs: None.
@@ -306,6 +314,8 @@ class TimerHistoryEntry {
   Map<String, dynamic> toJson() => {
     'start': start.toIso8601String(),
     'durationMs': duration.inMilliseconds,
+    if (thrustCount > 0) 'thrustCount': thrustCount,
+    if (thrustCount > 0) 'thrustCountUnit': thrustCountUnit,
   };
 
   /// Purpose: Create an instance from a JSON-compatible map.
@@ -314,16 +324,26 @@ class TimerHistoryEntry {
   /// Side effects: None.
   /// Notes: Use this path when reading the persisted or transferred data format for this type.
   factory TimerHistoryEntry.fromJson(Map<String, dynamic> json) {
+    final rawThrustCount = (json['thrustCount'] as num?)?.toInt() ?? 0;
+    final thrustCount = rawThrustCount > 0 ? rawThrustCount : 0;
+    final thrustCountUnit = json['thrustCountUnit'] == 1 ? 1 : 100;
     // Support legacy entries that stored 'end' instead of 'durationMs'
     if (json.containsKey('durationMs')) {
       return TimerHistoryEntry(
         start: DateTime.parse(json['start'] as String),
         duration: Duration(milliseconds: json['durationMs'] as int),
+        thrustCount: thrustCount,
+        thrustCountUnit: thrustCountUnit,
       );
     }
     final start = DateTime.parse(json['start'] as String);
     final end = DateTime.parse(json['end'] as String);
-    return TimerHistoryEntry(start: start, duration: end.difference(start));
+    return TimerHistoryEntry(
+      start: start,
+      duration: end.difference(start),
+      thrustCount: thrustCount,
+      thrustCountUnit: thrustCountUnit,
+    );
   }
 }
 
@@ -332,18 +352,23 @@ class IntimacyTimerSession {
   final DateTime? startedAt;
   final Duration accumulated;
   final bool running;
+  final int thrustCount;
+  final int thrustCountUnit;
 
   /// Purpose: Create an intimacy timer session snapshot.
-  /// Inputs: `firstStartedAt`, optional `startedAt`, elapsed `accumulated`, and `running`.
+  /// Inputs: `firstStartedAt`, optional `startedAt`, elapsed `accumulated`, `running`, and optional thrust count value/unit.
   /// Returns: A new `IntimacyTimerSession` instance.
   /// Side effects: None.
   /// Notes: `accumulated` stores elapsed time before the latest running segment.
-  const IntimacyTimerSession({
+  IntimacyTimerSession({
     required this.firstStartedAt,
     this.startedAt,
     required this.accumulated,
     required this.running,
-  });
+    int thrustCount = 0,
+    int? thrustCountUnit,
+  }) : thrustCount = thrustCount < 0 ? 0 : thrustCount,
+       thrustCountUnit = thrustCountUnit == 1 ? 1 : 100;
 
   /// Purpose: Calculate elapsed timer duration at a wall-clock instant.
   /// Inputs: `now`.
@@ -365,6 +390,8 @@ class IntimacyTimerSession {
     if (startedAt != null) 'startedAt': startedAt!.toIso8601String(),
     'accumulatedMs': accumulated.inMilliseconds,
     'running': running,
+    if (thrustCount > 0) 'thrustCount': thrustCount,
+    if (thrustCount > 0) 'thrustCountUnit': thrustCountUnit,
   };
 
   /// Purpose: Create a timer session from a JSON-compatible map.
@@ -378,11 +405,14 @@ class IntimacyTimerSession {
         ? DateTime.parse(json['startedAt'] as String)
         : null;
     final running = json['running'] as bool? ?? startedAt != null;
+    final rawThrustCount = (json['thrustCount'] as num?)?.toInt() ?? 0;
     return IntimacyTimerSession(
       firstStartedAt: firstStartedAt,
       startedAt: running ? (startedAt ?? firstStartedAt) : null,
       accumulated: Duration(milliseconds: json['accumulatedMs'] as int? ?? 0),
       running: running,
+      thrustCount: rawThrustCount > 0 ? rawThrustCount : 0,
+      thrustCountUnit: json['thrustCountUnit'] == 1 ? 1 : 100,
     );
   }
 }
