@@ -2321,6 +2321,12 @@ abstract class AppLocalizations {
   /// **'Add Record'**
   String get weightAddRecord;
 
+  /// No description provided for @weightEditRecord.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Record'**
+  String get weightEditRecord;
+
   /// No description provided for @weightKg.
   ///
   /// In en, this message translates to:
@@ -2332,6 +2338,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Height (cm)'**
   String get weightHeightCm;
+
+  /// No description provided for @weightMeasurements.
+  ///
+  /// In en, this message translates to:
+  /// **'Measurements'**
+  String get weightMeasurements;
+
+  /// No description provided for @weightBust.
+  ///
+  /// In en, this message translates to:
+  /// **'Bust'**
+  String get weightBust;
+
+  /// No description provided for @weightWaist.
+  ///
+  /// In en, this message translates to:
+  /// **'Waist'**
+  String get weightWaist;
+
+  /// No description provided for @weightHip.
+  ///
+  /// In en, this message translates to:
+  /// **'Hip'**
+  String get weightHip;
 
   /// No description provided for @weightNote.
   ///
@@ -2432,7 +2462,7 @@ abstract class AppLocalizations {
   /// No description provided for @csvImportWeightDesc.
   ///
   /// In en, this message translates to:
-  /// **'Merge weight records from CSV (Date, Time, Weight)'**
+  /// **'Merge weight records from CSV (Date, Time, Weight, optional measurements)'**
   String get csvImportWeightDesc;
 
   /// No description provided for @csvTemplateWeight.

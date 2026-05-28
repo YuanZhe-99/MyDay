@@ -2,7 +2,7 @@ name: my_day
 description: "MyDay!!!!! — Your daily life companion"
 publish_to: 'none'
 
-version: 0.7.7+34
+version: 0.7.8+35
 
 environment:
   sdk: ^3.11.3
@@ -58,6 +58,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  path_provider_platform_interface: ^2.1.2
   flutter_launcher_icons: ^0.14.3
   msix: ^3.16.8
   image: ^4.8.0
@@ -113,7 +114,7 @@ msix_config:
   display_name: MyDay!!!!!
   publisher_display_name: yuanzhe
   identity_name: com.yuanzhe.myday
-  msix_version: 0.7.7.0
+  msix_version: 0.7.8.0
   logo_path: assets/icon/app_icon.png
   capabilities: internetClient
   install_certificate: false

@@ -158,7 +158,7 @@ class ImportExportService {
   }
 
   /// Export weight records as CSV.
-  /// Format matches MyWeight² CSV: Date, Time, Weight (kg)
+  /// Format extends MyWeight² CSV: Date, Time, Weight (kg), optional measurements.
   /// Purpose: Implement the export weight csv behavior for this file.
   /// Inputs: `destDir`.
   /// Returns: `Future<String?>`.
@@ -173,11 +173,20 @@ class ImportExportService {
         ..sort((a, b) => a.datetime.compareTo(b.datetime));
 
       final buf = StringBuffer();
-      buf.writeln('Date, Time, Weight (kg)');
+      buf.writeln('Date, Time, Weight (kg), Bust (cm), Waist (cm), Hip (cm)');
       for (final r in sorted) {
         final date = DateFormat('M/d/yyyy').format(r.datetime);
         final time = DateFormat('HH:mm').format(r.datetime);
-        buf.writeln('$date, $time, ${r.weight.toStringAsFixed(2)}');
+        buf.writeln(
+          [
+            date,
+            time,
+            r.weight.toStringAsFixed(2),
+            _formatOptionalDecimal(r.bustCm),
+            _formatOptionalDecimal(r.waistCm),
+            _formatOptionalDecimal(r.hipCm),
+          ].join(', '),
+        );
       }
 
       final stamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
@@ -265,6 +274,27 @@ class ImportExportService {
     }
     fields.add(buf.toString());
     return fields;
+  }
+
+  /// Purpose: Format an optional CSV numeric value.
+  /// Inputs: `value`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Empty strings keep optional CSV columns backward-compatible.
+  static String _formatOptionalDecimal(double? value) {
+    if (value == null || value <= 0) return '';
+    return value.toStringAsFixed(1);
+  }
+
+  /// Purpose: Parse optional positive CSV numeric values.
+  /// Inputs: `value`.
+  /// Returns: `double?`.
+  /// Side effects: None.
+  /// Notes: Zero, negative, missing, and malformed values are treated as absent.
+  static double? _parseOptionalPositiveDouble(String? value) {
+    final parsed = double.tryParse(value?.trim() ?? '');
+    if (parsed == null || parsed <= 0) return null;
+    return parsed;
   }
 
   /// Import finance transactions from CSV and merge into existing data.
@@ -562,8 +592,7 @@ class ImportExportService {
   }
 
   /// Import weight records from CSV and merge into existing data.
-  /// Supports format: Date, Time, Weight (kg)
-  /// Also supports: Date,Time,Weight (kg) (no spaces after comma)
+  /// Supports old Date/Time/Weight CSV and optional Bust/Waist/Hip cm columns.
   /// Returns (success, importedCount) tuple.
   /// Purpose: Implement the import weight csv behavior for this file.
   /// Inputs: `filePath`.
@@ -593,6 +622,15 @@ class ImportExportService {
         final dateStr = fields[0].trim();
         final timeStr = fields[1].trim();
         final weightStr = fields[2].trim();
+        final bustCm = fields.length > 3
+            ? _parseOptionalPositiveDouble(fields[3])
+            : null;
+        final waistCm = fields.length > 4
+            ? _parseOptionalPositiveDouble(fields[4])
+            : null;
+        final hipCm = fields.length > 5
+            ? _parseOptionalPositiveDouble(fields[5])
+            : null;
 
         // Parse date and time
         DateTime datetime;
@@ -637,7 +675,13 @@ class ImportExportService {
         final weight = double.tryParse(weightStr);
         if (weight == null || weight <= 0) continue;
 
-        final record = WeightRecord(weight: weight, datetime: datetime);
+        final record = WeightRecord(
+          weight: weight,
+          bustCm: bustCm,
+          waistCm: waistCm,
+          hipCm: hipCm,
+          datetime: datetime,
+        );
 
         if (!existingIds.contains(record.id)) {
           records.add(record);

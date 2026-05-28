@@ -19,12 +19,17 @@ import '../models/task.dart';
 class RecurrencePicker extends StatefulWidget {
   final TaskRecurrence? initial;
   final ValueChanged<TaskRecurrence?> onSelected;
+
   /// Purpose: Create a recurrence picker instance.
   /// Inputs: `onSelected`.
   /// Returns: A new `RecurrencePicker` instance.
   /// Side effects: None.
   /// Notes: None.
-  const RecurrencePicker({super.key, required this.initial, required this.onSelected});
+  const RecurrencePicker({
+    super.key,
+    required this.initial,
+    required this.onSelected,
+  });
 
   /// Purpose: Create the mutable state object for this widget.
   /// Inputs: None.
@@ -89,22 +94,33 @@ class _RecurrencePickerState extends State<RecurrencePicker> {
           Text(l10n.todoRecurrence, style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
 
-          // None
-          RadioListTile<RecurrenceType?>(
-            contentPadding: EdgeInsets.zero,
-            value: null,
+          RadioGroup<RecurrenceType?>(
             groupValue: _type,
-            title: Text(l10n.todoRecurrenceNone),
-            onChanged: (_) => widget.onSelected(null),
-          ),
+            onChanged: (value) {
+              if (value == null) {
+                widget.onSelected(null);
+              } else {
+                setState(() => _type = value);
+              }
+            },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // None
+                RadioListTile<RecurrenceType?>(
+                  contentPadding: EdgeInsets.zero,
+                  value: null,
+                  title: Text(l10n.todoRecurrenceNone),
+                ),
 
-          // Every N days
-          RadioListTile<RecurrenceType?>(
-            contentPadding: EdgeInsets.zero,
-            value: RecurrenceType.everyNDays,
-            groupValue: _type,
-            title: Text(l10n.todoRecurrenceEveryNDays(_intervalDays)),
-            onChanged: (v) => setState(() => _type = v),
+                // Every N days
+                RadioListTile<RecurrenceType?>(
+                  contentPadding: EdgeInsets.zero,
+                  value: RecurrenceType.everyNDays,
+                  title: Text(l10n.todoRecurrenceEveryNDays(_intervalDays)),
+                ),
+              ],
+            ),
           ),
           if (_type == RecurrenceType.everyNDays)
             Padding(
@@ -118,24 +134,32 @@ class _RecurrencePickerState extends State<RecurrencePicker> {
                       max: 90,
                       divisions: 89,
                       label: '$_intervalDays',
-                      onChanged: (v) => setState(() => _intervalDays = v.round()),
+                      onChanged: (v) =>
+                          setState(() => _intervalDays = v.round()),
                     ),
                   ),
                   SizedBox(
                     width: 48,
-                    child: Text('$_intervalDays d', textAlign: TextAlign.center),
+                    child: Text(
+                      '$_intervalDays d',
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                 ],
               ),
             ),
 
           // Monthly on day N
-          RadioListTile<RecurrenceType?>(
-            contentPadding: EdgeInsets.zero,
-            value: RecurrenceType.monthlyOnDay,
+          RadioGroup<RecurrenceType?>(
             groupValue: _type,
-            title: Text(l10n.todoRecurrenceMonthlyOnDay(_dayOfMonth)),
-            onChanged: (v) => setState(() => _type = v),
+            onChanged: (value) {
+              if (value != null) setState(() => _type = value);
+            },
+            child: RadioListTile<RecurrenceType?>(
+              contentPadding: EdgeInsets.zero,
+              value: RecurrenceType.monthlyOnDay,
+              title: Text(l10n.todoRecurrenceMonthlyOnDay(_dayOfMonth)),
+            ),
           ),
           if (_type == RecurrenceType.monthlyOnDay)
             Padding(
@@ -165,52 +189,70 @@ class _RecurrencePickerState extends State<RecurrencePicker> {
             ),
 
           // Yearly on month/day
-          RadioListTile<RecurrenceType?>(
-            contentPadding: EdgeInsets.zero,
-            value: RecurrenceType.yearlyOnMonthDay,
+          RadioGroup<RecurrenceType?>(
             groupValue: _type,
-            title: Text(l10n.todoRecurrenceYearlyOnDate(_monthOfYear, _dayOfMonth)),
-            onChanged: (v) => setState(() => _type = v),
+            onChanged: (value) {
+              if (value != null) setState(() => _type = value);
+            },
+            child: RadioListTile<RecurrenceType?>(
+              contentPadding: EdgeInsets.zero,
+              value: RecurrenceType.yearlyOnMonthDay,
+              title: Text(
+                l10n.todoRecurrenceYearlyOnDate(_monthOfYear, _dayOfMonth),
+              ),
+            ),
           ),
           if (_type == RecurrenceType.yearlyOnMonthDay)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
                 children: [
-                  Row(children: [
-                    const SizedBox(width: 40, child: Text('M')),
-                    Expanded(
-                      child: Slider(
-                        value: _monthOfYear.toDouble(),
-                        min: 1,
-                        max: 12,
-                        divisions: 11,
-                        label: '$_monthOfYear',
-                        onChanged: (v) => setState(() => _monthOfYear = v.round()),
+                  Row(
+                    children: [
+                      const SizedBox(width: 40, child: Text('M')),
+                      Expanded(
+                        child: Slider(
+                          value: _monthOfYear.toDouble(),
+                          min: 1,
+                          max: 12,
+                          divisions: 11,
+                          label: '$_monthOfYear',
+                          onChanged: (v) =>
+                              setState(() => _monthOfYear = v.round()),
+                        ),
                       ),
-                    ),
-                    SizedBox(
-                      width: 32,
-                      child: Text('$_monthOfYear', textAlign: TextAlign.center),
-                    ),
-                  ]),
-                  Row(children: [
-                    const SizedBox(width: 40, child: Text('D')),
-                    Expanded(
-                      child: Slider(
-                        value: _dayOfMonth.toDouble(),
-                        min: 1,
-                        max: 31,
-                        divisions: 30,
-                        label: '$_dayOfMonth',
-                        onChanged: (v) => setState(() => _dayOfMonth = v.round()),
+                      SizedBox(
+                        width: 32,
+                        child: Text(
+                          '$_monthOfYear',
+                          textAlign: TextAlign.center,
+                        ),
                       ),
-                    ),
-                    SizedBox(
-                      width: 32,
-                      child: Text('$_dayOfMonth', textAlign: TextAlign.center),
-                    ),
-                  ]),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      const SizedBox(width: 40, child: Text('D')),
+                      Expanded(
+                        child: Slider(
+                          value: _dayOfMonth.toDouble(),
+                          min: 1,
+                          max: 31,
+                          divisions: 30,
+                          label: '$_dayOfMonth',
+                          onChanged: (v) =>
+                              setState(() => _dayOfMonth = v.round()),
+                        ),
+                      ),
+                      SizedBox(
+                        width: 32,
+                        child: Text(
+                          '$_dayOfMonth',
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -231,12 +273,17 @@ class _RecurrencePickerState extends State<RecurrencePicker> {
                     return;
                   }
                   final recurrence = switch (_type!) {
-                    RecurrenceType.everyNDays =>
-                      TaskRecurrence.everyNDays(_intervalDays),
-                    RecurrenceType.monthlyOnDay =>
-                      TaskRecurrence.monthlyOnDay(_dayOfMonth),
+                    RecurrenceType.everyNDays => TaskRecurrence.everyNDays(
+                      _intervalDays,
+                    ),
+                    RecurrenceType.monthlyOnDay => TaskRecurrence.monthlyOnDay(
+                      _dayOfMonth,
+                    ),
                     RecurrenceType.yearlyOnMonthDay =>
-                      TaskRecurrence.yearlyOnMonthDay(_monthOfYear, _dayOfMonth),
+                      TaskRecurrence.yearlyOnMonthDay(
+                        _monthOfYear,
+                        _dayOfMonth,
+                      ),
                   };
                   widget.onSelected(recurrence);
                 },

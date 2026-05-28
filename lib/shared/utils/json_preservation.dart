@@ -540,7 +540,17 @@ const _intimacyDataSchema = JsonPreservationSchema(
 );
 
 const _weightRecordSchema = JsonPreservationSchema(
-  knownKeys: {'id', 'weight', 'bodyFat', 'datetime', 'notes', 'modifiedAt'},
+  knownKeys: {
+    'id',
+    'weight',
+    'bodyFat',
+    'bustCm',
+    'waistCm',
+    'hipCm',
+    'datetime',
+    'notes',
+    'modifiedAt',
+  },
 );
 
 const _weightDataSchema = JsonPreservationSchema(

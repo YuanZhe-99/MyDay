@@ -717,6 +717,9 @@ class LocalApiServer {
             (r) => {
               'id': r.id,
               'weight': r.weight,
+              'bustCm': r.bustCm,
+              'waistCm': r.waistCm,
+              'hipCm': r.hipCm,
               'date': DateFormat('yyyy-MM-dd').format(r.datetime),
             },
           )
@@ -736,12 +739,21 @@ class LocalApiServer {
     if (weight == null || weight <= 0) {
       return _error(400, 'valid weight is required');
     }
+    final bustCm = _optionalPositiveDouble(body['bustCm']);
+    final waistCm = _optionalPositiveDouble(body['waistCm']);
+    final hipCm = _optionalPositiveDouble(body['hipCm']);
     DateTime? date;
     if (body['date'] != null) {
       date = DateTime.tryParse(body['date'] as String);
     }
 
-    final record = WeightRecord(weight: weight, datetime: date);
+    final record = WeightRecord(
+      weight: weight,
+      bustCm: bustCm,
+      waistCm: waistCm,
+      hipCm: hipCm,
+      datetime: date,
+    );
     final data = await WeightStorage.load() ?? WeightData(records: []);
     await WeightStorage.save(
       WeightData(
@@ -828,6 +840,21 @@ class LocalApiServer {
     jsonEncode(data),
     headers: {'Content-Type': 'application/json'},
   );
+
+  /// Purpose: Parse an optional positive numeric API field.
+  /// Inputs: `value`.
+  /// Returns: `double?`.
+  /// Side effects: None.
+  /// Notes: Non-positive and non-numeric values are treated as absent.
+  static double? _optionalPositiveDouble(Object? value) {
+    final parsed = switch (value) {
+      final num number => number.toDouble(),
+      final String text => double.tryParse(text.trim()),
+      _ => null,
+    };
+    if (parsed == null || parsed <= 0) return null;
+    return parsed;
+  }
 
   /// Purpose: Provide the internal error helper for this file.
   /// Inputs: `status`, `message`.

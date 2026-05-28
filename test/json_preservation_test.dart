@@ -16,6 +16,9 @@ void main() {
         {
           'id': 'record-1',
           'weight': 70,
+          'bustCm': 88,
+          'waistCm': 70,
+          'hipCm': 92,
           'datetime': '2026-04-29T08:00:00.000',
           'notes': 'old note',
           'modifiedAt': '2026-04-29T08:00:00.000',
@@ -48,5 +51,8 @@ void main() {
     expect(record['futureRecordField'], ['keep', 'me']);
     expect(preserved.containsKey('height'), isFalse);
     expect(record.containsKey('notes'), isFalse);
+    expect(record.containsKey('bustCm'), isFalse);
+    expect(record.containsKey('waistCm'), isFalse);
+    expect(record.containsKey('hipCm'), isFalse);
   });
 }

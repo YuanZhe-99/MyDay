@@ -1161,10 +1161,25 @@ class AppLocalizationsZh extends AppLocalizations {
   String get weightAddRecord => '添加记录';
 
   @override
+  String get weightEditRecord => '编辑记录';
+
+  @override
   String get weightKg => '体重（kg）';
 
   @override
   String get weightHeightCm => '身高（cm）';
+
+  @override
+  String get weightMeasurements => '三围';
+
+  @override
+  String get weightBust => '胸围';
+
+  @override
+  String get weightWaist => '腰围';
+
+  @override
+  String get weightHip => '臀围';
 
   @override
   String get weightNote => '备注';
@@ -1215,7 +1230,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get csvImportWeight => '导入体重 CSV';
 
   @override
-  String get csvImportWeightDesc => '从 CSV 合并体重记录（日期、时间、体重）';
+  String get csvImportWeightDesc => '从 CSV 合并体重记录（日期、时间、体重，可选三围）';
 
   @override
   String get csvTemplateWeight => '下载体重模板';
@@ -2856,10 +2871,25 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get weightAddRecord => '新增記錄';
 
   @override
+  String get weightEditRecord => '編輯記錄';
+
+  @override
   String get weightKg => '體重（kg）';
 
   @override
   String get weightHeightCm => '身高（cm）';
+
+  @override
+  String get weightMeasurements => '三圍';
+
+  @override
+  String get weightBust => '胸圍';
+
+  @override
+  String get weightWaist => '腰圍';
+
+  @override
+  String get weightHip => '臀圍';
 
   @override
   String get weightNote => '備註';
@@ -2910,7 +2940,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get csvImportWeight => '匯入體重 CSV';
 
   @override
-  String get csvImportWeightDesc => '從 CSV 合併體重記錄（日期、時間、體重）';
+  String get csvImportWeightDesc => '從 CSV 合併體重記錄（日期、時間、體重，可選三圍）';
 
   @override
   String get csvTemplateWeight => '下載體重模板';

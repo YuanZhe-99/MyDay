@@ -1163,10 +1163,25 @@ class AppLocalizationsJa extends AppLocalizations {
   String get weightAddRecord => '記録を追加';
 
   @override
+  String get weightEditRecord => '記録を編集';
+
+  @override
   String get weightKg => '体重（kg）';
 
   @override
   String get weightHeightCm => '身長（cm）';
+
+  @override
+  String get weightMeasurements => 'スリーサイズ';
+
+  @override
+  String get weightBust => 'バスト';
+
+  @override
+  String get weightWaist => 'ウエスト';
+
+  @override
+  String get weightHip => 'ヒップ';
 
   @override
   String get weightNote => 'メモ';
@@ -1217,7 +1232,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get csvImportWeight => '体重 CSV インポート';
 
   @override
-  String get csvImportWeightDesc => 'CSVから体重記録を統合（日付、時刻、体重）';
+  String get csvImportWeightDesc => 'CSVから体重記録を統合（日付、時刻、体重、任意のスリーサイズ）';
 
   @override
   String get csvTemplateWeight => '体重テンプレートをダウンロード';

@@ -29,8 +29,8 @@ Maintenance rules:
 - **Package id:** Dart package `my_day`; Android namespace/application id `com.yuanzhe.my_day`; MSIX identity `com.yuanzhe.myday`; macOS bundle id `com.yuanzhe.myDay`.
 - **Author / publisher:** `yuanzhe`.
 - **License:** GPL-3.0.
-- **Current version:** `0.7.7+34` in `pubspec.yaml`, `0.7.7.0` in `msix_config.msix_version`, and `0.7.7` in `installer.iss`.
-- **Latest tag at the time this guide was written:** `v0.7.7`.
+- **Current version:** `0.7.8+35` in `pubspec.yaml`, `0.7.8.0` in `msix_config.msix_version`, and `0.7.8` in `installer.iss`.
+- **Latest tag at the time this guide was written:** `v0.7.8`.
 - **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.41.6`.
 - **Primary platforms:** Windows x64/ARM64, Android APK/AAB, iOS sideload IPA, and macOS DMG. Linux project support exists for desktop runtime features but is not a primary release artifact.
 - **Repository:** Use the current environment's workspace root / repository path instead of hard-coding an absolute local path.
@@ -219,11 +219,11 @@ The UI supports record list sorting/filtering, a limited default recent-history 
 
 Main model: `lib/features/weight/models/weight_record.dart`.
 
-- `WeightRecord`: id, weight kg, optional body fat, datetime, notes, `modifiedAt`.
+- `WeightRecord`: id, weight kg, optional body fat, optional bust/waist/hip circumference in cm, datetime, notes, `modifiedAt`.
 - `WeightData`: optional height, records, reminder mode (`none`, `once`, `twice`), morning/evening reminder times, `reminderGraceMinutes` default 180, and `settingsModifiedAt`.
 - BMI is computed by `WeightData.calculateBMI()`.
 
-The Weight page includes add/edit records, chart range selection, raw and EWMA trend display, BMI/summary cards, weekly grouped history, "show all" history, and reminder settings. A reminder is skipped when a record exists inside the configured pre-reminder grace window.
+The Weight page includes add/edit records, optional bust/waist/hip measurement entry, chart range selection, raw and EWMA weight trend display, dual-axis measurement trends with kg on the left and cm on the right, BMI/summary cards, weekly grouped history, "show all" history, and reminder settings. A reminder is skipped when a record exists inside the configured pre-reminder grace window.
 
 ### Settings
 
@@ -313,8 +313,8 @@ Auto-sync silently ignores failures; users can run manual sync from the WebDAV p
   - `GET /finance/transactions`
   - `POST /finance/add_transaction`
   - `GET /finance/subscriptions`
-  - `GET /weight/list`
-  - `POST /weight/add`
+  - `GET /weight/list` including optional `bustCm`, `waistCm`, and `hipCm`
+  - `POST /weight/add` accepting optional `bustCm`, `waistCm`, and `hipCm`
   - `GET /weight/stats`
 
 Do not commit real API credentials. If endpoints or payloads change, update this guide.
@@ -340,7 +340,7 @@ Default app data directory is `Documents/MyDay/` on desktop or the platform app 
 | Finance | `finance_data.json` | Yes | Accounts including optional fee waiver criteria, categories, transactions, subscriptions, finance settings, transaction account picker settings |
 | Exchange rates | `exchange_rates.json` | Yes | Rate snapshots and `lastFetchedAt` |
 | Intimacy | `intimacy_data.json` | Yes | Partners, toys, positions, records, timer history/session including thrust counts, sort settings |
-| Weight | `weight_data.json` | Yes | Height, records, reminders, grace window |
+| Weight | `weight_data.json` | Yes | Height, records including optional bust/waist/hip cm fields, reminders, grace window |
 | WebDAV config | `webdav_config.json` | No | User server config and credentials; moved with custom storage path |
 | Sync base | `.sync_base/*.json` | No | Last-synced snapshots for three-way merge |
 | Images | `images/*` | Yes | Referenced finance/intimacy images sync; backups include images |
@@ -451,3 +451,4 @@ Use the narrowest relevant command set for verification. For sync/model/persiste
 - `v0.7.5`: Intimacy stopwatch sessions persist across accidental page/app exits, timer history entries can be confirmed and restored as running sessions, intimacy records track condom use, CSV import/export includes the condom field, and versions are unified to `0.7.5+32` / MSIX `0.7.5.0` / installer `0.7.5`.
 - `v0.7.6`: Intimacy timer adds a non-negative x100 thrust counter with +100/-100 controls, timer sessions/history preserve that count for record prefill and restoration, and versions are unified to `0.7.6+33` / MSIX `0.7.6.0` / installer `0.7.6`.
 - `v0.7.7`: Intimacy trend charts use higher-contrast colors for combined data series, condom-protected record tiles show affirmative status text, and versions are unified to `0.7.7+34` / MSIX `0.7.7.0` / installer `0.7.7`.
+- `v0.7.8`: Weight records support optional bust/waist/hip measurements in cm, the weight trend chart adds dual-axis measurement lines with kg left and cm right, weight CSV/API flows include the new fields, and versions are unified to `0.7.8+35` / MSIX `0.7.8.0` / installer `0.7.8`.

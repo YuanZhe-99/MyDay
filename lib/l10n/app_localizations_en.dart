@@ -1180,10 +1180,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get weightAddRecord => 'Add Record';
 
   @override
+  String get weightEditRecord => 'Edit Record';
+
+  @override
   String get weightKg => 'Weight (kg)';
 
   @override
   String get weightHeightCm => 'Height (cm)';
+
+  @override
+  String get weightMeasurements => 'Measurements';
+
+  @override
+  String get weightBust => 'Bust';
+
+  @override
+  String get weightWaist => 'Waist';
+
+  @override
+  String get weightHip => 'Hip';
 
   @override
   String get weightNote => 'Note';
@@ -1235,7 +1250,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get csvImportWeightDesc =>
-      'Merge weight records from CSV (Date, Time, Weight)';
+      'Merge weight records from CSV (Date, Time, Weight, optional measurements)';
 
   @override
   String get csvTemplateWeight => 'Download Weight Template';

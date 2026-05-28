@@ -31,78 +31,103 @@ class ImportExportPage extends StatelessWidget {
       ),
       body: ListView(
         children: [
-          _Section(title: AppLocalizations.of(context)!.settingsExportSection, children: [
-            ListTile(
-              leading: const Icon(Icons.file_download_outlined),
-              title: Text(AppLocalizations.of(context)!.settingsExportJSON),
-              subtitle: Text(AppLocalizations.of(context)!.settingsExportJSONPlaintext),
-              onTap: () => _exportJSON(context),
-            ),
-            ListTile(
-              leading: const Icon(Icons.table_chart_outlined),
-              title: Text(AppLocalizations.of(context)!.csvExportFinance),
-              subtitle: Text(AppLocalizations.of(context)!.csvExportFinanceDesc),
-              onTap: () => _exportCSV(context, _CSVType.finance),
-            ),
-            ListTile(
-              leading: const Icon(Icons.table_chart_outlined),
-              title: Text(AppLocalizations.of(context)!.csvExportIntimacy),
-              subtitle: Text(AppLocalizations.of(context)!.csvExportIntimacyDesc),
-              onTap: () => _exportCSV(context, _CSVType.intimacy),
-            ),
-            ListTile(
-              leading: const Icon(Icons.table_chart_outlined),
-              title: Text(AppLocalizations.of(context)!.csvExportWeight),
-              subtitle: Text(AppLocalizations.of(context)!.csvExportWeightDesc),
-              onTap: () => _exportCSV(context, _CSVType.weight),
-            ),
-          ]),
-          _Section(title: AppLocalizations.of(context)!.settingsImportSection, children: [
-            ListTile(
-              leading: const Icon(Icons.file_upload_outlined),
-              title: Text(AppLocalizations.of(context)!.settingsImport),
-              subtitle: Text(AppLocalizations.of(context)!.settingsImportRestore),
-              onTap: () => _importJSON(context),
-            ),
-            ListTile(
-              leading: const Icon(Icons.table_chart_outlined),
-              title: Text(AppLocalizations.of(context)!.csvImportFinance),
-              subtitle: Text(AppLocalizations.of(context)!.csvImportFinanceDesc),
-              onTap: () => _importCSV(context, _CSVType.finance),
-            ),
-            ListTile(
-              leading: const Icon(Icons.table_chart_outlined),
-              title: Text(AppLocalizations.of(context)!.csvImportIntimacy),
-              subtitle: Text(AppLocalizations.of(context)!.csvImportIntimacyDesc),
-              onTap: () => _importCSV(context, _CSVType.intimacy),
-            ),
-            ListTile(
-              leading: const Icon(Icons.table_chart_outlined),
-              title: Text(AppLocalizations.of(context)!.csvImportWeight),
-              subtitle: Text(AppLocalizations.of(context)!.csvImportWeightDesc),
-              onTap: () => _importCSV(context, _CSVType.weight),
-            ),
-          ]),
-          _Section(title: AppLocalizations.of(context)!.csvTemplate, children: [
-            ListTile(
-              leading: const Icon(Icons.description_outlined),
-              title: Text(AppLocalizations.of(context)!.csvTemplateFinance),
-              trailing: const Icon(Icons.download),
-              onTap: () => _saveTemplate(context, 'template_finance.csv'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.description_outlined),
-              title: Text(AppLocalizations.of(context)!.csvTemplateIntimacy),
-              trailing: const Icon(Icons.download),
-              onTap: () => _saveTemplate(context, 'template_intimacy.csv'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.description_outlined),
-              title: Text(AppLocalizations.of(context)!.csvTemplateWeight),
-              trailing: const Icon(Icons.download),
-              onTap: () => _saveTemplate(context, 'template_weight.csv'),
-            ),
-          ]),
+          _Section(
+            title: AppLocalizations.of(context)!.settingsExportSection,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.file_download_outlined),
+                title: Text(AppLocalizations.of(context)!.settingsExportJSON),
+                subtitle: Text(
+                  AppLocalizations.of(context)!.settingsExportJSONPlaintext,
+                ),
+                onTap: () => _exportJSON(context),
+              ),
+              ListTile(
+                leading: const Icon(Icons.table_chart_outlined),
+                title: Text(AppLocalizations.of(context)!.csvExportFinance),
+                subtitle: Text(
+                  AppLocalizations.of(context)!.csvExportFinanceDesc,
+                ),
+                onTap: () => _exportCSV(context, _CSVType.finance),
+              ),
+              ListTile(
+                leading: const Icon(Icons.table_chart_outlined),
+                title: Text(AppLocalizations.of(context)!.csvExportIntimacy),
+                subtitle: Text(
+                  AppLocalizations.of(context)!.csvExportIntimacyDesc,
+                ),
+                onTap: () => _exportCSV(context, _CSVType.intimacy),
+              ),
+              ListTile(
+                leading: const Icon(Icons.table_chart_outlined),
+                title: Text(AppLocalizations.of(context)!.csvExportWeight),
+                subtitle: Text(
+                  AppLocalizations.of(context)!.csvExportWeightDesc,
+                ),
+                onTap: () => _exportCSV(context, _CSVType.weight),
+              ),
+            ],
+          ),
+          _Section(
+            title: AppLocalizations.of(context)!.settingsImportSection,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.file_upload_outlined),
+                title: Text(AppLocalizations.of(context)!.settingsImport),
+                subtitle: Text(
+                  AppLocalizations.of(context)!.settingsImportRestore,
+                ),
+                onTap: () => _importJSON(context),
+              ),
+              ListTile(
+                leading: const Icon(Icons.table_chart_outlined),
+                title: Text(AppLocalizations.of(context)!.csvImportFinance),
+                subtitle: Text(
+                  AppLocalizations.of(context)!.csvImportFinanceDesc,
+                ),
+                onTap: () => _importCSV(context, _CSVType.finance),
+              ),
+              ListTile(
+                leading: const Icon(Icons.table_chart_outlined),
+                title: Text(AppLocalizations.of(context)!.csvImportIntimacy),
+                subtitle: Text(
+                  AppLocalizations.of(context)!.csvImportIntimacyDesc,
+                ),
+                onTap: () => _importCSV(context, _CSVType.intimacy),
+              ),
+              ListTile(
+                leading: const Icon(Icons.table_chart_outlined),
+                title: Text(AppLocalizations.of(context)!.csvImportWeight),
+                subtitle: Text(
+                  AppLocalizations.of(context)!.csvImportWeightDesc,
+                ),
+                onTap: () => _importCSV(context, _CSVType.weight),
+              ),
+            ],
+          ),
+          _Section(
+            title: AppLocalizations.of(context)!.csvTemplate,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.description_outlined),
+                title: Text(AppLocalizations.of(context)!.csvTemplateFinance),
+                trailing: const Icon(Icons.download),
+                onTap: () => _saveTemplate(context, 'template_finance.csv'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.description_outlined),
+                title: Text(AppLocalizations.of(context)!.csvTemplateIntimacy),
+                trailing: const Icon(Icons.download),
+                onTap: () => _saveTemplate(context, 'template_intimacy.csv'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.description_outlined),
+                title: Text(AppLocalizations.of(context)!.csvTemplateWeight),
+                trailing: const Icon(Icons.download),
+                onTap: () => _saveTemplate(context, 'template_weight.csv'),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -122,11 +147,15 @@ class ImportExportPage extends StatelessWidget {
     if (!context.mounted) return;
     if (path != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.settingsExportSuccess)),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.settingsExportSuccess),
+        ),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.settingsExportFailed)),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.settingsExportFailed),
+        ),
       );
     }
   }
@@ -138,29 +167,33 @@ class ImportExportPage extends StatelessWidget {
   /// Notes: Internal helper used within this file only.
   Future<void> _exportCSV(BuildContext context, _CSVType type) async {
     final l10n = AppLocalizations.of(context)!;
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(switch (type) {
-            _CSVType.finance => l10n.csvExportFinance,
-            _CSVType.intimacy => l10n.csvExportIntimacy,
-            _CSVType.weight => l10n.csvExportWeight,
-          }),
+          _CSVType.finance => l10n.csvExportFinance,
+          _CSVType.intimacy => l10n.csvExportIntimacy,
+          _CSVType.weight => l10n.csvExportWeight,
+        }),
         content: Text(l10n.settingsExportCSVWarning),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l10n.commonCancel)),
+            onPressed: () => navigator.pop(false),
+            child: Text(l10n.commonCancel),
+          ),
           FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(l10n.settingsExportSection)),
+            onPressed: () => navigator.pop(true),
+            child: Text(l10n.settingsExportSection),
+          ),
         ],
       ),
     );
     if (confirm != true) return;
 
     final dir = await FilePicker.platform.getDirectoryPath(
-      dialogTitle: AppLocalizations.of(context)!.filePickerExportLocation,
+      dialogTitle: l10n.filePickerExportLocation,
     );
     if (dir == null) return;
     final path = switch (type) {
@@ -170,11 +203,11 @@ class ImportExportPage extends StatelessWidget {
     };
     if (!context.mounted) return;
     if (path != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(content: Text(l10n.settingsExportSuccess)),
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(content: Text(l10n.settingsExportFailed)),
       );
     }
@@ -186,26 +219,30 @@ class ImportExportPage extends StatelessWidget {
   /// Side effects: May update UI state or trigger user-facing flows.
   /// Notes: Internal helper used within this file only.
   Future<void> _importJSON(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(AppLocalizations.of(context)!.settingsImportData),
-        content: Text(
-            AppLocalizations.of(context)!.settingsImportConfirm),
+        title: Text(l10n.settingsImportData),
+        content: Text(l10n.settingsImportConfirm),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(AppLocalizations.of(context)!.commonCancel)),
+            onPressed: () => navigator.pop(false),
+            child: Text(l10n.commonCancel),
+          ),
           FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(AppLocalizations.of(context)!.settingsImportSection)),
+            onPressed: () => navigator.pop(true),
+            child: Text(l10n.settingsImportSection),
+          ),
         ],
       ),
     );
     if (confirm != true) return;
 
     final result = await FilePicker.platform.pickFiles(
-      dialogTitle: AppLocalizations.of(context)!.filePickerBackupFile,
+      dialogTitle: l10n.filePickerBackupFile,
       type: FileType.custom,
       allowedExtensions: ['zip'],
     );
@@ -216,9 +253,11 @@ class ImportExportPage extends StatelessWidget {
 
     final ok = await ImportExportService.importZIP(filePath);
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
+    messenger.showSnackBar(
       SnackBar(
-        content: Text(ok ? AppLocalizations.of(context)!.settingsImportSuccess : AppLocalizations.of(context)!.settingsImportFailed),
+        content: Text(
+          ok ? l10n.settingsImportSuccess : l10n.settingsImportFailed,
+        ),
       ),
     );
   }
@@ -230,29 +269,33 @@ class ImportExportPage extends StatelessWidget {
   /// Notes: Internal helper used within this file only.
   Future<void> _importCSV(BuildContext context, _CSVType type) async {
     final l10n = AppLocalizations.of(context)!;
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(switch (type) {
-            _CSVType.finance => l10n.csvImportFinance,
-            _CSVType.intimacy => l10n.csvImportIntimacy,
-            _CSVType.weight => l10n.csvImportWeight,
-          }),
+          _CSVType.finance => l10n.csvImportFinance,
+          _CSVType.intimacy => l10n.csvImportIntimacy,
+          _CSVType.weight => l10n.csvImportWeight,
+        }),
         content: Text(l10n.csvImportConfirm),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l10n.commonCancel)),
+            onPressed: () => navigator.pop(false),
+            child: Text(l10n.commonCancel),
+          ),
           FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(l10n.settingsImportSection)),
+            onPressed: () => navigator.pop(true),
+            child: Text(l10n.settingsImportSection),
+          ),
         ],
       ),
     );
     if (confirm != true) return;
 
     final result = await FilePicker.platform.pickFiles(
-      dialogTitle: AppLocalizations.of(context)!.filePickerCsvFile,
+      dialogTitle: l10n.filePickerCsvFile,
       type: FileType.custom,
       allowedExtensions: ['csv'],
     );
@@ -263,7 +306,9 @@ class ImportExportPage extends StatelessWidget {
 
     final (ok, count) = switch (type) {
       _CSVType.finance => await ImportExportService.importFinanceCSV(filePath),
-      _CSVType.intimacy => await ImportExportService.importIntimacyCSV(filePath),
+      _CSVType.intimacy => await ImportExportService.importIntimacyCSV(
+        filePath,
+      ),
       _CSVType.weight => await ImportExportService.importWeightCSV(filePath),
     };
 
@@ -272,14 +317,14 @@ class ImportExportPage extends StatelessWidget {
     }
 
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
+    messenger.showSnackBar(
       SnackBar(
         content: Text(
           !ok
               ? l10n.csvImportFailed
               : count == 0
-                  ? l10n.csvImportEmpty
-                  : l10n.csvImportSuccess(count),
+              ? l10n.csvImportEmpty
+              : l10n.csvImportSuccess(count),
         ),
       ),
     );
@@ -302,9 +347,7 @@ class ImportExportPage extends StatelessWidget {
 
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(AppLocalizations.of(context)!.csvTemplateSaved),
-      ),
+      SnackBar(content: Text(AppLocalizations.of(context)!.csvTemplateSaved)),
     );
   }
 }
@@ -314,6 +357,7 @@ enum _CSVType { finance, intimacy, weight }
 class _Section extends StatelessWidget {
   final String title;
   final List<Widget> children;
+
   /// Purpose: Create a section instance.
   /// Inputs: `children`.
   /// Returns: A new `_Section` instance.
@@ -333,10 +377,12 @@ class _Section extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-          child: Text(title,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                  )),
+          child: Text(
+            title,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
         ),
         ...children,
       ],

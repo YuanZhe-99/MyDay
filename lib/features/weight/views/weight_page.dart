@@ -14,6 +14,25 @@ import '../../../shared/widgets/unsaved_changes_guard.dart';
 import '../models/weight_record.dart';
 import '../services/weight_storage.dart';
 
+const Color _weightChartColor = Color(0xFF1565C0);
+const Color _weightTrendChartColor = Color(0xFF2E7D32);
+const Color _bustChartColor = Color(0xFFD81B60);
+const Color _waistChartColor = Color(0xFFF57C00);
+const Color _hipChartColor = Color(0xFF6A1B9A);
+
+/// Purpose: Create a decimal text input formatter with a fixed precision limit.
+/// Inputs: `decimalPlaces`.
+/// Returns: `TextInputFormatter`.
+/// Side effects: None.
+/// Notes: Allows temporary empty and decimal-point text while editing.
+TextInputFormatter _decimalInputFormatter(int decimalPlaces) {
+  return TextInputFormatter.withFunction((oldValue, newValue) {
+    if (newValue.text.isEmpty) return newValue;
+    final pattern = RegExp('^\\d*\\.?\\d{0,$decimalPlaces}\$');
+    return pattern.hasMatch(newValue.text) ? newValue : oldValue;
+  });
+}
+
 class WeightPage extends StatefulWidget {
   /// Purpose: Create a weight page instance.
   /// Inputs: None.
@@ -580,33 +599,68 @@ class _WeightPageState extends State<WeightPage> {
             ],
           ),
           const SizedBox(height: 8),
-          Row(
+          Wrap(
+            spacing: 12,
+            runSpacing: 6,
             children: [
-              Container(width: 16, height: 2, color: theme.colorScheme.primary),
-              const SizedBox(width: 4),
-              Text(l10n.weightRaw, style: theme.textTheme.labelSmall),
-              const SizedBox(width: 16),
-              Container(
-                width: 16,
-                height: 2,
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(
-                      color: theme.colorScheme.tertiary,
-                      width: 2,
-                      strokeAlign: BorderSide.strokeAlignCenter,
-                    ),
-                  ),
-                ),
+              _buildChartLegendItem(
+                _weightChartColor,
+                theme.textTheme.labelSmall,
+                l10n.weightRaw,
               ),
-              const SizedBox(width: 4),
-              Text(l10n.weightTrend, style: theme.textTheme.labelSmall),
+              _buildChartLegendItem(
+                _weightTrendChartColor,
+                theme.textTheme.labelSmall,
+                l10n.weightTrend,
+                dashed: true,
+              ),
+              _buildChartLegendItem(
+                _bustChartColor,
+                theme.textTheme.labelSmall,
+                l10n.weightBust,
+              ),
+              _buildChartLegendItem(
+                _waistChartColor,
+                theme.textTheme.labelSmall,
+                l10n.weightWaist,
+              ),
+              _buildChartLegendItem(
+                _hipChartColor,
+                theme.textTheme.labelSmall,
+                l10n.weightHip,
+              ),
             ],
           ),
           const SizedBox(height: 8),
           SizedBox(height: 220, child: _buildChart(theme, l10n)),
         ],
       ),
+    );
+  }
+
+  /// Purpose: Build a compact line legend item for the trend chart.
+  /// Inputs: `color`, `labelStyle`, `label`, `dashed`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  Widget _buildChartLegendItem(
+    Color color,
+    TextStyle? labelStyle,
+    String label, {
+    bool dashed = false,
+  }) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (dashed) ...[
+          Container(width: 8, height: 2, color: color),
+          const SizedBox(width: 2),
+          Container(width: 6, height: 2, color: color.withValues(alpha: 0.7)),
+        ] else
+          Container(width: 16, height: 2, color: color),
+        const SizedBox(width: 4),
+        Text(label, style: labelStyle),
+      ],
     );
   }
 
@@ -656,10 +710,41 @@ class _WeightPageState extends State<WeightPage> {
     final allSorted = List<WeightRecord>.from(_records)
       ..sort((a, b) => a.datetime.compareTo(b.datetime));
     final ewmaSpots = _buildWeightEwmaSpots(allSorted, data.first.datetime);
+    final bustSpots = _buildMeasurementSpots(data, (record) => record.bustCm);
+    final waistSpots = _buildMeasurementSpots(data, (record) => record.waistCm);
+    final hipSpots = _buildMeasurementSpots(data, (record) => record.hipCm);
+    final allMeasurementSpots = [...bustSpots, ...waistSpots, ...hipSpots];
 
     final minW = data.map((r) => r.weight).reduce(math.min);
     final maxW = data.map((r) => r.weight).reduce(math.max);
     final yPad = math.max((maxW - minW) * 0.2, 0.5);
+    final weightMinY = minW - yPad;
+    final weightMaxY = maxW + yPad;
+    final measurementRange = _measurementAxisRange(allMeasurementSpots);
+
+    /// Purpose: Scale a centimeter value into the weight chart coordinate space.
+    /// Inputs: `value`.
+    /// Returns: `double`.
+    /// Side effects: None.
+    /// Notes: Internal helper used within this function only.
+    double scaleMeasurement(double value) {
+      final (minCm, maxCm) = measurementRange;
+      if (maxCm == minCm) return (weightMinY + weightMaxY) / 2;
+      final normalized = (value - minCm) / (maxCm - minCm);
+      return weightMinY + normalized * (weightMaxY - weightMinY);
+    }
+
+    /// Purpose: Convert a scaled chart y-value back to centimeters.
+    /// Inputs: `value`.
+    /// Returns: `double`.
+    /// Side effects: None.
+    /// Notes: Internal helper used within this function only.
+    double unscaleMeasurement(double value) {
+      final (minCm, maxCm) = measurementRange;
+      if (weightMaxY == weightMinY) return minCm;
+      final normalized = (value - weightMinY) / (weightMaxY - weightMinY);
+      return minCm + normalized * (maxCm - minCm);
+    }
 
     return LineChart(
       LineChartData(
@@ -705,22 +790,42 @@ class _WeightPageState extends State<WeightPage> {
           ),
           rightTitles: AxisTitles(
             sideTitles: SideTitles(
+              showTitles: allMeasurementSpots.isNotEmpty,
+              reservedSize: 36,
+              interval: math.max((weightMaxY - weightMinY) / 4, 1),
+              getTitlesWidget: (value, meta) {
+                final cm = unscaleMeasurement(value);
+                return SideTitleWidget(
+                  meta: meta,
+                  child: Text(
+                    cm.toStringAsFixed(0),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      fontSize: 9,
+                      color: _waistChartColor,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
               showTitles: true,
               reservedSize: 36,
               getTitlesWidget: (value, meta) => SideTitleWidget(
                 meta: meta,
                 child: Text(
                   value.toStringAsFixed(0),
-                  style: theme.textTheme.labelSmall?.copyWith(fontSize: 10),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    fontSize: 9,
+                    color: _weightChartColor,
+                  ),
                 ),
               ),
             ),
-          ),
-          topTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-          leftTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
           ),
         ),
         borderData: FlBorderData(
@@ -729,27 +834,27 @@ class _WeightPageState extends State<WeightPage> {
             color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
           ),
         ),
-        minY: minW - yPad,
-        maxY: maxW + yPad,
+        minY: weightMinY,
+        maxY: weightMaxY,
         lineBarsData: [
           // Raw weight data line
           LineChartBarData(
             spots: spots,
             isCurved: false,
-            color: theme.colorScheme.primary,
+            color: _weightChartColor,
             barWidth: 2,
             dotData: FlDotData(
               show: data.length <= 30,
               getDotPainter: (spot, percent, barData, index) =>
                   FlDotCirclePainter(
                     radius: 3,
-                    color: theme.colorScheme.primary,
+                    color: _weightChartColor,
                     strokeWidth: 0,
                   ),
             ),
             belowBarData: BarAreaData(
               show: true,
-              color: theme.colorScheme.primary.withValues(alpha: 0.1),
+              color: _weightChartColor.withValues(alpha: 0.1),
             ),
           ),
           // EWMA trend line (dashed)
@@ -757,35 +862,132 @@ class _WeightPageState extends State<WeightPage> {
             spots: ewmaSpots,
             isCurved: true,
             curveSmoothness: 0.3,
-            color: theme.colorScheme.tertiary,
+            color: _weightTrendChartColor,
             barWidth: 2,
             dashArray: [6, 4],
             dotData: const FlDotData(show: false),
           ),
+          _buildMeasurementChartLine(
+            bustSpots,
+            _bustChartColor,
+            scaleMeasurement,
+          ),
+          _buildMeasurementChartLine(
+            waistSpots,
+            _waistChartColor,
+            scaleMeasurement,
+          ),
+          _buildMeasurementChartLine(
+            hipSpots,
+            _hipChartColor,
+            scaleMeasurement,
+          ),
         ],
         lineTouchData: LineTouchData(
           touchTooltipData: LineTouchTooltipData(
+            getTooltipColor: (spot) => switch (spot.barIndex) {
+              2 => _bustChartColor,
+              3 => _waistChartColor,
+              4 => _hipChartColor,
+              _ => _weightChartColor,
+            },
             getTooltipItems: (spots) => spots.asMap().entries.map((entry) {
               final s = entry.value;
               final date = DateTime.fromMillisecondsSinceEpoch(s.x.toInt());
-              if (entry.key == 0) {
+              if (s.barIndex == 0) {
                 return LineTooltipItem(
                   '${s.y.toStringAsFixed(1)} ${l10n.weightUnitKg}\n${DateFormat('MMM d').format(date)}',
-                  TextStyle(
-                    color: theme.colorScheme.onPrimary,
+                  const TextStyle(
+                    color: Colors.white,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
                 );
-              } else {
+              } else if (s.barIndex == 1) {
                 return LineTooltipItem(
-                  '${AppLocalizations.of(context)!.weightTrend}: ${s.y.toStringAsFixed(1)} ${AppLocalizations.of(context)!.weightUnitKg}',
-                  TextStyle(color: theme.colorScheme.onPrimary, fontSize: 11),
+                  '${l10n.weightTrend}: ${s.y.toStringAsFixed(1)} ${l10n.weightUnitKg}',
+                  const TextStyle(color: Colors.white, fontSize: 11),
+                );
+              } else {
+                final label = switch (s.barIndex) {
+                  2 => l10n.weightBust,
+                  3 => l10n.weightWaist,
+                  4 => l10n.weightHip,
+                  _ => l10n.weightMeasurements,
+                };
+                return LineTooltipItem(
+                  '$label: ${unscaleMeasurement(s.y).toStringAsFixed(1)} cm\n${DateFormat('MMM d').format(date)}',
+                  const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
                 );
               }
             }).toList(),
           ),
         ),
+      ),
+    );
+  }
+
+  /// Purpose: Build chart spots for one optional measurement field.
+  /// Inputs: `data`, `selectValue`.
+  /// Returns: `List<FlSpot>`.
+  /// Side effects: None.
+  /// Notes: Zero, negative, and absent values are omitted from measurement series.
+  List<FlSpot> _buildMeasurementSpots(
+    List<WeightRecord> data,
+    double? Function(WeightRecord record) selectValue,
+  ) {
+    return data
+        .map((record) {
+          final value = selectValue(record);
+          if (value == null || value <= 0) return null;
+          return FlSpot(
+            record.datetime.millisecondsSinceEpoch.toDouble(),
+            value,
+          );
+        })
+        .whereType<FlSpot>()
+        .toList();
+  }
+
+  /// Purpose: Return a padded centimeter axis range for measurement series.
+  /// Inputs: `spots`.
+  /// Returns: `(double, double)`.
+  /// Side effects: None.
+  /// Notes: Uses a minimum visible range so near-identical measurements remain readable.
+  (double, double) _measurementAxisRange(List<FlSpot> spots) {
+    if (spots.isEmpty) return (0, 1);
+    final minCm = spots.map((spot) => spot.y).reduce(math.min);
+    final maxCm = spots.map((spot) => spot.y).reduce(math.max);
+    final pad = math.max((maxCm - minCm) * 0.15, 2.0);
+    final low = math.max(0, minCm - pad);
+    return (low.toDouble(), maxCm + pad);
+  }
+
+  /// Purpose: Build a scaled body-measurement line for the weight trend chart.
+  /// Inputs: `spots`, `color`, `scaleMeasurement`.
+  /// Returns: `LineChartBarData`.
+  /// Side effects: None.
+  /// Notes: The caller supplies the cm-to-kg-axis scaling function.
+  LineChartBarData _buildMeasurementChartLine(
+    List<FlSpot> spots,
+    Color color,
+    double Function(double value) scaleMeasurement,
+  ) {
+    return LineChartBarData(
+      spots: spots
+          .map((spot) => FlSpot(spot.x, scaleMeasurement(spot.y)))
+          .toList(),
+      isCurved: false,
+      color: color,
+      barWidth: 2,
+      dotData: FlDotData(
+        show: spots.length <= 30,
+        getDotPainter: (spot, percent, barData, index) =>
+            FlDotCirclePainter(radius: 3, color: color, strokeWidth: 0),
       ),
     );
   }
@@ -948,6 +1150,7 @@ class _WeightPageState extends State<WeightPage> {
     WeightRecord record,
   ) {
     final bmi = WeightData.calculateBMI(_height, record.weight);
+    final measurements = _formatMeasurements(record, l10n);
     return Dismissible(
       key: ValueKey(record.id),
       direction: DismissDirection.endToStart,
@@ -983,14 +1186,34 @@ class _WeightPageState extends State<WeightPage> {
           [
             DateFormat('MMM d, yyyy  HH:mm').format(record.datetime),
             if (bmi != null) 'BMI ${bmi.toStringAsFixed(1)}',
+            ?measurements,
             if (record.notes != null && record.notes!.isNotEmpty) record.notes,
           ].join(' · '),
           style: theme.textTheme.bodySmall,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
+        onTap: () => _editRecord(record),
       ),
     );
+  }
+
+  /// Purpose: Format optional body measurements for a history row.
+  /// Inputs: `record`, `l10n`.
+  /// Returns: `String?`.
+  /// Side effects: None.
+  /// Notes: Omits missing and non-positive measurements.
+  String? _formatMeasurements(WeightRecord record, AppLocalizations l10n) {
+    final parts = [
+      if (record.bustCm != null && record.bustCm! > 0)
+        '${l10n.weightBust} ${record.bustCm!.toStringAsFixed(1)} cm',
+      if (record.waistCm != null && record.waistCm! > 0)
+        '${l10n.weightWaist} ${record.waistCm!.toStringAsFixed(1)} cm',
+      if (record.hipCm != null && record.hipCm! > 0)
+        '${l10n.weightHip} ${record.hipCm!.toStringAsFixed(1)} cm',
+    ];
+    if (parts.isEmpty) return null;
+    return parts.join(' / ');
   }
 
   /// Purpose: Provide the internal show all records helper for this file.
@@ -1043,61 +1266,58 @@ class _WeightPageState extends State<WeightPage> {
                   ),
                   const Divider(height: 1),
 
-                  // Off
-                  RadioListTile<String>(
-                    value: 'none',
+                  RadioGroup<String>(
                     groupValue: _reminderMode,
-                    title: Text(l10n.weightReminderNone),
-                    onChanged: (v) {
+                    onChanged: (value) {
+                      if (value == null) return;
                       setState(() {
-                        _reminderMode = v!;
-                        _weightMorningReminder = null;
-                        _weightEveningReminder = null;
+                        _reminderMode = value;
+                        switch (value) {
+                          case 'none':
+                            _weightMorningReminder = null;
+                            _weightEveningReminder = null;
+                          case 'once':
+                            _weightMorningReminder ??= const TimeOfDay(
+                              hour: 8,
+                              minute: 0,
+                            );
+                            _weightEveningReminder = null;
+                          case 'twice':
+                            _weightMorningReminder ??= const TimeOfDay(
+                              hour: 8,
+                              minute: 0,
+                            );
+                            _weightEveningReminder ??= const TimeOfDay(
+                              hour: 21,
+                              minute: 0,
+                            );
+                        }
                       });
                       setSheetState(() {});
                       _saveData();
                     },
-                  ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Off
+                        RadioListTile<String>(
+                          value: 'none',
+                          title: Text(l10n.weightReminderNone),
+                        ),
 
-                  // Once daily
-                  RadioListTile<String>(
-                    value: 'once',
-                    groupValue: _reminderMode,
-                    title: Text(l10n.weightReminderOnce),
-                    onChanged: (v) {
-                      setState(() {
-                        _reminderMode = v!;
-                        _weightMorningReminder ??= const TimeOfDay(
-                          hour: 8,
-                          minute: 0,
-                        );
-                        _weightEveningReminder = null;
-                      });
-                      setSheetState(() {});
-                      _saveData();
-                    },
-                  ),
+                        // Once daily
+                        RadioListTile<String>(
+                          value: 'once',
+                          title: Text(l10n.weightReminderOnce),
+                        ),
 
-                  // Twice daily
-                  RadioListTile<String>(
-                    value: 'twice',
-                    groupValue: _reminderMode,
-                    title: Text(l10n.weightReminderTwice),
-                    onChanged: (v) {
-                      setState(() {
-                        _reminderMode = v!;
-                        _weightMorningReminder ??= const TimeOfDay(
-                          hour: 8,
-                          minute: 0,
-                        );
-                        _weightEveningReminder ??= const TimeOfDay(
-                          hour: 21,
-                          minute: 0,
-                        );
-                      });
-                      setSheetState(() {});
-                      _saveData();
-                    },
+                        // Twice daily
+                        RadioListTile<String>(
+                          value: 'twice',
+                          title: Text(l10n.weightReminderTwice),
+                        ),
+                      ],
+                    ),
                   ),
 
                   if (_reminderMode != 'none') ...[
@@ -1197,9 +1417,7 @@ class _WeightPageState extends State<WeightPage> {
           controller: controller,
           autofocus: true,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,1}')),
-          ],
+          inputFormatters: [_decimalInputFormatter(1)],
           decoration: InputDecoration(
             labelText: l10n.weightReminderSkipWindowHours,
             suffixText: 'h',
@@ -1251,11 +1469,33 @@ class _WeightPageState extends State<WeightPage> {
   Future<void> _addRecord() async {
     final result = await showDialog<WeightRecord>(
       context: context,
-      builder: (_) =>
-          _AddWeightDialog(height: _height, lastWeight: _latestRecord?.weight),
+      builder: (_) => _WeightRecordDialog(
+        height: _height,
+        lastWeight: _latestRecord?.weight,
+      ),
     );
     if (result != null) {
       setState(() => _records.add(result));
+      await _saveData();
+    }
+  }
+
+  /// Purpose: Open the edit dialog for an existing weight record.
+  /// Inputs: `record`.
+  /// Returns: `Future<void>`.
+  /// Side effects: Updates local records and persists weight data when saved.
+  /// Notes: Keeps the original record id and refreshes `modifiedAt`.
+  Future<void> _editRecord(WeightRecord record) async {
+    final result = await showDialog<WeightRecord>(
+      context: context,
+      builder: (_) =>
+          _WeightRecordDialog(height: _height, initialRecord: record),
+    );
+    if (result != null) {
+      setState(() {
+        final index = _records.indexWhere((item) => item.id == record.id);
+        if (index >= 0) _records[index] = result;
+      });
       await _saveData();
     }
   }
@@ -1271,6 +1511,7 @@ class _WeightPageState extends State<WeightPage> {
       text: _height?.toStringAsFixed(1) ?? '',
     );
     final initialHeightText = controller.text.trim();
+
     /// Purpose: Save the currently entered height value and close the dialog.
     /// Inputs: `guard`.
     /// Returns: None.
@@ -1295,9 +1536,7 @@ class _WeightPageState extends State<WeightPage> {
             controller: controller,
             autofocus: true,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,1}')),
-            ],
+            inputFormatters: [_decimalInputFormatter(1)],
             decoration: InputDecoration(
               labelText: l10n.weightHeightCm,
               suffixText: 'cm',
@@ -1336,18 +1575,19 @@ class _WeightPageState extends State<WeightPage> {
   }
 }
 
-// ── Add weight dialog ──
+// ── Add/edit weight dialog ──
 
-class _AddWeightDialog extends StatefulWidget {
+class _WeightRecordDialog extends StatefulWidget {
   final double? height;
   final double? lastWeight;
+  final WeightRecord? initialRecord;
 
-  /// Purpose: Create a add weight dialog instance.
-  /// Inputs: `lastWeight`.
-  /// Returns: A new `_AddWeightDialog` instance.
+  /// Purpose: Create a weight record dialog instance.
+  /// Inputs: Optional `lastWeight` and `initialRecord`.
+  /// Returns: A new `_WeightRecordDialog` instance.
   /// Side effects: None.
-  /// Notes: Internal helper used within this file only.
-  const _AddWeightDialog({this.height, this.lastWeight});
+  /// Notes: Internal helper used for both adding and editing records.
+  const _WeightRecordDialog({this.height, this.lastWeight, this.initialRecord});
 
   /// Purpose: Create the mutable state object for this widget.
   /// Inputs: None.
@@ -1355,14 +1595,24 @@ class _AddWeightDialog extends StatefulWidget {
   /// Side effects: May update UI state or trigger user-facing flows.
   /// Notes: None.
   @override
-  State<_AddWeightDialog> createState() => _AddWeightDialogState();
+  State<_WeightRecordDialog> createState() => _WeightRecordDialogState();
 }
 
-class _AddWeightDialogState extends State<_AddWeightDialog> {
+class _WeightRecordDialogState extends State<_WeightRecordDialog> {
   late final TextEditingController _weightController;
+  late final TextEditingController _bustController;
+  late final TextEditingController _waistController;
+  late final TextEditingController _hipController;
   late final TextEditingController _noteController;
   late DateTime _date;
   late final String _initialSignature;
+
+  /// Purpose: Return whether this dialog is editing an existing record.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  bool get _isEditing => widget.initialRecord != null;
 
   /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
   /// Inputs: None.
@@ -1372,11 +1622,24 @@ class _AddWeightDialogState extends State<_AddWeightDialog> {
   @override
   void initState() {
     super.initState();
+    final record = widget.initialRecord;
     _weightController = TextEditingController(
-      text: widget.lastWeight?.toStringAsFixed(1) ?? '',
+      text:
+          record?.weight.toStringAsFixed(1) ??
+          widget.lastWeight?.toStringAsFixed(1) ??
+          '',
     );
-    _noteController = TextEditingController();
-    _date = DateTime.now();
+    _bustController = TextEditingController(
+      text: _formatInitialMeasurement(record?.bustCm),
+    );
+    _waistController = TextEditingController(
+      text: _formatInitialMeasurement(record?.waistCm),
+    );
+    _hipController = TextEditingController(
+      text: _formatInitialMeasurement(record?.hipCm),
+    );
+    _noteController = TextEditingController(text: record?.notes ?? '');
+    _date = record?.datetime ?? DateTime.now();
     _initialSignature = _signature();
   }
 
@@ -1388,6 +1651,9 @@ class _AddWeightDialogState extends State<_AddWeightDialog> {
   @override
   void dispose() {
     _weightController.dispose();
+    _bustController.dispose();
+    _waistController.dispose();
+    _hipController.dispose();
     _noteController.dispose();
     super.dispose();
   }
@@ -1412,7 +1678,10 @@ class _AddWeightDialogState extends State<_AddWeightDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(l10n.weightAddRecord, style: theme.textTheme.titleLarge),
+              Text(
+                _isEditing ? l10n.weightEditRecord : l10n.weightAddRecord,
+                style: theme.textTheme.titleLarge,
+              ),
               const SizedBox(height: 16),
 
               // Weight input
@@ -1422,9 +1691,7 @@ class _AddWeightDialogState extends State<_AddWeightDialog> {
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,1}')),
-                ],
+                inputFormatters: [_decimalInputFormatter(1)],
                 decoration: InputDecoration(
                   labelText: l10n.weightKg,
                   suffixText: l10n.weightUnitKg,
@@ -1434,6 +1701,41 @@ class _AddWeightDialogState extends State<_AddWeightDialog> {
                 ),
                 onChanged: (_) => setState(() {}),
                 onSubmitted: (_) => _submit(guard),
+              ),
+              const SizedBox(height: 12),
+
+              // Optional body measurements
+              Text(
+                l10n.weightMeasurements,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildMeasurementField(
+                      l10n.weightBust,
+                      _bustController,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildMeasurementField(
+                      l10n.weightWaist,
+                      _waistController,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildMeasurementField(
+                      l10n.weightHip,
+                      _hipController,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
 
@@ -1493,7 +1795,7 @@ class _AddWeightDialogState extends State<_AddWeightDialog> {
                   const SizedBox(width: 8),
                   FilledButton(
                     onPressed: () => _submit(guard),
-                    child: Text(l10n.commonAdd),
+                    child: Text(_isEditing ? l10n.commonSave : l10n.commonAdd),
                   ),
                 ],
               ),
@@ -1518,9 +1820,30 @@ class _AddWeightDialogState extends State<_AddWeightDialog> {
   /// Notes: Internal helper used within this file only.
   String _signature() => formSignature([
     _weightController.text.trim(),
+    _bustController.text.trim(),
+    _waistController.text.trim(),
+    _hipController.text.trim(),
     _noteController.text.trim(),
     _date,
   ]);
+
+  /// Purpose: Build one optional measurement input field.
+  /// Inputs: `label`, `controller`.
+  /// Returns: `Widget`.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Internal helper used within this file only.
+  Widget _buildMeasurementField(
+    String label,
+    TextEditingController controller,
+  ) {
+    return TextField(
+      controller: controller,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      inputFormatters: [_decimalInputFormatter(1)],
+      decoration: InputDecoration(labelText: label, suffixText: 'cm'),
+      textInputAction: TextInputAction.next,
+    );
+  }
 
   /// Purpose: Return preview bmi.
   /// Inputs: None.
@@ -1533,6 +1856,27 @@ class _AddWeightDialogState extends State<_AddWeightDialog> {
     return WeightData.calculateBMI(widget.height, w);
   }
 
+  /// Purpose: Format a persisted measurement value for dialog initialization.
+  /// Inputs: `value`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Non-positive values are treated as absent.
+  String _formatInitialMeasurement(double? value) {
+    if (value == null || value <= 0) return '';
+    return value.toStringAsFixed(1);
+  }
+
+  /// Purpose: Parse a positive optional measurement from a text controller.
+  /// Inputs: `controller`.
+  /// Returns: `double?`.
+  /// Side effects: None.
+  /// Notes: Empty, zero, negative, and malformed values are stored as absent.
+  double? _optionalMeasurement(TextEditingController controller) {
+    final value = double.tryParse(controller.text.trim());
+    if (value == null || value <= 0) return null;
+    return value;
+  }
+
   /// Purpose: Provide the internal submit helper for this file.
   /// Inputs: `guard`.
   /// Returns: None.
@@ -1542,13 +1886,33 @@ class _AddWeightDialogState extends State<_AddWeightDialog> {
     final weight = double.tryParse(_weightController.text.trim());
     if (weight == null || weight <= 0) return;
 
-    final record = WeightRecord(
-      weight: weight,
-      datetime: _date,
-      notes: _noteController.text.trim().isNotEmpty
-          ? _noteController.text.trim()
-          : null,
-    );
+    final bustCm = _optionalMeasurement(_bustController);
+    final waistCm = _optionalMeasurement(_waistController);
+    final hipCm = _optionalMeasurement(_hipController);
+    final notes = _noteController.text.trim().isNotEmpty
+        ? _noteController.text.trim()
+        : null;
+    final record =
+        widget.initialRecord?.copyWith(
+          weight: weight,
+          bustCm: bustCm,
+          clearBustCm: bustCm == null,
+          waistCm: waistCm,
+          clearWaistCm: waistCm == null,
+          hipCm: hipCm,
+          clearHipCm: hipCm == null,
+          datetime: _date,
+          notes: notes,
+          clearNotes: notes == null,
+        ) ??
+        WeightRecord(
+          weight: weight,
+          bustCm: bustCm,
+          waistCm: waistCm,
+          hipCm: hipCm,
+          datetime: _date,
+          notes: notes,
+        );
     guard.pop(record);
   }
 }

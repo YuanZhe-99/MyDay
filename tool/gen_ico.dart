@@ -11,18 +11,22 @@ import 'package:image/image.dart' as img;
 void main() async {
   final srcBytes = await File('assets/icon/app_icon.png').readAsBytes();
   final srcImage = img.decodePng(srcBytes)!;
-  print('Source: ${srcImage.width}x${srcImage.height}');
+  stdout.writeln('Source: ${srcImage.width}x${srcImage.height}');
 
   const sizes = [16, 32, 48, 256];
 
   // Encode each size as PNG
   final pngDataList = <Uint8List>[];
   for (final size in sizes) {
-    final resized = img.copyResize(srcImage,
-        width: size, height: size, interpolation: img.Interpolation.average);
+    final resized = img.copyResize(
+      srcImage,
+      width: size,
+      height: size,
+      interpolation: img.Interpolation.average,
+    );
     final pngData = Uint8List.fromList(img.encodePng(resized));
     pngDataList.add(pngData);
-    print('  ${size}x$size -> ${pngData.length} bytes');
+    stdout.writeln('  ${size}x$size -> ${pngData.length} bytes');
   }
 
   final ico = BytesBuilder();
@@ -57,7 +61,9 @@ void main() async {
   final result = ico.toBytes();
   await File('assets/app_icon.ico').writeAsBytes(result);
   await File('windows/runner/resources/app_icon.ico').writeAsBytes(result);
-  print('Generated ICO: ${result.length} bytes (${sizes.length} sizes: ${sizes.join(", ")})');
+  stdout.writeln(
+    'Generated ICO: ${result.length} bytes (${sizes.length} sizes: ${sizes.join(", ")})',
+  );
 }
 
 /// Purpose: Provide the internal add uint16 helper for this file.

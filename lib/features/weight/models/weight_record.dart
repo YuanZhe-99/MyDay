@@ -4,19 +4,25 @@ class WeightRecord {
   final String id;
   final double weight; // kg
   final double? bodyFat; // percentage, optional
+  final double? bustCm;
+  final double? waistCm;
+  final double? hipCm;
   final DateTime datetime;
   final String? notes;
   final DateTime modifiedAt;
 
   /// Purpose: Create a weight record instance.
-  /// Inputs: None.
+  /// Inputs: `weight`, optional body composition and measurement fields.
   /// Returns: A new `WeightRecord` instance.
   /// Side effects: None.
-  /// Notes: None.
+  /// Notes: Optional circumference fields are stored in centimeters.
   WeightRecord({
     String? id,
     required this.weight,
     this.bodyFat,
+    this.bustCm,
+    this.waistCm,
+    this.hipCm,
     DateTime? datetime,
     this.notes,
     DateTime? modifiedAt,
@@ -33,6 +39,9 @@ class WeightRecord {
     'id': id,
     'weight': weight,
     if (bodyFat != null) 'bodyFat': bodyFat,
+    if (bustCm != null) 'bustCm': bustCm,
+    if (waistCm != null) 'waistCm': waistCm,
+    if (hipCm != null) 'hipCm': hipCm,
     'datetime': datetime.toIso8601String(),
     if (notes != null) 'notes': notes,
     'modifiedAt': modifiedAt.toIso8601String(),
@@ -47,6 +56,9 @@ class WeightRecord {
     id: json['id'] as String,
     weight: (json['weight'] as num).toDouble(),
     bodyFat: (json['bodyFat'] as num?)?.toDouble(),
+    bustCm: (json['bustCm'] as num?)?.toDouble(),
+    waistCm: (json['waistCm'] as num?)?.toDouble(),
+    hipCm: (json['hipCm'] as num?)?.toDouble(),
     datetime: DateTime.parse(json['datetime'] as String),
     notes: json['notes'] as String?,
     modifiedAt: json['modifiedAt'] != null
@@ -55,21 +67,32 @@ class WeightRecord {
   );
 
   /// Purpose: Create a copy of this value with selected fields replaced.
-  /// Inputs: None.
+  /// Inputs: Optional replacement and clear flags for nullable fields.
   /// Returns: `WeightRecord`.
   /// Side effects: None.
-  /// Notes: None.
+  /// Notes: Use clear flags when a nullable field must be removed.
   WeightRecord copyWith({
     double? weight,
     double? bodyFat,
+    bool clearBodyFat = false,
+    double? bustCm,
+    bool clearBustCm = false,
+    double? waistCm,
+    bool clearWaistCm = false,
+    double? hipCm,
+    bool clearHipCm = false,
     DateTime? datetime,
     String? notes,
+    bool clearNotes = false,
   }) => WeightRecord(
     id: id,
     weight: weight ?? this.weight,
-    bodyFat: bodyFat ?? this.bodyFat,
+    bodyFat: clearBodyFat ? null : (bodyFat ?? this.bodyFat),
+    bustCm: clearBustCm ? null : (bustCm ?? this.bustCm),
+    waistCm: clearWaistCm ? null : (waistCm ?? this.waistCm),
+    hipCm: clearHipCm ? null : (hipCm ?? this.hipCm),
     datetime: datetime ?? this.datetime,
-    notes: notes ?? this.notes,
+    notes: clearNotes ? null : (notes ?? this.notes),
     modifiedAt: DateTime.now(),
   );
 }
