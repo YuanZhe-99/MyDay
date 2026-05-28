@@ -917,6 +917,12 @@ abstract class AppLocalizations {
   /// **'Used condom?'**
   String get intimacyUsedCondom;
 
+  /// No description provided for @intimacyUsedCondomStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Used condom'**
+  String get intimacyUsedCondomStatus;
+
   /// No description provided for @intimacyTimer.
   ///
   /// In en, this message translates to:

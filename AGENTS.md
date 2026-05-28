@@ -29,8 +29,8 @@ Maintenance rules:
 - **Package id:** Dart package `my_day`; Android namespace/application id `com.yuanzhe.my_day`; MSIX identity `com.yuanzhe.myday`; macOS bundle id `com.yuanzhe.myDay`.
 - **Author / publisher:** `yuanzhe`.
 - **License:** GPL-3.0.
-- **Current version:** `0.7.6+33` in `pubspec.yaml`, `0.7.6.0` in `msix_config.msix_version`, and `0.7.6` in `installer.iss`.
-- **Latest tag at the time this guide was written:** `v0.7.6`.
+- **Current version:** `0.7.7+34` in `pubspec.yaml`, `0.7.7.0` in `msix_config.msix_version`, and `0.7.7` in `installer.iss`.
+- **Latest tag at the time this guide was written:** `v0.7.7`.
 - **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.41.6`.
 - **Primary platforms:** Windows x64/ARM64, Android APK/AAB, iOS sideload IPA, and macOS DMG. Linux project support exists for desktop runtime features but is not a primary release artifact.
 - **Repository:** Use the current environment's workspace root / repository path instead of hard-coding an absolute local path.
@@ -450,3 +450,4 @@ Use the narrowest relevant command set for verification. For sync/model/persiste
 - `v0.7.4`: Intimacy records support optional thrust counts with x100/x1 units, duration charts on the main and partner/toy trend pages add a separate thrust-count axis, intimacy CSV import/export includes the new fields, and versions are unified to `0.7.4+31` / MSIX `0.7.4.0` / installer `0.7.4`.
 - `v0.7.5`: Intimacy stopwatch sessions persist across accidental page/app exits, timer history entries can be confirmed and restored as running sessions, intimacy records track condom use, CSV import/export includes the condom field, and versions are unified to `0.7.5+32` / MSIX `0.7.5.0` / installer `0.7.5`.
 - `v0.7.6`: Intimacy timer adds a non-negative x100 thrust counter with +100/-100 controls, timer sessions/history preserve that count for record prefill and restoration, and versions are unified to `0.7.6+33` / MSIX `0.7.6.0` / installer `0.7.6`.
+- `v0.7.7`: Intimacy trend charts use higher-contrast colors for combined data series, condom-protected record tiles show affirmative status text, and versions are unified to `0.7.7+34` / MSIX `0.7.7.0` / installer `0.7.7`.

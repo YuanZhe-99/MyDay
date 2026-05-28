@@ -438,6 +438,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get intimacyUsedCondom => 'Used condom?';
 
   @override
+  String get intimacyUsedCondomStatus => 'Used condom';
+
+  @override
   String get intimacyTimer => 'Timer';
 
   @override

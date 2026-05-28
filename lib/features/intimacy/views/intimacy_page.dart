@@ -29,6 +29,10 @@ enum _IntimacyChartRange {
   all,
 }
 
+const Color _intimacyFrequencyChartColor = Color(0xFF00796B);
+const Color _intimacyDurationChartColor = Color(0xFFF57C00);
+const Color _intimacyThrustChartColor = Color(0xFF8E24AA);
+
 /// Purpose: Return a record's estimated thrust count in actual repetitions.
 /// Inputs: `record`.
 /// Returns: `double?`.
@@ -875,7 +879,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
   /// Inputs: `theme`.
   /// Returns: `Widget`.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Uses high-contrast fixed colors for combined trend series.
   Widget _buildChartSection(ThemeData theme) {
     final l10n = AppLocalizations.of(context)!;
     final labels = {
@@ -976,7 +980,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
               ),
               const SizedBox(width: 16),
               _legendItem(
-                theme.colorScheme.tertiary,
+                _intimacyFrequencyChartColor,
                 theme.textTheme.labelSmall,
                 l10n.intimacyFrequency,
               ),
@@ -1008,13 +1012,13 @@ class _IntimacyPageState extends State<IntimacyPage> {
           Row(
             children: [
               _legendItem(
-                theme.colorScheme.secondary,
+                _intimacyDurationChartColor,
                 theme.textTheme.labelSmall,
                 l10n.intimacyDuration,
               ),
               const SizedBox(width: 16),
               _legendItem(
-                theme.colorScheme.tertiary,
+                _intimacyThrustChartColor,
                 theme.textTheme.labelSmall,
                 l10n.intimacyThrustCount,
               ),
@@ -1051,7 +1055,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
   /// Inputs: Key parameters such as `theme`, `rawPleasureSpots`, `pleasureSpots`, `rawFrequencySpots`.
   /// Returns: `Widget`.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Pleasure uses the theme primary color; frequency uses fixed teal for contrast.
   Widget _buildChart(
     ThemeData theme,
     List<FlSpot> rawPleasureSpots,
@@ -1162,7 +1166,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
                     label,
                     style: theme.textTheme.labelSmall?.copyWith(
                       fontSize: 9,
-                      color: theme.colorScheme.tertiary,
+                      color: _intimacyFrequencyChartColor,
                     ),
                   ),
                 );
@@ -1210,7 +1214,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
                 .map((s) => FlSpot(s.x, (s.y.clamp(0, freqMax) / freqMax) * 5))
                 .toList(),
             isCurved: false,
-            color: theme.colorScheme.tertiary.withValues(alpha: 0.45),
+            color: _intimacyFrequencyChartColor.withValues(alpha: 0.45),
             barWidth: 1.5,
             dotData: const FlDotData(show: false),
           ),
@@ -1221,7 +1225,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
                 .toList(),
             isCurved: true,
             curveSmoothness: 0.3,
-            color: theme.colorScheme.tertiary,
+            color: _intimacyFrequencyChartColor,
             barWidth: 2,
             dashArray: [6, 4],
             dotData: const FlDotData(show: false),
@@ -1229,6 +1233,9 @@ class _IntimacyPageState extends State<IntimacyPage> {
         ],
         lineTouchData: LineTouchData(
           touchTooltipData: LineTouchTooltipData(
+            getTooltipColor: (spot) => spot.barIndex == 3
+                ? _intimacyFrequencyChartColor
+                : theme.colorScheme.primary,
             getTooltipItems: (spots) {
               return spots.asMap().entries.map((entry) {
                 final s = entry.value;
@@ -1247,7 +1254,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
                   final actualFreq = s.y / 5 * freqMax;
                   return LineTooltipItem(
                     '${AppLocalizations.of(context)!.intimacyFrequency}: ${actualFreq.toStringAsFixed(1)}/wk',
-                    TextStyle(color: theme.colorScheme.onPrimary, fontSize: 11),
+                    const TextStyle(color: Colors.white, fontSize: 11),
                   );
                 }
                 return null;
@@ -1263,7 +1270,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
   /// Inputs: `theme`, duration spots, thrust-count spots, and `data`.
   /// Returns: `Widget`.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Duration and thrust-count series use fixed high-contrast colors.
   Widget _buildDurationChart(
     ThemeData theme,
     List<FlSpot> rawDurationSpots,
@@ -1366,7 +1373,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
                     '${value.toInt()}m',
                     style: theme.textTheme.labelSmall?.copyWith(
                       fontSize: 9,
-                      color: theme.colorScheme.secondary,
+                      color: _intimacyDurationChartColor,
                     ),
                   ),
                 );
@@ -1386,7 +1393,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
                     actual.toStringAsFixed(0),
                     style: theme.textTheme.labelSmall?.copyWith(
                       fontSize: 9,
-                      color: theme.colorScheme.tertiary,
+                      color: _intimacyThrustChartColor,
                     ),
                   ),
                 );
@@ -1410,7 +1417,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
           LineChartBarData(
             spots: rawDurationSpots,
             isCurved: false,
-            color: theme.colorScheme.secondary.withValues(alpha: 0.45),
+            color: _intimacyDurationChartColor.withValues(alpha: 0.45),
             barWidth: 1.5,
             dotData: const FlDotData(show: false),
           ),
@@ -1419,13 +1426,13 @@ class _IntimacyPageState extends State<IntimacyPage> {
             spots: durationSpots,
             isCurved: true,
             curveSmoothness: 0.3,
-            color: theme.colorScheme.secondary,
+            color: _intimacyDurationChartColor,
             barWidth: 2,
             dashArray: [6, 4],
             dotData: const FlDotData(show: false),
             belowBarData: BarAreaData(
               show: true,
-              color: theme.colorScheme.secondary.withValues(alpha: 0.08),
+              color: _intimacyDurationChartColor.withValues(alpha: 0.08),
             ),
           ),
           // Raw thrust count — thin solid tertiary (scaled to duration axis)
@@ -1437,7 +1444,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
                 )
                 .toList(),
             isCurved: false,
-            color: theme.colorScheme.tertiary.withValues(alpha: 0.45),
+            color: _intimacyThrustChartColor.withValues(alpha: 0.45),
             barWidth: 1.5,
             dotData: const FlDotData(show: false),
           ),
@@ -1448,7 +1455,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
                 .toList(),
             isCurved: true,
             curveSmoothness: 0.3,
-            color: theme.colorScheme.tertiary,
+            color: _intimacyThrustChartColor,
             barWidth: 2,
             dashArray: [6, 4],
             dotData: const FlDotData(show: false),
@@ -1456,6 +1463,9 @@ class _IntimacyPageState extends State<IntimacyPage> {
         ],
         lineTouchData: LineTouchData(
           touchTooltipData: LineTouchTooltipData(
+            getTooltipColor: (spot) => spot.barIndex == 3
+                ? _intimacyThrustChartColor
+                : _intimacyDurationChartColor,
             getTooltipItems: (spots) {
               return spots.asMap().entries.map((entry) {
                 final s = entry.value;
@@ -1463,8 +1473,8 @@ class _IntimacyPageState extends State<IntimacyPage> {
                 if (s.barIndex == 1) {
                   return LineTooltipItem(
                     '${AppLocalizations.of(context)!.intimacyDuration}: ${s.y.toStringAsFixed(1)}min\n${DateFormat('MMM d').format(date)}',
-                    TextStyle(
-                      color: theme.colorScheme.onPrimary,
+                    const TextStyle(
+                      color: Colors.white,
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                     ),
@@ -1473,8 +1483,8 @@ class _IntimacyPageState extends State<IntimacyPage> {
                   final actual = s.y / yMax * thrustMax;
                   return LineTooltipItem(
                     '${AppLocalizations.of(context)!.intimacyThrustCount}: ${actual.toStringAsFixed(0)}\n${DateFormat('MMM d').format(date)}',
-                    TextStyle(
-                      color: theme.colorScheme.onPrimary,
+                    const TextStyle(
+                      color: Colors.white,
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                     ),
@@ -1871,7 +1881,7 @@ class _RecordTile extends StatelessWidget {
   /// Inputs: `context`.
   /// Returns: The widget tree for the current state.
   /// Side effects: Creates UI widgets from the current state.
-  /// Notes: Keep this method cheap because Flutter may call it often.
+  /// Notes: Shows affirmative condom status text only when protection was used.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -1999,7 +2009,7 @@ class _RecordTile extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        l10n.intimacyUsedCondom,
+                        l10n.intimacyUsedCondomStatus,
                         style: theme.textTheme.bodySmall,
                       ),
                     ],
@@ -5002,7 +5012,7 @@ class _FilteredRecordsTrendSectionState
   /// Inputs: `context`.
   /// Returns: The widget tree for the current state.
   /// Side effects: Creates UI widgets from the current state.
-  /// Notes: Keep this method cheap because Flutter may call it often.
+  /// Notes: Uses high-contrast fixed colors for combined trend series.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -5126,13 +5136,13 @@ class _FilteredRecordsTrendSectionState
           Row(
             children: [
               _legendItem(
-                theme.colorScheme.secondary,
+                _intimacyDurationChartColor,
                 theme.textTheme.labelSmall,
                 l10n.intimacyDuration,
               ),
               const SizedBox(width: 16),
               _legendItem(
-                theme.colorScheme.tertiary,
+                _intimacyThrustChartColor,
                 theme.textTheme.labelSmall,
                 l10n.intimacyThrustCount,
               ),
@@ -5304,7 +5314,7 @@ class _FilteredRecordsTrendSectionState
   /// Inputs: `theme`, duration spots, thrust-count spots, and `data`.
   /// Returns: `Widget`.
   /// Side effects: Creates UI widgets from the current state.
-  /// Notes: Durations are shown in minutes with raw and EWMA series.
+  /// Notes: Duration and thrust-count series use fixed high-contrast colors.
   Widget _buildDurationChart(
     ThemeData theme,
     List<FlSpot> rawDurationSpots,
@@ -5407,7 +5417,7 @@ class _FilteredRecordsTrendSectionState
                     '${value.toInt()}m',
                     style: theme.textTheme.labelSmall?.copyWith(
                       fontSize: 9,
-                      color: theme.colorScheme.secondary,
+                      color: _intimacyDurationChartColor,
                     ),
                   ),
                 );
@@ -5427,7 +5437,7 @@ class _FilteredRecordsTrendSectionState
                     actual.toStringAsFixed(0),
                     style: theme.textTheme.labelSmall?.copyWith(
                       fontSize: 9,
-                      color: theme.colorScheme.tertiary,
+                      color: _intimacyThrustChartColor,
                     ),
                   ),
                 );
@@ -5450,7 +5460,7 @@ class _FilteredRecordsTrendSectionState
           LineChartBarData(
             spots: rawDurationSpots,
             isCurved: false,
-            color: theme.colorScheme.secondary.withValues(alpha: 0.45),
+            color: _intimacyDurationChartColor.withValues(alpha: 0.45),
             barWidth: 1.5,
             dotData: const FlDotData(show: false),
           ),
@@ -5458,13 +5468,13 @@ class _FilteredRecordsTrendSectionState
             spots: durationSpots,
             isCurved: true,
             curveSmoothness: 0.3,
-            color: theme.colorScheme.secondary,
+            color: _intimacyDurationChartColor,
             barWidth: 2,
             dashArray: [6, 4],
             dotData: const FlDotData(show: false),
             belowBarData: BarAreaData(
               show: true,
-              color: theme.colorScheme.secondary.withValues(alpha: 0.08),
+              color: _intimacyDurationChartColor.withValues(alpha: 0.08),
             ),
           ),
           LineChartBarData(
@@ -5477,7 +5487,7 @@ class _FilteredRecordsTrendSectionState
                 )
                 .toList(),
             isCurved: false,
-            color: theme.colorScheme.tertiary.withValues(alpha: 0.45),
+            color: _intimacyThrustChartColor.withValues(alpha: 0.45),
             barWidth: 1.5,
             dotData: const FlDotData(show: false),
           ),
@@ -5487,7 +5497,7 @@ class _FilteredRecordsTrendSectionState
                 .toList(),
             isCurved: true,
             curveSmoothness: 0.3,
-            color: theme.colorScheme.tertiary,
+            color: _intimacyThrustChartColor,
             barWidth: 2,
             dashArray: [6, 4],
             dotData: const FlDotData(show: false),
@@ -5495,6 +5505,9 @@ class _FilteredRecordsTrendSectionState
         ],
         lineTouchData: LineTouchData(
           touchTooltipData: LineTouchTooltipData(
+            getTooltipColor: (spot) => spot.barIndex == 3
+                ? _intimacyThrustChartColor
+                : _intimacyDurationChartColor,
             getTooltipItems: (spots) {
               return spots.asMap().entries.map((entry) {
                 final spot = entry.value;
@@ -5504,8 +5517,8 @@ class _FilteredRecordsTrendSectionState
                 if (spot.barIndex == 1) {
                   return LineTooltipItem(
                     '${AppLocalizations.of(context)!.intimacyDuration}: ${spot.y.toStringAsFixed(1)}min\n${DateFormat('MMM d').format(date)}',
-                    TextStyle(
-                      color: theme.colorScheme.onPrimary,
+                    const TextStyle(
+                      color: Colors.white,
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                     ),
@@ -5514,8 +5527,8 @@ class _FilteredRecordsTrendSectionState
                   final actual = spot.y / yMax * thrustMax;
                   return LineTooltipItem(
                     '${AppLocalizations.of(context)!.intimacyThrustCount}: ${actual.toStringAsFixed(0)}\n${DateFormat('MMM d').format(date)}',
-                    TextStyle(
-                      color: theme.colorScheme.onPrimary,
+                    const TextStyle(
+                      color: Colors.white,
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                     ),

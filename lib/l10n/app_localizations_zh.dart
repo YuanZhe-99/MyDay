@@ -436,6 +436,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get intimacyUsedCondom => '是否戴避孕套？';
 
   @override
+  String get intimacyUsedCondomStatus => '已戴避孕套';
+
+  @override
   String get intimacyTimer => '计时器';
 
   @override
@@ -2126,6 +2129,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get intimacyUsedCondom => '是否戴保險套？';
+
+  @override
+  String get intimacyUsedCondomStatus => '已戴保險套';
 
   @override
   String get intimacyTimer => '計時器';
