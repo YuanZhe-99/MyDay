@@ -341,6 +341,36 @@ class _WeightPageState extends State<WeightPage> {
     (double, double)? range,
     String timeSince,
   ) {
+    final measurements = _latestMeasurementStats(latest, l10n);
+    final waistHipRatio = WeightData.calculateWaistHipRatio(
+      latest.waistCm,
+      latest.hipCm,
+    );
+    final stats = [
+      if (range != null)
+        _buildStatLabel(
+          theme,
+          l10n.weightRecent,
+          '${range.$1.toStringAsFixed(0)}–${range.$2.toStringAsFixed(0)}',
+        ),
+      if (bmi != null)
+        _buildStatLabel(
+          theme,
+          'BMI',
+          bmi.toStringAsFixed(1),
+          trailing: _buildBMIBar(theme, bmi),
+        ),
+      for (final measurement in measurements)
+        _buildStatLabel(theme, measurement.$1, measurement.$2),
+      if (waistHipRatio != null)
+        _buildStatLabel(
+          theme,
+          l10n.weightWaistHipRatio,
+          waistHipRatio.toStringAsFixed(2),
+          trailing: _buildWaistHipRatioBar(theme, waistHipRatio),
+        ),
+    ];
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Padding(
@@ -431,34 +461,30 @@ class _WeightPageState extends State<WeightPage> {
               ],
             ),
             const Divider(height: 24),
-            // Bottom stats row
-            Row(
-              children: [
-                // Recent range
-                if (range != null)
-                  Expanded(
-                    child: _buildStatLabel(
-                      theme,
-                      l10n.weightRecent,
-                      '${range.$1.toStringAsFixed(0)}–${range.$2.toStringAsFixed(0)}',
-                    ),
-                  ),
-                // BMI
-                if (bmi != null)
-                  Expanded(
-                    child: _buildStatLabel(
-                      theme,
-                      'BMI',
-                      bmi.toStringAsFixed(1),
-                      trailing: _buildBMIBar(theme, bmi),
-                    ),
-                  ),
-              ],
-            ),
+            Wrap(spacing: 20, runSpacing: 12, children: stats),
           ],
         ),
       ),
     );
+  }
+
+  /// Purpose: Return latest positive body measurement labels and values.
+  /// Inputs: `record`, `l10n`.
+  /// Returns: `List<(String, String)>`.
+  /// Side effects: None.
+  /// Notes: Omits missing, zero, and negative measurements.
+  List<(String, String)> _latestMeasurementStats(
+    WeightRecord record,
+    AppLocalizations l10n,
+  ) {
+    return [
+      if (record.bustCm != null && record.bustCm! > 0)
+        (l10n.weightBust, '${record.bustCm!.toStringAsFixed(1)} cm'),
+      if (record.waistCm != null && record.waistCm! > 0)
+        (l10n.weightWaist, '${record.waistCm!.toStringAsFixed(1)} cm'),
+      if (record.hipCm != null && record.hipCm! > 0)
+        (l10n.weightHip, '${record.hipCm!.toStringAsFixed(1)} cm'),
+    ];
   }
 
   /// Purpose: Provide the internal build stat label helper for this file.
@@ -472,29 +498,39 @@ class _WeightPageState extends State<WeightPage> {
     String value, {
     Widget? trailing,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: theme.textTheme.labelSmall?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Row(
-          children: [
-            Text(
-              value,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minWidth: 88, maxWidth: 168),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: theme.textTheme.labelSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: theme.colorScheme.onSurfaceVariant,
             ),
-            if (trailing != null) ...[const SizedBox(width: 6), trailing],
-          ],
-        ),
-      ],
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 2),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text(
+                  value,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (trailing != null) ...[const SizedBox(width: 6), trailing],
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -505,37 +541,71 @@ class _WeightPageState extends State<WeightPage> {
   /// Notes: Internal helper used within this file only.
   Widget _buildBMIBar(ThemeData theme, double bmi) {
     // BMI categories: <18.5 underweight, 18.5-25 normal, 25-30 overweight, 30+ obese
-    const colors = [Colors.blue, Colors.green, Colors.orange, Colors.red];
-    final position = ((bmi - 15).clamp(0, 25) / 25).clamp(0.0, 1.0);
+    final position = ((bmi - 15) / 25).clamp(0.0, 1.0).toDouble();
+    return _buildSegmentedScaleBar(theme, const [
+      (Colors.blue, 7),
+      (Colors.green, 6),
+      (Colors.orange, 5),
+      (Colors.red, 7),
+    ], position);
+  }
+
+  /// Purpose: Build a compact waist-hip ratio category bar.
+  /// Inputs: `theme`, `ratio`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Uses universal visual thresholds around 0.80, 0.90, and 1.00.
+  Widget _buildWaistHipRatioBar(ThemeData theme, double ratio) {
+    final position = ((ratio - 0.65) / 0.45).clamp(0.0, 1.0).toDouble();
+    return _buildSegmentedScaleBar(theme, const [
+      (Colors.green, 15),
+      (Colors.orange, 10),
+      (Colors.deepOrange, 10),
+      (Colors.red, 10),
+    ], position);
+  }
+
+  /// Purpose: Build a shared segmented scale bar with a marker.
+  /// Inputs: `theme`, `segments`, `position`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: `position` is clamped to the visible bar width.
+  Widget _buildSegmentedScaleBar(
+    ThemeData theme,
+    List<(Color, int)> segments,
+    double position,
+  ) {
+    const width = 60.0;
+    final markerLeft = (width * position.clamp(0.0, 1.0)) - 2;
     return SizedBox(
-      width: 60,
+      width: width,
       height: 8,
       child: Stack(
         children: [
           Row(
-            children: colors
-                .map(
-                  (c) => Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: c.withValues(alpha: 0.6),
-                        borderRadius: colors.indexOf(c) == 0
-                            ? const BorderRadius.horizontal(
-                                left: Radius.circular(4),
-                              )
-                            : colors.indexOf(c) == 3
-                            ? const BorderRadius.horizontal(
-                                right: Radius.circular(4),
-                              )
-                            : null,
-                      ),
+            children: [
+              for (var i = 0; i < segments.length; i++)
+                Expanded(
+                  flex: segments[i].$2,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: segments[i].$1.withValues(alpha: 0.6),
+                      borderRadius: i == 0
+                          ? const BorderRadius.horizontal(
+                              left: Radius.circular(4),
+                            )
+                          : i == segments.length - 1
+                          ? const BorderRadius.horizontal(
+                              right: Radius.circular(4),
+                            )
+                          : null,
                     ),
                   ),
-                )
-                .toList(),
+                ),
+            ],
           ),
           Positioned(
-            left: (60 * position) - 2,
+            left: markerLeft,
             top: 0,
             bottom: 0,
             child: Container(
@@ -557,7 +627,7 @@ class _WeightPageState extends State<WeightPage> {
   /// Inputs: `theme`, `l10n`.
   /// Returns: `Widget`.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Renders separate weight and measurement charts that share the range picker.
   Widget _buildChartSection(ThemeData theme, AppLocalizations l10n) {
     final labels = {
       _ChartRange.oneWeek: '1W',
@@ -573,30 +643,26 @@ class _WeightPageState extends State<WeightPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Text(
-                l10n.weightChart,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const Spacer(),
-              // Range picker chips
-              ...labels.entries.map(
-                (e) => Padding(
-                  padding: const EdgeInsets.only(left: 4),
-                  child: ChoiceChip(
-                    label: Text(e.value, style: const TextStyle(fontSize: 11)),
-                    selected: _chartRange == e.key,
-                    onSelected: (_) => setState(() => _chartRange = e.key),
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.zero,
-                    labelPadding: const EdgeInsets.symmetric(horizontal: 6),
-                  ),
-                ),
-              ),
-            ],
+          Text(
+            l10n.weightChart,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 4,
+            runSpacing: 4,
+            children: labels.entries.map((e) {
+              return ChoiceChip(
+                label: Text(e.value, style: const TextStyle(fontSize: 11)),
+                selected: _chartRange == e.key,
+                onSelected: (_) => setState(() => _chartRange = e.key),
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                labelPadding: const EdgeInsets.symmetric(horizontal: 6),
+              );
+            }).toList(),
           ),
           const SizedBox(height: 8),
           Wrap(
@@ -606,14 +672,25 @@ class _WeightPageState extends State<WeightPage> {
               _buildChartLegendItem(
                 _weightChartColor,
                 theme.textTheme.labelSmall,
-                l10n.weightRaw,
+                l10n.weightTitle,
+                trendColor: _weightTrendChartColor,
               ),
-              _buildChartLegendItem(
-                _weightTrendChartColor,
-                theme.textTheme.labelSmall,
-                l10n.weightTrend,
-                dashed: true,
-              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SizedBox(height: 220, child: _buildChart(theme, l10n)),
+          const SizedBox(height: 16),
+          Text(
+            l10n.weightMeasurementTrend,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 12,
+            runSpacing: 6,
+            children: [
               _buildChartLegendItem(
                 _bustChartColor,
                 theme.textTheme.labelSmall,
@@ -632,32 +709,35 @@ class _WeightPageState extends State<WeightPage> {
             ],
           ),
           const SizedBox(height: 8),
-          SizedBox(height: 220, child: _buildChart(theme, l10n)),
+          SizedBox(height: 190, child: _buildMeasurementChart(theme, l10n)),
         ],
       ),
     );
   }
 
-  /// Purpose: Build a compact line legend item for the trend chart.
-  /// Inputs: `color`, `labelStyle`, `label`, `dashed`.
+  /// Purpose: Build a compact line legend item for raw and smoothed series.
+  /// Inputs: `color`, `labelStyle`, `label`, `trendColor`.
   /// Returns: `Widget`.
   /// Side effects: None.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: The solid segment represents actual values and the dashed segment represents smoothing.
   Widget _buildChartLegendItem(
     Color color,
     TextStyle? labelStyle,
     String label, {
-    bool dashed = false,
+    Color? trendColor,
   }) {
+    final dashedColor = trendColor ?? color;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (dashed) ...[
-          Container(width: 8, height: 2, color: color),
-          const SizedBox(width: 2),
-          Container(width: 6, height: 2, color: color.withValues(alpha: 0.7)),
-        ] else
-          Container(width: 16, height: 2, color: color),
+        Container(width: 10, height: 2, color: color),
+        const SizedBox(width: 2),
+        Container(width: 4, height: 2, color: dashedColor.withValues(alpha: 0)),
+        Container(
+          width: 6,
+          height: 2,
+          color: dashedColor.withValues(alpha: 0.7),
+        ),
         const SizedBox(width: 4),
         Text(label, style: labelStyle),
       ],
@@ -688,10 +768,10 @@ class _WeightPageState extends State<WeightPage> {
   /// Inputs: `theme`, `l10n`.
   /// Returns: `Widget`.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Shows weight actual values and EWMA smoothing only.
   Widget _buildChart(ThemeData theme, AppLocalizations l10n) {
     final data = _chartRecords;
-    if (data.isEmpty) {
+    if (data.length < 2) {
       return Center(
         child: Text(
           l10n.commonNoData,
@@ -710,41 +790,12 @@ class _WeightPageState extends State<WeightPage> {
     final allSorted = List<WeightRecord>.from(_records)
       ..sort((a, b) => a.datetime.compareTo(b.datetime));
     final ewmaSpots = _buildWeightEwmaSpots(allSorted, data.first.datetime);
-    final bustSpots = _buildMeasurementSpots(data, (record) => record.bustCm);
-    final waistSpots = _buildMeasurementSpots(data, (record) => record.waistCm);
-    final hipSpots = _buildMeasurementSpots(data, (record) => record.hipCm);
-    final allMeasurementSpots = [...bustSpots, ...waistSpots, ...hipSpots];
 
     final minW = data.map((r) => r.weight).reduce(math.min);
     final maxW = data.map((r) => r.weight).reduce(math.max);
     final yPad = math.max((maxW - minW) * 0.2, 0.5);
     final weightMinY = minW - yPad;
     final weightMaxY = maxW + yPad;
-    final measurementRange = _measurementAxisRange(allMeasurementSpots);
-
-    /// Purpose: Scale a centimeter value into the weight chart coordinate space.
-    /// Inputs: `value`.
-    /// Returns: `double`.
-    /// Side effects: None.
-    /// Notes: Internal helper used within this function only.
-    double scaleMeasurement(double value) {
-      final (minCm, maxCm) = measurementRange;
-      if (maxCm == minCm) return (weightMinY + weightMaxY) / 2;
-      final normalized = (value - minCm) / (maxCm - minCm);
-      return weightMinY + normalized * (weightMaxY - weightMinY);
-    }
-
-    /// Purpose: Convert a scaled chart y-value back to centimeters.
-    /// Inputs: `value`.
-    /// Returns: `double`.
-    /// Side effects: None.
-    /// Notes: Internal helper used within this function only.
-    double unscaleMeasurement(double value) {
-      final (minCm, maxCm) = measurementRange;
-      if (weightMaxY == weightMinY) return minCm;
-      final normalized = (value - weightMinY) / (weightMaxY - weightMinY);
-      return minCm + normalized * (maxCm - minCm);
-    }
 
     return LineChart(
       LineChartData(
@@ -766,47 +817,16 @@ class _WeightPageState extends State<WeightPage> {
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
-              reservedSize: 28,
+              reservedSize: 32,
               interval: _dateInterval(data),
-              getTitlesWidget: (value, meta) {
-                final date = DateTime.fromMillisecondsSinceEpoch(value.toInt());
-                final spanDays = data.last.datetime
-                    .difference(data.first.datetime)
-                    .inDays;
-                final fmt = spanDays > 730
-                    ? DateFormat('yyyy')
-                    : spanDays > 365
-                    ? DateFormat('M/yy')
-                    : DateFormat('M/d');
-                return SideTitleWidget(
-                  meta: meta,
-                  child: Text(
-                    fmt.format(date),
-                    style: theme.textTheme.labelSmall?.copyWith(fontSize: 9),
-                  ),
-                );
-              },
+              minIncluded: false,
+              maxIncluded: false,
+              getTitlesWidget: (value, meta) =>
+                  _buildDateTitle(theme, data, value, meta),
             ),
           ),
-          rightTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: allMeasurementSpots.isNotEmpty,
-              reservedSize: 36,
-              interval: math.max((weightMaxY - weightMinY) / 4, 1),
-              getTitlesWidget: (value, meta) {
-                final cm = unscaleMeasurement(value);
-                return SideTitleWidget(
-                  meta: meta,
-                  child: Text(
-                    cm.toStringAsFixed(0),
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      fontSize: 9,
-                      color: _waistChartColor,
-                    ),
-                  ),
-                );
-              },
-            ),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
           ),
           topTitles: const AxisTitles(
             sideTitles: SideTitles(showTitles: false),
@@ -814,11 +834,12 @@ class _WeightPageState extends State<WeightPage> {
           leftTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
-              reservedSize: 36,
+              reservedSize: 42,
+              interval: _weightInterval(maxW - minW),
               getTitlesWidget: (value, meta) => SideTitleWidget(
                 meta: meta,
                 child: Text(
-                  value.toStringAsFixed(0),
+                  value.toStringAsFixed(maxW - minW <= 2 ? 1 : 0),
                   style: theme.textTheme.labelSmall?.copyWith(
                     fontSize: 9,
                     color: _weightChartColor,
@@ -837,27 +858,17 @@ class _WeightPageState extends State<WeightPage> {
         minY: weightMinY,
         maxY: weightMaxY,
         lineBarsData: [
-          // Raw weight data line
           LineChartBarData(
             spots: spots,
             isCurved: false,
-            color: _weightChartColor,
-            barWidth: 2,
-            dotData: FlDotData(
-              show: data.length <= 30,
-              getDotPainter: (spot, percent, barData, index) =>
-                  FlDotCirclePainter(
-                    radius: 3,
-                    color: _weightChartColor,
-                    strokeWidth: 0,
-                  ),
-            ),
+            color: _weightChartColor.withValues(alpha: 0.55),
+            barWidth: 1.5,
+            dotData: const FlDotData(show: false),
             belowBarData: BarAreaData(
               show: true,
               color: _weightChartColor.withValues(alpha: 0.1),
             ),
           ),
-          // EWMA trend line (dashed)
           LineChartBarData(
             spots: ewmaSpots,
             isCurved: true,
@@ -867,66 +878,228 @@ class _WeightPageState extends State<WeightPage> {
             dashArray: [6, 4],
             dotData: const FlDotData(show: false),
           ),
-          _buildMeasurementChartLine(
-            bustSpots,
-            _bustChartColor,
-            scaleMeasurement,
-          ),
-          _buildMeasurementChartLine(
-            waistSpots,
-            _waistChartColor,
-            scaleMeasurement,
-          ),
-          _buildMeasurementChartLine(
-            hipSpots,
-            _hipChartColor,
-            scaleMeasurement,
-          ),
         ],
         lineTouchData: LineTouchData(
           touchTooltipData: LineTouchTooltipData(
             getTooltipColor: (spot) => switch (spot.barIndex) {
-              2 => _bustChartColor,
-              3 => _waistChartColor,
-              4 => _hipChartColor,
+              1 => _weightTrendChartColor,
               _ => _weightChartColor,
             },
             getTooltipItems: (spots) => spots.asMap().entries.map((entry) {
               final s = entry.value;
               final date = DateTime.fromMillisecondsSinceEpoch(s.x.toInt());
-              if (s.barIndex == 0) {
-                return LineTooltipItem(
-                  '${s.y.toStringAsFixed(1)} ${l10n.weightUnitKg}\n${DateFormat('MMM d').format(date)}',
-                  const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+              return LineTooltipItem(
+                '${l10n.weightTitle}: ${s.y.toStringAsFixed(1)} ${l10n.weightUnitKg}\n${DateFormat('MMM d').format(date)}',
+                const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Purpose: Build the body-measurement trend chart.
+  /// Inputs: `theme`, `l10n`.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Bust, waist, and hip use centimeters on a shared axis.
+  Widget _buildMeasurementChart(ThemeData theme, AppLocalizations l10n) {
+    final data = _chartRecords;
+    if (data.length < 2) {
+      return Center(
+        child: Text(
+          l10n.commonNoData,
+          style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+        ),
+      );
+    }
+
+    final allSorted = List<WeightRecord>.from(_records)
+      ..sort((a, b) => a.datetime.compareTo(b.datetime));
+    final cutoff = data.first.datetime;
+    final bustSpots = _buildMeasurementSpots(data, (record) => record.bustCm);
+    final waistSpots = _buildMeasurementSpots(data, (record) => record.waistCm);
+    final hipSpots = _buildMeasurementSpots(data, (record) => record.hipCm);
+    final bustEwmaSpots = _buildMeasurementEwmaSpots(
+      allSorted,
+      cutoff,
+      (record) => record.bustCm,
+    );
+    final waistEwmaSpots = _buildMeasurementEwmaSpots(
+      allSorted,
+      cutoff,
+      (record) => record.waistCm,
+    );
+    final hipEwmaSpots = _buildMeasurementEwmaSpots(
+      allSorted,
+      cutoff,
+      (record) => record.hipCm,
+    );
+    final hasEnoughData = [
+      bustSpots,
+      waistSpots,
+      hipSpots,
+    ].any((spots) => spots.length >= 2);
+    if (!hasEnoughData) {
+      return Center(
+        child: Text(
+          l10n.commonNoData,
+          style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+        ),
+      );
+    }
+
+    final allSpots = [
+      ...bustSpots,
+      ...waistSpots,
+      ...hipSpots,
+      ...bustEwmaSpots,
+      ...waistEwmaSpots,
+      ...hipEwmaSpots,
+    ];
+    final (minY, maxY) = _measurementAxisRange(allSpots);
+
+    return LineChart(
+      LineChartData(
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: true,
+          horizontalInterval: _measurementInterval(maxY - minY),
+          getDrawingHorizontalLine: (value) => FlLine(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+            strokeWidth: 0.5,
+          ),
+          getDrawingVerticalLine: (value) => FlLine(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
+            strokeWidth: 0.5,
+            dashArray: [4, 4],
+          ),
+        ),
+        titlesData: FlTitlesData(
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 32,
+              interval: _dateInterval(data),
+              minIncluded: false,
+              maxIncluded: false,
+              getTitlesWidget: (value, meta) =>
+                  _buildDateTitle(theme, data, value, meta),
+            ),
+          ),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 42,
+              interval: _measurementInterval(maxY - minY),
+              getTitlesWidget: (value, meta) => SideTitleWidget(
+                meta: meta,
+                child: Text(
+                  value.toStringAsFixed(0),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    fontSize: 9,
+                    color: _waistChartColor,
                   ),
-                );
-              } else if (s.barIndex == 1) {
-                return LineTooltipItem(
-                  '${l10n.weightTrend}: ${s.y.toStringAsFixed(1)} ${l10n.weightUnitKg}',
-                  const TextStyle(color: Colors.white, fontSize: 11),
-                );
-              } else {
+                ),
+              ),
+            ),
+          ),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+        ),
+        borderData: FlBorderData(
+          show: true,
+          border: Border.all(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+          ),
+        ),
+        minY: minY,
+        maxY: maxY,
+        lineBarsData: [
+          _buildMeasurementChartLine(bustSpots, _bustChartColor),
+          _buildMeasurementChartLine(
+            bustEwmaSpots,
+            _bustChartColor,
+            smoothed: true,
+          ),
+          _buildMeasurementChartLine(waistSpots, _waistChartColor),
+          _buildMeasurementChartLine(
+            waistEwmaSpots,
+            _waistChartColor,
+            smoothed: true,
+          ),
+          _buildMeasurementChartLine(hipSpots, _hipChartColor),
+          _buildMeasurementChartLine(
+            hipEwmaSpots,
+            _hipChartColor,
+            smoothed: true,
+          ),
+        ],
+        lineTouchData: LineTouchData(
+          touchTooltipData: LineTouchTooltipData(
+            getTooltipColor: (spot) => switch (spot.barIndex) {
+              0 || 1 => _bustChartColor,
+              2 || 3 => _waistChartColor,
+              _ => _hipChartColor,
+            },
+            getTooltipItems: (spots) {
+              return spots.asMap().entries.map((entry) {
+                final s = entry.value;
+                if (s.barIndex.isEven) return null;
+                final date = DateTime.fromMillisecondsSinceEpoch(s.x.toInt());
                 final label = switch (s.barIndex) {
-                  2 => l10n.weightBust,
+                  1 => l10n.weightBust,
                   3 => l10n.weightWaist,
-                  4 => l10n.weightHip,
-                  _ => l10n.weightMeasurements,
+                  _ => l10n.weightHip,
                 };
                 return LineTooltipItem(
-                  '$label: ${unscaleMeasurement(s.y).toStringAsFixed(1)} cm\n${DateFormat('MMM d').format(date)}',
+                  '$label: ${s.y.toStringAsFixed(1)} cm\n${DateFormat('MMM d').format(date)}',
                   const TextStyle(
                     color: Colors.white,
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                   ),
                 );
-              }
-            }).toList(),
+              }).toList();
+            },
           ),
         ),
+      ),
+    );
+  }
+
+  /// Purpose: Build a bottom-axis date label for chart titles.
+  /// Inputs: `theme`, `data`, `value`, `meta`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Uses shorter formats for dense ranges to reduce label overlap.
+  Widget _buildDateTitle(
+    ThemeData theme,
+    List<WeightRecord> data,
+    double value,
+    TitleMeta meta,
+  ) {
+    final date = DateTime.fromMillisecondsSinceEpoch(value.toInt());
+    final spanDays = data.last.datetime.difference(data.first.datetime).inDays;
+    final fmt = spanDays > 730
+        ? DateFormat('yyyy')
+        : spanDays > 365
+        ? DateFormat('M/yy')
+        : DateFormat('M/d');
+    return SideTitleWidget(
+      meta: meta,
+      child: Text(
+        fmt.format(date),
+        style: theme.textTheme.labelSmall?.copyWith(fontSize: 9),
       ),
     );
   }
@@ -967,28 +1140,24 @@ class _WeightPageState extends State<WeightPage> {
     return (low.toDouble(), maxCm + pad);
   }
 
-  /// Purpose: Build a scaled body-measurement line for the weight trend chart.
-  /// Inputs: `spots`, `color`, `scaleMeasurement`.
+  /// Purpose: Build a body-measurement line for the measurement trend chart.
+  /// Inputs: `spots`, `color`, `smoothed`.
   /// Returns: `LineChartBarData`.
   /// Side effects: None.
-  /// Notes: The caller supplies the cm-to-kg-axis scaling function.
+  /// Notes: Actual values are solid; smoothed values are dashed and curved.
   LineChartBarData _buildMeasurementChartLine(
     List<FlSpot> spots,
-    Color color,
-    double Function(double value) scaleMeasurement,
-  ) {
+    Color color, {
+    bool smoothed = false,
+  }) {
     return LineChartBarData(
-      spots: spots
-          .map((spot) => FlSpot(spot.x, scaleMeasurement(spot.y)))
-          .toList(),
-      isCurved: false,
-      color: color,
-      barWidth: 2,
-      dotData: FlDotData(
-        show: spots.length <= 30,
-        getDotPainter: (spot, percent, barData, index) =>
-            FlDotCirclePainter(radius: 3, color: color, strokeWidth: 0),
-      ),
+      spots: spots,
+      isCurved: smoothed,
+      curveSmoothness: 0.3,
+      color: smoothed ? color : color.withValues(alpha: 0.45),
+      barWidth: smoothed ? 2 : 1.5,
+      dashArray: smoothed ? [6, 4] : null,
+      dotData: const FlDotData(show: false),
     );
   }
 
@@ -1022,6 +1191,45 @@ class _WeightPageState extends State<WeightPage> {
     return spots;
   }
 
+  /// Purpose: Build EWMA smoothed spots for one body measurement field.
+  /// Inputs: `allData`, `visibleFrom`, `selectValue`, `halfLifeDays`.
+  /// Returns: `List<FlSpot>`.
+  /// Side effects: None.
+  /// Notes: Missing and non-positive measurements are skipped without resetting the series.
+  List<FlSpot> _buildMeasurementEwmaSpots(
+    List<WeightRecord> allData,
+    DateTime visibleFrom,
+    double? Function(WeightRecord record) selectValue, {
+    double halfLifeDays = 7,
+  }) {
+    if (allData.isEmpty) return [];
+    final tau = halfLifeDays * 86400 * 1000;
+    double? ewma;
+    DateTime? prevTime;
+    final spots = <FlSpot>[];
+    for (final record in allData) {
+      final value = selectValue(record);
+      if (value == null || value <= 0) continue;
+      if (ewma == null || prevTime == null) {
+        ewma = value;
+      } else {
+        final dtMs = record.datetime
+            .difference(prevTime)
+            .inMilliseconds
+            .toDouble();
+        final alpha = 1.0 - math.exp(-dtMs / tau);
+        ewma = alpha * value + (1 - alpha) * ewma;
+      }
+      if (!record.datetime.isBefore(visibleFrom)) {
+        spots.add(
+          FlSpot(record.datetime.millisecondsSinceEpoch.toDouble(), ewma),
+        );
+      }
+      prevTime = record.datetime;
+    }
+    return spots;
+  }
+
   /// Purpose: Provide the internal weight interval helper for this file.
   /// Inputs: `range`.
   /// Returns: `double`.
@@ -1032,6 +1240,18 @@ class _WeightPageState extends State<WeightPage> {
     if (range <= 5) return 1;
     if (range <= 10) return 2;
     return 5;
+  }
+
+  /// Purpose: Return a readable y-axis interval for centimeter measurements.
+  /// Inputs: `range`.
+  /// Returns: `double`.
+  /// Side effects: None.
+  /// Notes: Keeps measurement labels sparse enough for compact chart heights.
+  double _measurementInterval(double range) {
+    if (range <= 5) return 1;
+    if (range <= 10) return 2;
+    if (range <= 25) return 5;
+    return 10;
   }
 
   /// Purpose: Provide the internal date interval helper for this file.
@@ -1048,12 +1268,12 @@ class _WeightPageState extends State<WeightPage> {
     final spanDays = spanMs / (86400 * 1000);
     // Choose a clean interval in milliseconds based on total span
     const day = 86400 * 1000.0;
-    if (spanDays <= 7) return 2 * day; // every-other-day labels
-    if (spanDays <= 30) return 7 * day; // weekly labels
-    if (spanDays <= 90) return 21 * day; // tri-weekly labels
-    if (spanDays <= 180) return 45 * day; // ~6-week labels
-    if (spanDays <= 365) return 90 * day; // quarterly labels
-    if (spanDays <= 730) return 180 * day; // semi-annual labels
+    if (spanDays <= 7) return 3 * day;
+    if (spanDays <= 30) return 10 * day;
+    if (spanDays <= 90) return 30 * day;
+    if (spanDays <= 180) return 60 * day;
+    if (spanDays <= 365) return 120 * day;
+    if (spanDays <= 730) return 240 * day;
     if (spanDays <= 1825) return 365 * day; // annual labels
     return 730 * day; // 2-year labels
   }

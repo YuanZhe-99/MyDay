@@ -435,6 +435,8 @@
   "weightBust": "バスト",
   "weightWaist": "ウエスト",
   "weightHip": "ヒップ",
+  "weightMeasurementTrend": "スリーサイズ推移",
+  "weightWaistHipRatio": "WHR",
   "weightNote": "メモ",
   "weightNoteHint": "任意のメモ",
   "weightChart": "推移",

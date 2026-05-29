@@ -177,4 +177,15 @@ class WeightData {
     final heightM = heightCm / 100.0;
     return weightKg / (heightM * heightM);
   }
+
+  /// Purpose: Calculate waist-hip ratio from circumference measurements.
+  /// Inputs: `waistCm`, `hipCm`.
+  /// Returns: `double?`.
+  /// Side effects: None.
+  /// Notes: Returns null unless both measurements are positive.
+  static double? calculateWaistHipRatio(double? waistCm, double? hipCm) {
+    if (waistCm == null || waistCm <= 0) return null;
+    if (hipCm == null || hipCm <= 0) return null;
+    return waistCm / hipCm;
+  }
 }

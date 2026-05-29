@@ -1184,6 +1184,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get weightHip => 'ヒップ';
 
   @override
+  String get weightMeasurementTrend => 'スリーサイズ推移';
+
+  @override
+  String get weightWaistHipRatio => 'WHR';
+
+  @override
   String get weightNote => 'メモ';
 
   @override

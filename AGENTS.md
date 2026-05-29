@@ -29,8 +29,8 @@ Maintenance rules:
 - **Package id:** Dart package `my_day`; Android namespace/application id `com.yuanzhe.my_day`; MSIX identity `com.yuanzhe.myday`; macOS bundle id `com.yuanzhe.myDay`.
 - **Author / publisher:** `yuanzhe`.
 - **License:** GPL-3.0.
-- **Current version:** `0.7.8+35` in `pubspec.yaml`, `0.7.8.0` in `msix_config.msix_version`, and `0.7.8` in `installer.iss`.
-- **Latest tag at the time this guide was written:** `v0.7.8`.
+- **Current version:** `0.7.9+36` in `pubspec.yaml`, `0.7.9.0` in `msix_config.msix_version`, and `0.7.9` in `installer.iss`.
+- **Latest tag at the time this guide was written:** `v0.7.9`.
 - **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.41.6`.
 - **Primary platforms:** Windows x64/ARM64, Android APK/AAB, iOS sideload IPA, and macOS DMG. Linux project support exists for desktop runtime features but is not a primary release artifact.
 - **Repository:** Use the current environment's workspace root / repository path instead of hard-coding an absolute local path.
@@ -221,9 +221,9 @@ Main model: `lib/features/weight/models/weight_record.dart`.
 
 - `WeightRecord`: id, weight kg, optional body fat, optional bust/waist/hip circumference in cm, datetime, notes, `modifiedAt`.
 - `WeightData`: optional height, records, reminder mode (`none`, `once`, `twice`), morning/evening reminder times, `reminderGraceMinutes` default 180, and `settingsModifiedAt`.
-- BMI is computed by `WeightData.calculateBMI()`.
+- BMI is computed by `WeightData.calculateBMI()`. Waist-hip ratio is computed by `WeightData.calculateWaistHipRatio()` and returns null unless waist and hip measurements are both positive.
 
-The Weight page includes add/edit records, optional bust/waist/hip measurement entry, chart range selection, raw and EWMA weight trend display, dual-axis measurement trends with kg on the left and cm on the right, BMI/summary cards, weekly grouped history, "show all" history, and reminder settings. A reminder is skipped when a record exists inside the configured pre-reminder grace window.
+The Weight page includes add/edit records, optional bust/waist/hip measurement entry, chart range selection, raw and EWMA weight trend display, a separate raw/EWMA bust-waist-hip trend chart, BMI/measurement/waist-hip-ratio summary cards with compact color bars, weekly grouped history, "show all" history, and reminder settings. A reminder is skipped when a record exists inside the configured pre-reminder grace window.
 
 ### Settings
 
@@ -452,3 +452,4 @@ Use the narrowest relevant command set for verification. For sync/model/persiste
 - `v0.7.6`: Intimacy timer adds a non-negative x100 thrust counter with +100/-100 controls, timer sessions/history preserve that count for record prefill and restoration, and versions are unified to `0.7.6+33` / MSIX `0.7.6.0` / installer `0.7.6`.
 - `v0.7.7`: Intimacy trend charts use higher-contrast colors for combined data series, condom-protected record tiles show affirmative status text, and versions are unified to `0.7.7+34` / MSIX `0.7.7.0` / installer `0.7.7`.
 - `v0.7.8`: Weight records support optional bust/waist/hip measurements in cm, the weight trend chart adds dual-axis measurement lines with kg left and cm right, weight CSV/API flows include the new fields, and versions are unified to `0.7.8+35` / MSIX `0.7.8.0` / installer `0.7.8`.
+- `v0.7.9`: Weight summary cards show latest bust/waist/hip values plus waist-hip ratio with a compact color bar, weight and body-measurement trends are split into separate raw/EWMA charts with less crowded axes, and versions are unified to `0.7.9+36` / MSIX `0.7.9.0` / installer `0.7.9`.

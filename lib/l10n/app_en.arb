@@ -456,6 +456,8 @@
   "weightBust": "Bust",
   "weightWaist": "Waist",
   "weightHip": "Hip",
+  "weightMeasurementTrend": "Measurements",
+  "weightWaistHipRatio": "WHR",
   "weightNote": "Note",
   "weightNoteHint": "Optional note",
   "weightChart": "Trend",

@@ -1182,6 +1182,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get weightHip => '臀围';
 
   @override
+  String get weightMeasurementTrend => '三围趋势';
+
+  @override
+  String get weightWaistHipRatio => '腰臀比';
+
+  @override
   String get weightNote => '备注';
 
   @override
@@ -2890,6 +2896,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get weightHip => '臀圍';
+
+  @override
+  String get weightMeasurementTrend => '三圍趨勢';
+
+  @override
+  String get weightWaistHipRatio => '腰臀比';
 
   @override
   String get weightNote => '備註';

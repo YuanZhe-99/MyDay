@@ -1201,6 +1201,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get weightHip => 'Hip';
 
   @override
+  String get weightMeasurementTrend => 'Measurements';
+
+  @override
+  String get weightWaistHipRatio => 'WHR';
+
+  @override
   String get weightNote => 'Note';
 
   @override

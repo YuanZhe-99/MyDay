@@ -433,6 +433,8 @@
   "weightBust": "胸圍",
   "weightWaist": "腰圍",
   "weightHip": "臀圍",
+  "weightMeasurementTrend": "三圍趨勢",
+  "weightWaistHipRatio": "腰臀比",
   "weightNote": "備註",
   "weightNoteHint": "可選備註",
   "weightChart": "趨勢",

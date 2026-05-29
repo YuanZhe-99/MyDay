@@ -2363,6 +2363,18 @@ abstract class AppLocalizations {
   /// **'Hip'**
   String get weightHip;
 
+  /// No description provided for @weightMeasurementTrend.
+  ///
+  /// In en, this message translates to:
+  /// **'Measurements'**
+  String get weightMeasurementTrend;
+
+  /// No description provided for @weightWaistHipRatio.
+  ///
+  /// In en, this message translates to:
+  /// **'WHR'**
+  String get weightWaistHipRatio;
+
   /// No description provided for @weightNote.
   ///
   /// In en, this message translates to:

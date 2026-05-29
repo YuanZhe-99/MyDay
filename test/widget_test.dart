@@ -60,6 +60,14 @@ void main() {
     expect(restored.hipCm, isNull);
   });
 
+  test('WeightData calculates waist-hip ratio from positive measurements', () {
+    expect(WeightData.calculateWaistHipRatio(70, 92), closeTo(0.7609, 0.0001));
+    expect(WeightData.calculateWaistHipRatio(null, 92), isNull);
+    expect(WeightData.calculateWaistHipRatio(70, null), isNull);
+    expect(WeightData.calculateWaistHipRatio(0, 92), isNull);
+    expect(WeightData.calculateWaistHipRatio(70, 0), isNull);
+  });
+
   testWidgets('App launches and shows Todo tab', (WidgetTester tester) async {
     await tester.pumpWidget(const ProviderScope(child: MyDayApp()));
     await tester.pump();
