@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/widgets/app_date_picker.dart';
 import '../../../shared/widgets/unsaved_changes_guard.dart';
 import '../models/task.dart';
 import 'recurrence_picker.dart';
@@ -11,6 +12,7 @@ class AddTaskDialog extends StatefulWidget {
   /// When set, pre-fills all fields and uses this as the dialog title.
   final Task? initialTask;
   final String? dialogTitle;
+
   /// Purpose: Create a add task dialog instance.
   /// Inputs: None.
   /// Returns: A new `AddTaskDialog` instance.
@@ -235,11 +237,12 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                         : l10n.todoSetScheduledDate,
                   ),
                   onTap: () async {
-                    final picked = await showDatePicker(
+                    final picked = await showAppDatePicker(
                       context: context,
                       initialDate: _scheduledDate ?? DateTime.now(),
                       firstDate: DateTime(2020),
                       lastDate: DateTime.now().add(const Duration(days: 3650)),
+                      title: l10n.todoSetScheduledDate,
                     );
                     if (picked != null) setState(() => _scheduledDate = picked);
                   },
@@ -265,11 +268,12 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                         )
                       : null,
                   onTap: () async {
-                    final picked = await showDatePicker(
+                    final picked = await showAppDatePicker(
                       context: context,
                       initialDate: _dueDate ?? DateTime.now(),
                       firstDate: DateTime(2020),
                       lastDate: DateTime.now().add(const Duration(days: 3650)),
+                      title: l10n.todoSetDueDate,
                     );
                     if (picked != null) setState(() => _dueDate = picked);
                   },

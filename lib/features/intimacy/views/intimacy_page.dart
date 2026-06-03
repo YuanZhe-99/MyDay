@@ -3,12 +3,15 @@ import 'dart:math' as math;
 
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/providers/app_settings.dart';
 import '../../../shared/services/auto_sync_service.dart';
 import '../../../shared/services/image_service.dart';
 import '../../../shared/utils/week_grouping.dart';
+import '../../../shared/widgets/app_date_picker.dart';
 import '../../../shared/widgets/delete_confirm.dart';
 import '../../../shared/widgets/unsaved_changes_guard.dart';
 import '../models/intimacy_record.dart';
@@ -78,7 +81,7 @@ List<FlSpot> _buildEwmaThrustCountSpots(
   return spots;
 }
 
-class IntimacyPage extends StatefulWidget {
+class IntimacyPage extends ConsumerStatefulWidget {
   /// Purpose: Create an intimacy page instance.
   /// Inputs: None.
   /// Returns: A new `IntimacyPage` instance.
@@ -92,10 +95,10 @@ class IntimacyPage extends StatefulWidget {
   /// Side effects: May update UI state or trigger user-facing flows.
   /// Notes: None.
   @override
-  State<IntimacyPage> createState() => _IntimacyPageState();
+  ConsumerState<IntimacyPage> createState() => _IntimacyPageState();
 }
 
-class _IntimacyPageState extends State<IntimacyPage> {
+class _IntimacyPageState extends ConsumerState<IntimacyPage> {
   static const _defaultVisibleRecordCount = 20;
 
   DateTime _focusedMonth = DateTime.now();
@@ -357,6 +360,8 @@ class _IntimacyPageState extends State<IntimacyPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final settings = ref.watch(appSettingsProvider);
     final filteredRecords = _filteredRecords;
     final visibleRecords = _selectedDate == null
         ? filteredRecords.take(_defaultVisibleRecordCount).toList()
@@ -364,11 +369,11 @@ class _IntimacyPageState extends State<IntimacyPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.intimacyTitle),
+        title: Text(l10n.intimacyTitle),
         actions: [
           IconButton(
             icon: const Icon(Icons.timer_outlined),
-            tooltip: AppLocalizations.of(context)!.intimacyTimer,
+            tooltip: l10n.intimacyTimer,
             onPressed: () async {
               final result = await Navigator.push<TimerPageResult>(
                 context,
@@ -416,7 +421,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
           ),
           IconButton(
             icon: const Icon(Icons.settings_outlined),
-            tooltip: AppLocalizations.of(context)!.intimacyManage,
+            tooltip: l10n.intimacyManage,
             onPressed: () => _showManageMenu(context),
           ),
         ],
@@ -430,6 +435,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
                   focusedMonth: _focusedMonth,
                   selectedDate: _selectedDate,
                   markedDates: _markedDates,
+                  weekStartDay: settings.weekStartDay,
                   onMonthChanged: (month) {
                     setState(() => _focusedMonth = month);
                   },
@@ -454,8 +460,11 @@ class _IntimacyPageState extends State<IntimacyPage> {
                     children: [
                       Text(
                         _selectedDate != null
-                            ? DateFormat('MMM d').format(_selectedDate!)
-                            : AppLocalizations.of(context)!.intimacyAllRecords,
+                            ? DateFormat(
+                                'MMM d',
+                                l10n.localeName,
+                              ).format(_selectedDate!)
+                            : l10n.intimacyAllRecords,
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
@@ -464,9 +473,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
                         const Spacer(),
                         TextButton(
                           onPressed: () => setState(() => _selectedDate = null),
-                          child: Text(
-                            AppLocalizations.of(context)!.intimacyShowAll,
-                          ),
+                          child: Text(l10n.intimacyShowAll),
                         ),
                       ],
                     ],
@@ -495,7 +502,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
                     padding: const EdgeInsets.symmetric(vertical: 48),
                     child: Center(
                       child: Text(
-                        AppLocalizations.of(context)!.intimacyNoRecords,
+                        l10n.intimacyNoRecords,
                         style: theme.textTheme.bodyLarge?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
@@ -503,15 +510,18 @@ class _IntimacyPageState extends State<IntimacyPage> {
                     ),
                   )
                 else ...[
-                  ..._buildRecordListWidgets(theme, visibleRecords),
+                  ..._buildRecordListWidgets(
+                    theme,
+                    visibleRecords,
+                    settings.weekStartDay,
+                  ),
                   if (_selectedDate == null &&
                       filteredRecords.length > _defaultVisibleRecordCount)
                     Center(
                       child: TextButton(
-                        onPressed: () => _showAllRecords(context),
-                        child: Text(
-                          AppLocalizations.of(context)!.intimacyShowAllRecords,
-                        ),
+                        onPressed: () =>
+                            _showAllRecords(context, settings.weekStartDay),
+                        child: Text(l10n.intimacyShowAllRecords),
                       ),
                     ),
                 ],
@@ -528,11 +538,11 @@ class _IntimacyPageState extends State<IntimacyPage> {
   }
 
   /// Purpose: Show the complete filtered intimacy record list.
-  /// Inputs: `context`.
+  /// Inputs: `context` and `weekStartDay`.
   /// Returns: None.
   /// Side effects: Opens a bottom sheet and may trigger record edit/delete flows from its rows.
   /// Notes: Used only for the default no-date view so the page itself stays lightweight.
-  void _showAllRecords(BuildContext context) {
+  void _showAllRecords(BuildContext context, int weekStartDay) {
     final theme = Theme.of(context);
     final records = _filteredRecords;
     showModalBottomSheet(
@@ -545,29 +555,31 @@ class _IntimacyPageState extends State<IntimacyPage> {
         builder: (context, controller) => ListView(
           controller: controller,
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          children: _buildRecordListWidgets(theme, records),
+          children: _buildRecordListWidgets(theme, records, weekStartDay),
         ),
       ),
     );
   }
 
   /// Purpose: Provide the internal build record list widgets helper for this file.
-  /// Inputs: `theme`, `records`.
+  /// Inputs: `theme`, `records`, and `weekStartDay`.
   /// Returns: `List<Widget>`.
   /// Side effects: May update UI state or trigger user-facing flows.
   /// Notes: Internal helper used within this file only.
   List<Widget> _buildRecordListWidgets(
     ThemeData theme,
     List<IntimacyRecord> records,
+    int weekStartDay,
   ) {
     if (_selectedDate != null) {
       return records.map(_buildRecordDismissible).toList();
     }
 
-    final groups = groupByIsoWeek(
+    final groups = groupByWeek(
       records,
       (record) => record.datetime,
       descending: _sortMode != _SortMode.dateAsc,
+      weekStartDay: weekStartDay,
     );
     return [
       for (final group in groups) ...[
@@ -590,7 +602,11 @@ class _IntimacyPageState extends State<IntimacyPage> {
         l10n.commonWeekGroup(
           group.year,
           group.week,
-          formatMonthDayRange(group.start, group.end),
+          formatMonthDayRange(
+            group.start,
+            group.end,
+            localeName: l10n.localeName,
+          ),
         ),
         style: theme.textTheme.labelLarge?.copyWith(
           color: theme.colorScheme.onSurfaceVariant,
@@ -1084,6 +1100,8 @@ class _IntimacyPageState extends State<IntimacyPage> {
     }
 
     final freqMax = freqCeil(math.max(maxFreq * 1.1, 1.0));
+    final l10n = AppLocalizations.of(context)!;
+    final localeName = l10n.localeName;
 
     return LineChart(
       LineChartData(
@@ -1114,10 +1132,10 @@ class _IntimacyPageState extends State<IntimacyPage> {
                     .difference(data.first.datetime)
                     .inDays;
                 final fmt = spanDays > 730
-                    ? DateFormat('yyyy')
+                    ? DateFormat('yyyy', localeName)
                     : spanDays > 365
-                    ? DateFormat('M/yy')
-                    : DateFormat('M/d');
+                    ? DateFormat('M/yy', localeName)
+                    : DateFormat('M/d', localeName);
                 return SideTitleWidget(
                   meta: meta,
                   child: Text(
@@ -1243,7 +1261,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
                 // Only show tooltip for EWMA series (indices 1 and 3); skip raw (0 and 2)
                 if (s.barIndex == 1) {
                   return LineTooltipItem(
-                    '${AppLocalizations.of(context)!.intimacyPleasure}: ${s.y.toStringAsFixed(1)}\n${DateFormat('MMM d').format(date)}',
+                    '${l10n.intimacyPleasure}: ${s.y.toStringAsFixed(1)}\n${DateFormat('MMM d', localeName).format(date)}',
                     TextStyle(
                       color: theme.colorScheme.onPrimary,
                       fontSize: 11,
@@ -1316,6 +1334,8 @@ class _IntimacyPageState extends State<IntimacyPage> {
 
     final yMax = minCeil(math.max(maxMin * 1.15, 5.0));
     final thrustMax = thrustCeil(math.max(maxThrust * 1.1, 100.0));
+    final l10n = AppLocalizations.of(context)!;
+    final localeName = l10n.localeName;
 
     return LineChart(
       LineChartData(
@@ -1345,10 +1365,10 @@ class _IntimacyPageState extends State<IntimacyPage> {
                     .difference(data.first.datetime)
                     .inDays;
                 final fmt = spanDays > 730
-                    ? DateFormat('yyyy')
+                    ? DateFormat('yyyy', localeName)
                     : spanDays > 365
-                    ? DateFormat('M/yy')
-                    : DateFormat('M/d');
+                    ? DateFormat('M/yy', localeName)
+                    : DateFormat('M/d', localeName);
                 return SideTitleWidget(
                   meta: meta,
                   child: Text(
@@ -1472,7 +1492,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
                 final date = DateTime.fromMillisecondsSinceEpoch(s.x.toInt());
                 if (s.barIndex == 1) {
                   return LineTooltipItem(
-                    '${AppLocalizations.of(context)!.intimacyDuration}: ${s.y.toStringAsFixed(1)}min\n${DateFormat('MMM d').format(date)}',
+                    '${l10n.intimacyDuration}: ${s.y.toStringAsFixed(1)}min\n${DateFormat('MMM d', localeName).format(date)}',
                     const TextStyle(
                       color: Colors.white,
                       fontSize: 11,
@@ -1482,7 +1502,7 @@ class _IntimacyPageState extends State<IntimacyPage> {
                 } else if (s.barIndex == 3) {
                   final actual = s.y / yMax * thrustMax;
                   return LineTooltipItem(
-                    '${AppLocalizations.of(context)!.intimacyThrustCount}: ${actual.toStringAsFixed(0)}\n${DateFormat('MMM d').format(date)}',
+                    '${l10n.intimacyThrustCount}: ${actual.toStringAsFixed(0)}\n${DateFormat('MMM d', localeName).format(date)}',
                     const TextStyle(
                       color: Colors.white,
                       fontSize: 11,
@@ -1691,18 +1711,20 @@ class _CalendarWidget extends StatelessWidget {
   final DateTime focusedMonth;
   final DateTime? selectedDate;
   final Set<DateTime> markedDates;
+  final int weekStartDay;
   final void Function(DateTime) onMonthChanged;
   final void Function(DateTime) onDateSelected;
 
   /// Purpose: Create a calendar widget instance.
-  /// Inputs: None.
+  /// Inputs: Focused month, selected date, marked dates, week start, and callbacks.
   /// Returns: A new `_CalendarWidget` instance.
   /// Side effects: None.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Weekday values use Dart's Monday=1 through Sunday=7 numbering.
   const _CalendarWidget({
     required this.focusedMonth,
     required this.selectedDate,
     required this.markedDates,
+    required this.weekStartDay,
     required this.onMonthChanged,
     required this.onDateSelected,
   });
@@ -1719,7 +1741,11 @@ class _CalendarWidget extends StatelessWidget {
     final month = focusedMonth.month;
     final firstDay = DateTime(year, month, 1);
     final daysInMonth = DateTime(year, month + 1, 0).day;
-    final startWeekday = firstDay.weekday % 7; // 0=Sun
+    final leadingBlanks = leadingBlankDaysForMonth(
+      firstDay,
+      weekStartDay: weekStartDay,
+    );
+    final localeName = AppLocalizations.of(context)!.localeName;
 
     return Column(
       children: [
@@ -1734,7 +1760,7 @@ class _CalendarWidget extends StatelessWidget {
                 onPressed: () => onMonthChanged(DateTime(year, month - 1, 1)),
               ),
               Text(
-                DateFormat('yyyy MMMM').format(focusedMonth),
+                DateFormat('yyyy MMMM', localeName).format(focusedMonth),
                 style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
@@ -1751,21 +1777,20 @@ class _CalendarWidget extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8),
           child: Row(
-            children: ['S', 'M', 'T', 'W', 'T', 'F', 'S']
-                .map(
-                  (d) => Expanded(
-                    child: Center(
-                      child: Text(
-                        d,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w600,
-                        ),
+            children: [
+              for (final weekday in weekdaySequence(weekStartDay))
+                Expanded(
+                  child: Center(
+                    child: Text(
+                      localizedWeekdayLabel(weekday, localeName),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
-                )
-                .toList(),
+                ),
+            ],
           ),
         ),
         const SizedBox(height: 4),
@@ -1773,7 +1798,13 @@ class _CalendarWidget extends StatelessWidget {
         // Day grid
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: _buildDayGrid(context, startWeekday, daysInMonth, year, month),
+          child: _buildDayGrid(
+            context,
+            leadingBlanks,
+            daysInMonth,
+            year,
+            month,
+          ),
         ),
         const SizedBox(height: 8),
       ],
@@ -1781,13 +1812,13 @@ class _CalendarWidget extends StatelessWidget {
   }
 
   /// Purpose: Provide the internal build day grid helper for this file.
-  /// Inputs: Key parameters such as `context`, `startWeekday`, `daysInMonth`, `year`.
+  /// Inputs: Key parameters such as `context`, `leadingBlanks`, `daysInMonth`, `year`.
   /// Returns: `Widget`.
   /// Side effects: May update UI state or trigger user-facing flows.
   /// Notes: Internal helper used within this file only.
   Widget _buildDayGrid(
     BuildContext context,
-    int startWeekday,
+    int leadingBlanks,
     int daysInMonth,
     int year,
     int month,
@@ -1795,7 +1826,7 @@ class _CalendarWidget extends StatelessWidget {
     final theme = Theme.of(context);
     final today = DateTime.now();
     final rows = <Widget>[];
-    var day = 1 - startWeekday;
+    var day = 1 - leadingBlanks;
 
     while (day <= daysInMonth) {
       final cells = <Widget>[];
@@ -1805,7 +1836,8 @@ class _CalendarWidget extends StatelessWidget {
         } else {
           final date = DateTime(year, month, day);
           final isMarked = markedDates.contains(date);
-          final isSelected = selectedDate == date;
+          final isSelected =
+              selectedDate != null && _isSameDay(selectedDate!, date);
           final isToday =
               date.year == today.year &&
               date.month == today.month &&
@@ -1857,6 +1889,14 @@ class _CalendarWidget extends StatelessWidget {
     }
     return Column(children: rows);
   }
+
+  /// Purpose: Return whether two date values represent the same calendar day.
+  /// Inputs: `a`, `b`.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: Time components are ignored.
+  bool _isSameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
 }
 
 class _RecordTile extends StatelessWidget {
@@ -1886,7 +1926,10 @@ class _RecordTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    final dateStr = DateFormat('MMM d, HH:mm').format(record.datetime);
+    final dateStr = DateFormat(
+      'MMM d, HH:mm',
+      l10n.localeName,
+    ).format(record.datetime);
     final durationStr = '${record.duration.inMinutes}min';
     final thrustStr = record.thrustCount != null && record.thrustCount! > 0
         ? '${l10n.intimacyThrustCountShort}: ${record.thrustCount} x${record.thrustCountUnit}'
@@ -2582,11 +2625,12 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
                     label: l10n.intimacyStartDate,
                     date: startDate,
                     onPick: () async {
-                      final picked = await showDatePicker(
+                      final picked = await showAppDatePicker(
                         context: ctx,
                         initialDate: startDate ?? DateTime.now(),
                         firstDate: DateTime(1990),
                         lastDate: DateTime.now().add(const Duration(days: 365)),
+                        title: l10n.intimacyStartDate,
                       );
                       if (picked != null) {
                         setDialogState(() => startDate = picked);
@@ -2598,11 +2642,12 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
                     label: l10n.intimacyEndDate,
                     date: endDate,
                     onPick: () async {
-                      final picked = await showDatePicker(
+                      final picked = await showAppDatePicker(
                         context: ctx,
                         initialDate: endDate ?? DateTime.now(),
                         firstDate: DateTime(1990),
                         lastDate: DateTime.now().add(const Duration(days: 365)),
+                        title: l10n.intimacyEndDate,
                       );
                       if (picked != null) {
                         setDialogState(() => endDate = picked);
@@ -3566,11 +3611,12 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
                     label: l10n.intimacyPurchaseDate,
                     date: purchaseDate,
                     onPick: () async {
-                      final picked = await showDatePicker(
+                      final picked = await showAppDatePicker(
                         context: ctx,
                         initialDate: purchaseDate ?? DateTime.now(),
                         firstDate: DateTime(1990),
                         lastDate: DateTime.now().add(const Duration(days: 365)),
+                        title: l10n.intimacyPurchaseDate,
                       );
                       if (picked != null) {
                         setDialogState(() => purchaseDate = picked);
@@ -3582,11 +3628,12 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
                     label: l10n.intimacyRetiredDate,
                     date: retiredDate,
                     onPick: () async {
-                      final picked = await showDatePicker(
+                      final picked = await showAppDatePicker(
                         context: ctx,
                         initialDate: retiredDate ?? DateTime.now(),
                         firstDate: DateTime(1990),
                         lastDate: DateTime.now().add(const Duration(days: 365)),
+                        title: l10n.intimacyRetiredDate,
                       );
                       if (picked != null) {
                         setDialogState(() => retiredDate = picked);
@@ -4461,7 +4508,7 @@ class _PositionManagementPageState extends State<_PositionManagementPage> {
 }
 
 // ─── Filtered Records (by partner or toy) ───────────────────────────
-class _FilteredRecordsPage extends StatefulWidget {
+class _FilteredRecordsPage extends ConsumerStatefulWidget {
   final String title;
   final List<IntimacyRecord> records;
   final String? partnerId;
@@ -4493,10 +4540,11 @@ class _FilteredRecordsPage extends StatefulWidget {
   /// Side effects: May update UI state or trigger user-facing flows.
   /// Notes: None.
   @override
-  State<_FilteredRecordsPage> createState() => _FilteredRecordsPageState();
+  ConsumerState<_FilteredRecordsPage> createState() =>
+      _FilteredRecordsPageState();
 }
 
-class _FilteredRecordsPageState extends State<_FilteredRecordsPage> {
+class _FilteredRecordsPageState extends ConsumerState<_FilteredRecordsPage> {
   late List<IntimacyRecord> _records;
 
   /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
@@ -4793,18 +4841,20 @@ class _FilteredRecordsPageState extends State<_FilteredRecordsPage> {
   }
 
   /// Purpose: Build grouped record list widgets for this filtered detail page.
-  /// Inputs: `theme`, `records`.
+  /// Inputs: `theme`, `records`, and `weekStartDay`.
   /// Returns: `List<Widget>`.
   /// Side effects: Creates UI widgets from the current state.
-  /// Notes: Uses the same ISO-week grouping style as the main intimacy history.
+  /// Notes: Uses the same configurable week grouping style as the main intimacy history.
   List<Widget> _buildRecordListWidgets(
     ThemeData theme,
     List<IntimacyRecord> records,
+    int weekStartDay,
   ) {
-    final groups = groupByIsoWeek(
+    final groups = groupByWeek(
       records,
       (record) => record.datetime,
       descending: true,
+      weekStartDay: weekStartDay,
     );
     return [
       for (final group in groups) ...[
@@ -4827,7 +4877,11 @@ class _FilteredRecordsPageState extends State<_FilteredRecordsPage> {
         l10n.commonWeekGroup(
           group.year,
           group.week,
-          formatMonthDayRange(group.start, group.end),
+          formatMonthDayRange(
+            group.start,
+            group.end,
+            localeName: l10n.localeName,
+          ),
         ),
         style: theme.textTheme.labelLarge?.copyWith(
           color: theme.colorScheme.onSurfaceVariant,
@@ -4846,6 +4900,7 @@ class _FilteredRecordsPageState extends State<_FilteredRecordsPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
+    final settings = ref.watch(appSettingsProvider);
     final records = _filteredRecords;
     return Scaffold(
       appBar: AppBar(title: Text(widget.title), centerTitle: true),
@@ -4868,7 +4923,7 @@ class _FilteredRecordsPageState extends State<_FilteredRecordsPage> {
               ),
             )
           else
-            ..._buildRecordListWidgets(theme, records),
+            ..._buildRecordListWidgets(theme, records, settings.weekStartDay),
           const SizedBox(height: 80),
         ],
       ),
@@ -5186,6 +5241,8 @@ class _FilteredRecordsTrendSectionState
     List<FlSpot> pleasureSpots,
     List<IntimacyRecord> data,
   ) {
+    final l10n = AppLocalizations.of(context)!;
+    final localeName = l10n.localeName;
     return LineChart(
       LineChartData(
         gridData: FlGridData(
@@ -5215,10 +5272,10 @@ class _FilteredRecordsTrendSectionState
                     .difference(data.first.datetime)
                     .inDays;
                 final fmt = spanDays > 730
-                    ? DateFormat('yyyy')
+                    ? DateFormat('yyyy', localeName)
                     : spanDays > 365
-                    ? DateFormat('M/yy')
-                    : DateFormat('M/d');
+                    ? DateFormat('M/yy', localeName)
+                    : DateFormat('M/d', localeName);
                 return SideTitleWidget(
                   meta: meta,
                   child: Text(
@@ -5295,7 +5352,7 @@ class _FilteredRecordsTrendSectionState
                   spot.x.toInt(),
                 );
                 return LineTooltipItem(
-                  '${AppLocalizations.of(context)!.intimacyPleasure}: ${spot.y.toStringAsFixed(1)}\n${DateFormat('MMM d').format(date)}',
+                  '${l10n.intimacyPleasure}: ${spot.y.toStringAsFixed(1)}\n${DateFormat('MMM d', localeName).format(date)}',
                   TextStyle(
                     color: theme.colorScheme.onPrimary,
                     fontSize: 11,
@@ -5360,6 +5417,8 @@ class _FilteredRecordsTrendSectionState
 
     final yMax = minuteCeil(math.max(maxMinutes * 1.15, 5.0));
     final thrustMax = thrustCeil(math.max(maxThrust * 1.1, 100.0));
+    final l10n = AppLocalizations.of(context)!;
+    final localeName = l10n.localeName;
 
     return LineChart(
       LineChartData(
@@ -5389,10 +5448,10 @@ class _FilteredRecordsTrendSectionState
                     .difference(data.first.datetime)
                     .inDays;
                 final fmt = spanDays > 730
-                    ? DateFormat('yyyy')
+                    ? DateFormat('yyyy', localeName)
                     : spanDays > 365
-                    ? DateFormat('M/yy')
-                    : DateFormat('M/d');
+                    ? DateFormat('M/yy', localeName)
+                    : DateFormat('M/d', localeName);
                 return SideTitleWidget(
                   meta: meta,
                   child: Text(
@@ -5516,7 +5575,7 @@ class _FilteredRecordsTrendSectionState
                 );
                 if (spot.barIndex == 1) {
                   return LineTooltipItem(
-                    '${AppLocalizations.of(context)!.intimacyDuration}: ${spot.y.toStringAsFixed(1)}min\n${DateFormat('MMM d').format(date)}',
+                    '${l10n.intimacyDuration}: ${spot.y.toStringAsFixed(1)}min\n${DateFormat('MMM d', localeName).format(date)}',
                     const TextStyle(
                       color: Colors.white,
                       fontSize: 11,
@@ -5526,7 +5585,7 @@ class _FilteredRecordsTrendSectionState
                 } else if (spot.barIndex == 3) {
                   final actual = spot.y / yMax * thrustMax;
                   return LineTooltipItem(
-                    '${AppLocalizations.of(context)!.intimacyThrustCount}: ${actual.toStringAsFixed(0)}\n${DateFormat('MMM d').format(date)}',
+                    '${l10n.intimacyThrustCount}: ${actual.toStringAsFixed(0)}\n${DateFormat('MMM d', localeName).format(date)}',
                     const TextStyle(
                       color: Colors.white,
                       fontSize: 11,

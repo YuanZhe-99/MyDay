@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/services/image_service.dart';
+import '../../../shared/widgets/app_date_picker.dart';
 import '../../../shared/widgets/unsaved_changes_guard.dart';
 import '../models/finance.dart';
 import '../services/balance_util.dart';
@@ -98,6 +99,7 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
   bool get _isEditing => widget.subscription != null;
+
   /// Purpose: Return is cancelled.
   /// Inputs: None.
   /// Returns: `bool`.
@@ -393,11 +395,12 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
                   '${_startDate.year}-${_startDate.month.toString().padLeft(2, '0')}-${_startDate.day.toString().padLeft(2, '0')}',
                 ),
                 onTap: () async {
-                  final picked = await showDatePicker(
+                  final picked = await showAppDatePicker(
                     context: context,
                     initialDate: _startDate,
                     firstDate: DateTime(2000),
                     lastDate: DateTime.now().add(const Duration(days: 3650)),
+                    title: l10n.financeStartDate,
                   );
                   if (picked != null) {
                     setState(() => _startDate = picked);

@@ -1211,6 +1211,12 @@ abstract class AppLocalizations {
   /// **'Theme'**
   String get settingsTheme;
 
+  /// No description provided for @settingsWeekStartDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Week Starts On'**
+  String get settingsWeekStartDay;
+
   /// No description provided for @settingsThemeSystem.
   ///
   /// In en, this message translates to:
@@ -1588,6 +1594,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add'**
   String get commonAdd;
+
+  /// No description provided for @commonDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get commonDate;
 
   /// No description provided for @commonConfirm.
   ///
@@ -2818,6 +2830,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Set scheduled date'**
   String get todoSetScheduledDate;
+
+  /// No description provided for @todoSetStartDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Set start date'**
+  String get todoSetStartDate;
 
   /// No description provided for @todoCompletedAt.
   ///

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/services/image_service.dart';
+import '../../../shared/widgets/app_date_picker.dart';
 import '../../../shared/widgets/delete_confirm.dart';
 import '../../../shared/widgets/unsaved_changes_guard.dart';
 import '../models/finance.dart';
@@ -1807,11 +1808,12 @@ class _AccountDialogState extends State<_AccountDialog> {
                   ),
                   subtitle: Text(l10n.financeBalanceEffectiveDate),
                   onTap: () async {
-                    final picked = await showDatePicker(
+                    final picked = await showAppDatePicker(
                       context: context,
                       initialDate: _forcedBalanceDate ?? DateTime.now(),
                       firstDate: DateTime(2020),
                       lastDate: DateTime.now(),
+                      title: l10n.financeBalanceEffectiveDate,
                     );
                     if (picked != null) {
                       setState(() => _forcedBalanceDate = picked);

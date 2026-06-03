@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/services/image_service.dart';
+import '../../../shared/widgets/app_date_picker.dart';
 import '../../../shared/widgets/unsaved_changes_guard.dart';
 import '../models/finance.dart';
 import '../services/account_picker_util.dart';
@@ -364,11 +365,12 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
                   '${_date.year}-${_date.month.toString().padLeft(2, '0')}-${_date.day.toString().padLeft(2, '0')}  ${_date.hour.toString().padLeft(2, '0')}:${_date.minute.toString().padLeft(2, '0')}',
                 ),
                 onTap: () async {
-                  final pickedDate = await showDatePicker(
+                  final pickedDate = await showAppDatePicker(
                     context: context,
                     initialDate: _date,
                     firstDate: DateTime(2020),
                     lastDate: DateTime.now().add(const Duration(days: 365)),
+                    title: l10n.financeDate,
                   );
                   if (pickedDate != null && mounted) {
                     final pickedTime = await showTimePicker(

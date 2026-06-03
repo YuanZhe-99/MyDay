@@ -133,6 +133,9 @@ class TodoStorage {
   /// Cached locale tag string.
   static String? _localeTag;
 
+  /// Cached week start day using Dart weekday numbering.
+  static int _weekStartDay = DateTime.monday;
+
   /// Cached tray settings.
   static bool _minimizeToTray = false;
   static bool _closeToTray = false;
@@ -228,6 +231,7 @@ class TodoStorage {
             (json['intimacyEverUnlocked'] as bool? ?? false);
         _themeMode = json['themeMode'] as String?;
         _localeTag = json['localeTag'] as String?;
+        _weekStartDay = _normalizeWeekStartDay(json['weekStartDay'] as int?);
         _minimizeToTray = json['minimizeToTray'] as bool? ?? false;
         _closeToTray = json['closeToTray'] as bool? ?? false;
       }
@@ -273,6 +277,11 @@ class TodoStorage {
       json['localeTag'] = _localeTag;
     } else {
       json.remove('localeTag');
+    }
+    if (_weekStartDay != DateTime.monday) {
+      json['weekStartDay'] = _weekStartDay;
+    } else {
+      json.remove('weekStartDay');
     }
     if (_minimizeToTray) {
       json['minimizeToTray'] = true;
@@ -354,6 +363,31 @@ class TodoStorage {
   static Future<void> setLocaleTag(String? tag) async {
     await _loadConfig();
     _localeTag = tag;
+    await _saveConfig();
+  }
+
+  /// Get persisted week start day.
+  /// Purpose: Return the global calendar week start day.
+  /// Inputs: None.
+  /// Returns: `Future<int>`.
+  /// Side effects: May load the storage config cache.
+  /// Notes: Values use Dart's Monday=1 through Sunday=7 numbering.
+  static Future<int> getWeekStartDay() async {
+    await _loadConfig();
+    return _weekStartDay;
+  }
+
+  /// Set and persist week start day.
+  /// Purpose: Update the global calendar week start day.
+  /// Inputs: `weekday`.
+  /// Returns: `Future<void>`.
+  /// Side effects: Writes `storage_config.json` when the value changes.
+  /// Notes: Invalid values are normalized back to Monday.
+  static Future<void> setWeekStartDay(int weekday) async {
+    await _loadConfig();
+    final normalized = _normalizeWeekStartDay(weekday);
+    if (_weekStartDay == normalized) return;
+    _weekStartDay = normalized;
     await _saveConfig();
   }
 
@@ -529,5 +563,19 @@ class TodoStorage {
     await _loadConfig();
     _closeToTray = value;
     await _saveConfig();
+  }
+
+  /// Purpose: Return a valid persisted week start day.
+  /// Inputs: `weekday`.
+  /// Returns: `int`.
+  /// Side effects: None.
+  /// Notes: Defaults invalid and missing config values to Monday.
+  static int _normalizeWeekStartDay(int? weekday) {
+    if (weekday == null ||
+        weekday < DateTime.monday ||
+        weekday > DateTime.sunday) {
+      return DateTime.monday;
+    }
+    return weekday;
   }
 }

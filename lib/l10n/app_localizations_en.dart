@@ -586,6 +586,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsTheme => 'Theme';
 
   @override
+  String get settingsWeekStartDay => 'Week Starts On';
+
+  @override
   String get settingsThemeSystem => 'System';
 
   @override
@@ -780,6 +783,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get commonAdd => 'Add';
+
+  @override
+  String get commonDate => 'Date';
 
   @override
   String get commonConfirm => 'Confirm';
@@ -1437,6 +1443,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get todoSetScheduledDate => 'Set scheduled date';
+
+  @override
+  String get todoSetStartDate => 'Set start date';
 
   @override
   String todoCompletedAt(String date) {

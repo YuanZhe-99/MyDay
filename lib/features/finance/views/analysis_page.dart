@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/widgets/app_date_picker.dart';
 import '../models/finance.dart';
 import '../services/balance_util.dart';
 import '../services/exchange_rate_storage.dart';
@@ -218,7 +219,7 @@ class _AnalysisPageState extends State<AnalysisPage>
   /// Side effects: May update UI state or trigger user-facing flows.
   /// Notes: Internal helper used within this file only.
   Future<void> _pickCustomRange() async {
-    final picked = await showDateRangePicker(
+    final picked = await showAppDateRangePicker(
       context: context,
       firstDate: DateTime(2020),
       lastDate: DateTime.now().add(const Duration(days: 365)),
@@ -228,6 +229,7 @@ class _AnalysisPageState extends State<AnalysisPage>
             start: DateTime.now().subtract(const Duration(days: 30)),
             end: DateTime.now(),
           ),
+      title: AppLocalizations.of(context)!.financeSelectDateRange,
     );
     if (picked != null) {
       setState(() => _customRange = picked);

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/widgets/app_date_picker.dart';
 import '../../../shared/widgets/unsaved_changes_guard.dart';
 import '../models/task.dart';
 import 'recurrence_picker.dart';
@@ -227,11 +228,12 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
                         : l10n.todoSetScheduledDate,
                   ),
                   onTap: () async {
-                    final picked = await showDatePicker(
+                    final picked = await showAppDatePicker(
                       context: context,
                       initialDate: _scheduledDate ?? DateTime.now(),
                       firstDate: DateTime(2020),
                       lastDate: DateTime.now().add(const Duration(days: 365)),
+                      title: l10n.todoSetScheduledDate,
                     );
                     if (picked != null) {
                       setState(() => _scheduledDate = picked);
@@ -259,11 +261,12 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
                         )
                       : null,
                   onTap: () async {
-                    final picked = await showDatePicker(
+                    final picked = await showAppDatePicker(
                       context: context,
                       initialDate: _dueDate ?? DateTime.now(),
                       firstDate: DateTime(2020),
                       lastDate: DateTime.now().add(const Duration(days: 3650)),
+                      title: l10n.todoSetDueDate,
                     );
                     if (picked != null) {
                       setState(() => _dueDate = picked);
@@ -311,11 +314,12 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
                         : l10n.todoSetCompletedDate,
                   ),
                   onTap: () async {
-                    final picked = await showDatePicker(
+                    final picked = await showAppDatePicker(
                       context: context,
                       initialDate: _completedDate ?? DateTime.now(),
                       firstDate: DateTime(2020),
                       lastDate: DateTime.now().add(const Duration(days: 365)),
+                      title: l10n.todoSetCompletedDate,
                     );
                     if (picked != null) {
                       setState(() => _completedDate = picked);
@@ -339,11 +343,12 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
                     ),
                   ),
                   onTap: () async {
-                    final picked = await showDatePicker(
+                    final picked = await showAppDatePicker(
                       context: context,
                       initialDate: _startDate ?? widget.task.createdDate,
                       firstDate: DateTime(2020),
                       lastDate: DateTime.now().add(const Duration(days: 365)),
+                      title: l10n.todoSetStartDate,
                     );
                     if (picked != null) {
                       setState(() => _startDate = picked);

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/todo/services/todo_storage.dart';
 import '../services/reminder_service.dart';
 import '../services/tray_service.dart';
+import '../utils/week_grouping.dart';
 
 class AppSettingsNotifier extends StateNotifier<AppSettings> {
   /// Purpose: Create an app settings notifier instance.
@@ -25,6 +26,7 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
   Future<void> _loadPersisted() async {
     final modeStr = await TodoStorage.getThemeMode();
     final localeTag = await TodoStorage.getLocaleTag();
+    final weekStartDay = await TodoStorage.getWeekStartDay();
 
     final themeMode = switch (modeStr) {
       'light' => ThemeMode.light,
@@ -38,7 +40,11 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
       locale = parts.length > 1 ? Locale(parts[0], parts[1]) : Locale(parts[0]);
     }
 
-    state = AppSettings(themeMode: themeMode, locale: locale);
+    state = AppSettings(
+      themeMode: themeMode,
+      locale: locale,
+      weekStartDay: weekStartDay,
+    );
     final resolvedLocale = locale ?? PlatformDispatcher.instance.locale;
     TrayService.instance.updateLocale(resolvedLocale);
     ReminderService.instance.updateLocale(resolvedLocale);
@@ -78,20 +84,33 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
       TodoStorage.setLocaleTag(tag);
     }
   }
+
+  /// Purpose: Update the first weekday used by app calendars and week grouping.
+  /// Inputs: `weekday`.
+  /// Returns: None.
+  /// Side effects: Updates provider state and persists `storage_config.json`.
+  /// Notes: Weekday uses Dart's Monday=1 through Sunday=7 numbering.
+  void setWeekStartDay(int weekday) {
+    final normalized = normalizeWeekStartDay(weekday);
+    state = state.copyWith(weekStartDay: normalized);
+    TodoStorage.setWeekStartDay(normalized);
+  }
 }
 
 class AppSettings {
   final ThemeMode themeMode;
   final Locale? locale; // null = system
+  final int weekStartDay;
 
   /// Purpose: Create a app settings instance.
-  /// Inputs: `themeMode`.
+  /// Inputs: `themeMode`, `locale`, and `weekStartDay`.
   /// Returns: A new `AppSettings` instance.
   /// Side effects: None.
-  /// Notes: None.
+  /// Notes: `weekStartDay` uses Dart's Monday=1 through Sunday=7 numbering.
   const AppSettings({
     this.themeMode = ThemeMode.system,
     this.locale,
+    this.weekStartDay = DateTime.monday,
   });
 
   /// Purpose: Create a copy of this value with selected fields replaced.
@@ -99,15 +118,21 @@ class AppSettings {
   /// Returns: `AppSettings`.
   /// Side effects: None.
   /// Notes: None.
-  AppSettings copyWith({ThemeMode? themeMode, Locale? locale, bool clearLocale = false}) {
+  AppSettings copyWith({
+    ThemeMode? themeMode,
+    Locale? locale,
+    int? weekStartDay,
+    bool clearLocale = false,
+  }) {
     return AppSettings(
       themeMode: themeMode ?? this.themeMode,
       locale: clearLocale ? null : (locale ?? this.locale),
+      weekStartDay: weekStartDay ?? this.weekStartDay,
     );
   }
 }
 
 final appSettingsProvider =
     StateNotifierProvider<AppSettingsNotifier, AppSettings>(
-  (ref) => AppSettingsNotifier(),
-);
+      (ref) => AppSettingsNotifier(),
+    );

@@ -29,8 +29,8 @@ Maintenance rules:
 - **Package id:** Dart package `my_day`; Android namespace/application id `com.yuanzhe.my_day`; MSIX identity `com.yuanzhe.myday`; macOS bundle id `com.yuanzhe.myDay`.
 - **Author / publisher:** `yuanzhe`.
 - **License:** GPL-3.0.
-- **Current version:** `0.7.12+39` in `pubspec.yaml`, `0.7.12.0` in `msix_config.msix_version`, and `0.7.12` in `installer.iss`.
-- **Latest tag at the time this guide was written:** `v0.7.12`.
+- **Current version:** `0.7.13+40` in `pubspec.yaml`, `0.7.13.0` in `msix_config.msix_version`, and `0.7.13` in `installer.iss`.
+- **Latest tag at the time this guide was written:** `v0.7.13`.
 - **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.41.6`.
 - **Primary platforms:** Windows x64/ARM64, Android APK/AAB, iOS sideload IPA, and macOS DMG. Linux project support exists for desktop runtime features but is not a primary release artifact.
 - **Repository:** Use the current environment's workspace root / repository path instead of hard-coding an absolute local path.
@@ -173,9 +173,9 @@ Main model: `lib/features/todo/models/task.dart`.
 - `DailyCompletionLog`: per-date completion tracking for daily tasks and daily subtasks; sync merges by union so completion on either device stays completed.
 - `DailyScoreLog`: per-date whole-day score from -5 to 5 with default 0; explicit zero entries are retained so score resets sync correctly, and sync merges each date by score `modifiedAt`.
 
-`TodoStorage` is the central storage/config hub. `storage_config.json` always stays in the default app directory and stores custom storage path, intimacy visibility, theme, locale, tray settings, backup settings, and local API settings. `todo_data.json` stores daily templates, one-time tasks, daily logs, daily scores, morning/completion reminder settings, task sort modes/custom orders, and `settingsModifiedAt`.
+`TodoStorage` is the central storage/config hub. `storage_config.json` always stays in the default app directory and stores custom storage path, intimacy visibility, theme, locale, week start day, tray settings, backup settings, and local API settings. `todo_data.json` stores daily templates, one-time tasks, daily logs, daily scores, morning/completion reminder settings, task sort modes/custom orders, and `settingsModifiedAt`.
 
-The Todo UI includes an inline week calendar for the selected date's week, a secondary full-month calendar page with inline year/month jumps, monthly daily-score trend chart, joyful-day and suffering-day lists, daily/routine/work sections, calendar completion indicators, future scheduled one-time task markers, an editable whole-day score at the bottom of the Todo list, independent sort/custom drag order per section, notes, subtasks, task reminders, recurrence picker, unsaved-change protection, and `AutoSyncService.instance.notifySaved()` after saves. One-time Todo reminders start on the task's scheduled date and then repeat daily at the saved time until the task is completed.
+The Todo UI includes an inline week calendar for the selected date's week, a secondary full-month calendar page with inline year/month jumps, globally configurable week start day, monthly daily-score trend chart, joyful-day and suffering-day lists, daily/routine/work sections, calendar completion indicators, future scheduled one-time task markers, an editable whole-day score at the bottom of the Todo list, independent sort/custom drag order per section, notes, subtasks, task reminders, recurrence picker, unsaved-change protection, and `AutoSyncService.instance.notifySaved()` after saves. One-time Todo reminders start on the task's scheduled date and then repeat daily at the saved time until the task is completed.
 
 ### Finance
 
@@ -214,7 +214,7 @@ Main model: `lib/features/intimacy/models/intimacy_record.dart`.
 - `IntimacyTimerSession`: persisted active/paused stopwatch session with original start time, last resume time, accumulated elapsed time, running flag, optional x100/x1 thrust count, and independent `timerSessionModifiedAt` for LWW sync.
 - `IntimacyData`: partners, toys, positions, records, timer history, active timer session, timer retention setting, partner/toy sort modes/custom orders, and `settingsModifiedAt`.
 
-The UI supports record list sorting/filtering, a limited default recent-history list with a show-all sheet, partner/toy/position management, default position import, partner break-up state, toy retirement state, exclusion of inactive partners/toys from new record pickers, EWMA/raw trend charts for pleasure/frequency and duration/thrust-count with dual axes, weekly grouping, condom tracking, and a stopwatch timer with a non-negative x100 thrust counter whose history and interrupted active/paused session are stored in `intimacy_data.json`. Stopped-and-saved timer sessions are cleared; stopped-but-unsaved and paused sessions restore as paused; running sessions resume from wall-clock time; history rows can be confirmed and restored as running sessions while removing that history row.
+The UI supports record list sorting/filtering, a limited default recent-history list with a show-all sheet, partner/toy/position management, default position import, partner break-up state, toy retirement state, exclusion of inactive partners/toys from new record pickers, EWMA/raw trend charts for pleasure/frequency and duration/thrust-count with dual axes, weekly grouping that follows the global week start day, condom tracking, and a stopwatch timer with a non-negative x100 thrust counter whose history and interrupted active/paused session are stored in `intimacy_data.json`. Stopped-and-saved timer sessions are cleared; stopped-but-unsaved and paused sessions restore as paused; running sessions resume from wall-clock time; history rows can be confirmed and restored as running sessions while removing that history row.
 
 ### Weight
 
@@ -224,13 +224,13 @@ Main model: `lib/features/weight/models/weight_record.dart`.
 - `WeightData`: optional height, records, reminder mode (`none`, `once`, `twice`), morning/evening reminder times, `reminderGraceMinutes` default 180, and `settingsModifiedAt`.
 - BMI is computed by `WeightData.calculateBMI()`. Waist-hip ratio is computed by `WeightData.calculateWaistHipRatio()` and returns null unless waist and hip measurements are both positive.
 
-The Weight page includes add/edit records, optional bust/waist/hip measurement entry, chart range selection, raw and EWMA weight trend display, a separate raw/EWMA bust-waist-hip trend chart, BMI/measurement/waist-hip-ratio summary cards with compact color bars, weekly grouped history, "show all" history, and reminder settings. A reminder is skipped when a record exists inside the configured pre-reminder grace window.
+The Weight page includes add/edit records, optional bust/waist/hip measurement entry, chart range selection, raw and EWMA weight trend display, a separate raw/EWMA bust-waist-hip trend chart, BMI/measurement/waist-hip-ratio summary cards with compact color bars, weekly grouped history that follows the global week start day, "show all" history, and reminder settings. A reminder is skipped when a record exists inside the configured pre-reminder grace window.
 
 ### Settings
 
 `settings_page.dart` provides:
 
-- General: language and theme.
+- General: language, global week start day for app calendars and weekly grouping, and theme.
 - Privacy: Intimacy module toggle with hide confirmation.
 - Desktop: minimize-to-tray, close-to-tray, launch at startup, local API enable/status/settings, custom storage location, open data folder.
 - Data: WebDAV sync, import/export, backup.
@@ -336,7 +336,7 @@ Default app data directory is `Documents/MyDay/` on desktop or the platform app 
 
 | Data | File | Synced | Notes |
 | --- | --- | --- | --- |
-| Core preferences | `storage_config.json` | No | Custom path, intimacy visibility, theme, locale, tray, backup, local API settings |
+| Core preferences | `storage_config.json` | No | Custom path, intimacy visibility, theme, locale, week start day, tray, backup, local API settings |
 | Todo | `todo_data.json` | Yes | Tasks, daily templates, completion log, daily score log, reminders, task sort/custom order |
 | Finance | `finance_data.json` | Yes | Accounts including optional fee waiver criteria, categories, transactions, subscriptions, finance settings, transaction account picker settings |
 | Exchange rates | `exchange_rates.json` | Yes | Rate snapshots and `lastFetchedAt` |
@@ -457,3 +457,4 @@ Use the narrowest relevant command set for verification. For sync/model/persiste
 - `v0.7.10`: One-time Todo reminders start on the scheduled date and repeat daily until completion, future calendar dates with scheduled non-daily Todo items show a dedicated marker, and versions are unified to `0.7.10+37` / MSIX `0.7.10.0` / installer `0.7.10`.
 - `v0.7.11`: Todo home shows an inline week calendar for the selected date while retaining the month picker, Todo days support a -5 to 5 daily score stored and synced per date, and versions are unified to `0.7.11+38` / MSIX `0.7.11.0` / installer `0.7.11`.
 - `v0.7.12`: Todo daily-score wording now describes whole-day scoring, the month calendar opens as a secondary page with inline year/month jumps, daily-score trend chart including zero values, joyful-day and suffering-day lists, and versions are unified to `0.7.12+39` / MSIX `0.7.12.0` / installer `0.7.12`.
+- `v0.7.13`: Global settings can choose which weekday starts the week, app calendars/date pickers use shared localized weekday/month labels, Todo/Intimacy calendars and Weight/Intimacy weekly grouping follow the selected start day, and versions are unified to `0.7.13+40` / MSIX `0.7.13.0` / installer `0.7.13`.

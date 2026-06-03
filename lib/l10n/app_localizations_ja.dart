@@ -584,6 +584,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsTheme => 'テーマ';
 
   @override
+  String get settingsWeekStartDay => '週の開始曜日';
+
+  @override
   String get settingsThemeSystem => 'システム';
 
   @override
@@ -772,6 +775,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get commonAdd => '追加';
+
+  @override
+  String get commonDate => '日付';
 
   @override
   String get commonConfirm => '確認';
@@ -1418,6 +1424,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get todoSetScheduledDate => '予定日を設定';
+
+  @override
+  String get todoSetStartDate => '開始日を設定';
 
   @override
   String todoCompletedAt(String date) {

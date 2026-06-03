@@ -313,7 +313,9 @@ class _FinancePageState extends State<FinancePage> {
                           month == _selectedFlowMonth.month;
                       return ChoiceChip(
                         label: Text(
-                          DateFormat.MMM().format(DateTime(year, month)),
+                          DateFormat.MMM(
+                            l10n.localeName,
+                          ).format(DateTime(year, month)),
                         ),
                         selected: selected,
                         onSelected: (_) {

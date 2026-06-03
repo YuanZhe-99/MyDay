@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/widgets/app_date_picker.dart';
 import '../../../shared/widgets/unsaved_changes_guard.dart';
 import '../models/intimacy_record.dart';
 
@@ -419,11 +420,12 @@ class _AddRecordDialogState extends State<AddRecordDialog> {
                   '${_datetime.hour.toString().padLeft(2, '0')}:${_datetime.minute.toString().padLeft(2, '0')}',
                 ),
                 onTap: () async {
-                  final date = await showDatePicker(
+                  final date = await showAppDatePicker(
                     context: context,
                     initialDate: _datetime,
                     firstDate: DateTime(2020),
                     lastDate: DateTime.now().add(const Duration(days: 1)),
+                    title: l10n.commonDate,
                   );
                   if (date == null || !mounted) return;
                   if (!context.mounted) return;

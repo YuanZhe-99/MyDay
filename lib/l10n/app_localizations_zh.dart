@@ -584,6 +584,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsTheme => '主题';
 
   @override
+  String get settingsWeekStartDay => '每周开始于';
+
+  @override
   String get settingsThemeSystem => '跟随系统';
 
   @override
@@ -771,6 +774,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get commonAdd => '添加';
+
+  @override
+  String get commonDate => '日期';
 
   @override
   String get commonConfirm => '确认';
@@ -1416,6 +1422,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get todoSetScheduledDate => '设定计划日期';
+
+  @override
+  String get todoSetStartDate => '设定开始日期';
 
   @override
   String todoCompletedAt(String date) {
@@ -2324,6 +2333,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get settingsTheme => '主題';
 
   @override
+  String get settingsWeekStartDay => '每週開始於';
+
+  @override
   String get settingsThemeSystem => '跟隨系統';
 
   @override
@@ -2511,6 +2523,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get commonAdd => '新增';
+
+  @override
+  String get commonDate => '日期';
 
   @override
   String get commonConfirm => '確認';
@@ -3156,6 +3171,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get todoSetScheduledDate => '設定排程日期';
+
+  @override
+  String get todoSetStartDate => '設定開始日期';
 
   @override
   String todoCompletedAt(String date) {

@@ -2,13 +2,16 @@ import 'dart:math' as math;
 
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/providers/app_settings.dart';
 import '../../../shared/services/auto_sync_service.dart';
 import '../../../shared/services/reminder_service.dart';
 import '../../../shared/utils/week_grouping.dart';
+import '../../../shared/widgets/app_date_picker.dart';
 import '../../../shared/widgets/delete_confirm.dart';
 import '../../../shared/widgets/unsaved_changes_guard.dart';
 import '../models/weight_record.dart';
@@ -33,7 +36,7 @@ TextInputFormatter _decimalInputFormatter(int decimalPlaces) {
   });
 }
 
-class WeightPage extends StatefulWidget {
+class WeightPage extends ConsumerStatefulWidget {
   /// Purpose: Create a weight page instance.
   /// Inputs: None.
   /// Returns: A new `WeightPage` instance.
@@ -47,12 +50,12 @@ class WeightPage extends StatefulWidget {
   /// Side effects: May update UI state or trigger user-facing flows.
   /// Notes: None.
   @override
-  State<WeightPage> createState() => _WeightPageState();
+  ConsumerState<WeightPage> createState() => _WeightPageState();
 }
 
 enum _ChartRange { oneWeek, oneMonth, threeMonths, sixMonths, oneYear, all }
 
-class _WeightPageState extends State<WeightPage> {
+class _WeightPageState extends ConsumerState<WeightPage> {
   double? _height; // cm
   List<WeightRecord> _records = [];
   bool _loaded = false;
@@ -222,6 +225,7 @@ class _WeightPageState extends State<WeightPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
+    final settings = ref.watch(appSettingsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -247,7 +251,7 @@ class _WeightPageState extends State<WeightPage> {
           ? const Center(child: CircularProgressIndicator())
           : _records.isEmpty
           ? _buildEmptyState(theme, l10n)
-          : _buildContent(theme, l10n),
+          : _buildContent(theme, l10n, settings.weekStartDay),
       floatingActionButton: FloatingActionButton(
         onPressed: _addRecord,
         child: const Icon(Icons.add),
@@ -289,11 +293,15 @@ class _WeightPageState extends State<WeightPage> {
   }
 
   /// Purpose: Provide the internal build content helper for this file.
-  /// Inputs: `theme`, `l10n`.
+  /// Inputs: `theme`, `l10n`, and `weekStartDay`.
   /// Returns: `Widget`.
   /// Side effects: May update UI state or trigger user-facing flows.
   /// Notes: Internal helper used within this file only.
-  Widget _buildContent(ThemeData theme, AppLocalizations l10n) {
+  Widget _buildContent(
+    ThemeData theme,
+    AppLocalizations l10n,
+    int weekStartDay,
+  ) {
     final latest = _latestRecord!;
     final bmi = _currentBMI;
     final change = _weightChange;
@@ -321,7 +329,7 @@ class _WeightPageState extends State<WeightPage> {
         const SizedBox(height: 16),
 
         // ── Today / Recent records ──
-        _buildRecordsList(theme, l10n),
+        _buildRecordsList(theme, l10n, weekStartDay),
       ],
     );
   }
@@ -822,7 +830,7 @@ class _WeightPageState extends State<WeightPage> {
               minIncluded: false,
               maxIncluded: false,
               getTitlesWidget: (value, meta) =>
-                  _buildDateTitle(theme, data, value, meta),
+                  _buildDateTitle(theme, data, value, meta, l10n.localeName),
             ),
           ),
           rightTitles: const AxisTitles(
@@ -889,7 +897,7 @@ class _WeightPageState extends State<WeightPage> {
               final s = entry.value;
               final date = DateTime.fromMillisecondsSinceEpoch(s.x.toInt());
               return LineTooltipItem(
-                '${l10n.weightTitle}: ${s.y.toStringAsFixed(1)} ${l10n.weightUnitKg}\n${DateFormat('MMM d').format(date)}',
+                '${l10n.weightTitle}: ${s.y.toStringAsFixed(1)} ${l10n.weightUnitKg}\n${DateFormat('MMM d', l10n.localeName).format(date)}',
                 const TextStyle(
                   color: Colors.white,
                   fontSize: 11,
@@ -989,7 +997,7 @@ class _WeightPageState extends State<WeightPage> {
               minIncluded: false,
               maxIncluded: false,
               getTitlesWidget: (value, meta) =>
-                  _buildDateTitle(theme, data, value, meta),
+                  _buildDateTitle(theme, data, value, meta, l10n.localeName),
             ),
           ),
           leftTitles: AxisTitles(
@@ -1062,7 +1070,7 @@ class _WeightPageState extends State<WeightPage> {
                   _ => l10n.weightHip,
                 };
                 return LineTooltipItem(
-                  '$label: ${s.y.toStringAsFixed(1)} cm\n${DateFormat('MMM d').format(date)}',
+                  '$label: ${s.y.toStringAsFixed(1)} cm\n${DateFormat('MMM d', l10n.localeName).format(date)}',
                   const TextStyle(
                     color: Colors.white,
                     fontSize: 11,
@@ -1078,7 +1086,7 @@ class _WeightPageState extends State<WeightPage> {
   }
 
   /// Purpose: Build a bottom-axis date label for chart titles.
-  /// Inputs: `theme`, `data`, `value`, `meta`.
+  /// Inputs: `theme`, `data`, `value`, `meta`, and `localeName`.
   /// Returns: `Widget`.
   /// Side effects: None.
   /// Notes: Uses shorter formats for dense ranges to reduce label overlap.
@@ -1087,14 +1095,15 @@ class _WeightPageState extends State<WeightPage> {
     List<WeightRecord> data,
     double value,
     TitleMeta meta,
+    String localeName,
   ) {
     final date = DateTime.fromMillisecondsSinceEpoch(value.toInt());
     final spanDays = data.last.datetime.difference(data.first.datetime).inDays;
     final fmt = spanDays > 730
-        ? DateFormat('yyyy')
+        ? DateFormat('yyyy', localeName)
         : spanDays > 365
-        ? DateFormat('M/yy')
-        : DateFormat('M/d');
+        ? DateFormat('M/yy', localeName)
+        : DateFormat('M/d', localeName);
     return SideTitleWidget(
       meta: meta,
       child: Text(
@@ -1281,11 +1290,15 @@ class _WeightPageState extends State<WeightPage> {
   // ── Records list ──
 
   /// Purpose: Provide the internal build records list helper for this file.
-  /// Inputs: `theme`, `l10n`.
+  /// Inputs: `theme`, `l10n`, and `weekStartDay`.
   /// Returns: `Widget`.
   /// Side effects: May update UI state or trigger user-facing flows.
   /// Notes: Internal helper used within this file only.
-  Widget _buildRecordsList(ThemeData theme, AppLocalizations l10n) {
+  Widget _buildRecordsList(
+    ThemeData theme,
+    AppLocalizations l10n,
+    int weekStartDay,
+  ) {
     final sorted = List<WeightRecord>.from(_records)
       ..sort((a, b) => b.datetime.compareTo(a.datetime));
 
@@ -1301,11 +1314,16 @@ class _WeightPageState extends State<WeightPage> {
             ),
           ),
           const SizedBox(height: 8),
-          ..._buildGroupedRecordTiles(theme, l10n, sorted.take(20).toList()),
+          ..._buildGroupedRecordTiles(
+            theme,
+            l10n,
+            sorted.take(20).toList(),
+            weekStartDay,
+          ),
           if (sorted.length > 20)
             Center(
               child: TextButton(
-                onPressed: () => _showAllRecords(context),
+                onPressed: () => _showAllRecords(context, weekStartDay),
                 child: Text(l10n.weightShowAll),
               ),
             ),
@@ -1315,7 +1333,7 @@ class _WeightPageState extends State<WeightPage> {
   }
 
   /// Purpose: Provide the internal build grouped record tiles helper for this file.
-  /// Inputs: `theme`, `l10n`, `records`.
+  /// Inputs: `theme`, `l10n`, `records`, and `weekStartDay`.
   /// Returns: `List<Widget>`.
   /// Side effects: May update UI state or trigger user-facing flows.
   /// Notes: Internal helper used within this file only.
@@ -1323,8 +1341,13 @@ class _WeightPageState extends State<WeightPage> {
     ThemeData theme,
     AppLocalizations l10n,
     List<WeightRecord> records,
+    int weekStartDay,
   ) {
-    final groups = groupByIsoWeek(records, (record) => record.datetime);
+    final groups = groupByWeek(
+      records,
+      (record) => record.datetime,
+      weekStartDay: weekStartDay,
+    );
     return [
       for (final group in groups) ...[
         _buildWeekHeader(theme, l10n, group),
@@ -1349,7 +1372,11 @@ class _WeightPageState extends State<WeightPage> {
         l10n.commonWeekGroup(
           group.year,
           group.week,
-          formatMonthDayRange(group.start, group.end),
+          formatMonthDayRange(
+            group.start,
+            group.end,
+            localeName: l10n.localeName,
+          ),
         ),
         style: theme.textTheme.labelLarge?.copyWith(
           color: theme.colorScheme.onSurfaceVariant,
@@ -1404,7 +1431,10 @@ class _WeightPageState extends State<WeightPage> {
         ),
         subtitle: Text(
           [
-            DateFormat('MMM d, yyyy  HH:mm').format(record.datetime),
+            DateFormat(
+              'MMM d, yyyy  HH:mm',
+              l10n.localeName,
+            ).format(record.datetime),
             if (bmi != null) 'BMI ${bmi.toStringAsFixed(1)}',
             ?measurements,
             if (record.notes != null && record.notes!.isNotEmpty) record.notes,
@@ -1441,7 +1471,7 @@ class _WeightPageState extends State<WeightPage> {
   /// Returns: None.
   /// Side effects: May update UI state or trigger user-facing flows.
   /// Notes: Internal helper used within this file only.
-  void _showAllRecords(BuildContext context) {
+  void _showAllRecords(BuildContext context, int weekStartDay) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final sorted = List<WeightRecord>.from(_records)
@@ -1456,7 +1486,7 @@ class _WeightPageState extends State<WeightPage> {
         builder: (context, controller) => ListView(
           controller: controller,
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          children: _buildGroupedRecordTiles(theme, l10n, sorted),
+          children: _buildGroupedRecordTiles(theme, l10n, sorted, weekStartDay),
         ),
       ),
     );
@@ -1977,11 +2007,12 @@ class _WeightRecordDialogState extends State<_WeightRecordDialog> {
                 leading: const Icon(Icons.calendar_today),
                 title: Text(DateFormat('yyyy-MM-dd  HH:mm').format(_date)),
                 onTap: () async {
-                  final pickedDate = await showDatePicker(
+                  final pickedDate = await showAppDatePicker(
                     context: context,
                     initialDate: _date,
                     firstDate: DateTime(2020),
                     lastDate: DateTime.now().add(const Duration(days: 1)),
+                    title: l10n.commonDate,
                   );
                   if (pickedDate != null && mounted) {
                     final pickedTime = await showTimePicker(

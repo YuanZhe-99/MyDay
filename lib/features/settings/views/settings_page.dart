@@ -13,6 +13,8 @@ import '../../../shared/providers/intimacy_visibility.dart';
 import '../../../shared/services/local_api_server.dart';
 import '../../../shared/services/tray_service.dart';
 import '../../../shared/services/webdav_service.dart';
+import '../../../shared/utils/week_grouping.dart';
+import '../../../shared/widgets/app_date_picker.dart';
 import '../../../shared/widgets/unsaved_changes_guard.dart';
 import '../../../shared/views/backup_page.dart';
 import '../../../shared/views/import_export_page.dart';
@@ -181,6 +183,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final addrCtrl = TextEditingController(text: _apiListenAddress);
     final userCtrl = TextEditingController(text: _apiUsername);
     final passCtrl = TextEditingController(text: _apiPassword);
+
     /// Purpose: Return the current API settings form signature.
     /// Inputs: None.
     /// Returns: `String`.
@@ -301,6 +304,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       'ja' => '日本語',
       _ => l10n.settingsThemeSystem,
     };
+    final weekStartLabel = localizedWeekdayLabel(
+      settings.weekStartDay,
+      l10n.localeName,
+      width: WeekdayLabelWidth.long,
+    );
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settingsTitle)),
@@ -313,6 +321,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               subtitle: Text(localeLabel),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => _showLanguagePicker(context, settings),
+            ),
+            ListTile(
+              leading: const Icon(Icons.calendar_view_week_outlined),
+              title: Text(l10n.settingsWeekStartDay),
+              subtitle: Text(weekStartLabel),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _showWeekStartPicker(context, settings),
             ),
             ListTile(
               leading: const Icon(Icons.dark_mode),
@@ -551,13 +566,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       )
                     : null,
                 onTap: () async {
-                  final picked = await showDatePicker(
+                  final picked = await showAppDatePicker(
                     context: context,
                     initialDate:
                         SubscriptionProcessor.debugNowOverride ??
                         DateTime.now(),
                     firstDate: DateTime(2020),
                     lastDate: DateTime(2030),
+                    title: 'Date Override',
                   );
                   if (picked != null) {
                     setState(() {
@@ -701,6 +717,50 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   leading: Icon(entry.value.$2),
                   title: Text(entry.value.$1),
                   trailing: Radio<ThemeMode>(value: entry.key),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Purpose: Show the global week-start picker.
+  /// Inputs: `context`, `settings`.
+  /// Returns: None.
+  /// Side effects: Updates app settings and persists the selected weekday.
+  /// Notes: Weekday values use Dart's Monday=1 through Sunday=7 numbering.
+  void _showWeekStartPicker(BuildContext context, AppSettings settings) {
+    final l10n = AppLocalizations.of(context)!;
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: RadioGroup<int>(
+          groupValue: settings.weekStartDay,
+          onChanged: (weekday) {
+            if (weekday != null) {
+              ref.read(appSettingsProvider.notifier).setWeekStartDay(weekday);
+            }
+            Navigator.pop(context);
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.calendar_view_week_outlined),
+                title: Text(l10n.settingsWeekStartDay),
+              ),
+              const Divider(height: 1),
+              for (final weekday in weekdaySequence(DateTime.monday))
+                ListTile(
+                  title: Text(
+                    localizedWeekdayLabel(
+                      weekday,
+                      l10n.localeName,
+                      width: WeekdayLabelWidth.long,
+                    ),
+                  ),
+                  trailing: Radio<int>(value: weekday),
                 ),
             ],
           ),

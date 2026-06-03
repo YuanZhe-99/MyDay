@@ -1,17 +1,20 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/providers/app_settings.dart';
 import '../../../shared/services/auto_sync_service.dart';
 import '../../../shared/services/reminder_service.dart';
+import '../../../shared/utils/week_grouping.dart';
 import '../models/task.dart';
 import '../services/todo_storage.dart';
 import '../widgets/add_task_dialog.dart';
 import '../widgets/edit_task_dialog.dart';
 import '../widgets/task_section.dart';
 
-class TodoPage extends StatefulWidget {
+class TodoPage extends ConsumerStatefulWidget {
   /// Purpose: Create a todo page instance.
   /// Inputs: None.
   /// Returns: A new `TodoPage` instance.
@@ -25,10 +28,10 @@ class TodoPage extends StatefulWidget {
   /// Side effects: May update UI state or trigger user-facing flows.
   /// Notes: None.
   @override
-  State<TodoPage> createState() => _TodoPageState();
+  ConsumerState<TodoPage> createState() => _TodoPageState();
 }
 
-class _TodoPageState extends State<TodoPage> {
+class _TodoPageState extends ConsumerState<TodoPage> {
   DateTime _selectedDate = DateTime.now();
   bool _loaded = false;
 
@@ -293,50 +296,22 @@ class _TodoPageState extends State<TodoPage> {
   /// Notes: Internal helper used within this file only.
   bool get _isToday => _isSameDay(_selectedDate, DateTime.now());
 
-  /// Purpose: Return the Monday that starts the selected date's week.
-  /// Inputs: None.
+  /// Purpose: Return the configured first day of the selected date's week.
+  /// Inputs: `weekStartDay`.
   /// Returns: `DateTime`.
   /// Side effects: None.
-  /// Notes: The todo week calendar uses Monday as the first day.
-  DateTime get _selectedWeekStart {
-    final selected = _dateOnly(_selectedDate);
-    return selected.subtract(
-      Duration(days: selected.weekday - DateTime.monday),
-    );
-  }
+  /// Notes: Weekday uses Dart's Monday=1 through Sunday=7 numbering.
+  DateTime _selectedWeekStart(int weekStartDay) =>
+      startOfWeek(_selectedDate, weekStartDay: weekStartDay);
 
   /// Purpose: Return the seven dates shown in the inline week calendar.
-  /// Inputs: None.
+  /// Inputs: `weekStartDay`.
   /// Returns: `List<DateTime>`.
   /// Side effects: None.
-  /// Notes: The list always represents the selected date's week.
-  List<DateTime> get _selectedWeekDates => [
-    for (var i = 0; i < 7; i++) _selectedWeekStart.add(Duration(days: i)),
-  ];
-
-  /// Purpose: Return the localized short weekday label for a date weekday.
-  /// Inputs: `l10n`, `weekday`.
-  /// Returns: `String`.
-  /// Side effects: None.
-  /// Notes: Weekday uses Dart's Monday=1 through Sunday=7 numbering.
-  String _weekdayLabel(AppLocalizations l10n, int weekday) {
-    switch (weekday) {
-      case DateTime.monday:
-        return l10n.todoWeekMon;
-      case DateTime.tuesday:
-        return l10n.todoWeekTue;
-      case DateTime.wednesday:
-        return l10n.todoWeekWed;
-      case DateTime.thursday:
-        return l10n.todoWeekThu;
-      case DateTime.friday:
-        return l10n.todoWeekFri;
-      case DateTime.saturday:
-        return l10n.todoWeekSat;
-      case DateTime.sunday:
-      default:
-        return l10n.todoWeekSun;
-    }
+  /// Notes: The list always represents the selected date's configured week.
+  List<DateTime> _selectedWeekDates(int weekStartDay) {
+    final weekStart = _selectedWeekStart(weekStartDay);
+    return [for (var i = 0; i < 7; i++) weekStart.add(Duration(days: i))];
   }
 
   /// Daily tasks for selected date — show template with per-date completion,
@@ -756,16 +731,17 @@ class _TodoPageState extends State<TodoPage> {
   }
 
   /// Purpose: Open the full Todo calendar page and apply the picked date.
-  /// Inputs: None.
+  /// Inputs: `weekStartDay`.
   /// Returns: `Future<void>`.
   /// Side effects: Pushes a route and may update the selected date.
   /// Notes: Date taps on the calendar page return directly to this Todo page.
-  Future<void> _showCalendar() async {
+  Future<void> _showCalendar(int weekStartDay) async {
     final picked = await Navigator.push<DateTime>(
       context,
       MaterialPageRoute(
         builder: (_) => _TodoCalendarPage(
           selectedDate: _selectedDate,
+          weekStartDay: weekStartDay,
           dailyScores: _dailyScores,
           allDailyCompleted: _allDailyCompletedOn,
           allTasksCompleted: _allTasksCompletedOn,
@@ -1036,14 +1012,18 @@ class _TodoPageState extends State<TodoPage> {
   }
 
   /// Purpose: Build the inline calendar for the selected date's week.
-  /// Inputs: `theme`, `l10n`.
+  /// Inputs: `theme`, `l10n`, and `weekStartDay`.
   /// Returns: A widget showing seven selectable day cells plus calendar controls.
   /// Side effects: Creates UI widgets and wires date-selection callbacks.
   /// Notes: The full month calendar is available from the calendar icon.
-  Widget _buildWeekCalendar(ThemeData theme, AppLocalizations l10n) {
+  Widget _buildWeekCalendar(
+    ThemeData theme,
+    AppLocalizations l10n,
+    int weekStartDay,
+  ) {
     final dateFormat = DateFormat('yyyy-MM-dd (EEE)', l10n.localeName);
     final compactDateFormat = DateFormat('MM/dd', l10n.localeName);
-    final weekStart = _selectedWeekStart;
+    final weekStart = _selectedWeekStart(weekStartDay);
     final weekEnd = weekStart.add(const Duration(days: 6));
     final range =
         '${compactDateFormat.format(weekStart)} - '
@@ -1090,7 +1070,7 @@ class _TodoPageState extends State<TodoPage> {
               ),
               IconButton(
                 icon: const Icon(Icons.calendar_month),
-                onPressed: _showCalendar,
+                onPressed: () => _showCalendar(weekStartDay),
                 tooltip: l10n.todoCalendar,
               ),
               IconButton(
@@ -1102,7 +1082,7 @@ class _TodoPageState extends State<TodoPage> {
           const SizedBox(height: 6),
           Row(
             children: [
-              for (final date in _selectedWeekDates)
+              for (final date in _selectedWeekDates(weekStartDay))
                 _buildWeekDayCell(date, theme, l10n),
             ],
           ),
@@ -1157,7 +1137,7 @@ class _TodoPageState extends State<TodoPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    _weekdayLabel(l10n, date.weekday),
+                    localizedWeekdayLabel(date.weekday, l10n.localeName),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.labelSmall?.copyWith(
@@ -1333,6 +1313,7 @@ class _TodoPageState extends State<TodoPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
+    final settings = ref.watch(appSettingsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -1356,7 +1337,7 @@ class _TodoPageState extends State<TodoPage> {
           ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
-                _buildWeekCalendar(theme, l10n),
+                _buildWeekCalendar(theme, l10n, settings.weekStartDay),
                 const Divider(height: 1),
 
                 // Task list: 3 sections
@@ -1447,6 +1428,7 @@ class _TodoPageState extends State<TodoPage> {
 
 class _TodoCalendarPage extends StatefulWidget {
   final DateTime selectedDate;
+  final int weekStartDay;
   final DailyScoreLog dailyScores;
   final bool Function(DateTime) allDailyCompleted;
   final bool Function(DateTime) allTasksCompleted;
@@ -1454,12 +1436,13 @@ class _TodoCalendarPage extends StatefulWidget {
   final bool Function(DateTime) hasFutureScheduledOneTimeTask;
 
   /// Purpose: Create the secondary Todo calendar page.
-  /// Inputs: `selectedDate`, `dailyScores`, completion callbacks, scheduled-task callback.
+  /// Inputs: `selectedDate`, `weekStartDay`, scores, completion callbacks, scheduled-task callback.
   /// Returns: A new `_TodoCalendarPage` instance.
   /// Side effects: None.
   /// Notes: Tapping a date returns it to the parent Todo page.
   const _TodoCalendarPage({
     required this.selectedDate,
+    required this.weekStartDay,
     required this.dailyScores,
     required this.allDailyCompleted,
     required this.allTasksCompleted,
@@ -1560,31 +1543,6 @@ class _TodoCalendarPageState extends State<_TodoCalendarPage> {
   bool _isSameDay(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
 
-  /// Purpose: Return a localized weekday label.
-  /// Inputs: `l10n`, `weekday`.
-  /// Returns: `String`.
-  /// Side effects: None.
-  /// Notes: Weekday uses Dart's Monday=1 through Sunday=7 numbering.
-  String _weekdayLabel(AppLocalizations l10n, int weekday) {
-    switch (weekday) {
-      case DateTime.monday:
-        return l10n.todoWeekMon;
-      case DateTime.tuesday:
-        return l10n.todoWeekTue;
-      case DateTime.wednesday:
-        return l10n.todoWeekWed;
-      case DateTime.thursday:
-        return l10n.todoWeekThu;
-      case DateTime.friday:
-        return l10n.todoWeekFri;
-      case DateTime.saturday:
-        return l10n.todoWeekSat;
-      case DateTime.sunday:
-      default:
-        return l10n.todoWeekSun;
-    }
-  }
-
   /// Purpose: Return from the calendar page with a picked date.
   /// Inputs: `date`.
   /// Returns: None.
@@ -1664,8 +1622,11 @@ class _TodoCalendarPageState extends State<_TodoCalendarPage> {
     final today = DateTime.now();
     final firstDayOfMonth = DateTime(_viewMonth.year, _viewMonth.month, 1);
     final daysInMonth = DateTime(_viewMonth.year, _viewMonth.month + 1, 0).day;
-    final startWeekday = firstDayOfMonth.weekday;
-    final totalCells = ((startWeekday - 1) + daysInMonth + 6) ~/ 7 * 7;
+    final leadingBlanks = leadingBlankDaysForMonth(
+      firstDayOfMonth,
+      weekStartDay: widget.weekStartDay,
+    );
+    final totalCells = ((leadingBlanks + daysInMonth + 6) ~/ 7) * 7;
 
     return Card(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -1695,19 +1656,11 @@ class _TodoCalendarPageState extends State<_TodoCalendarPage> {
             const SizedBox(height: 8),
             Row(
               children: [
-                for (final weekday in [
-                  DateTime.monday,
-                  DateTime.tuesday,
-                  DateTime.wednesday,
-                  DateTime.thursday,
-                  DateTime.friday,
-                  DateTime.saturday,
-                  DateTime.sunday,
-                ])
+                for (final weekday in weekdaySequence(widget.weekStartDay))
                   Expanded(
                     child: Center(
                       child: Text(
-                        _weekdayLabel(l10n, weekday),
+                        localizedWeekdayLabel(weekday, l10n.localeName),
                         style: theme.textTheme.bodySmall?.copyWith(
                           fontWeight: FontWeight.w600,
                           color: theme.colorScheme.onSurfaceVariant,
@@ -1726,7 +1679,7 @@ class _TodoCalendarPageState extends State<_TodoCalendarPage> {
               ),
               itemCount: totalCells,
               itemBuilder: (context, index) {
-                final dayOffset = index - (startWeekday - 1);
+                final dayOffset = index - leadingBlanks;
                 if (dayOffset < 0 || dayOffset >= daysInMonth) {
                   return const SizedBox.shrink();
                 }
