@@ -1375,6 +1375,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get todoCalendarAllDone => '全部完成';
 
   @override
+  String get todoCalendarScheduledTodo => '计划待办';
+
+  @override
   String get todoWhatNeedsDone => '需要做什么？';
 
   @override
@@ -3089,6 +3092,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get todoCalendarAllDone => '全部完成';
+
+  @override
+  String get todoCalendarScheduledTodo => '排程待辦';
 
   @override
   String get todoWhatNeedsDone => '需要做什麼？';

@@ -50,7 +50,9 @@ class MobileNotificationService {
       }
     }
 
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
@@ -58,16 +60,16 @@ class MobileNotificationService {
     );
 
     await _plugin.initialize(
-      const InitializationSettings(
-        android: androidSettings,
-        iOS: iosSettings,
-      ),
+      const InitializationSettings(android: androidSettings, iOS: iosSettings),
     );
 
     // Request permissions on Android 13+
     if (Platform.isAndroid) {
-      await _plugin.resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>()?.requestNotificationsPermission();
+      await _plugin
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >()
+          ?.requestNotificationsPermission();
     }
 
     _initialized = true;
@@ -79,7 +81,11 @@ class MobileNotificationService {
   /// Returns: `Future<void>`.
   /// Side effects: May read or mutate application state, storage, or service resources.
   /// Notes: None.
-  Future<void> showNow({required int id, required String title, required String body}) async {
+  Future<void> showNow({
+    required int id,
+    required String title,
+    required String body,
+  }) async {
     if (!_initialized) return;
     const details = NotificationDetails(
       android: AndroidNotificationDetails(
@@ -100,12 +106,39 @@ class MobileNotificationService {
   /// Inputs: `id`, `title`, `body`, `time`.
   /// Returns: `Future<void>`.
   /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: None.
+  /// Notes: The first fire time is today or tomorrow at `time`.
   Future<void> scheduleDaily({
     required int id,
     required String title,
     required String body,
     required TimeOfDay time,
+  }) async {
+    final now = DateTime.now();
+    await scheduleDailyStarting(
+      id: id,
+      title: title,
+      body: body,
+      startDateTime: DateTime(
+        now.year,
+        now.month,
+        now.day,
+        time.hour,
+        time.minute,
+      ),
+    );
+  }
+
+  /// Schedule a daily notification beginning no earlier than a date/time.
+  /// Purpose: Implement the schedule daily starting behavior for this file.
+  /// Inputs: `id`, `title`, `body`, `startDateTime`.
+  /// Returns: `Future<void>`.
+  /// Side effects: Cancels any existing notification with `id` and schedules a repeating OS notification.
+  /// Notes: Used when the first repeat should wait for a future activation date.
+  Future<void> scheduleDailyStarting({
+    required int id,
+    required String title,
+    required String body,
+    required DateTime startDateTime,
   }) async {
     if (!_initialized) return;
 
@@ -123,16 +156,19 @@ class MobileNotificationService {
     );
 
     final now = tz.TZDateTime.now(tz.local);
-    var scheduledDate = tz.TZDateTime(
-      tz.local,
-      now.year,
-      now.month,
-      now.day,
-      time.hour,
-      time.minute,
-    );
-    if (scheduledDate.isBefore(now)) {
-      scheduledDate = scheduledDate.add(const Duration(days: 1));
+    var scheduledDate = tz.TZDateTime.from(startDateTime, tz.local);
+    if (!scheduledDate.isAfter(now)) {
+      scheduledDate = tz.TZDateTime(
+        tz.local,
+        now.year,
+        now.month,
+        now.day,
+        startDateTime.hour,
+        startDateTime.minute,
+      );
+      if (!scheduledDate.isAfter(now)) {
+        scheduledDate = scheduledDate.add(const Duration(days: 1));
+      }
     }
 
     await _plugin.zonedSchedule(

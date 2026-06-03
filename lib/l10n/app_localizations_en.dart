@@ -1395,6 +1395,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get todoCalendarAllDone => 'All done';
 
   @override
+  String get todoCalendarScheduledTodo => 'Scheduled todo';
+
+  @override
   String get todoWhatNeedsDone => 'What needs to be done?';
 
   @override

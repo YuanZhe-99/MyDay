@@ -183,6 +183,87 @@ class ReminderService {
   static int _taskNotificationId(String taskId) =>
       taskId.hashCode.abs() % 100000 + 10000;
 
+  /// Purpose: Return a one-time task's next reminder date/time from a reference point.
+  /// Inputs: `task`, `now`.
+  /// Returns: The next reminder `DateTime`, or null when the task should not remind.
+  /// Side effects: None.
+  /// Notes: One-time reminders begin on `scheduledDate` and repeat daily until completed.
+  @visibleForTesting
+  static DateTime? nextOneTimeReminderDateTime(Task task, DateTime now) {
+    if (task.type == TaskType.daily ||
+        task.reminderTime == null ||
+        task.scheduledDate == null ||
+        task.isCompleted) {
+      return null;
+    }
+
+    final scheduled = task.scheduledDate!;
+    final reminderTime = task.reminderTime!;
+    final start = DateTime(
+      scheduled.year,
+      scheduled.month,
+      scheduled.day,
+      reminderTime.hour,
+      reminderTime.minute,
+    );
+    if (start.isAfter(now)) return start;
+
+    final todayReminder = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      reminderTime.hour,
+      reminderTime.minute,
+    );
+    if (todayReminder.isAfter(now)) return todayReminder;
+    return todayReminder.add(const Duration(days: 1));
+  }
+
+  /// Purpose: Decide whether a one-time task should fire during the current minute.
+  /// Inputs: `task`, `now`.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: Used by the in-process desktop reminder loop.
+  @visibleForTesting
+  static bool shouldNotifyOneTimeTask(Task task, DateTime now) {
+    if (task.type == TaskType.daily ||
+        task.reminderTime == null ||
+        task.scheduledDate == null ||
+        task.isCompleted) {
+      return false;
+    }
+    final scheduledDate = DateTime(
+      task.scheduledDate!.year,
+      task.scheduledDate!.month,
+      task.scheduledDate!.day,
+    );
+    final today = DateTime(now.year, now.month, now.day);
+    if (today.isBefore(scheduledDate)) return false;
+
+    final reminderTime = TimeOfDay.fromDateTime(task.reminderTime!);
+    return reminderTime.hour == now.hour && reminderTime.minute == now.minute;
+  }
+
+  /// Purpose: Decide whether an unfinished one-time task is active for today's checks.
+  /// Inputs: `task`, `today`.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: Future scheduled tasks should not count as pending for today's completion reminder.
+  static bool _isActiveOneTimeTask(Task task, DateTime today) {
+    if (task.type == TaskType.daily ||
+        task.isCompleted ||
+        task.scheduledDate == null) {
+      return false;
+    }
+    final scheduledDate = DateTime(
+      task.scheduledDate!.year,
+      task.scheduledDate!.month,
+      task.scheduledDate!.day,
+    );
+    final todayDate = DateTime(today.year, today.month, today.day);
+    return !scheduledDate.isAfter(todayDate);
+  }
+
   /// Schedule subscription renewal notification on mobile.
   /// Purpose: Provide the internal schedule mobile subscription reminder helper for this file.
   /// Inputs: None.
@@ -325,8 +406,8 @@ class ReminderService {
   }
 
   /// Schedule individual per-task reminders via OS-level notifications.
-  /// Daily templates get repeating daily notifications; one-time tasks
-  /// get a single scheduled notification at the exact date/time.
+  /// Daily templates get repeating daily notifications; one-time tasks repeat
+  /// daily from their scheduled date until completion.
   /// Purpose: Provide the internal schedule mobile per task reminders helper for this file.
   /// Inputs: None.
   /// Returns: None.
@@ -356,17 +437,19 @@ class ReminderService {
       _scheduledTaskNotificationIds.add(nid);
     }
 
+    final now = DateTime.now();
     for (final task in _oneTimeTasks) {
-      if (task.reminderTime == null || task.isCompleted) continue;
+      final nextReminder = nextOneTimeReminderDateTime(task, now);
+      if (nextReminder == null) continue;
       final nid = _taskNotificationId(task.id);
       final label = task.emoji != null
           ? '${task.emoji} ${task.title}'
           : task.title;
-      mns.scheduleAt(
+      mns.scheduleDailyStarting(
         id: nid,
         title: 'MyDay!!!!!',
         body: label,
-        dateTime: task.reminderTime!,
+        startDateTime: nextReminder,
       );
       _scheduledTaskNotificationIds.add(nid);
     }
@@ -402,11 +485,12 @@ class ReminderService {
       }
     }
 
-    final now = TimeOfDay.now();
-    final todayKey = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final current = DateTime.now();
+    final now = TimeOfDay.fromDateTime(current);
+    final todayKey = DateFormat('yyyy-MM-dd').format(current);
 
     // Per-task reminders
-    for (final task in [..._dailyTemplates, ..._oneTimeTasks]) {
+    for (final task in _dailyTemplates) {
       if (task.reminderTime == null || task.isCompleted) continue;
       final rt = TimeOfDay.fromDateTime(task.reminderTime!);
       if (rt.hour == now.hour && rt.minute == now.minute) {
@@ -417,6 +501,16 @@ class ReminderService {
             task.emoji != null ? '${task.emoji} ${task.title}' : task.title,
           );
         }
+      }
+    }
+    for (final task in _oneTimeTasks) {
+      if (!shouldNotifyOneTimeTask(task, current)) continue;
+      final key = '${task.id}_$todayKey';
+      if (!_notifiedIds.contains(key)) {
+        _notifiedIds.add(key);
+        _notify(
+          task.emoji != null ? '${task.emoji} ${task.title}' : task.title,
+        );
       }
     }
 
@@ -442,7 +536,9 @@ class ReminderService {
             _dailyTemplates
                 .where((t) => !_dailyLog.isCompleted(DateTime.now(), t.id))
                 .length +
-            _oneTimeTasks.where((t) => !t.isCompleted).length;
+            _oneTimeTasks
+                .where((t) => _isActiveOneTimeTask(t, DateTime.now()))
+                .length;
         if (uncompleted > 0) {
           _notify(_l10n.notifTodoUncompleted(uncompleted));
         }

@@ -502,6 +502,7 @@
   "todoCalendarSomeDaily": "部分完成",
   "todoCalendarAllDaily": "日常全完成",
   "todoCalendarAllDone": "全部完成",
+  "todoCalendarScheduledTodo": "计划待办",
   "todoWhatNeedsDone": "需要做什么？",
   "todoReminderAt": "提醒：{time}",
   "@todoReminderAt": { "placeholders": { "time": { "type": "String" } } },

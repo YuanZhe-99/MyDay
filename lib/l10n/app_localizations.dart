@@ -2741,6 +2741,12 @@ abstract class AppLocalizations {
   /// **'All done'**
   String get todoCalendarAllDone;
 
+  /// No description provided for @todoCalendarScheduledTodo.
+  ///
+  /// In en, this message translates to:
+  /// **'Scheduled todo'**
+  String get todoCalendarScheduledTodo;
+
   /// No description provided for @todoWhatNeedsDone.
   ///
   /// In en, this message translates to:

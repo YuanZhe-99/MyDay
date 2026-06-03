@@ -523,6 +523,7 @@
   "todoCalendarSomeDaily": "Some daily",
   "todoCalendarAllDaily": "All daily",
   "todoCalendarAllDone": "All done",
+  "todoCalendarScheduledTodo": "Scheduled todo",
   "todoWhatNeedsDone": "What needs to be done?",
   "todoReminderAt": "Reminder: {time}",
   "@todoReminderAt": { "placeholders": { "time": { "type": "String" } } },

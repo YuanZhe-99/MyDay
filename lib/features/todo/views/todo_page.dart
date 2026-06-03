@@ -688,6 +688,21 @@ class _TodoPageState extends State<TodoPage> {
     return anyDone && !allDone;
   }
 
+  /// Purpose: Check whether a future date has one-time tasks scheduled exactly on it.
+  /// Inputs: `date`.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: Daily templates and carried-forward overdue one-time tasks are intentionally ignored.
+  bool _hasFutureScheduledOneTimeTask(DateTime date) {
+    final target = _dateOnly(date);
+    final today = _dateOnly(DateTime.now());
+    if (!target.isAfter(today)) return false;
+    return _oneTimeTasks.any((t) {
+      if (t.type == TaskType.daily || t.scheduledDate == null) return false;
+      return _isSameDay(_dateOnly(t.scheduledDate!), target);
+    });
+  }
+
   /// Purpose: Provide the internal show calendar helper for this file.
   /// Inputs: None.
   /// Returns: `Future<void>`.
@@ -701,6 +716,7 @@ class _TodoPageState extends State<TodoPage> {
         allDailyCompleted: _allDailyCompletedOn,
         allTasksCompleted: _allTasksCompletedOn,
         someDailyCompleted: _someDailyCompletedOn,
+        hasFutureScheduledOneTimeTask: _hasFutureScheduledOneTimeTask,
       ),
     );
     if (picked != null) {
@@ -1124,9 +1140,10 @@ class _CalendarDialog extends StatefulWidget {
   final bool Function(DateTime) allDailyCompleted;
   final bool Function(DateTime) allTasksCompleted;
   final bool Function(DateTime) someDailyCompleted;
+  final bool Function(DateTime) hasFutureScheduledOneTimeTask;
 
   /// Purpose: Create a calendar dialog instance.
-  /// Inputs: None.
+  /// Inputs: `selectedDate`, completion callbacks, scheduled-task callback.
   /// Returns: A new `_CalendarDialog` instance.
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
@@ -1135,6 +1152,7 @@ class _CalendarDialog extends StatefulWidget {
     required this.allDailyCompleted,
     required this.allTasksCompleted,
     required this.someDailyCompleted,
+    required this.hasFutureScheduledOneTimeTask,
   });
 
   /// Purpose: Create the mutable state object for this widget.
@@ -1281,6 +1299,9 @@ class _CalendarDialogState extends State<_CalendarDialog> {
                 final allDone = widget.allTasksCompleted(date);
                 final dailyDone = widget.allDailyCompleted(date);
                 final someDone = widget.someDailyCompleted(date);
+                final hasScheduledTodo = widget.hasFutureScheduledOneTimeTask(
+                  date,
+                );
 
                 return InkWell(
                   borderRadius: BorderRadius.circular(20),
@@ -1312,23 +1333,42 @@ class _CalendarDialogState extends State<_CalendarDialog> {
                             color: allDone ? theme.colorScheme.primary : null,
                           ),
                         ),
-                        if (allDone)
-                          Icon(
-                            Icons.check_circle,
-                            size: 8,
-                            color: theme.colorScheme.primary,
-                          )
-                        else if (dailyDone)
-                          Icon(
-                            Icons.circle,
-                            size: 6,
-                            color: theme.colorScheme.tertiary,
-                          )
-                        else if (someDone)
-                          Icon(
-                            Icons.circle,
-                            size: 6,
-                            color: theme.colorScheme.outline,
+                        if (allDone ||
+                            dailyDone ||
+                            someDone ||
+                            hasScheduledTodo)
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              if (allDone)
+                                Icon(
+                                  Icons.check_circle,
+                                  size: 8,
+                                  color: theme.colorScheme.primary,
+                                )
+                              else if (dailyDone)
+                                Icon(
+                                  Icons.circle,
+                                  size: 6,
+                                  color: theme.colorScheme.tertiary,
+                                )
+                              else if (someDone)
+                                Icon(
+                                  Icons.circle,
+                                  size: 6,
+                                  color: theme.colorScheme.outline,
+                                ),
+                              if ((allDone || dailyDone || someDone) &&
+                                  hasScheduledTodo)
+                                const SizedBox(width: 2),
+                              if (hasScheduledTodo)
+                                Icon(
+                                  Icons.event_note,
+                                  size: 8,
+                                  color: theme.colorScheme.secondary,
+                                ),
+                            ],
                           ),
                       ],
                     ),
@@ -1339,38 +1379,77 @@ class _CalendarDialogState extends State<_CalendarDialog> {
             const SizedBox(height: 12),
 
             // Legend
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 12,
+              runSpacing: 4,
               children: [
-                Icon(Icons.circle, size: 6, color: theme.colorScheme.outline),
-                const SizedBox(width: 4),
-                Text(
-                  l10n.todoCalendarSomeDaily,
-                  style: theme.textTheme.bodySmall,
+                _CalendarLegendItem(
+                  icon: Icons.circle,
+                  iconSize: 6,
+                  color: theme.colorScheme.outline,
+                  label: l10n.todoCalendarSomeDaily,
                 ),
-                const SizedBox(width: 12),
-                Icon(Icons.circle, size: 6, color: theme.colorScheme.tertiary),
-                const SizedBox(width: 4),
-                Text(
-                  l10n.todoCalendarAllDaily,
-                  style: theme.textTheme.bodySmall,
+                _CalendarLegendItem(
+                  icon: Icons.circle,
+                  iconSize: 6,
+                  color: theme.colorScheme.tertiary,
+                  label: l10n.todoCalendarAllDaily,
                 ),
-                const SizedBox(width: 12),
-                Icon(
-                  Icons.check_circle,
-                  size: 8,
+                _CalendarLegendItem(
+                  icon: Icons.check_circle,
+                  iconSize: 8,
                   color: theme.colorScheme.primary,
+                  label: l10n.todoCalendarAllDone,
                 ),
-                const SizedBox(width: 4),
-                Text(
-                  l10n.todoCalendarAllDone,
-                  style: theme.textTheme.bodySmall,
+                _CalendarLegendItem(
+                  icon: Icons.event_note,
+                  iconSize: 8,
+                  color: theme.colorScheme.secondary,
+                  label: l10n.todoCalendarScheduledTodo,
                 ),
               ],
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _CalendarLegendItem extends StatelessWidget {
+  final IconData icon;
+  final double iconSize;
+  final Color color;
+  final String label;
+
+  /// Purpose: Create a compact calendar legend item.
+  /// Inputs: `icon`, `iconSize`, `color`, `label`.
+  /// Returns: A new `_CalendarLegendItem` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  const _CalendarLegendItem({
+    required this.icon,
+    required this.iconSize,
+    required this.color,
+    required this.label,
+  });
+
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: iconSize, color: color),
+        const SizedBox(width: 4),
+        Text(label, style: theme.textTheme.bodySmall),
+      ],
     );
   }
 }

@@ -29,8 +29,8 @@ Maintenance rules:
 - **Package id:** Dart package `my_day`; Android namespace/application id `com.yuanzhe.my_day`; MSIX identity `com.yuanzhe.myday`; macOS bundle id `com.yuanzhe.myDay`.
 - **Author / publisher:** `yuanzhe`.
 - **License:** GPL-3.0.
-- **Current version:** `0.7.9+36` in `pubspec.yaml`, `0.7.9.0` in `msix_config.msix_version`, and `0.7.9` in `installer.iss`.
-- **Latest tag at the time this guide was written:** `v0.7.9`.
+- **Current version:** `0.7.10+37` in `pubspec.yaml`, `0.7.10.0` in `msix_config.msix_version`, and `0.7.10` in `installer.iss`.
+- **Latest tag at the time this guide was written:** `v0.7.10`.
 - **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.41.6`.
 - **Primary platforms:** Windows x64/ARM64, Android APK/AAB, iOS sideload IPA, and macOS DMG. Linux project support exists for desktop runtime features but is not a primary release artifact.
 - **Repository:** Use the current environment's workspace root / repository path instead of hard-coding an absolute local path.
@@ -174,7 +174,7 @@ Main model: `lib/features/todo/models/task.dart`.
 
 `TodoStorage` is the central storage/config hub. `storage_config.json` always stays in the default app directory and stores custom storage path, intimacy visibility, theme, locale, tray settings, backup settings, and local API settings. `todo_data.json` stores daily templates, one-time tasks, daily logs, morning/completion reminder settings, task sort modes/custom orders, and `settingsModifiedAt`.
 
-The Todo UI includes date navigation, daily/routine/work sections, calendar completion indicators, independent sort/custom drag order per section, notes, subtasks, task reminders, recurrence picker, unsaved-change protection, and `AutoSyncService.instance.notifySaved()` after saves.
+The Todo UI includes date navigation, daily/routine/work sections, calendar completion indicators, future scheduled one-time task markers, independent sort/custom drag order per section, notes, subtasks, task reminders, recurrence picker, unsaved-change protection, and `AutoSyncService.instance.notifySaved()` after saves. One-time Todo reminders start on the task's scheduled date and then repeat daily at the saved time until the task is completed.
 
 ### Finance
 
@@ -453,3 +453,4 @@ Use the narrowest relevant command set for verification. For sync/model/persiste
 - `v0.7.7`: Intimacy trend charts use higher-contrast colors for combined data series, condom-protected record tiles show affirmative status text, and versions are unified to `0.7.7+34` / MSIX `0.7.7.0` / installer `0.7.7`.
 - `v0.7.8`: Weight records support optional bust/waist/hip measurements in cm, the weight trend chart adds dual-axis measurement lines with kg left and cm right, weight CSV/API flows include the new fields, and versions are unified to `0.7.8+35` / MSIX `0.7.8.0` / installer `0.7.8`.
 - `v0.7.9`: Weight summary cards show latest bust/waist/hip values plus waist-hip ratio with a compact color bar, weight and body-measurement trends are split into separate raw/EWMA charts with less crowded axes, and versions are unified to `0.7.9+36` / MSIX `0.7.9.0` / installer `0.7.9`.
+- `v0.7.10`: One-time Todo reminders start on the scheduled date and repeat daily until completion, future calendar dates with scheduled non-daily Todo items show a dedicated marker, and versions are unified to `0.7.10+37` / MSIX `0.7.10.0` / installer `0.7.10`.

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:my_day/app/app.dart';
 import 'package:my_day/features/todo/models/task.dart';
+import 'package:my_day/shared/services/reminder_service.dart';
 import 'package:my_day/features/weight/models/weight_record.dart';
 
 /// Purpose: Initialize startup services and launch the app entry point.
@@ -66,6 +67,42 @@ void main() {
     expect(WeightData.calculateWaistHipRatio(70, null), isNull);
     expect(WeightData.calculateWaistHipRatio(0, 92), isNull);
     expect(WeightData.calculateWaistHipRatio(70, 0), isNull);
+  });
+
+  test('One-time todo reminders start on scheduled date and repeat daily', () {
+    final task = Task(
+      title: 'Prepare report',
+      type: TaskType.workOnce,
+      scheduledDate: DateTime(2026, 6, 10),
+      reminderTime: DateTime(2026, 6, 1, 9),
+    );
+
+    expect(
+      ReminderService.shouldNotifyOneTimeTask(task, DateTime(2026, 6, 9, 9)),
+      isFalse,
+    );
+    expect(
+      ReminderService.shouldNotifyOneTimeTask(task, DateTime(2026, 6, 10, 9)),
+      isTrue,
+    );
+    expect(
+      ReminderService.shouldNotifyOneTimeTask(task, DateTime(2026, 6, 11, 9)),
+      isTrue,
+    );
+    expect(
+      ReminderService.nextOneTimeReminderDateTime(
+        task,
+        DateTime(2026, 6, 9, 12),
+      ),
+      DateTime(2026, 6, 10, 9),
+    );
+    expect(
+      ReminderService.nextOneTimeReminderDateTime(
+        task,
+        DateTime(2026, 6, 10, 10),
+      ),
+      DateTime(2026, 6, 11, 9),
+    );
   });
 
   testWidgets('App launches and shows Todo tab', (WidgetTester tester) async {
