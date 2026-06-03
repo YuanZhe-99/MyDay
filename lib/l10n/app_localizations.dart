@@ -2756,8 +2756,38 @@ abstract class AppLocalizations {
   /// No description provided for @todoDailyScoreHint.
   ///
   /// In en, this message translates to:
-  /// **'Rate this todo day from -5 to 5. Default is 0.'**
+  /// **'Rate the day as a whole from -5 to 5. Default is 0.'**
   String get todoDailyScoreHint;
+
+  /// No description provided for @todoScoreTrend.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily Score Trend'**
+  String get todoScoreTrend;
+
+  /// No description provided for @todoJoyfulDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Joyful Days'**
+  String get todoJoyfulDays;
+
+  /// No description provided for @todoSufferingDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Suffering Days'**
+  String get todoSufferingDays;
+
+  /// No description provided for @todoNoJoyfulDays.
+  ///
+  /// In en, this message translates to:
+  /// **'No joyful days this month.'**
+  String get todoNoJoyfulDays;
+
+  /// No description provided for @todoNoSufferingDays.
+  ///
+  /// In en, this message translates to:
+  /// **'No suffering days this month.'**
+  String get todoNoSufferingDays;
 
   /// No description provided for @todoWhatNeedsDone.
   ///

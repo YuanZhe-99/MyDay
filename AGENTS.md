@@ -29,8 +29,8 @@ Maintenance rules:
 - **Package id:** Dart package `my_day`; Android namespace/application id `com.yuanzhe.my_day`; MSIX identity `com.yuanzhe.myday`; macOS bundle id `com.yuanzhe.myDay`.
 - **Author / publisher:** `yuanzhe`.
 - **License:** GPL-3.0.
-- **Current version:** `0.7.11+38` in `pubspec.yaml`, `0.7.11.0` in `msix_config.msix_version`, and `0.7.11` in `installer.iss`.
-- **Latest tag at the time this guide was written:** `v0.7.11`.
+- **Current version:** `0.7.12+39` in `pubspec.yaml`, `0.7.12.0` in `msix_config.msix_version`, and `0.7.12` in `installer.iss`.
+- **Latest tag at the time this guide was written:** `v0.7.12`.
 - **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.41.6`.
 - **Primary platforms:** Windows x64/ARM64, Android APK/AAB, iOS sideload IPA, and macOS DMG. Linux project support exists for desktop runtime features but is not a primary release artifact.
 - **Repository:** Use the current environment's workspace root / repository path instead of hard-coding an absolute local path.
@@ -171,11 +171,11 @@ Main model: `lib/features/todo/models/task.dart`.
 - `TaskRecurrence`: `everyNDays`, `monthlyOnDay`, `yearlyOnMonthDay`; one-time tasks can prompt for the next occurrence after completion.
 - `Task`: `id`, `title`, optional `note`, optional `emoji`, `type`, completion state, optional reminder, subtasks, created/completed/scheduled/due dates, daily-template `startDate` and soft-delete `deletedDate`, optional `recurrence`, and `modifiedAt`.
 - `DailyCompletionLog`: per-date completion tracking for daily tasks and daily subtasks; sync merges by union so completion on either device stays completed.
-- `DailyScoreLog`: per-date Todo day score from -5 to 5 with default 0; explicit zero entries are retained so score resets sync correctly, and sync merges each date by score `modifiedAt`.
+- `DailyScoreLog`: per-date whole-day score from -5 to 5 with default 0; explicit zero entries are retained so score resets sync correctly, and sync merges each date by score `modifiedAt`.
 
 `TodoStorage` is the central storage/config hub. `storage_config.json` always stays in the default app directory and stores custom storage path, intimacy visibility, theme, locale, tray settings, backup settings, and local API settings. `todo_data.json` stores daily templates, one-time tasks, daily logs, daily scores, morning/completion reminder settings, task sort modes/custom orders, and `settingsModifiedAt`.
 
-The Todo UI includes an inline week calendar for the selected date's week, a retained full-month calendar dialog, daily/routine/work sections, calendar completion indicators, future scheduled one-time task markers, an editable per-day score at the bottom of the Todo list, independent sort/custom drag order per section, notes, subtasks, task reminders, recurrence picker, unsaved-change protection, and `AutoSyncService.instance.notifySaved()` after saves. One-time Todo reminders start on the task's scheduled date and then repeat daily at the saved time until the task is completed.
+The Todo UI includes an inline week calendar for the selected date's week, a secondary full-month calendar page with inline year/month jumps, monthly daily-score trend chart, joyful-day and suffering-day lists, daily/routine/work sections, calendar completion indicators, future scheduled one-time task markers, an editable whole-day score at the bottom of the Todo list, independent sort/custom drag order per section, notes, subtasks, task reminders, recurrence picker, unsaved-change protection, and `AutoSyncService.instance.notifySaved()` after saves. One-time Todo reminders start on the task's scheduled date and then repeat daily at the saved time until the task is completed.
 
 ### Finance
 
@@ -456,3 +456,4 @@ Use the narrowest relevant command set for verification. For sync/model/persiste
 - `v0.7.9`: Weight summary cards show latest bust/waist/hip values plus waist-hip ratio with a compact color bar, weight and body-measurement trends are split into separate raw/EWMA charts with less crowded axes, and versions are unified to `0.7.9+36` / MSIX `0.7.9.0` / installer `0.7.9`.
 - `v0.7.10`: One-time Todo reminders start on the scheduled date and repeat daily until completion, future calendar dates with scheduled non-daily Todo items show a dedicated marker, and versions are unified to `0.7.10+37` / MSIX `0.7.10.0` / installer `0.7.10`.
 - `v0.7.11`: Todo home shows an inline week calendar for the selected date while retaining the month picker, Todo days support a -5 to 5 daily score stored and synced per date, and versions are unified to `0.7.11+38` / MSIX `0.7.11.0` / installer `0.7.11`.
+- `v0.7.12`: Todo daily-score wording now describes whole-day scoring, the month calendar opens as a secondary page with inline year/month jumps, daily-score trend chart including zero values, joyful-day and suffering-day lists, and versions are unified to `0.7.12+39` / MSIX `0.7.12.0` / installer `0.7.12`.

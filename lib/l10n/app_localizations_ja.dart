@@ -1383,7 +1383,22 @@ class AppLocalizationsJa extends AppLocalizations {
   String get todoDailyScore => '今日のスコア';
 
   @override
-  String get todoDailyScoreHint => 'この日のTodo達成度を -5 から 5 で評価します。初期値は0です。';
+  String get todoDailyScoreHint => 'この日全体を -5 から 5 で評価します。初期値は0です。';
+
+  @override
+  String get todoScoreTrend => '日別スコアの推移';
+
+  @override
+  String get todoJoyfulDays => 'うれしい日の一覧';
+
+  @override
+  String get todoSufferingDays => 'つらい日の一覧';
+
+  @override
+  String get todoNoJoyfulDays => '今月はうれしい日がありません。';
+
+  @override
+  String get todoNoSufferingDays => '今月はつらい日がありません。';
 
   @override
   String get todoWhatNeedsDone => '何をする必要がありますか？';

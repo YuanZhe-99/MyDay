@@ -1402,7 +1402,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get todoDailyScoreHint =>
-      'Rate this todo day from -5 to 5. Default is 0.';
+      'Rate the day as a whole from -5 to 5. Default is 0.';
+
+  @override
+  String get todoScoreTrend => 'Daily Score Trend';
+
+  @override
+  String get todoJoyfulDays => 'Joyful Days';
+
+  @override
+  String get todoSufferingDays => 'Suffering Days';
+
+  @override
+  String get todoNoJoyfulDays => 'No joyful days this month.';
+
+  @override
+  String get todoNoSufferingDays => 'No suffering days this month.';
 
   @override
   String get todoWhatNeedsDone => 'What needs to be done?';

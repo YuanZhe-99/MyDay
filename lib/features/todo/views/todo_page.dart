@@ -1,3 +1,4 @@
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -40,7 +41,7 @@ class _TodoPageState extends State<TodoPage> {
   // Per-date completion log for daily templates
   DailyCompletionLog _dailyLog = DailyCompletionLog();
 
-  // Per-date user score for each todo day
+  // Per-date user score for each calendar day
   DailyScoreLog _dailyScores = DailyScoreLog();
 
   // Reminder state
@@ -754,23 +755,26 @@ class _TodoPageState extends State<TodoPage> {
     });
   }
 
-  /// Purpose: Provide the internal show calendar helper for this file.
+  /// Purpose: Open the full Todo calendar page and apply the picked date.
   /// Inputs: None.
   /// Returns: `Future<void>`.
-  /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
+  /// Side effects: Pushes a route and may update the selected date.
+  /// Notes: Date taps on the calendar page return directly to this Todo page.
   Future<void> _showCalendar() async {
-    final picked = await showDialog<DateTime>(
-      context: context,
-      builder: (_) => _CalendarDialog(
-        selectedDate: _selectedDate,
-        allDailyCompleted: _allDailyCompletedOn,
-        allTasksCompleted: _allTasksCompletedOn,
-        someDailyCompleted: _someDailyCompletedOn,
-        hasFutureScheduledOneTimeTask: _hasFutureScheduledOneTimeTask,
+    final picked = await Navigator.push<DateTime>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => _TodoCalendarPage(
+          selectedDate: _selectedDate,
+          dailyScores: _dailyScores,
+          allDailyCompleted: _allDailyCompletedOn,
+          allTasksCompleted: _allTasksCompletedOn,
+          someDailyCompleted: _someDailyCompletedOn,
+          hasFutureScheduledOneTimeTask: _hasFutureScheduledOneTimeTask,
+        ),
       ),
     );
-    if (picked != null) {
+    if (picked != null && mounted) {
       setState(() => _selectedDate = picked);
     }
   }
@@ -788,7 +792,7 @@ class _TodoPageState extends State<TodoPage> {
     });
   }
 
-  /// Purpose: Update the score assigned to the selected todo day.
+  /// Purpose: Update the score assigned to the selected calendar day.
   /// Inputs: `score`, `save`.
   /// Returns: None.
   /// Side effects: Mutates the daily score log, refreshes UI, and may save todo data.
@@ -1035,7 +1039,7 @@ class _TodoPageState extends State<TodoPage> {
   /// Inputs: `theme`, `l10n`.
   /// Returns: A widget showing seven selectable day cells plus calendar controls.
   /// Side effects: Creates UI widgets and wires date-selection callbacks.
-  /// Notes: The full month picker remains available from the calendar icon.
+  /// Notes: The full month calendar is available from the calendar icon.
   Widget _buildWeekCalendar(ThemeData theme, AppLocalizations l10n) {
     final dateFormat = DateFormat('yyyy-MM-dd (EEE)', l10n.localeName);
     final compactDateFormat = DateFormat('MM/dd', l10n.localeName);
@@ -1111,7 +1115,7 @@ class _TodoPageState extends State<TodoPage> {
   /// Inputs: `date`, `theme`, `l10n`.
   /// Returns: A widget representing one day cell.
   /// Side effects: Creates UI widgets and may change the selected date when tapped.
-  /// Notes: Reuses the same completion and scheduled-task markers as the month picker.
+  /// Notes: Reuses the same completion and scheduled-task markers as the month calendar.
   Widget _buildWeekDayCell(
     DateTime date,
     ThemeData theme,
@@ -1226,7 +1230,7 @@ class _TodoPageState extends State<TodoPage> {
   /// Inputs: `theme`, `l10n`.
   /// Returns: A widget for viewing and editing the selected day's score.
   /// Side effects: Creates UI widgets and wires score-edit callbacks.
-  /// Notes: The score range is the inclusive -5 to 5 range defined by `DailyScoreLog`.
+  /// Notes: The score is for the whole selected day, not only todo completion.
   Widget _buildDailyScoreCard(ThemeData theme, AppLocalizations l10n) {
     final score = _dailyScores.scoreFor(_selectedDate);
     return Card(
@@ -1439,22 +1443,24 @@ class _TodoPageState extends State<TodoPage> {
   }
 }
 
-// --- Calendar Dialog ---
+// --- Calendar Page ---
 
-class _CalendarDialog extends StatefulWidget {
+class _TodoCalendarPage extends StatefulWidget {
   final DateTime selectedDate;
+  final DailyScoreLog dailyScores;
   final bool Function(DateTime) allDailyCompleted;
   final bool Function(DateTime) allTasksCompleted;
   final bool Function(DateTime) someDailyCompleted;
   final bool Function(DateTime) hasFutureScheduledOneTimeTask;
 
-  /// Purpose: Create a calendar dialog instance.
-  /// Inputs: `selectedDate`, completion callbacks, scheduled-task callback.
-  /// Returns: A new `_CalendarDialog` instance.
+  /// Purpose: Create the secondary Todo calendar page.
+  /// Inputs: `selectedDate`, `dailyScores`, completion callbacks, scheduled-task callback.
+  /// Returns: A new `_TodoCalendarPage` instance.
   /// Side effects: None.
-  /// Notes: Internal helper used within this file only.
-  const _CalendarDialog({
+  /// Notes: Tapping a date returns it to the parent Todo page.
+  const _TodoCalendarPage({
     required this.selectedDate,
+    required this.dailyScores,
     required this.allDailyCompleted,
     required this.allTasksCompleted,
     required this.someDailyCompleted,
@@ -1467,16 +1473,16 @@ class _CalendarDialog extends StatefulWidget {
   /// Side effects: May update UI state or trigger user-facing flows.
   /// Notes: None.
   @override
-  State<_CalendarDialog> createState() => _CalendarDialogState();
+  State<_TodoCalendarPage> createState() => _TodoCalendarPageState();
 }
 
-class _CalendarDialogState extends State<_CalendarDialog> {
+class _TodoCalendarPageState extends State<_TodoCalendarPage> {
   late DateTime _viewMonth;
 
-  /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
+  /// Purpose: Initialize the page to the selected date's month.
   /// Inputs: None.
   /// Returns: None.
-  /// Side effects: Registers listeners and may kick off asynchronous loading.
+  /// Side effects: Initializes local state.
   /// Notes: Guard any post-await UI updates with `mounted` when needed.
   @override
   void initState() {
@@ -1484,50 +1490,189 @@ class _CalendarDialogState extends State<_CalendarDialog> {
     _viewMonth = DateTime(widget.selectedDate.year, widget.selectedDate.month);
   }
 
-  /// Purpose: Provide the internal prev month helper for this file.
+  /// Purpose: Move the visible calendar to the previous month.
   /// Inputs: None.
   /// Returns: None.
-  /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
+  /// Side effects: Updates local UI state.
+  /// Notes: None.
   void _prevMonth() {
     setState(() {
       _viewMonth = DateTime(_viewMonth.year, _viewMonth.month - 1);
     });
   }
 
-  /// Purpose: Provide the internal next month helper for this file.
+  /// Purpose: Move the visible calendar to the next month.
   /// Inputs: None.
   /// Returns: None.
-  /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
+  /// Side effects: Updates local UI state.
+  /// Notes: None.
   void _nextMonth() {
     setState(() {
       _viewMonth = DateTime(_viewMonth.year, _viewMonth.month + 1);
     });
   }
 
-  /// Purpose: Build the current widget subtree for the active UI state.
-  /// Inputs: `context`.
-  /// Returns: The widget tree for the current state.
-  /// Side effects: Creates UI widgets from the current state.
-  /// Notes: Keep this method cheap because Flutter may call it often.
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context)!;
+  /// Purpose: Move the visible calendar by whole years.
+  /// Inputs: `delta`.
+  /// Returns: None.
+  /// Side effects: Updates local UI state.
+  /// Notes: Preserves the current visible month.
+  void _changeYear(int delta) {
+    setState(() {
+      _viewMonth = DateTime(_viewMonth.year + delta, _viewMonth.month);
+    });
+  }
+
+  /// Purpose: Jump the visible calendar to a specific month in the same year.
+  /// Inputs: `month`.
+  /// Returns: None.
+  /// Side effects: Updates local UI state.
+  /// Notes: Month uses Dart's 1-12 month numbering.
+  void _jumpToMonth(int month) {
+    setState(() {
+      _viewMonth = DateTime(_viewMonth.year, month);
+    });
+  }
+
+  /// Purpose: Return every day and score shown in the current month.
+  /// Inputs: None.
+  /// Returns: `List<MapEntry<DateTime, int>>`.
+  /// Side effects: None.
+  /// Notes: Missing score entries are included as zero.
+  List<MapEntry<DateTime, int>> get _monthScoreEntries {
+    final daysInMonth = DateTime(_viewMonth.year, _viewMonth.month + 1, 0).day;
+    return [
+      for (var day = 1; day <= daysInMonth; day++)
+        MapEntry(
+          DateTime(_viewMonth.year, _viewMonth.month, day),
+          widget.dailyScores.scoreFor(
+            DateTime(_viewMonth.year, _viewMonth.month, day),
+          ),
+        ),
+    ];
+  }
+
+  /// Purpose: Return whether two date values represent the same day.
+  /// Inputs: `a`, `b`.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: Time components are ignored.
+  bool _isSameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
+  /// Purpose: Return a localized weekday label.
+  /// Inputs: `l10n`, `weekday`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Weekday uses Dart's Monday=1 through Sunday=7 numbering.
+  String _weekdayLabel(AppLocalizations l10n, int weekday) {
+    switch (weekday) {
+      case DateTime.monday:
+        return l10n.todoWeekMon;
+      case DateTime.tuesday:
+        return l10n.todoWeekTue;
+      case DateTime.wednesday:
+        return l10n.todoWeekWed;
+      case DateTime.thursday:
+        return l10n.todoWeekThu;
+      case DateTime.friday:
+        return l10n.todoWeekFri;
+      case DateTime.saturday:
+        return l10n.todoWeekSat;
+      case DateTime.sunday:
+      default:
+        return l10n.todoWeekSun;
+    }
+  }
+
+  /// Purpose: Return from the calendar page with a picked date.
+  /// Inputs: `date`.
+  /// Returns: None.
+  /// Side effects: Pops this route with the selected date.
+  /// Notes: The parent Todo page applies the actual selection state.
+  void _pickDate(DateTime date) {
+    Navigator.pop(context, date);
+  }
+
+  /// Purpose: Build the year and month jump controls.
+  /// Inputs: `theme`, `l10n`.
+  /// Returns: A widget for changing the visible month.
+  /// Side effects: Creates UI widgets and wires jump callbacks.
+  /// Notes: The controls stay inline so the calendar page does not open another picker dialog.
+  Widget _buildMonthNavigator(ThemeData theme, AppLocalizations l10n) {
+    final monthFormat = DateFormat.MMM(l10n.localeName);
+    return Card(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.keyboard_double_arrow_left),
+                  onPressed: () => _changeYear(-1),
+                ),
+                Expanded(
+                  child: Center(
+                    child: Text(
+                      DateFormat('yyyy', l10n.localeName).format(_viewMonth),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.keyboard_double_arrow_right),
+                  onPressed: () => _changeYear(1),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  for (var month = 1; month <= 12; month++)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 2),
+                      child: ChoiceChip(
+                        label: Text(
+                          monthFormat.format(DateTime(_viewMonth.year, month)),
+                        ),
+                        selected: _viewMonth.month == month,
+                        onSelected: (_) => _jumpToMonth(month),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Purpose: Build the month calendar grid and legend.
+  /// Inputs: `theme`, `l10n`.
+  /// Returns: A widget showing the visible month.
+  /// Side effects: Creates UI widgets and wires date callbacks.
+  /// Notes: Day cells keep the same task-completion and scheduled-task markers as the Todo home calendar.
+  Widget _buildCalendarCard(ThemeData theme, AppLocalizations l10n) {
     final today = DateTime.now();
     final firstDayOfMonth = DateTime(_viewMonth.year, _viewMonth.month, 1);
     final daysInMonth = DateTime(_viewMonth.year, _viewMonth.month + 1, 0).day;
-    final startWeekday = firstDayOfMonth.weekday; // 1=Mon, 7=Sun
+    final startWeekday = firstDayOfMonth.weekday;
     final totalCells = ((startWeekday - 1) + daysInMonth + 6) ~/ 7 * 7;
 
-    return Dialog(
+    return Card(
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            // Month navigation
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -1548,37 +1693,31 @@ class _CalendarDialogState extends State<_CalendarDialog> {
               ],
             ),
             const SizedBox(height: 8),
-
-            // Weekday headers
             Row(
-              children:
-                  [
-                        l10n.todoWeekMon,
-                        l10n.todoWeekTue,
-                        l10n.todoWeekWed,
-                        l10n.todoWeekThu,
-                        l10n.todoWeekFri,
-                        l10n.todoWeekSat,
-                        l10n.todoWeekSun,
-                      ]
-                      .map(
-                        (d) => Expanded(
-                          child: Center(
-                            child: Text(
-                              d,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ),
+              children: [
+                for (final weekday in [
+                  DateTime.monday,
+                  DateTime.tuesday,
+                  DateTime.wednesday,
+                  DateTime.thursday,
+                  DateTime.friday,
+                  DateTime.saturday,
+                  DateTime.sunday,
+                ])
+                  Expanded(
+                    child: Center(
+                      child: Text(
+                        _weekdayLabel(l10n, weekday),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.onSurfaceVariant,
                         ),
-                      )
-                      .toList(),
+                      ),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 4),
-
-            // Day grid
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -1593,98 +1732,10 @@ class _CalendarDialogState extends State<_CalendarDialog> {
                 }
                 final day = dayOffset + 1;
                 final date = DateTime(_viewMonth.year, _viewMonth.month, day);
-                final isSelected =
-                    date.year == widget.selectedDate.year &&
-                    date.month == widget.selectedDate.month &&
-                    date.day == widget.selectedDate.day;
-                final isToday =
-                    date.year == today.year &&
-                    date.month == today.month &&
-                    date.day == today.day;
-
-                final allDone = widget.allTasksCompleted(date);
-                final dailyDone = widget.allDailyCompleted(date);
-                final someDone = widget.someDailyCompleted(date);
-                final hasScheduledTodo = widget.hasFutureScheduledOneTimeTask(
-                  date,
-                );
-
-                return InkWell(
-                  borderRadius: BorderRadius.circular(20),
-                  onTap: () => Navigator.pop(context, date),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: allDone
-                          ? theme.colorScheme.primary.withValues(alpha: 0.2)
-                          : isSelected
-                          ? theme.colorScheme.primaryContainer
-                          : null,
-                      border: isToday
-                          ? Border.all(
-                              color: theme.colorScheme.primary,
-                              width: 2,
-                            )
-                          : null,
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          '$day',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            fontWeight: isSelected || isToday
-                                ? FontWeight.bold
-                                : null,
-                            color: allDone ? theme.colorScheme.primary : null,
-                          ),
-                        ),
-                        if (allDone ||
-                            dailyDone ||
-                            someDone ||
-                            hasScheduledTodo)
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              if (allDone)
-                                Icon(
-                                  Icons.check_circle,
-                                  size: 8,
-                                  color: theme.colorScheme.primary,
-                                )
-                              else if (dailyDone)
-                                Icon(
-                                  Icons.circle,
-                                  size: 6,
-                                  color: theme.colorScheme.tertiary,
-                                )
-                              else if (someDone)
-                                Icon(
-                                  Icons.circle,
-                                  size: 6,
-                                  color: theme.colorScheme.outline,
-                                ),
-                              if ((allDone || dailyDone || someDone) &&
-                                  hasScheduledTodo)
-                                const SizedBox(width: 2),
-                              if (hasScheduledTodo)
-                                Icon(
-                                  Icons.event_note,
-                                  size: 8,
-                                  color: theme.colorScheme.secondary,
-                                ),
-                            ],
-                          ),
-                      ],
-                    ),
-                  ),
-                );
+                return _buildCalendarDayCell(date, today, theme);
               },
             ),
             const SizedBox(height: 12),
-
-            // Legend
             Wrap(
               alignment: WrapAlignment.center,
               spacing: 12,
@@ -1716,6 +1767,392 @@ class _CalendarDialogState extends State<_CalendarDialog> {
                 ),
               ],
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Purpose: Build one date cell inside the month calendar.
+  /// Inputs: `date`, `today`, `theme`.
+  /// Returns: A tappable widget for one calendar date.
+  /// Side effects: Creates UI widgets and may pop this route when tapped.
+  /// Notes: Completion marker priority matches the original calendar dialog.
+  Widget _buildCalendarDayCell(DateTime date, DateTime today, ThemeData theme) {
+    final isSelected = _isSameDay(date, widget.selectedDate);
+    final isToday = _isSameDay(date, today);
+    final allDone = widget.allTasksCompleted(date);
+    final dailyDone = widget.allDailyCompleted(date);
+    final someDone = widget.someDailyCompleted(date);
+    final hasScheduledTodo = widget.hasFutureScheduledOneTimeTask(date);
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: () => _pickDate(date),
+      child: Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: allDone
+              ? theme.colorScheme.primary.withValues(alpha: 0.2)
+              : isSelected
+              ? theme.colorScheme.primaryContainer
+              : null,
+          border: isToday
+              ? Border.all(color: theme.colorScheme.primary, width: 2)
+              : null,
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              '${date.day}',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: isSelected || isToday ? FontWeight.bold : null,
+                color: allDone ? theme.colorScheme.primary : null,
+              ),
+            ),
+            if (allDone || dailyDone || someDone || hasScheduledTodo)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (allDone)
+                    Icon(
+                      Icons.check_circle,
+                      size: 8,
+                      color: theme.colorScheme.primary,
+                    )
+                  else if (dailyDone)
+                    Icon(
+                      Icons.circle,
+                      size: 6,
+                      color: theme.colorScheme.tertiary,
+                    )
+                  else if (someDone)
+                    Icon(
+                      Icons.circle,
+                      size: 6,
+                      color: theme.colorScheme.outline,
+                    ),
+                  if ((allDone || dailyDone || someDone) && hasScheduledTodo)
+                    const SizedBox(width: 2),
+                  if (hasScheduledTodo)
+                    Icon(
+                      Icons.event_note,
+                      size: 8,
+                      color: theme.colorScheme.secondary,
+                    ),
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Purpose: Build the daily score trend chart for the visible month.
+  /// Inputs: `theme`, `l10n`.
+  /// Returns: A widget containing a monthly score line chart.
+  /// Side effects: Creates chart UI widgets.
+  /// Notes: Every day is plotted, so zero scores and missing days remain visible.
+  Widget _buildScoreTrendCard(ThemeData theme, AppLocalizations l10n) {
+    final entries = _monthScoreEntries;
+    final spots = entries
+        .map(
+          (entry) => FlSpot(entry.key.day.toDouble(), entry.value.toDouble()),
+        )
+        .toList();
+    final dateFormat = DateFormat.MMMd(l10n.localeName);
+    final scoreColor = theme.colorScheme.primary;
+
+    return Card(
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 12, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              l10n.todoScoreTrend,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 220,
+              child: LineChart(
+                LineChartData(
+                  minX: 1,
+                  maxX: entries.length.toDouble(),
+                  minY: DailyScoreLog.minScore.toDouble(),
+                  maxY: DailyScoreLog.maxScore.toDouble(),
+                  gridData: FlGridData(
+                    show: true,
+                    horizontalInterval: 1,
+                    verticalInterval: 7,
+                    getDrawingHorizontalLine: (value) => FlLine(
+                      color: value == 0
+                          ? theme.colorScheme.outline.withValues(alpha: 0.65)
+                          : theme.colorScheme.outlineVariant.withValues(
+                              alpha: 0.3,
+                            ),
+                      strokeWidth: value == 0 ? 1.1 : 0.5,
+                    ),
+                    getDrawingVerticalLine: (value) => FlLine(
+                      color: theme.colorScheme.outlineVariant.withValues(
+                        alpha: 0.22,
+                      ),
+                      strokeWidth: 0.5,
+                      dashArray: [4, 4],
+                    ),
+                  ),
+                  titlesData: FlTitlesData(
+                    topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 28,
+                        interval: 7,
+                        minIncluded: true,
+                        maxIncluded: true,
+                        getTitlesWidget: (value, meta) {
+                          final day = value.round();
+                          if ((value - day).abs() > 0.01 ||
+                              day < 1 ||
+                              day > entries.length) {
+                            return const SizedBox.shrink();
+                          }
+                          return SideTitleWidget(
+                            meta: meta,
+                            child: Text(
+                              '$day',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                fontSize: 10,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 32,
+                        interval: 5,
+                        getTitlesWidget: (value, meta) {
+                          if (value % 5 != 0) return const SizedBox.shrink();
+                          return SideTitleWidget(
+                            meta: meta,
+                            child: Text(
+                              value.toInt().toString(),
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                fontSize: 10,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  borderData: FlBorderData(
+                    show: true,
+                    border: Border.all(
+                      color: theme.colorScheme.outlineVariant.withValues(
+                        alpha: 0.35,
+                      ),
+                    ),
+                  ),
+                  lineBarsData: [
+                    LineChartBarData(
+                      spots: spots,
+                      isCurved: false,
+                      color: scoreColor,
+                      barWidth: 2.5,
+                      dotData: FlDotData(
+                        show: true,
+                        getDotPainter: (spot, percent, barData, index) {
+                          final color = spot.y == 0
+                              ? theme.colorScheme.onSurfaceVariant
+                              : spot.y > 0
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.error;
+                          return FlDotCirclePainter(
+                            radius: 2.6,
+                            color: color,
+                            strokeColor: theme.colorScheme.surface,
+                            strokeWidth: 1,
+                          );
+                        },
+                      ),
+                      belowBarData: BarAreaData(
+                        show: true,
+                        color: scoreColor.withValues(alpha: 0.08),
+                      ),
+                    ),
+                  ],
+                  lineTouchData: LineTouchData(
+                    touchTooltipData: LineTouchTooltipData(
+                      getTooltipColor: (_) => theme.colorScheme.inverseSurface,
+                      getTooltipItems: (spots) => spots.map((spot) {
+                        var dayIndex = spot.x.round() - 1;
+                        if (dayIndex < 0) dayIndex = 0;
+                        if (dayIndex >= entries.length) {
+                          dayIndex = entries.length - 1;
+                        }
+                        final entry = entries[dayIndex];
+                        return LineTooltipItem(
+                          '${dateFormat.format(entry.key)}\n${l10n.todoDailyScore}: ${entry.value}',
+                          TextStyle(
+                            color: theme.colorScheme.onInverseSurface,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Purpose: Build the joyful and suffering day lists for the visible month.
+  /// Inputs: `theme`, `l10n`.
+  /// Returns: A widget containing two date lists.
+  /// Side effects: Creates UI widgets and wires date callbacks.
+  /// Notes: Joyful days are score >= 4; suffering days are score <= -4.
+  Widget _buildScoreListsCard(ThemeData theme, AppLocalizations l10n) {
+    final joyfulDays = _monthScoreEntries
+        .where((entry) => entry.value >= 4)
+        .toList();
+    final sufferingDays = _monthScoreEntries
+        .where((entry) => entry.value <= -4)
+        .toList();
+
+    return Card(
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildScoreDaySection(
+              theme: theme,
+              l10n: l10n,
+              title: l10n.todoJoyfulDays,
+              emptyText: l10n.todoNoJoyfulDays,
+              icon: Icons.wb_sunny_outlined,
+              color: theme.colorScheme.primary,
+              entries: joyfulDays,
+            ),
+            const Divider(height: 24),
+            _buildScoreDaySection(
+              theme: theme,
+              l10n: l10n,
+              title: l10n.todoSufferingDays,
+              emptyText: l10n.todoNoSufferingDays,
+              icon: Icons.thunderstorm_outlined,
+              color: theme.colorScheme.error,
+              entries: sufferingDays,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Purpose: Build one extreme-score date list section.
+  /// Inputs: `theme`, `l10n`, section labels, `icon`, `color`, `entries`.
+  /// Returns: A widget for one score-day list.
+  /// Side effects: Creates UI widgets and wires date callbacks.
+  /// Notes: Date chips use the same date-pick behavior as calendar day cells.
+  Widget _buildScoreDaySection({
+    required ThemeData theme,
+    required AppLocalizations l10n,
+    required String title,
+    required String emptyText,
+    required IconData icon,
+    required Color color,
+    required List<MapEntry<DateTime, int>> entries,
+  }) {
+    final dateFormat = DateFormat.MMMd(l10n.localeName);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, color: color),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (entries.isEmpty)
+          Text(
+            emptyText,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          )
+        else
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final entry in entries)
+                ActionChip(
+                  avatar: CircleAvatar(
+                    backgroundColor: color.withValues(alpha: 0.14),
+                    foregroundColor: color,
+                    child: Text(
+                      entry.value > 0 ? '+${entry.value}' : '${entry.value}',
+                      style: const TextStyle(fontSize: 10),
+                    ),
+                  ),
+                  label: Text(dateFormat.format(entry.key)),
+                  onPressed: () => _pickDate(entry.key),
+                  visualDensity: VisualDensity.compact,
+                ),
+            ],
+          ),
+      ],
+    );
+  }
+
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+
+    return Scaffold(
+      appBar: AppBar(title: Text(l10n.todoCalendar), centerTitle: true),
+      body: SafeArea(
+        child: ListView(
+          children: [
+            _buildMonthNavigator(theme, l10n),
+            _buildCalendarCard(theme, l10n),
+            _buildScoreTrendCard(theme, l10n),
+            _buildScoreListsCard(theme, l10n),
           ],
         ),
       ),

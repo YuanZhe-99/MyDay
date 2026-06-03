@@ -1381,7 +1381,22 @@ class AppLocalizationsZh extends AppLocalizations {
   String get todoDailyScore => '本日评分';
 
   @override
-  String get todoDailyScoreHint => '为这一天的待办表现评分，范围 -5 到 5，默认 0。';
+  String get todoDailyScoreHint => '为这一天整体打分，范围 -5 到 5，默认 0。';
+
+  @override
+  String get todoScoreTrend => '每日评分趋势';
+
+  @override
+  String get todoJoyfulDays => '欢喜日列表';
+
+  @override
+  String get todoSufferingDays => '受难日列表';
+
+  @override
+  String get todoNoJoyfulDays => '本月暂无欢喜日。';
+
+  @override
+  String get todoNoSufferingDays => '本月暂无受难日。';
 
   @override
   String get todoWhatNeedsDone => '需要做什么？';
@@ -3106,7 +3121,22 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get todoDailyScore => '本日評分';
 
   @override
-  String get todoDailyScoreHint => '為這一天的待辦表現評分，範圍 -5 到 5，預設 0。';
+  String get todoDailyScoreHint => '為這一天整體打分，範圍 -5 到 5，預設 0。';
+
+  @override
+  String get todoScoreTrend => '每日評分趨勢';
+
+  @override
+  String get todoJoyfulDays => '歡喜日列表';
+
+  @override
+  String get todoSufferingDays => '受難日列表';
+
+  @override
+  String get todoNoJoyfulDays => '本月暫無歡喜日。';
+
+  @override
+  String get todoNoSufferingDays => '本月暫無受難日。';
 
   @override
   String get todoWhatNeedsDone => '需要做什麼？';
