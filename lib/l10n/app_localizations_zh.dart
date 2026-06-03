@@ -1378,6 +1378,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get todoCalendarScheduledTodo => '计划待办';
 
   @override
+  String get todoDailyScore => '本日评分';
+
+  @override
+  String get todoDailyScoreHint => '为这一天的待办表现评分，范围 -5 到 5，默认 0。';
+
+  @override
   String get todoWhatNeedsDone => '需要做什么？';
 
   @override
@@ -3095,6 +3101,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get todoCalendarScheduledTodo => '排程待辦';
+
+  @override
+  String get todoDailyScore => '本日評分';
+
+  @override
+  String get todoDailyScoreHint => '為這一天的待辦表現評分，範圍 -5 到 5，預設 0。';
 
   @override
   String get todoWhatNeedsDone => '需要做什麼？';

@@ -10,6 +10,7 @@ class TodoData {
   final List<Task> dailyTemplates;
   final List<Task> oneTimeTasks;
   final DailyCompletionLog dailyLog;
+  final DailyScoreLog dailyScores;
 
   /// Morning reminder — nudge to plan today's list
   final int? morningReminderHour;
@@ -23,7 +24,7 @@ class TodoData {
   final DateTime settingsModifiedAt;
 
   /// Purpose: Create a todo data instance.
-  /// Inputs: `taskSortModes`.
+  /// Inputs: task lists, `dailyLog`, `dailyScores`, reminders, and sort settings.
   /// Returns: A new `TodoData` instance.
   /// Side effects: None.
   /// Notes: None.
@@ -31,6 +32,7 @@ class TodoData {
     required this.dailyTemplates,
     required this.oneTimeTasks,
     required this.dailyLog,
+    DailyScoreLog? dailyScores,
     this.morningReminderHour,
     this.morningReminderMinute,
     this.completionReminderHour,
@@ -38,7 +40,8 @@ class TodoData {
     this.taskSortModes = const {},
     this.taskCustomOrders = const {},
     DateTime? settingsModifiedAt,
-  }) : settingsModifiedAt =
+  }) : dailyScores = dailyScores ?? DailyScoreLog(),
+       settingsModifiedAt =
            settingsModifiedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
 
   /// Purpose: Serialize this value into a JSON-compatible map.
@@ -50,6 +53,7 @@ class TodoData {
     'dailyTemplates': dailyTemplates.map((t) => t.toJson()).toList(),
     'oneTimeTasks': oneTimeTasks.map((t) => t.toJson()).toList(),
     'dailyLog': dailyLog.toJson(),
+    if (!dailyScores.isEmpty) 'dailyScores': dailyScores.toJson(),
     if (morningReminderHour != null) 'morningReminderHour': morningReminderHour,
     if (morningReminderMinute != null)
       'morningReminderMinute': morningReminderMinute,
@@ -83,6 +87,9 @@ class TodoData {
               json['dailyLog'] as Map<String, dynamic>,
             )
           : DailyCompletionLog(),
+      dailyScores: json['dailyScores'] != null
+          ? DailyScoreLog.fromJson(json['dailyScores'] as Map<String, dynamic>)
+          : DailyScoreLog(),
       morningReminderHour: json['morningReminderHour'] as int? ?? oldH,
       morningReminderMinute: json['morningReminderMinute'] as int? ?? oldM,
       completionReminderHour: json['completionReminderHour'] as int?,

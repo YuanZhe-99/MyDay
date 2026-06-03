@@ -1398,6 +1398,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get todoCalendarScheduledTodo => 'Scheduled todo';
 
   @override
+  String get todoDailyScore => 'Daily Score';
+
+  @override
+  String get todoDailyScoreHint =>
+      'Rate this todo day from -5 to 5. Default is 0.';
+
+  @override
   String get todoWhatNeedsDone => 'What needs to be done?';
 
   @override

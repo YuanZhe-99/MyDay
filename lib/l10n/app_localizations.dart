@@ -2747,6 +2747,18 @@ abstract class AppLocalizations {
   /// **'Scheduled todo'**
   String get todoCalendarScheduledTodo;
 
+  /// No description provided for @todoDailyScore.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily Score'**
+  String get todoDailyScore;
+
+  /// No description provided for @todoDailyScoreHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Rate this todo day from -5 to 5. Default is 0.'**
+  String get todoDailyScoreHint;
+
   /// No description provided for @todoWhatNeedsDone.
   ///
   /// In en, this message translates to:

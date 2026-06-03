@@ -310,6 +310,7 @@ class LocalApiServer {
           dailyTemplates: [],
           oneTimeTasks: [],
           dailyLog: DailyCompletionLog(),
+          dailyScores: DailyScoreLog(),
         );
 
     if (type == TaskType.daily) {
@@ -318,6 +319,7 @@ class LocalApiServer {
           dailyTemplates: [...data.dailyTemplates, task],
           oneTimeTasks: data.oneTimeTasks,
           dailyLog: data.dailyLog,
+          dailyScores: data.dailyScores,
           morningReminderHour: data.morningReminderHour,
           morningReminderMinute: data.morningReminderMinute,
           completionReminderHour: data.completionReminderHour,
@@ -333,6 +335,7 @@ class LocalApiServer {
           dailyTemplates: data.dailyTemplates,
           oneTimeTasks: [...data.oneTimeTasks, task],
           dailyLog: data.dailyLog,
+          dailyScores: data.dailyScores,
           morningReminderHour: data.morningReminderHour,
           morningReminderMinute: data.morningReminderMinute,
           completionReminderHour: data.completionReminderHour,
@@ -390,6 +393,7 @@ class LocalApiServer {
         dailyTemplates: data.dailyTemplates,
         oneTimeTasks: newList,
         dailyLog: data.dailyLog,
+        dailyScores: data.dailyScores,
         morningReminderHour: data.morningReminderHour,
         morningReminderMinute: data.morningReminderMinute,
         completionReminderHour: data.completionReminderHour,

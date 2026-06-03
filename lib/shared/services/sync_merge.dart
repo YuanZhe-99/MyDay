@@ -18,7 +18,7 @@ class RecordConflict<T> {
   final String displayName;
 
   /// Purpose: Create a record conflict instance.
-  /// Inputs: None.
+  /// Inputs: `id`, `localRecord`, `remoteRecord`, `displayName`.
   /// Returns: A new `RecordConflict` instance.
   /// Side effects: None.
   /// Notes: None.
@@ -235,6 +235,10 @@ String? mergeTodoJson(String localJson, String remoteJson, String? baseJson) {
     );
 
     final mergedLog = DailyCompletionLog.merge(local.dailyLog, remote.dailyLog);
+    final mergedScores = DailyScoreLog.merge(
+      local.dailyScores,
+      remote.dailyScores,
+    );
 
     // Settings: use more recently modified side
     final useLocalSettings =
@@ -252,6 +256,7 @@ String? mergeTodoJson(String localJson, String remoteJson, String? baseJson) {
       dailyTemplates: dailyResult.merged,
       oneTimeTasks: onceResult.merged,
       dailyLog: mergedLog,
+      dailyScores: mergedScores,
       morningReminderHour: settingsSource.morningReminderHour,
       morningReminderMinute: settingsSource.morningReminderMinute,
       completionReminderHour: settingsSource.completionReminderHour,
@@ -310,6 +315,10 @@ TodoMergeResult mergeTodoData(
   );
 
   final mergedLog = DailyCompletionLog.merge(local.dailyLog, remote.dailyLog);
+  final mergedScores = DailyScoreLog.merge(
+    local.dailyScores,
+    remote.dailyScores,
+  );
 
   final useLocalSettings =
       local.settingsModifiedAt.isAfter(remote.settingsModifiedAt) ||
@@ -320,6 +329,7 @@ TodoMergeResult mergeTodoData(
     dailyMerged: dailyResult.merged,
     onceMerged: onceResult.merged,
     mergedLog: mergedLog,
+    mergedScores: mergedScores,
     settingsSource: settingsSource,
     dailyConflicts: dailyResult.conflicts,
     onceConflicts: onceResult.conflicts,
@@ -330,12 +340,13 @@ class TodoMergeResult {
   final List<Task> dailyMerged;
   final List<Task> onceMerged;
   final DailyCompletionLog mergedLog;
+  final DailyScoreLog mergedScores;
   final TodoData settingsSource;
   final List<RecordConflict<Task>> dailyConflicts;
   final List<RecordConflict<Task>> onceConflicts;
 
   /// Purpose: Create a todo merge result instance.
-  /// Inputs: None.
+  /// Inputs: merged records, logs, settings source, and unresolved conflicts.
   /// Returns: A new `TodoMergeResult` instance.
   /// Side effects: None.
   /// Notes: None.
@@ -343,6 +354,7 @@ class TodoMergeResult {
     required this.dailyMerged,
     required this.onceMerged,
     required this.mergedLog,
+    required this.mergedScores,
     required this.settingsSource,
     required this.dailyConflicts,
     required this.onceConflicts,
@@ -368,6 +380,7 @@ class TodoMergeResult {
       dailyTemplates: daily,
       oneTimeTasks: once,
       dailyLog: mergedLog,
+      dailyScores: mergedScores,
       morningReminderHour: settingsSource.morningReminderHour,
       morningReminderMinute: settingsSource.morningReminderMinute,
       completionReminderHour: settingsSource.completionReminderHour,

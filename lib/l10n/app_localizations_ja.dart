@@ -1380,6 +1380,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get todoCalendarScheduledTodo => '予定Todo';
 
   @override
+  String get todoDailyScore => '今日のスコア';
+
+  @override
+  String get todoDailyScoreHint => 'この日のTodo達成度を -5 から 5 で評価します。初期値は0です。';
+
+  @override
   String get todoWhatNeedsDone => '何をする必要がありますか？';
 
   @override

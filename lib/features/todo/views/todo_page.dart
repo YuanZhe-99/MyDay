@@ -40,6 +40,9 @@ class _TodoPageState extends State<TodoPage> {
   // Per-date completion log for daily templates
   DailyCompletionLog _dailyLog = DailyCompletionLog();
 
+  // Per-date user score for each todo day
+  DailyScoreLog _dailyScores = DailyScoreLog();
+
   // Reminder state
   TimeOfDay? _morningReminderTime;
   TimeOfDay? _completionReminderTime;
@@ -87,6 +90,7 @@ class _TodoPageState extends State<TodoPage> {
         _dailyTemplates = data.dailyTemplates;
         _oneTimeTasks = data.oneTimeTasks;
         _dailyLog = data.dailyLog;
+        _dailyScores = data.dailyScores;
         _taskSortModes = Map.of(data.taskSortModes);
         _taskCustomOrders = data.taskCustomOrders.map(
           (key, value) => MapEntry(key, List<String>.of(value)),
@@ -123,6 +127,7 @@ class _TodoPageState extends State<TodoPage> {
         dailyTemplates: _dailyTemplates,
         oneTimeTasks: _oneTimeTasks,
         dailyLog: _dailyLog,
+        dailyScores: _dailyScores,
         morningReminderHour: _morningReminderTime?.hour,
         morningReminderMinute: _morningReminderTime?.minute,
         completionReminderHour: _completionReminderTime?.hour,
@@ -286,6 +291,52 @@ class _TodoPageState extends State<TodoPage> {
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
   bool get _isToday => _isSameDay(_selectedDate, DateTime.now());
+
+  /// Purpose: Return the Monday that starts the selected date's week.
+  /// Inputs: None.
+  /// Returns: `DateTime`.
+  /// Side effects: None.
+  /// Notes: The todo week calendar uses Monday as the first day.
+  DateTime get _selectedWeekStart {
+    final selected = _dateOnly(_selectedDate);
+    return selected.subtract(
+      Duration(days: selected.weekday - DateTime.monday),
+    );
+  }
+
+  /// Purpose: Return the seven dates shown in the inline week calendar.
+  /// Inputs: None.
+  /// Returns: `List<DateTime>`.
+  /// Side effects: None.
+  /// Notes: The list always represents the selected date's week.
+  List<DateTime> get _selectedWeekDates => [
+    for (var i = 0; i < 7; i++) _selectedWeekStart.add(Duration(days: i)),
+  ];
+
+  /// Purpose: Return the localized short weekday label for a date weekday.
+  /// Inputs: `l10n`, `weekday`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Weekday uses Dart's Monday=1 through Sunday=7 numbering.
+  String _weekdayLabel(AppLocalizations l10n, int weekday) {
+    switch (weekday) {
+      case DateTime.monday:
+        return l10n.todoWeekMon;
+      case DateTime.tuesday:
+        return l10n.todoWeekTue;
+      case DateTime.wednesday:
+        return l10n.todoWeekWed;
+      case DateTime.thursday:
+        return l10n.todoWeekThu;
+      case DateTime.friday:
+        return l10n.todoWeekFri;
+      case DateTime.saturday:
+        return l10n.todoWeekSat;
+      case DateTime.sunday:
+      default:
+        return l10n.todoWeekSun;
+    }
+  }
 
   /// Daily tasks for selected date — show template with per-date completion,
   /// filtered by startDate <= selectedDate and (deletedDate == null or deletedDate > selectedDate)
@@ -737,6 +788,22 @@ class _TodoPageState extends State<TodoPage> {
     });
   }
 
+  /// Purpose: Update the score assigned to the selected todo day.
+  /// Inputs: `score`, `save`.
+  /// Returns: None.
+  /// Side effects: Mutates the daily score log, refreshes UI, and may save todo data.
+  /// Notes: Scores are clamped by `DailyScoreLog` before being stored.
+  void _setDailyScore(int score, {bool save = true}) {
+    setState(() {
+      _dailyScores.setScore(
+        _selectedDate,
+        score,
+        modifiedAt: DateTime.now().toUtc(),
+      );
+    });
+    if (save) _saveData();
+  }
+
   /// Purpose: Provide the internal toggle task helper for this file.
   /// Inputs: `task`.
   /// Returns: None.
@@ -964,6 +1031,295 @@ class _TodoPageState extends State<TodoPage> {
     }
   }
 
+  /// Purpose: Build the inline calendar for the selected date's week.
+  /// Inputs: `theme`, `l10n`.
+  /// Returns: A widget showing seven selectable day cells plus calendar controls.
+  /// Side effects: Creates UI widgets and wires date-selection callbacks.
+  /// Notes: The full month picker remains available from the calendar icon.
+  Widget _buildWeekCalendar(ThemeData theme, AppLocalizations l10n) {
+    final dateFormat = DateFormat('yyyy-MM-dd (EEE)', l10n.localeName);
+    final compactDateFormat = DateFormat('MM/dd', l10n.localeName);
+    final weekStart = _selectedWeekStart;
+    final weekEnd = weekStart.add(const Duration(days: 6));
+    final range =
+        '${compactDateFormat.format(weekStart)} - '
+        '${compactDateFormat.format(weekEnd)}';
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(8, 4, 8, 10),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_left),
+                onPressed: () => _changeDate(-7),
+              ),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedDate = DateTime.now();
+                    });
+                  },
+                  child: Column(
+                    children: [
+                      Text(
+                        dateFormat.format(_selectedDate),
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        _isToday ? range : l10n.todoTapReturnToday,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: _isToday
+                              ? theme.colorScheme.onSurfaceVariant
+                              : theme.colorScheme.primary,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.calendar_month),
+                onPressed: _showCalendar,
+                tooltip: l10n.todoCalendar,
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_right),
+                onPressed: () => _changeDate(7),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              for (final date in _selectedWeekDates)
+                _buildWeekDayCell(date, theme, l10n),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Purpose: Build one selectable day in the inline week calendar.
+  /// Inputs: `date`, `theme`, `l10n`.
+  /// Returns: A widget representing one day cell.
+  /// Side effects: Creates UI widgets and may change the selected date when tapped.
+  /// Notes: Reuses the same completion and scheduled-task markers as the month picker.
+  Widget _buildWeekDayCell(
+    DateTime date,
+    ThemeData theme,
+    AppLocalizations l10n,
+  ) {
+    final isSelected = _isSameDay(date, _selectedDate);
+    final isToday = _isSameDay(date, DateTime.now());
+    final allDone = _allTasksCompletedOn(date);
+    final dailyDone = _allDailyCompletedOn(date);
+    final someDone = _someDailyCompletedOn(date);
+    final hasScheduledTodo = _hasFutureScheduledOneTimeTask(date);
+    final hasMarkers = allDone || dailyDone || someDone || hasScheduledTodo;
+    final colorScheme = theme.colorScheme;
+
+    Color? backgroundColor;
+    if (isSelected) {
+      backgroundColor = colorScheme.primaryContainer;
+    } else if (allDone) {
+      backgroundColor = colorScheme.primary.withValues(alpha: 0.12);
+    }
+
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2),
+        child: Material(
+          color: backgroundColor ?? Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: isToday
+                ? BorderSide(color: colorScheme.primary, width: 1.5)
+                : BorderSide.none,
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: () => setState(() => _selectedDate = date),
+            child: SizedBox(
+              height: 64,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    _weekdayLabel(l10n, date.weekday),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: isSelected
+                          ? colorScheme.onPrimaryContainer
+                          : colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${date.day}',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: isSelected || isToday
+                          ? FontWeight.w700
+                          : FontWeight.w500,
+                      color: allDone && !isSelected
+                          ? colorScheme.primary
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  SizedBox(
+                    height: 10,
+                    child: hasMarkers
+                        ? Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              if (allDone)
+                                Icon(
+                                  Icons.check_circle,
+                                  size: 9,
+                                  color: colorScheme.primary,
+                                )
+                              else if (dailyDone)
+                                Icon(
+                                  Icons.circle,
+                                  size: 7,
+                                  color: colorScheme.tertiary,
+                                )
+                              else if (someDone)
+                                Icon(
+                                  Icons.circle,
+                                  size: 7,
+                                  color: colorScheme.outline,
+                                ),
+                              if ((allDone || dailyDone || someDone) &&
+                                  hasScheduledTodo)
+                                const SizedBox(width: 2),
+                              if (hasScheduledTodo)
+                                Icon(
+                                  Icons.event_note,
+                                  size: 9,
+                                  color: colorScheme.secondary,
+                                ),
+                            ],
+                          )
+                        : const SizedBox.shrink(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Purpose: Build the score editor shown at the bottom of the todo list.
+  /// Inputs: `theme`, `l10n`.
+  /// Returns: A widget for viewing and editing the selected day's score.
+  /// Side effects: Creates UI widgets and wires score-edit callbacks.
+  /// Notes: The score range is the inclusive -5 to 5 range defined by `DailyScoreLog`.
+  Widget _buildDailyScoreCard(ThemeData theme, AppLocalizations l10n) {
+    final score = _dailyScores.scoreFor(_selectedDate);
+    return Card(
+      margin: const EdgeInsets.fromLTRB(16, 18, 16, 8),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.stars_outlined, color: theme.colorScheme.primary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    l10n.todoDailyScore,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                Text(
+                  '$score',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    color: score == 0
+                        ? theme.colorScheme.onSurfaceVariant
+                        : score > 0
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.error,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              l10n.todoDailyScoreHint,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                IconButton.outlined(
+                  icon: const Icon(Icons.remove),
+                  onPressed: score <= DailyScoreLog.minScore
+                      ? null
+                      : () => _setDailyScore(score - 1),
+                ),
+                Expanded(
+                  child: Slider(
+                    value: score.toDouble(),
+                    min: DailyScoreLog.minScore.toDouble(),
+                    max: DailyScoreLog.maxScore.toDouble(),
+                    divisions: DailyScoreLog.maxScore - DailyScoreLog.minScore,
+                    label: '$score',
+                    onChanged: (value) {
+                      final nextScore = value.round();
+                      if (nextScore == score) return;
+                      _setDailyScore(nextScore, save: false);
+                    },
+                    onChangeEnd: (value) => _saveData(),
+                  ),
+                ),
+                IconButton.outlined(
+                  icon: const Icon(Icons.add),
+                  onPressed: score >= DailyScoreLog.maxScore
+                      ? null
+                      : () => _setDailyScore(score + 1),
+                ),
+              ],
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '${DailyScoreLog.minScore}',
+                  style: theme.textTheme.labelSmall,
+                ),
+                Text('0', style: theme.textTheme.labelSmall),
+                Text(
+                  '+${DailyScoreLog.maxScore}',
+                  style: theme.textTheme.labelSmall,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// Purpose: Build the current widget subtree for the active UI state.
   /// Inputs: `context`.
   /// Returns: The widget tree for the current state.
@@ -973,7 +1329,6 @@ class _TodoPageState extends State<TodoPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    final dateFormat = DateFormat('yyyy-MM-dd (EEE)', l10n.localeName);
 
     return Scaffold(
       appBar: AppBar(
@@ -997,57 +1352,7 @@ class _TodoPageState extends State<TodoPage> {
           ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
-                // Date navigation bar
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.chevron_left),
-                        onPressed: () => _changeDate(-1),
-                      ),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _selectedDate = DateTime.now();
-                            });
-                          },
-                          child: Column(
-                            children: [
-                              Text(
-                                dateFormat.format(_selectedDate),
-                                style: theme.textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              if (!_isToday)
-                                Text(
-                                  l10n.todoTapReturnToday,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.colorScheme.primary,
-                                    fontSize: 11,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.calendar_month),
-                        onPressed: _showCalendar,
-                        tooltip: l10n.todoCalendar,
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.chevron_right),
-                        onPressed: () => _changeDate(1),
-                      ),
-                    ],
-                  ),
-                ),
+                _buildWeekCalendar(theme, l10n),
                 const Divider(height: 1),
 
                 // Task list: 3 sections
@@ -1119,6 +1424,7 @@ class _TodoPageState extends State<TodoPage> {
                         onEdit: _editTask,
                         onSubtaskToggle: _toggleSubtask,
                       ),
+                      _buildDailyScoreCard(theme, l10n),
                       const SizedBox(height: 80),
                     ],
                   ),

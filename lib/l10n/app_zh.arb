@@ -503,6 +503,8 @@
   "todoCalendarAllDaily": "日常全完成",
   "todoCalendarAllDone": "全部完成",
   "todoCalendarScheduledTodo": "计划待办",
+  "todoDailyScore": "本日评分",
+  "todoDailyScoreHint": "为这一天的待办表现评分，范围 -5 到 5，默认 0。",
   "todoWhatNeedsDone": "需要做什么？",
   "todoReminderAt": "提醒：{time}",
   "@todoReminderAt": { "placeholders": { "time": { "type": "String" } } },

@@ -514,3 +514,152 @@ class DailyCompletionLog {
     return merged;
   }
 }
+
+class DailyScoreEntry {
+  final int score;
+  final DateTime modifiedAt;
+
+  /// Purpose: Create a per-day score entry.
+  /// Inputs: `score`, `modifiedAt`.
+  /// Returns: A new `DailyScoreEntry` instance.
+  /// Side effects: None.
+  /// Notes: Scores are clamped to the supported todo day-score range.
+  DailyScoreEntry({required int score, DateTime? modifiedAt})
+    : score = DailyScoreLog.normalizeScore(score),
+      modifiedAt = modifiedAt ?? DateTime.now().toUtc();
+
+  /// Purpose: Serialize this score entry into a JSON-compatible map.
+  /// Inputs: None.
+  /// Returns: A JSON-compatible map.
+  /// Side effects: None.
+  /// Notes: Keep the output aligned with the persisted file and sync format.
+  Map<String, dynamic> toJson() => {
+    'score': score,
+    'modifiedAt': modifiedAt.toIso8601String(),
+  };
+
+  /// Purpose: Create a score entry from a JSON-compatible map.
+  /// Inputs: `json`.
+  /// Returns: A new `DailyScoreEntry` instance.
+  /// Side effects: None.
+  /// Notes: Use this path when reading persisted or synced todo scores.
+  factory DailyScoreEntry.fromJson(Map<String, dynamic> json) {
+    final rawScore = json['score'];
+    return DailyScoreEntry(
+      score: rawScore is num ? rawScore.round() : 0,
+      modifiedAt: json['modifiedAt'] != null
+          ? DateTime.parse(json['modifiedAt'] as String)
+          : DateTime.fromMillisecondsSinceEpoch(0),
+    );
+  }
+}
+
+/// Tracks a user-assigned score for each todo day.
+/// Key = date string 'yyyy-MM-dd', Value = score entry for that day.
+class DailyScoreLog {
+  static const int minScore = -5;
+  static const int maxScore = 5;
+
+  final Map<String, DailyScoreEntry> _scores = {};
+
+  /// Purpose: Create an empty daily score log.
+  /// Inputs: None.
+  /// Returns: A new `DailyScoreLog` instance.
+  /// Side effects: None.
+  /// Notes: Missing dates read as the default score of zero.
+  DailyScoreLog();
+
+  /// Purpose: Clamp a raw score into the supported todo score range.
+  /// Inputs: `score`.
+  /// Returns: An integer between -5 and 5.
+  /// Side effects: None.
+  /// Notes: Use this before storing scores from UI, API, or JSON input.
+  static int normalizeScore(int score) =>
+      score.clamp(minScore, maxScore).toInt();
+
+  /// Purpose: Return whether this log has no explicit score entries.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: An absent score is still displayed to users as zero.
+  bool get isEmpty => _scores.isEmpty;
+
+  /// Purpose: Read the score for a day.
+  /// Inputs: `date`.
+  /// Returns: The stored score, or zero when no score exists for the day.
+  /// Side effects: None.
+  /// Notes: Dates are normalized to yyyy-MM-dd keys.
+  int scoreFor(DateTime date) {
+    return _scores[DailyCompletionLog.dateKey(date)]?.score ?? 0;
+  }
+
+  /// Purpose: Store the score for a day.
+  /// Inputs: `date`, `score`, `modifiedAt`.
+  /// Returns: None.
+  /// Side effects: Mutates this log's explicit score entry for the day.
+  /// Notes: Setting zero is preserved so resets can sync across devices.
+  void setScore(DateTime date, int score, {DateTime? modifiedAt}) {
+    _scores[DailyCompletionLog.dateKey(date)] = DailyScoreEntry(
+      score: score,
+      modifiedAt: modifiedAt,
+    );
+  }
+
+  /// Purpose: Serialize this score log into a JSON-compatible map.
+  /// Inputs: None.
+  /// Returns: A JSON-compatible map keyed by yyyy-MM-dd date strings.
+  /// Side effects: None.
+  /// Notes: Keys are sorted for stable persisted output.
+  Map<String, dynamic> toJson() {
+    final sortedKeys = _scores.keys.toList()..sort();
+    return {for (final key in sortedKeys) key: _scores[key]!.toJson()};
+  }
+
+  /// Purpose: Create a score log from a JSON-compatible map.
+  /// Inputs: `json`.
+  /// Returns: A new `DailyScoreLog` instance.
+  /// Side effects: None.
+  /// Notes: Legacy numeric values are accepted with an epoch modified time.
+  factory DailyScoreLog.fromJson(Map<String, dynamic> json) {
+    final log = DailyScoreLog();
+    json.forEach((key, value) {
+      if (value is Map) {
+        log._scores[key] = DailyScoreEntry.fromJson(
+          value.map(
+            (childKey, childValue) => MapEntry(childKey as String, childValue),
+          ),
+        );
+      } else if (value is num) {
+        log._scores[key] = DailyScoreEntry(
+          score: value.round(),
+          modifiedAt: DateTime.fromMillisecondsSinceEpoch(0),
+        );
+      }
+    });
+    return log;
+  }
+
+  /// Purpose: Merge two daily score logs.
+  /// Inputs: `local`, `remote`.
+  /// Returns: A new `DailyScoreLog` containing the latest entry for each day.
+  /// Side effects: None.
+  /// Notes: Equal timestamps prefer the local entry for deterministic sync.
+  factory DailyScoreLog.merge(DailyScoreLog local, DailyScoreLog remote) {
+    final merged = DailyScoreLog();
+    final allDates = {...local._scores.keys, ...remote._scores.keys};
+    for (final date in allDates) {
+      final localEntry = local._scores[date];
+      final remoteEntry = remote._scores[date];
+      if (localEntry == null) {
+        merged._scores[date] = remoteEntry!;
+      } else if (remoteEntry == null ||
+          localEntry.modifiedAt.isAfter(remoteEntry.modifiedAt) ||
+          localEntry.modifiedAt == remoteEntry.modifiedAt) {
+        merged._scores[date] = localEntry;
+      } else {
+        merged._scores[date] = remoteEntry;
+      }
+    }
+    return merged;
+  }
+}

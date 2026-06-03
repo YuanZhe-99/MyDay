@@ -503,6 +503,8 @@
   "todoCalendarAllDaily": "日課全完了",
   "todoCalendarAllDone": "全完了",
   "todoCalendarScheduledTodo": "予定Todo",
+  "todoDailyScore": "今日のスコア",
+  "todoDailyScoreHint": "この日のTodo達成度を -5 から 5 で評価します。初期値は0です。",
   "todoWhatNeedsDone": "何をする必要がありますか？",
   "todoReminderAt": "リマインダー：{time}",
   "@todoReminderAt": { "placeholders": { "time": { "type": "String" } } },

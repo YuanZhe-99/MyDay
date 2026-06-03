@@ -1,9 +1,13 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:my_day/app/app.dart';
 import 'package:my_day/features/todo/models/task.dart';
+import 'package:my_day/features/todo/services/todo_storage.dart';
 import 'package:my_day/shared/services/reminder_service.dart';
+import 'package:my_day/shared/services/sync_merge.dart';
 import 'package:my_day/features/weight/models/weight_record.dart';
 
 /// Purpose: Initialize startup services and launch the app entry point.
@@ -22,6 +26,83 @@ void main() {
     final restored = Task.fromJson(task.toJson());
 
     expect(restored.note, 'Double-check installer version');
+  });
+
+  test('DailyScoreLog defaults, clamps, and preserves explicit zero', () {
+    final date = DateTime(2026, 6, 3);
+    final log = DailyScoreLog();
+
+    expect(log.scoreFor(date), 0);
+
+    log.setScore(date, 9, modifiedAt: DateTime.parse('2026-06-03T08:00:00Z'));
+    expect(log.scoreFor(date), 5);
+
+    log.setScore(date, 0, modifiedAt: DateTime.parse('2026-06-03T09:00:00Z'));
+    final json = log.toJson();
+    final entry = json['2026-06-03'] as Map<String, dynamic>;
+    final restored = DailyScoreLog.fromJson(json);
+
+    expect(entry['score'], 0);
+    expect(restored.scoreFor(date), 0);
+  });
+
+  test('DailyScoreLog merge keeps the latest score per date', () {
+    final date = DateTime(2026, 6, 3);
+    final local = DailyScoreLog()
+      ..setScore(date, 1, modifiedAt: DateTime.parse('2026-06-03T08:00:00Z'));
+    final remote = DailyScoreLog()
+      ..setScore(date, -2, modifiedAt: DateTime.parse('2026-06-03T09:00:00Z'));
+
+    final merged = DailyScoreLog.merge(local, remote);
+
+    expect(merged.scoreFor(date), -2);
+  });
+
+  test('TodoData serializes daily scores', () {
+    final date = DateTime(2026, 6, 3);
+    final scores = DailyScoreLog()
+      ..setScore(date, 4, modifiedAt: DateTime.parse('2026-06-03T08:00:00Z'));
+    final data = TodoData(
+      dailyTemplates: [],
+      oneTimeTasks: [],
+      dailyLog: DailyCompletionLog(),
+      dailyScores: scores,
+    );
+
+    final restored = TodoData.fromJson(data.toJson());
+
+    expect(restored.dailyScores.scoreFor(date), 4);
+  });
+
+  test('Todo sync merge keeps the newest daily score', () {
+    final date = DateTime(2026, 6, 3);
+    final localScores = DailyScoreLog()
+      ..setScore(date, 2, modifiedAt: DateTime.parse('2026-06-03T08:00:00Z'));
+    final remoteScores = DailyScoreLog()
+      ..setScore(date, -3, modifiedAt: DateTime.parse('2026-06-03T09:00:00Z'));
+    final local = TodoData(
+      dailyTemplates: [],
+      oneTimeTasks: [],
+      dailyLog: DailyCompletionLog(),
+      dailyScores: localScores,
+    );
+    final remote = TodoData(
+      dailyTemplates: [],
+      oneTimeTasks: [],
+      dailyLog: DailyCompletionLog(),
+      dailyScores: remoteScores,
+    );
+
+    final mergedJson = mergeTodoJson(
+      jsonEncode(local.toJson()),
+      jsonEncode(remote.toJson()),
+      null,
+    );
+    final merged = TodoData.fromJson(
+      jsonDecode(mergedJson!) as Map<String, dynamic>,
+    );
+
+    expect(merged.dailyScores.scoreFor(date), -3);
   });
 
   test('WeightRecord serializes optional body measurements', () {

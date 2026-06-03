@@ -286,11 +286,16 @@ const _taskSchema = JsonPreservationSchema(
   },
 );
 
+const _dailyScoreEntrySchema = JsonPreservationSchema(
+  knownKeys: {'score', 'modifiedAt'},
+);
+
 const _todoDataSchema = JsonPreservationSchema(
   knownKeys: {
     'dailyTemplates',
     'oneTimeTasks',
     'dailyLog',
+    'dailyScores',
     'morningReminderHour',
     'morningReminderMinute',
     'completionReminderHour',
@@ -311,6 +316,7 @@ const _todoDataSchema = JsonPreservationSchema(
       itemSchema: _taskSchema,
     ),
   },
+  keyedObjectFields: {'dailyScores': _dailyScoreEntrySchema},
 );
 
 const _iconRefSchema = JsonPreservationSchema(
