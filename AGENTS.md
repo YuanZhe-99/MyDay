@@ -29,8 +29,8 @@ Maintenance rules:
 - **Package id:** Dart package `my_day`; Android namespace/application id `com.yuanzhe.my_day`; MSIX identity `com.yuanzhe.myday`; macOS bundle id `com.yuanzhe.myDay`.
 - **Author / publisher:** `yuanzhe`.
 - **License:** GPL-3.0.
-- **Current version:** `0.7.13+40` in `pubspec.yaml`, `0.7.13.0` in `msix_config.msix_version`, and `0.7.13` in `installer.iss`.
-- **Latest tag at the time this guide was written:** `v0.7.13`.
+- **Current version:** `0.7.14+41` in `pubspec.yaml`, `0.7.14.0` in `msix_config.msix_version`, and `0.7.14` in `installer.iss`.
+- **Latest tag at the time this guide was written:** `v0.7.14`.
 - **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.41.6`.
 - **Primary platforms:** Windows x64/ARM64, Android APK/AAB, iOS sideload IPA, and macOS DMG. Linux project support exists for desktop runtime features but is not a primary release artifact.
 - **Repository:** Use the current environment's workspace root / repository path instead of hard-coding an absolute local path.
@@ -325,7 +325,7 @@ Do not commit real API credentials. If endpoints or payloads change, update this
 - `ReminderService` runs every 30 seconds while the process is alive.
 - It handles per-task reminders, morning plan reminders, completion reminders, subscription renewal reminders, hourly subscription transaction generation, weight reminders, and daily auto-backup.
 - Desktop notifications use `local_notifier`; mobile uses `flutter_local_notifications` with timezone scheduling.
-- Mobile per-task reminders are scheduled through OS-level notifications: daily templates are daily schedules, one-time tasks are one-shot schedules.
+- Mobile per-task reminders are scheduled through OS-level notifications: daily templates are daily schedules, future one-time tasks first use a one-shot start-date schedule, and active one-time tasks use daily repeating schedules.
 - Notification deduplication uses date-scoped keys in `_notifiedIds`.
 - `TrayService` handles tray icon/menu, Show/Quit, minimize-to-tray, close-to-tray, and settings persisted through `TodoStorage`.
 - `launch_at_startup` is configured on desktop from `PackageInfo.fromPlatform()` and `Platform.resolvedExecutable`.
@@ -458,3 +458,4 @@ Use the narrowest relevant command set for verification. For sync/model/persiste
 - `v0.7.11`: Todo home shows an inline week calendar for the selected date while retaining the month picker, Todo days support a -5 to 5 daily score stored and synced per date, and versions are unified to `0.7.11+38` / MSIX `0.7.11.0` / installer `0.7.11`.
 - `v0.7.12`: Todo daily-score wording now describes whole-day scoring, the month calendar opens as a secondary page with inline year/month jumps, daily-score trend chart including zero values, joyful-day and suffering-day lists, and versions are unified to `0.7.12+39` / MSIX `0.7.12.0` / installer `0.7.12`.
 - `v0.7.13`: Global settings can choose which weekday starts the week, app calendars/date pickers use shared localized weekday/month labels, Todo/Intimacy calendars and Weight/Intimacy weekly grouping follow the selected start day, and versions are unified to `0.7.13+40` / MSIX `0.7.13.0` / installer `0.7.13`.
+- `v0.7.14`: Mobile one-time Todo reminders no longer start before their scheduled date; future one-time tasks use one-shot start-date notifications until active, stale task notification IDs are cleared when reminders are rescheduled, and versions are unified to `0.7.14+41` / MSIX `0.7.14.0` / installer `0.7.14`.

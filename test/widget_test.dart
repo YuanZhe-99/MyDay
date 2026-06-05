@@ -184,6 +184,31 @@ void main() {
       ),
       DateTime(2026, 6, 11, 9),
     );
+    expect(
+      ReminderService.firstOneTimeReminderDateTime(task),
+      DateTime(2026, 6, 10, 9),
+    );
+    expect(
+      ReminderService.shouldUseDailyMobileOneTimeReminder(
+        task,
+        DateTime(2026, 6, 9, 12),
+      ),
+      isFalse,
+    );
+    expect(
+      ReminderService.shouldUseDailyMobileOneTimeReminder(
+        task,
+        DateTime(2026, 6, 10, 8),
+      ),
+      isTrue,
+    );
+    expect(
+      ReminderService.shouldUseDailyMobileOneTimeReminder(
+        task,
+        DateTime(2026, 6, 11, 8),
+      ),
+      isTrue,
+    );
   });
 
   testWidgets('App launches and shows Todo tab', (WidgetTester tester) async {

@@ -232,4 +232,23 @@ class MobileNotificationService {
     if (!_initialized) return;
     await _plugin.cancel(id);
   }
+
+  /// Cancel scheduled notifications whose IDs are inside a numeric range.
+  /// Purpose: Remove stale scheduled notifications from a known ID namespace.
+  /// Inputs: `minId`, `maxId`.
+  /// Returns: `Future<void>`.
+  /// Side effects: Reads pending notification requests and cancels matching entries.
+  /// Notes: Used to clean task reminders across app restarts and ID algorithm changes.
+  Future<void> cancelPendingInIdRange({
+    required int minId,
+    required int maxId,
+  }) async {
+    if (!_initialized) return;
+    final requests = await _plugin.pendingNotificationRequests();
+    for (final request in requests) {
+      if (request.id >= minId && request.id <= maxId) {
+        await _plugin.cancel(request.id);
+      }
+    }
+  }
 }

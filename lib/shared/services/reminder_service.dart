@@ -170,9 +170,29 @@ class ReminderService {
   static const _mobileCompletionReminderId = 9002;
   static const _mobileWeightMorningId = 9003;
   static const _mobileWeightEveningId = 9004;
+  static const _mobileTaskReminderMinId = 10000;
+  static const _mobileTaskReminderIdRange = 100000;
+  static const _mobileTaskReminderMaxId =
+      _mobileTaskReminderMinId + _mobileTaskReminderIdRange - 1;
 
   // Track per-task scheduled notification IDs so we can cancel stale ones.
   final Set<int> _scheduledTaskNotificationIds = {};
+  int _taskReminderScheduleGeneration = 0;
+
+  /// Derive a stable notification ID from a task's string ID.
+  /// Purpose: Provide the internal stable hash helper for this file.
+  /// Inputs: `value`.
+  /// Returns: `int`.
+  /// Side effects: None.
+  /// Notes: Dart `String.hashCode` is not guaranteed to be stable across app launches.
+  static int _stableHash(String value) {
+    var hash = 0x811c9dc5;
+    for (final codeUnit in value.codeUnits) {
+      hash ^= codeUnit;
+      hash = (hash * 0x01000193) & 0x7fffffff;
+    }
+    return hash;
+  }
 
   /// Derive a stable notification ID from a task's string ID.
   /// Purpose: Provide the internal task notification id helper for this file.
@@ -181,15 +201,16 @@ class ReminderService {
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
   static int _taskNotificationId(String taskId) =>
-      taskId.hashCode.abs() % 100000 + 10000;
+      _mobileTaskReminderMinId +
+      _stableHash(taskId) % _mobileTaskReminderIdRange;
 
-  /// Purpose: Return a one-time task's next reminder date/time from a reference point.
-  /// Inputs: `task`, `now`.
-  /// Returns: The next reminder `DateTime`, or null when the task should not remind.
+  /// Purpose: Return a one-time task's first reminder date/time.
+  /// Inputs: `task`.
+  /// Returns: The first reminder `DateTime`, or null when the task should not remind.
   /// Side effects: None.
-  /// Notes: One-time reminders begin on `scheduledDate` and repeat daily until completed.
+  /// Notes: This preserves the scheduled date before any daily-repeat calculation.
   @visibleForTesting
-  static DateTime? nextOneTimeReminderDateTime(Task task, DateTime now) {
+  static DateTime? firstOneTimeReminderDateTime(Task task) {
     if (task.type == TaskType.daily ||
         task.reminderTime == null ||
         task.scheduledDate == null ||
@@ -199,15 +220,27 @@ class ReminderService {
 
     final scheduled = task.scheduledDate!;
     final reminderTime = task.reminderTime!;
-    final start = DateTime(
+    return DateTime(
       scheduled.year,
       scheduled.month,
       scheduled.day,
       reminderTime.hour,
       reminderTime.minute,
     );
+  }
+
+  /// Purpose: Return a one-time task's next reminder date/time from a reference point.
+  /// Inputs: `task`, `now`.
+  /// Returns: The next reminder `DateTime`, or null when the task should not remind.
+  /// Side effects: None.
+  /// Notes: One-time reminders begin on `scheduledDate` and repeat daily until completed.
+  @visibleForTesting
+  static DateTime? nextOneTimeReminderDateTime(Task task, DateTime now) {
+    final start = firstOneTimeReminderDateTime(task);
+    if (start == null) return null;
     if (start.isAfter(now)) return start;
 
+    final reminderTime = task.reminderTime!;
     final todayReminder = DateTime(
       now.year,
       now.month,
@@ -217,6 +250,25 @@ class ReminderService {
     );
     if (todayReminder.isAfter(now)) return todayReminder;
     return todayReminder.add(const Duration(days: 1));
+  }
+
+  /// Purpose: Decide whether mobile can use a daily repeating OS notification for a one-time task.
+  /// Inputs: `task`, `now`.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: Future scheduled dates must use a one-shot notification because mobile daily repeats match time only.
+  @visibleForTesting
+  static bool shouldUseDailyMobileOneTimeReminder(Task task, DateTime now) {
+    final firstReminder = firstOneTimeReminderDateTime(task);
+    if (firstReminder == null) return false;
+
+    final scheduledDate = DateTime(
+      firstReminder.year,
+      firstReminder.month,
+      firstReminder.day,
+    );
+    final today = DateTime(now.year, now.month, now.day);
+    return !scheduledDate.isAfter(today);
   }
 
   /// Purpose: Decide whether a one-time task should fire during the current minute.
@@ -407,28 +459,46 @@ class ReminderService {
 
   /// Schedule individual per-task reminders via OS-level notifications.
   /// Daily templates get repeating daily notifications; one-time tasks repeat
-  /// daily from their scheduled date until completion.
+  /// daily only after their scheduled date has arrived.
   /// Purpose: Provide the internal schedule mobile per task reminders helper for this file.
   /// Inputs: None.
   /// Returns: None.
-  /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: Internal helper used within this file only.
+  /// Side effects: Starts asynchronous mobile notification cancellation and scheduling.
+  /// Notes: Future one-time tasks use a one-shot activation reminder because mobile daily repeats ignore dates.
   void _scheduleMobilePerTaskReminders() {
+    final generation = ++_taskReminderScheduleGeneration;
+    unawaited(_scheduleMobilePerTaskRemindersAsync(generation));
+  }
+
+  /// Purpose: Reschedule mobile per-task reminders after todo data changes.
+  /// Inputs: `generation`.
+  /// Returns: `Future<void>`.
+  /// Side effects: Cancels stale task notifications and schedules current task notifications.
+  /// Notes: Skips stale async work when a newer reschedule has started.
+  Future<void> _scheduleMobilePerTaskRemindersAsync(int generation) async {
     final mns = MobileNotificationService.instance;
 
-    // Cancel all previously scheduled per-task notifications.
+    // Cancel all previously scheduled per-task notifications, including those
+    // left behind by older app versions or previous app launches.
+    await mns.cancelPendingInIdRange(
+      minId: _mobileTaskReminderMinId,
+      maxId: _mobileTaskReminderMaxId,
+    );
+    if (generation != _taskReminderScheduleGeneration) return;
     for (final id in _scheduledTaskNotificationIds) {
-      mns.cancel(id);
+      await mns.cancel(id);
     }
+    if (generation != _taskReminderScheduleGeneration) return;
     _scheduledTaskNotificationIds.clear();
 
     for (final task in _dailyTemplates) {
+      if (generation != _taskReminderScheduleGeneration) return;
       if (task.reminderTime == null || task.deletedDate != null) continue;
       final nid = _taskNotificationId(task.id);
       final label = task.emoji != null
           ? '${task.emoji} ${task.title}'
           : task.title;
-      mns.scheduleDaily(
+      await mns.scheduleDaily(
         id: nid,
         title: 'MyDay!!!!!',
         body: label,
@@ -439,18 +509,30 @@ class ReminderService {
 
     final now = DateTime.now();
     for (final task in _oneTimeTasks) {
-      final nextReminder = nextOneTimeReminderDateTime(task, now);
-      if (nextReminder == null) continue;
+      if (generation != _taskReminderScheduleGeneration) return;
+      final firstReminder = firstOneTimeReminderDateTime(task);
+      if (firstReminder == null) continue;
       final nid = _taskNotificationId(task.id);
       final label = task.emoji != null
           ? '${task.emoji} ${task.title}'
           : task.title;
-      mns.scheduleDailyStarting(
-        id: nid,
-        title: 'MyDay!!!!!',
-        body: label,
-        startDateTime: nextReminder,
-      );
+      if (shouldUseDailyMobileOneTimeReminder(task, now)) {
+        final nextReminder = nextOneTimeReminderDateTime(task, now);
+        if (nextReminder == null) continue;
+        await mns.scheduleDailyStarting(
+          id: nid,
+          title: 'MyDay!!!!!',
+          body: label,
+          startDateTime: nextReminder,
+        );
+      } else {
+        await mns.scheduleAt(
+          id: nid,
+          title: 'MyDay!!!!!',
+          body: label,
+          dateTime: firstReminder,
+        );
+      }
       _scheduledTaskNotificationIds.add(nid);
     }
   }
