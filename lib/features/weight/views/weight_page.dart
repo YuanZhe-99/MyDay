@@ -349,10 +349,14 @@ class _WeightPageState extends ConsumerState<WeightPage> {
     (double, double)? range,
     String timeSince,
   ) {
-    final measurements = _latestMeasurementStats(latest, l10n);
+    final effectiveMeasurements = WeightData.effectiveMeasurementsUpTo(
+      _records,
+      latest.datetime,
+    );
+    final measurements = _latestMeasurementStats(effectiveMeasurements, l10n);
     final waistHipRatio = WeightData.calculateWaistHipRatio(
-      latest.waistCm,
-      latest.hipCm,
+      effectiveMeasurements.waistCm,
+      effectiveMeasurements.hipCm,
     );
     final stats = [
       if (range != null)
@@ -476,22 +480,22 @@ class _WeightPageState extends ConsumerState<WeightPage> {
     );
   }
 
-  /// Purpose: Return latest positive body measurement labels and values.
-  /// Inputs: `record`, `l10n`.
+  /// Purpose: Return effective body measurement labels and values.
+  /// Inputs: `measurements`, `l10n`.
   /// Returns: `List<(String, String)>`.
   /// Side effects: None.
-  /// Notes: Omits missing, zero, and negative measurements.
+  /// Notes: Omits fields that do not have a current inherited value.
   List<(String, String)> _latestMeasurementStats(
-    WeightRecord record,
+    EffectiveWeightMeasurements measurements,
     AppLocalizations l10n,
   ) {
     return [
-      if (record.bustCm != null && record.bustCm! > 0)
-        (l10n.weightBust, '${record.bustCm!.toStringAsFixed(1)} cm'),
-      if (record.waistCm != null && record.waistCm! > 0)
-        (l10n.weightWaist, '${record.waistCm!.toStringAsFixed(1)} cm'),
-      if (record.hipCm != null && record.hipCm! > 0)
-        (l10n.weightHip, '${record.hipCm!.toStringAsFixed(1)} cm'),
+      if (measurements.bustCm != null)
+        (l10n.weightBust, '${measurements.bustCm!.toStringAsFixed(1)} cm'),
+      if (measurements.waistCm != null)
+        (l10n.weightWaist, '${measurements.waistCm!.toStringAsFixed(1)} cm'),
+      if (measurements.hipCm != null)
+        (l10n.weightHip, '${measurements.hipCm!.toStringAsFixed(1)} cm'),
     ];
   }
 
@@ -927,26 +931,37 @@ class _WeightPageState extends ConsumerState<WeightPage> {
       );
     }
 
-    final allSorted = List<WeightRecord>.from(_records)
-      ..sort((a, b) => a.datetime.compareTo(b.datetime));
     final cutoff = data.first.datetime;
-    final bustSpots = _buildMeasurementSpots(data, (record) => record.bustCm);
-    final waistSpots = _buildMeasurementSpots(data, (record) => record.waistCm);
-    final hipSpots = _buildMeasurementSpots(data, (record) => record.hipCm);
+    final timeline = WeightData.effectiveMeasurementTimeline(_records);
+    final visibleTimeline = timeline
+        .where((point) => !point.datetime.isBefore(cutoff))
+        .toList();
+    final bustSpots = _buildMeasurementSpots(
+      visibleTimeline,
+      (point) => point.bustCm,
+    );
+    final waistSpots = _buildMeasurementSpots(
+      visibleTimeline,
+      (point) => point.waistCm,
+    );
+    final hipSpots = _buildMeasurementSpots(
+      visibleTimeline,
+      (point) => point.hipCm,
+    );
     final bustEwmaSpots = _buildMeasurementEwmaSpots(
-      allSorted,
+      timeline,
       cutoff,
-      (record) => record.bustCm,
+      (point) => point.bustCm,
     );
     final waistEwmaSpots = _buildMeasurementEwmaSpots(
-      allSorted,
+      timeline,
       cutoff,
-      (record) => record.waistCm,
+      (point) => point.waistCm,
     );
     final hipEwmaSpots = _buildMeasurementEwmaSpots(
-      allSorted,
+      timeline,
       cutoff,
-      (record) => record.hipCm,
+      (point) => point.hipCm,
     );
     final hasEnoughData = [
       bustSpots,
@@ -1113,21 +1128,21 @@ class _WeightPageState extends ConsumerState<WeightPage> {
     );
   }
 
-  /// Purpose: Build chart spots for one optional measurement field.
+  /// Purpose: Build chart spots for one effective measurement field.
   /// Inputs: `data`, `selectValue`.
   /// Returns: `List<FlSpot>`.
   /// Side effects: None.
-  /// Notes: Zero, negative, and absent values are omitted from measurement series.
+  /// Notes: Values are already inherited from previous explicit measurements.
   List<FlSpot> _buildMeasurementSpots(
-    List<WeightRecord> data,
-    double? Function(WeightRecord record) selectValue,
+    List<EffectiveWeightMeasurementPoint> data,
+    double? Function(EffectiveWeightMeasurementPoint point) selectValue,
   ) {
     return data
-        .map((record) {
-          final value = selectValue(record);
-          if (value == null || value <= 0) return null;
+        .map((point) {
+          final value = selectValue(point);
+          if (value == null) return null;
           return FlSpot(
-            record.datetime.millisecondsSinceEpoch.toDouble(),
+            point.datetime.millisecondsSinceEpoch.toDouble(),
             value,
           );
         })
@@ -1200,15 +1215,15 @@ class _WeightPageState extends ConsumerState<WeightPage> {
     return spots;
   }
 
-  /// Purpose: Build EWMA smoothed spots for one body measurement field.
+  /// Purpose: Build EWMA smoothed spots for one effective body measurement field.
   /// Inputs: `allData`, `visibleFrom`, `selectValue`, `halfLifeDays`.
   /// Returns: `List<FlSpot>`.
   /// Side effects: None.
-  /// Notes: Missing and non-positive measurements are skipped without resetting the series.
+  /// Notes: Missing fields are skipped until their first explicit measurement exists.
   List<FlSpot> _buildMeasurementEwmaSpots(
-    List<WeightRecord> allData,
+    List<EffectiveWeightMeasurementPoint> allData,
     DateTime visibleFrom,
-    double? Function(WeightRecord record) selectValue, {
+    double? Function(EffectiveWeightMeasurementPoint point) selectValue, {
     double halfLifeDays = 7,
   }) {
     if (allData.isEmpty) return [];
@@ -1216,25 +1231,25 @@ class _WeightPageState extends ConsumerState<WeightPage> {
     double? ewma;
     DateTime? prevTime;
     final spots = <FlSpot>[];
-    for (final record in allData) {
-      final value = selectValue(record);
-      if (value == null || value <= 0) continue;
+    for (final point in allData) {
+      final value = selectValue(point);
+      if (value == null) continue;
       if (ewma == null || prevTime == null) {
         ewma = value;
       } else {
-        final dtMs = record.datetime
+        final dtMs = point.datetime
             .difference(prevTime)
             .inMilliseconds
             .toDouble();
         final alpha = 1.0 - math.exp(-dtMs / tau);
         ewma = alpha * value + (1 - alpha) * ewma;
       }
-      if (!record.datetime.isBefore(visibleFrom)) {
+      if (!point.datetime.isBefore(visibleFrom)) {
         spots.add(
-          FlSpot(record.datetime.millisecondsSinceEpoch.toDouble(), ewma),
+          FlSpot(point.datetime.millisecondsSinceEpoch.toDouble(), ewma),
         );
       }
-      prevTime = record.datetime;
+      prevTime = point.datetime;
     }
     return spots;
   }

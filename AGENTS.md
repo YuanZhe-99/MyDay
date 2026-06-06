@@ -29,8 +29,8 @@ Maintenance rules:
 - **Package id:** Dart package `my_day`; Android namespace/application id `com.yuanzhe.my_day`; MSIX identity `com.yuanzhe.myday`; macOS bundle id `com.yuanzhe.myDay`.
 - **Author / publisher:** `yuanzhe`.
 - **License:** GPL-3.0.
-- **Current version:** `0.7.14+41` in `pubspec.yaml`, `0.7.14.0` in `msix_config.msix_version`, and `0.7.14` in `installer.iss`.
-- **Latest tag at the time this guide was written:** `v0.7.14`.
+- **Current version:** `0.7.15+42` in `pubspec.yaml`, `0.7.15.0` in `msix_config.msix_version`, and `0.7.15` in `installer.iss`.
+- **Latest tag at the time this guide was written:** `v0.7.15`.
 - **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.41.6`.
 - **Primary platforms:** Windows x64/ARM64, Android APK/AAB, iOS sideload IPA, and macOS DMG. Linux project support exists for desktop runtime features but is not a primary release artifact.
 - **Repository:** Use the current environment's workspace root / repository path instead of hard-coding an absolute local path.
@@ -224,7 +224,7 @@ Main model: `lib/features/weight/models/weight_record.dart`.
 - `WeightData`: optional height, records, reminder mode (`none`, `once`, `twice`), morning/evening reminder times, `reminderGraceMinutes` default 180, and `settingsModifiedAt`.
 - BMI is computed by `WeightData.calculateBMI()`. Waist-hip ratio is computed by `WeightData.calculateWaistHipRatio()` and returns null unless waist and hip measurements are both positive.
 
-The Weight page includes add/edit records, optional bust/waist/hip measurement entry, chart range selection, raw and EWMA weight trend display, a separate raw/EWMA bust-waist-hip trend chart, BMI/measurement/waist-hip-ratio summary cards with compact color bars, weekly grouped history that follows the global week start day, "show all" history, and reminder settings. A reminder is skipped when a record exists inside the configured pre-reminder grace window.
+The Weight page includes add/edit records, optional bust/waist/hip measurement entry, chart range selection, raw and EWMA weight trend display, a separate raw/EWMA bust-waist-hip trend chart, BMI/measurement/waist-hip-ratio summary cards with compact color bars, weekly grouped history that follows the global week start day, "show all" history, and reminder settings. For summary cards and measurement trend charts, missing bust/waist/hip fields inherit the previous positive value independently without writing that value back into the record. A reminder is skipped when a record exists inside the configured pre-reminder grace window.
 
 ### Settings
 
@@ -459,3 +459,4 @@ Use the narrowest relevant command set for verification. For sync/model/persiste
 - `v0.7.12`: Todo daily-score wording now describes whole-day scoring, the month calendar opens as a secondary page with inline year/month jumps, daily-score trend chart including zero values, joyful-day and suffering-day lists, and versions are unified to `0.7.12+39` / MSIX `0.7.12.0` / installer `0.7.12`.
 - `v0.7.13`: Global settings can choose which weekday starts the week, app calendars/date pickers use shared localized weekday/month labels, Todo/Intimacy calendars and Weight/Intimacy weekly grouping follow the selected start day, and versions are unified to `0.7.13+40` / MSIX `0.7.13.0` / installer `0.7.13`.
 - `v0.7.14`: Mobile one-time Todo reminders no longer start before their scheduled date; future one-time tasks use one-shot start-date notifications until active, stale task notification IDs are cleared when reminders are rescheduled, and versions are unified to `0.7.14+41` / MSIX `0.7.14.0` / installer `0.7.14`.
+- `v0.7.15`: Weight summary cards and body-measurement trend charts inherit missing bust/waist/hip values from the latest previous positive value per field while leaving each record's stored empty fields unchanged, and versions are unified to `0.7.15+42` / MSIX `0.7.15.0` / installer `0.7.15`.

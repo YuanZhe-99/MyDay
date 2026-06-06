@@ -150,6 +150,93 @@ void main() {
     expect(WeightData.calculateWaistHipRatio(70, 0), isNull);
   });
 
+  test('WeightData inherits latest positive body measurements by field', () {
+    final records = [
+      WeightRecord(
+        id: 'weight-measurement-1',
+        weight: 65,
+        bustCm: 88,
+        waistCm: 70,
+        hipCm: 92,
+        datetime: DateTime.parse('2026-05-01T08:00:00Z'),
+        modifiedAt: DateTime.parse('2026-05-01T08:30:00Z'),
+      ),
+      WeightRecord(
+        id: 'weight-measurement-2',
+        weight: 64.5,
+        waistCm: 69,
+        datetime: DateTime.parse('2026-05-05T08:00:00Z'),
+        modifiedAt: DateTime.parse('2026-05-05T08:30:00Z'),
+      ),
+      WeightRecord(
+        id: 'weight-measurement-3',
+        weight: 64,
+        bustCm: 87,
+        datetime: DateTime.parse('2026-05-10T08:00:00Z'),
+        modifiedAt: DateTime.parse('2026-05-10T08:30:00Z'),
+      ),
+    ];
+
+    final afterWaistOnly = WeightData.effectiveMeasurementsUpTo(
+      records,
+      DateTime.parse('2026-05-05T08:00:00Z'),
+    );
+    final afterLaterBust = WeightData.effectiveMeasurementsUpTo(
+      records,
+      DateTime.parse('2026-05-10T08:00:00Z'),
+    );
+
+    expect(afterWaistOnly.bustCm, 88);
+    expect(afterWaistOnly.waistCm, 69);
+    expect(afterWaistOnly.hipCm, 92);
+    expect(afterLaterBust.bustCm, 87);
+    expect(afterLaterBust.waistCm, 69);
+    expect(afterLaterBust.hipCm, 92);
+    expect(records[1].bustCm, isNull);
+    expect(records[1].hipCm, isNull);
+  });
+
+  test('WeightData builds inherited body measurement timeline', () {
+    final records = [
+      WeightRecord(
+        id: 'weight-timeline-2',
+        weight: 64.5,
+        waistCm: 69,
+        datetime: DateTime.parse('2026-05-05T08:00:00Z'),
+        modifiedAt: DateTime.parse('2026-05-05T08:30:00Z'),
+      ),
+      WeightRecord(
+        id: 'weight-timeline-1',
+        weight: 65,
+        bustCm: 88,
+        waistCm: 70,
+        hipCm: 92,
+        datetime: DateTime.parse('2026-05-01T08:00:00Z'),
+        modifiedAt: DateTime.parse('2026-05-01T08:30:00Z'),
+      ),
+      WeightRecord(
+        id: 'weight-timeline-3',
+        weight: 64,
+        bustCm: 87,
+        datetime: DateTime.parse('2026-05-10T08:00:00Z'),
+        modifiedAt: DateTime.parse('2026-05-10T08:30:00Z'),
+      ),
+    ];
+
+    final timeline = WeightData.effectiveMeasurementTimeline(records);
+
+    expect(timeline.map((point) => point.datetime.day), [1, 5, 10]);
+    expect(timeline[0].bustCm, 88);
+    expect(timeline[0].waistCm, 70);
+    expect(timeline[0].hipCm, 92);
+    expect(timeline[1].bustCm, 88);
+    expect(timeline[1].waistCm, 69);
+    expect(timeline[1].hipCm, 92);
+    expect(timeline[2].bustCm, 87);
+    expect(timeline[2].waistCm, 69);
+    expect(timeline[2].hipCm, 92);
+  });
+
   test('One-time todo reminders start on scheduled date and repeat daily', () {
     final task = Task(
       title: 'Prepare report',

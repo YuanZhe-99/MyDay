@@ -1,5 +1,17 @@
 import 'package:uuid/uuid.dart';
 
+typedef EffectiveWeightMeasurements = ({
+  double? bustCm,
+  double? waistCm,
+  double? hipCm,
+});
+typedef EffectiveWeightMeasurementPoint = ({
+  DateTime datetime,
+  double? bustCm,
+  double? waistCm,
+  double? hipCm,
+});
+
 class WeightRecord {
   final String id;
   final double weight; // kg
@@ -187,5 +199,79 @@ class WeightData {
     if (waistCm == null || waistCm <= 0) return null;
     if (hipCm == null || hipCm <= 0) return null;
     return waistCm / hipCm;
+  }
+
+  /// Purpose: Return display measurements effective at a specific record time.
+  /// Inputs: `records`, `at`.
+  /// Returns: `EffectiveWeightMeasurements`.
+  /// Side effects: None.
+  /// Notes: Empty/non-positive fields inherit the previous positive value per field.
+  static EffectiveWeightMeasurements effectiveMeasurementsUpTo(
+    List<WeightRecord> records,
+    DateTime at,
+  ) {
+    final sorted =
+        records.where((record) => !record.datetime.isAfter(at)).toList()
+          ..sort(_compareRecordsChronologically);
+    double? bustCm;
+    double? waistCm;
+    double? hipCm;
+    for (final record in sorted) {
+      bustCm = _positiveMeasurement(record.bustCm) ?? bustCm;
+      waistCm = _positiveMeasurement(record.waistCm) ?? waistCm;
+      hipCm = _positiveMeasurement(record.hipCm) ?? hipCm;
+    }
+    return (bustCm: bustCm, waistCm: waistCm, hipCm: hipCm);
+  }
+
+  /// Purpose: Build display measurement values for every record date.
+  /// Inputs: `records`.
+  /// Returns: `List<EffectiveWeightMeasurementPoint>`.
+  /// Side effects: None.
+  /// Notes: Each field carries its latest positive value forward independently.
+  static List<EffectiveWeightMeasurementPoint> effectiveMeasurementTimeline(
+    List<WeightRecord> records,
+  ) {
+    final sorted = List<WeightRecord>.from(records)
+      ..sort(_compareRecordsChronologically);
+    double? bustCm;
+    double? waistCm;
+    double? hipCm;
+    final points = <EffectiveWeightMeasurementPoint>[];
+    for (final record in sorted) {
+      bustCm = _positiveMeasurement(record.bustCm) ?? bustCm;
+      waistCm = _positiveMeasurement(record.waistCm) ?? waistCm;
+      hipCm = _positiveMeasurement(record.hipCm) ?? hipCm;
+      points.add((
+        datetime: record.datetime,
+        bustCm: bustCm,
+        waistCm: waistCm,
+        hipCm: hipCm,
+      ));
+    }
+    return points;
+  }
+
+  /// Purpose: Normalize a stored measurement value for display calculations.
+  /// Inputs: `value`.
+  /// Returns: `double?`.
+  /// Side effects: None.
+  /// Notes: Null, zero, and negative values mean the field was not measured.
+  static double? _positiveMeasurement(double? value) {
+    if (value == null || value <= 0) return null;
+    return value;
+  }
+
+  /// Purpose: Sort records by their effective chronological order.
+  /// Inputs: `a`, `b`.
+  /// Returns: Sort comparison result.
+  /// Side effects: None.
+  /// Notes: Modified time and id provide deterministic ordering for equal dates.
+  static int _compareRecordsChronologically(WeightRecord a, WeightRecord b) {
+    final dateCompare = a.datetime.compareTo(b.datetime);
+    if (dateCompare != 0) return dateCompare;
+    final modifiedCompare = a.modifiedAt.compareTo(b.modifiedAt);
+    if (modifiedCompare != 0) return modifiedCompare;
+    return a.id.compareTo(b.id);
   }
 }
