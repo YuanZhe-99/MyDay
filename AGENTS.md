@@ -145,7 +145,7 @@ Primary tests currently include:
 - `test/json_preservation_test.dart`
 - `test/widget_test.dart`
 
-The `tool/` directory contains ad hoc generation scripts such as bank/icon generation. Keep release-critical behavior covered by real tests when possible.
+The `tool/` directory contains ad hoc generation scripts such as bank/icon generation. `tool/generate_ios_icons.dart` derives iOS default/dark/tinted icon sources and `/tmp` previews from `assets/icon/app_icon.png`; `flutter_launcher_icons.yaml` then regenerates only the iOS AppIcon set; `tool/validate_ios_icons.dart` checks iOS icon dimensions, transparency, grayscale tinted output, and `Contents.json` references. Keep release-critical behavior covered by real tests when possible.
 
 ## Core Architecture
 
@@ -362,6 +362,7 @@ Default app data directory is `Documents/MyDay/` on desktop or the platform app 
 
 - `CFBundleDisplayName` and `CFBundleName` are `MyDay!!!!!`.
 - iPhone supports portrait and landscape left/right; iPad includes upside-down portrait too.
+- iOS launcher icons are generated from `assets/icon/app_icon_ios.png`, `assets/icon/app_icon_ios_dark.png`, and `assets/icon/app_icon_ios_tinted.png`; default is an opaque white-background source, dark and tinted sources keep transparent backgrounds, and iOS falls back from these sources without native Icon Composer / Liquid Glass Clear assets.
 - CI builds a sideload IPA without codesign; App Store IPA requires signing/provisioning outside the current workflow.
 
 ### macOS
@@ -403,6 +404,7 @@ Important workflow caveats:
 - Keep workflow Flutter version aligned with the Dart SDK constraint.
 - All release builds use `--no-tree-shake-icons`.
 - GitHub `secrets` cannot be used directly in step `if` expressions; route through job-level `env`.
+- Windows x64 and ARM64 CI jobs set `CL=/D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS` as a temporary VS/MSVC 18 compatibility workaround while Windows plugin/WinRT dependencies still include deprecated `<experimental/coroutine>`.
 - Windows ARM64 uses Flutter master because stable may not include the needed ARM64 engine.
 
 ## Useful Commands
@@ -415,6 +417,9 @@ flutter test test/balance_util_test.dart
 flutter test test/json_preservation_test.dart
 flutter test test/widget_test.dart
 flutter gen-l10n
+dart run tool/generate_ios_icons.dart
+dart run flutter_launcher_icons -f flutter_launcher_icons.yaml
+dart run tool/validate_ios_icons.dart
 flutter build apk --release --no-tree-shake-icons --dart-define=FLAVOR=full
 flutter build appbundle --release --no-tree-shake-icons --dart-define=FLAVOR=store
 flutter build windows --release --no-tree-shake-icons --dart-define=FLAVOR=full
@@ -459,4 +464,4 @@ Use the narrowest relevant command set for verification. For sync/model/persiste
 - `v0.7.12`: Todo daily-score wording now describes whole-day scoring, the month calendar opens as a secondary page with inline year/month jumps, daily-score trend chart including zero values, joyful-day and suffering-day lists, and versions are unified to `0.7.12+39` / MSIX `0.7.12.0` / installer `0.7.12`.
 - `v0.7.13`: Global settings can choose which weekday starts the week, app calendars/date pickers use shared localized weekday/month labels, Todo/Intimacy calendars and Weight/Intimacy weekly grouping follow the selected start day, and versions are unified to `0.7.13+40` / MSIX `0.7.13.0` / installer `0.7.13`.
 - `v0.7.14`: Mobile one-time Todo reminders no longer start before their scheduled date; future one-time tasks use one-shot start-date notifications until active, stale task notification IDs are cleared when reminders are rescheduled, and versions are unified to `0.7.14+41` / MSIX `0.7.14.0` / installer `0.7.14`.
-- `v0.7.15`: Weight summary cards and body-measurement trend charts inherit missing bust/waist/hip values from the latest previous positive value per field while leaving each record's stored empty fields unchanged, and versions are unified to `0.7.15+42` / MSIX `0.7.15.0` / installer `0.7.15`.
+- `v0.7.15`: Weight summary cards and body-measurement trend charts inherit missing bust/waist/hip values from the latest previous positive value per field while leaving each record's stored empty fields unchanged; iOS launcher icons add safe-area default, dark, and tinted variants; Windows CI sets a temporary VS/MSVC 18 coroutine deprecation compatibility flag; and versions are unified to `0.7.15+42` / MSIX `0.7.15.0` / installer `0.7.15`.
