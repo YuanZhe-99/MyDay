@@ -29,8 +29,8 @@ Maintenance rules:
 - **Package id:** Dart package `my_day`; Android namespace/application id `com.yuanzhe.my_day`; MSIX identity `com.yuanzhe.myday`; macOS bundle id `com.yuanzhe.myDay`.
 - **Author / publisher:** `yuanzhe`.
 - **License:** GPL-3.0.
-- **Current version:** `0.7.15+42` in `pubspec.yaml`, `0.7.15.0` in `msix_config.msix_version`, and `0.7.15` in `installer.iss`.
-- **Latest tag at the time this guide was written:** `v0.7.15`.
+- **Current version:** `0.8.0+43` in `pubspec.yaml`, `0.8.0.0` in `msix_config.msix_version`, and `0.8.0` in `installer.iss`.
+- **Latest tag at the time this guide was written:** `v0.8.0`.
 - **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.41.6`.
 - **Primary platforms:** Windows x64/ARM64, Android APK/AAB, iOS sideload IPA, and macOS DMG. Linux project support exists for desktop runtime features but is not a primary release artifact.
 - **Repository:** Use the current environment's workspace root / repository path instead of hard-coding an absolute local path.
@@ -143,6 +143,7 @@ Primary tests currently include:
 
 - `test/balance_util_test.dart`
 - `test/json_preservation_test.dart`
+- `test/local_api_server_test.dart`
 - `test/widget_test.dart`
 
 The `tool/` directory contains ad hoc generation scripts such as bank/icon generation. `tool/generate_ios_icons.dart` derives iOS default/dark/tinted icon sources and `/tmp` previews from `assets/icon/app_icon.png`; `flutter_launcher_icons.yaml` then regenerates only the iOS AppIcon set; `tool/validate_ios_icons.dart` checks iOS icon dimensions, transparency, grayscale tinted output, and `Contents.json` references. Keep release-critical behavior covered by real tests when possible.
@@ -307,16 +308,22 @@ Auto-sync silently ignores failures; users can run manual sync from the WebDAV p
 - Endpoints:
   - `GET /ping`
   - `GET /todo/list?date=YYYY-MM-DD`
-  - `POST /todo/add`
-  - `POST /todo/complete`
+  - `GET /todo/day?date=YYYY-MM-DD` including day score, totals, and enriched tasks
+  - `POST /todo/add` accepting notes, reminder time, subtasks, and recurrence for one-time tasks
+  - `POST /todo/complete` accepting optional `subtaskId` and `createNextRecurrence`
+  - `POST /todo/score` accepting a -5..5 day score
   - `GET /todo/stats`
-  - `GET /finance/summary`
-  - `GET /finance/transactions`
-  - `POST /finance/add_transaction`
-  - `GET /finance/subscriptions`
-  - `GET /weight/list` including optional `bustCm`, `waistCm`, and `hipCm`
-  - `POST /weight/add` accepting optional `bustCm`, `waistCm`, and `hipCm`
-  - `GET /weight/stats`
+  - `GET /finance/summary` returning default-currency converted income, expense, balance, total assets, account balances, and category totals
+  - `GET /finance/accounts` omitting sensitive card fields
+  - `GET /finance/categories?type=expense|income|transfer`
+  - `GET /finance/transactions` with filters for pagination, type, month/date range, account, and category
+  - `POST /finance/add_transaction` validating account/category ids, storing the current rate snapshot, and supporting transfer target amounts/currencies
+  - `GET /finance/subscriptions` with optional `includeInactive=true`
+  - `GET /weight/list` including body fat, optional bust/waist/hip fields, effective inherited measurements, notes, datetime, and modified time
+  - `POST /weight/add` accepting optional `bodyFat`, `bustCm`, `waistCm`, `hipCm`, `notes`, and explicit date
+  - `GET /weight/stats` preserving legacy keys while adding BMI, waist-hip ratio, height, body fat, latest record, and effective measurements
+
+When API username and password are configured, Basic Auth is required for every non-OPTIONS request, including localhost requests. Without credentials, loopback requests are allowed and non-loopback requests are rejected.
 
 Do not commit real API credentials. If endpoints or payloads change, update this guide.
 
@@ -465,3 +472,4 @@ Use the narrowest relevant command set for verification. For sync/model/persiste
 - `v0.7.13`: Global settings can choose which weekday starts the week, app calendars/date pickers use shared localized weekday/month labels, Todo/Intimacy calendars and Weight/Intimacy weekly grouping follow the selected start day, and versions are unified to `0.7.13+40` / MSIX `0.7.13.0` / installer `0.7.13`.
 - `v0.7.14`: Mobile one-time Todo reminders no longer start before their scheduled date; future one-time tasks use one-shot start-date notifications until active, stale task notification IDs are cleared when reminders are rescheduled, and versions are unified to `0.7.14+41` / MSIX `0.7.14.0` / installer `0.7.14`.
 - `v0.7.15`: Weight summary cards and body-measurement trend charts inherit missing bust/waist/hip values from the latest previous positive value per field while leaving each record's stored empty fields unchanged; iOS launcher icons add safe-area default, dark, and tinted variants; Windows CI sets a temporary VS/MSVC 18 coroutine deprecation compatibility flag; and versions are unified to `0.7.15+42` / MSIX `0.7.15.0` / installer `0.7.15`.
+- `v0.8.0`: Refreshed the local HTTP API for Todo, Finance, and Weight with stricter Basic Auth, enriched task/transaction/weight payloads, day score and finance account/category endpoints, converted finance summaries, transfer-aware transaction creation, body-composition weight writes, and local API regression tests; versions are unified to `0.8.0+43` / MSIX `0.8.0.0` / installer `0.8.0`.
