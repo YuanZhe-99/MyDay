@@ -112,21 +112,13 @@ class SubscriptionProcessor {
           billedKeys.add(billingKey);
         }
 
-        // Advance to next cycle
-        final first = sub.firstBillingDate;
-        if (sub.billingCycleType == BillingCycleType.monthly) {
-          cursor = DateTime(
-            cursor.year,
-            cursor.month + sub.billingInterval,
-            first.day,
-          );
-        } else {
-          cursor = DateTime(
-            cursor.year + sub.billingInterval,
-            first.month,
-            first.day,
-          );
-        }
+        // Advance to next cycle (month-end anchors clamped, never drifting)
+        cursor = Subscription.nextBillingCursor(
+          cursor: cursor,
+          cycleType: sub.billingCycleType,
+          interval: sub.billingInterval,
+          anchor: sub.firstBillingDate,
+        );
         subChanged = true;
       }
 

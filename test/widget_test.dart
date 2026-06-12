@@ -93,14 +93,12 @@ void main() {
       dailyScores: remoteScores,
     );
 
-    final mergedJson = mergeTodoJson(
+    final result = mergeTodoData(
       jsonEncode(local.toJson()),
       jsonEncode(remote.toJson()),
       null,
     );
-    final merged = TodoData.fromJson(
-      jsonDecode(mergedJson!) as Map<String, dynamic>,
-    );
+    final merged = result.buildResolved(const {});
 
     expect(merged.dailyScores.scoreFor(date), -3);
   });

@@ -66,6 +66,7 @@
   "financeTitle": "財務",
   "financeMonthlyExpense": "月度支出",
   "financeTotalAssets": "總資產",
+  "financeMissingRateWarning": "缺少匯率:{pairs}(按 1:1 換算)",
   "financeAccounts": "帳戶",
   "financeCategories": "分類",
   "financeTrends": "趨勢",

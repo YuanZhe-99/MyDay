@@ -96,6 +96,19 @@ class ReminderService {
     _timer = null;
   }
 
+  /// Purpose: Re-schedule all OS-level mobile reminder notifications.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Rebuilds todo, subscription, and weight schedules on mobile.
+  /// Notes: Call on app resume so per-day schedules are recomputed from
+  /// current data after the device was suspended; no-op on desktop.
+  void refreshMobileSchedules() {
+    if (!MobileNotificationService.isMobile) return;
+    _scheduleMobileTodoReminders();
+    _scheduleMobileSubscriptionReminder();
+    _scheduleMobileWeightReminders();
+  }
+
   /// Call this whenever todo data changes so reminders stay up-to-date.
   /// Purpose: Update data through the current flow.
   /// Inputs: `dailyTemplates`, `oneTimeTasks`, `dailyLog`, `morningReminderTime`, `completionReminderTime`.
@@ -165,11 +178,14 @@ class ReminderService {
   }
 
   // Notification IDs for scheduled mobile notifications
-  static const _mobileSubReminderId = 9000;
+  static const _mobileSubReminderId = 9000; // legacy single repeating id
   static const _mobileMorningReminderId = 9001;
   static const _mobileCompletionReminderId = 9002;
   static const _mobileWeightMorningId = 9003;
   static const _mobileWeightEveningId = 9004;
+  // Per-day subscription reminder one-shots (id = base + day offset).
+  static const _mobileSubReminderDayBaseId = 9100;
+  static const _mobileSubReminderDays = 7;
   static const _mobileTaskReminderMinId = 10000;
   static const _mobileTaskReminderIdRange = 100000;
   static const _mobileTaskReminderMaxId =
@@ -271,11 +287,13 @@ class ReminderService {
     return !scheduledDate.isAfter(today);
   }
 
-  /// Purpose: Decide whether a one-time task should fire during the current minute.
+  /// Purpose: Decide whether a one-time task's reminder is due at [now].
   /// Inputs: `task`, `now`.
   /// Returns: `bool`.
   /// Side effects: None.
-  /// Notes: Used by the in-process desktop reminder loop.
+  /// Notes: Used by the in-process desktop reminder loop. Due means now is at
+  /// or after today's reminder time (per-day dedupe is the caller's job), so a
+  /// process that was busy or suspended through the exact minute still fires.
   @visibleForTesting
   static bool shouldNotifyOneTimeTask(Task task, DateTime now) {
     if (task.type == TaskType.daily ||
@@ -292,8 +310,15 @@ class ReminderService {
     final today = DateTime(now.year, now.month, now.day);
     if (today.isBefore(scheduledDate)) return false;
 
-    final reminderTime = TimeOfDay.fromDateTime(task.reminderTime!);
-    return reminderTime.hour == now.hour && reminderTime.minute == now.minute;
+    final reminderTime = task.reminderTime!;
+    final dueAt = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      reminderTime.hour,
+      reminderTime.minute,
+    );
+    return !now.isBefore(dueAt);
   }
 
   /// Purpose: Decide whether an unfinished one-time task is active for today's checks.
@@ -316,50 +341,54 @@ class ReminderService {
     return !scheduledDate.isAfter(todayDate);
   }
 
-  /// Schedule subscription renewal notification on mobile.
+  /// Schedule subscription renewal notifications on mobile.
   /// Purpose: Provide the internal schedule mobile subscription reminder helper for this file.
   /// Inputs: None.
   /// Returns: None.
-  /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: Internal helper used within this file only.
+  /// Side effects: Starts asynchronous cancellation and per-day scheduling.
+  /// Notes: Internal helper used within this file only. Each of the next
+  /// [_mobileSubReminderDays] days gets its own one-shot with the renewals due
+  /// within 3 days of that day (empty days are skipped), so renewals entering
+  /// the window are announced and stale text never repeats. Schedules refresh
+  /// on data change, hourly renewal processing, and app resume.
   void _scheduleMobileSubscriptionReminder() {
     if (!MobileNotificationService.isMobile) return;
+    unawaited(_scheduleMobileSubscriptionReminderAsync());
+  }
+
+  /// Purpose: Rebuild the per-day mobile subscription renewal one-shots.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: Cancels previous schedules and creates new OS notifications.
+  /// Notes: Internal helper used within this file only.
+  Future<void> _scheduleMobileSubscriptionReminderAsync() async {
     final mns = MobileNotificationService.instance;
-    if (_subscriptionReminderTime == null) {
-      mns.cancel(_mobileSubReminderId);
-      return;
+    // Clear the legacy repeating id and all per-day ids before rescheduling.
+    await mns.cancel(_mobileSubReminderId);
+    for (var i = 0; i < _mobileSubReminderDays; i++) {
+      await mns.cancel(_mobileSubReminderDayBaseId + i);
     }
-    // Build upcoming renewal message; at-expiry cancellations are expiry dates,
-    // not actionable renewal reminders.
-    final today = DateTime.now();
-    final todayDate = DateTime(today.year, today.month, today.day);
-    final limit = todayDate.add(const Duration(days: 3));
-    final upcoming = <String>[];
-    for (final sub in _subscriptions) {
-      if (sub.cancelType == CancelType.atExpiry) continue;
-      if (!sub.isActive && sub.cancelType == CancelType.immediate) continue;
-      final next = sub.nextBillingDate;
-      if (next != null) {
-        final nextDay = DateTime(next.year, next.month, next.day);
-        if (!nextDay.isAfter(limit)) {
-          final days = nextDay.difference(todayDate).inDays;
-          upcoming.add(
-            days == 0
-                ? _l10n.notifSubscriptionToday(sub.name)
-                : _l10n.notifSubscriptionDays(sub.name, days),
-          );
-        }
-      }
-    }
-    if (upcoming.isNotEmpty) {
-      mns.scheduleDaily(
-        id: _mobileSubReminderId,
+    final time = _subscriptionReminderTime;
+    if (time == null) return;
+
+    final now = DateTime.now();
+    for (var offset = 0; offset < _mobileSubReminderDays; offset++) {
+      final fireAt = DateTime(
+        now.year,
+        now.month,
+        now.day + offset,
+        time.hour,
+        time.minute,
+      );
+      if (!fireAt.isAfter(now)) continue;
+      final upcoming = _upcomingRenewalLines(fireAt);
+      if (upcoming.isEmpty) continue;
+      await mns.scheduleAt(
+        id: _mobileSubReminderDayBaseId + offset,
         title: 'MyDay!!!!!',
         body: _l10n.notifUpcomingRenewals(upcoming.join(', ')),
-        time: _subscriptionReminderTime!,
+        dateTime: fireAt,
       );
-    } else {
-      mns.cancel(_mobileSubReminderId);
     }
   }
 
@@ -394,7 +423,10 @@ class ReminderService {
   /// Inputs: `id`, `time`.
   /// Returns: None.
   /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Internal helper used within this file only. When a recent record
+  /// falls inside the grace window the daily repeat is kept and only shifted
+  /// to start the next day — never replaced by a one-shot, which would stop
+  /// all future weight reminders after firing once.
   void _scheduleMobileWeightReminder(int id, TimeOfDay time) {
     final mns = MobileNotificationService.instance;
     final now = DateTime.now();
@@ -409,11 +441,11 @@ class ReminderService {
       candidate = candidate.add(const Duration(days: 1));
     }
     if (_shouldSkipWeightReminder(candidate)) {
-      mns.scheduleAt(
+      mns.scheduleDailyStarting(
         id: id,
         title: 'MyDay!!!!!',
         body: _l10n.notifWeightReminder,
-        dateTime: candidate.add(const Duration(days: 1)),
+        startDateTime: candidate.add(const Duration(days: 1)),
       );
       return;
     }
@@ -491,6 +523,7 @@ class ReminderService {
     if (generation != _taskReminderScheduleGeneration) return;
     _scheduledTaskNotificationIds.clear();
 
+    final now = DateTime.now();
     for (final task in _dailyTemplates) {
       if (generation != _taskReminderScheduleGeneration) return;
       if (task.reminderTime == null || task.deletedDate != null) continue;
@@ -498,16 +531,34 @@ class ReminderService {
       final label = task.emoji != null
           ? '${task.emoji} ${task.title}'
           : task.title;
-      await mns.scheduleDaily(
-        id: nid,
-        title: 'MyDay!!!!!',
-        body: label,
-        time: TimeOfDay.fromDateTime(task.reminderTime!),
+      final time = TimeOfDay.fromDateTime(task.reminderTime!);
+      final todayAt = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        time.hour,
+        time.minute,
       );
+      if (_dailyLog.isCompleted(now, task.id) && todayAt.isAfter(now)) {
+        // Already completed today → skip today's pending fire, repeat from
+        // tomorrow onwards.
+        await mns.scheduleDailyStarting(
+          id: nid,
+          title: 'MyDay!!!!!',
+          body: label,
+          startDateTime: todayAt.add(const Duration(days: 1)),
+        );
+      } else {
+        await mns.scheduleDaily(
+          id: nid,
+          title: 'MyDay!!!!!',
+          body: label,
+          time: time,
+        );
+      }
       _scheduledTaskNotificationIds.add(nid);
     }
 
-    final now = DateTime.now();
     for (final task in _oneTimeTasks) {
       if (generation != _taskReminderScheduleGeneration) return;
       final firstReminder = firstOneTimeReminderDateTime(task);
@@ -541,8 +592,24 @@ class ReminderService {
   /// Inputs: None.
   /// Returns: `Future<void>`.
   /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Internal helper used within this file only. Background processing
+  /// (subscription renewals, auto-backup) runs on every platform; user-facing
+  /// reminder notifications are desktop-only here because mobile delivers them
+  /// through OS-level scheduled notifications and would otherwise be notified
+  /// twice. A reminder fires when now >= its time and it has not fired today,
+  /// so a busy or suspended process cannot skip its minute; fired keys persist
+  /// across restarts via storage config.
   Future<void> _check() async {
+    // Subscription auto-renewal transaction generation (once per hour).
+    await _processRenewals();
+
+    // Auto-backup (once per day).
+    await BackupService.runAutoBackupIfNeeded();
+
+    // Mobile reminders are OS-scheduled; the in-process loop must not
+    // duplicate them while the app is in the foreground.
+    if (MobileNotificationService.isMobile) return;
+
     // If we have no cached data yet, try loading from storage
     if (_dailyTemplates.isEmpty && _oneTimeTasks.isEmpty) {
       final data = await TodoStorage.load();
@@ -568,28 +635,39 @@ class ReminderService {
     }
 
     final current = DateTime.now();
-    final now = TimeOfDay.fromDateTime(current);
     final todayKey = DateFormat('yyyy-MM-dd').format(current);
+    await _loadNotifiedKeys(todayKey);
+    var notifiedChanged = false;
 
-    // Per-task reminders
+    // Marks [key] as fired and returns true when [dueAt] has been reached
+    // today and the key has not fired yet.
+    bool shouldFire(String key, DateTime dueAt) {
+      if (current.isBefore(dueAt)) return false;
+      if (_notifiedIds.contains(key)) return false;
+      _notifiedIds.add(key);
+      notifiedChanged = true;
+      return true;
+    }
+
+    // Per-task reminders. Soft-deleted templates and templates already
+    // completed today must not remind.
     for (final task in _dailyTemplates) {
-      if (task.reminderTime == null || task.isCompleted) continue;
+      if (task.reminderTime == null ||
+          task.isCompleted ||
+          task.deletedDate != null ||
+          _dailyLog.isCompleted(current, task.id)) {
+        continue;
+      }
       final rt = TimeOfDay.fromDateTime(task.reminderTime!);
-      if (rt.hour == now.hour && rt.minute == now.minute) {
-        final key = '${task.id}_$todayKey';
-        if (!_notifiedIds.contains(key)) {
-          _notifiedIds.add(key);
-          _notify(
-            task.emoji != null ? '${task.emoji} ${task.title}' : task.title,
-          );
-        }
+      if (shouldFire('${task.id}_$todayKey', _todayAt(rt))) {
+        _notify(
+          task.emoji != null ? '${task.emoji} ${task.title}' : task.title,
+        );
       }
     }
     for (final task in _oneTimeTasks) {
       if (!shouldNotifyOneTimeTask(task, current)) continue;
-      final key = '${task.id}_$todayKey';
-      if (!_notifiedIds.contains(key)) {
-        _notifiedIds.add(key);
+      if (shouldFire('${task.id}_$todayKey', current)) {
         _notify(
           task.emoji != null ? '${task.emoji} ${task.title}' : task.title,
         );
@@ -598,54 +676,39 @@ class ReminderService {
 
     // Morning reminder
     if (_morningReminderTime != null &&
-        _morningReminderTime!.hour == now.hour &&
-        _morningReminderTime!.minute == now.minute) {
-      final key = 'morning_$todayKey';
-      if (!_notifiedIds.contains(key)) {
-        _notifiedIds.add(key);
-        _notify(_l10n.notifTodoMorning);
-      }
+        shouldFire('morning_$todayKey', _todayAt(_morningReminderTime!))) {
+      _notify(_l10n.notifTodoMorning);
     }
 
     // Completion reminder
     if (_completionReminderTime != null &&
-        _completionReminderTime!.hour == now.hour &&
-        _completionReminderTime!.minute == now.minute) {
-      final key = 'completion_$todayKey';
-      if (!_notifiedIds.contains(key)) {
-        _notifiedIds.add(key);
-        final uncompleted =
-            _dailyTemplates
-                .where((t) => !_dailyLog.isCompleted(DateTime.now(), t.id))
-                .length +
-            _oneTimeTasks
-                .where((t) => _isActiveOneTimeTask(t, DateTime.now()))
-                .length;
-        if (uncompleted > 0) {
-          _notify(_l10n.notifTodoUncompleted(uncompleted));
-        }
+        shouldFire(
+          'completion_$todayKey',
+          _todayAt(_completionReminderTime!),
+        )) {
+      final uncompleted =
+          _dailyTemplates
+              .where(
+                (t) =>
+                    t.deletedDate == null &&
+                    !_dailyLog.isCompleted(current, t.id),
+              )
+              .length +
+          _oneTimeTasks.where((t) => _isActiveOneTimeTask(t, current)).length;
+      if (uncompleted > 0) {
+        _notify(_l10n.notifTodoUncompleted(uncompleted));
       }
     }
-
-    // Subscription auto-renewal transaction generation (once per hour)
-    await _processRenewals();
-
-    // Auto-backup (once per day)
-    await BackupService.runAutoBackupIfNeeded();
 
     if (!_weightDataLoaded) {
       await _refreshWeightDataFromStorage();
     }
 
     // Weight morning reminder
-    if (_weightMorningReminder != null &&
-        _weightMorningReminder!.hour == now.hour &&
-        _weightMorningReminder!.minute == now.minute) {
-      await _refreshWeightDataFromStorage();
-      final key = 'weight_morning_$todayKey';
-      if (!_notifiedIds.contains(key)) {
-        _notifiedIds.add(key);
-        final reminderAt = _todayAt(_weightMorningReminder!);
+    if (_weightMorningReminder != null) {
+      final reminderAt = _todayAt(_weightMorningReminder!);
+      if (shouldFire('weight_morning_$todayKey', reminderAt)) {
+        await _refreshWeightDataFromStorage();
         if (!_shouldSkipWeightReminder(reminderAt)) {
           _notify(_l10n.notifWeightReminder);
         }
@@ -653,14 +716,10 @@ class ReminderService {
     }
 
     // Weight evening reminder
-    if (_weightEveningReminder != null &&
-        _weightEveningReminder!.hour == now.hour &&
-        _weightEveningReminder!.minute == now.minute) {
-      await _refreshWeightDataFromStorage();
-      final key = 'weight_evening_$todayKey';
-      if (!_notifiedIds.contains(key)) {
-        _notifiedIds.add(key);
-        final reminderAt = _todayAt(_weightEveningReminder!);
+    if (_weightEveningReminder != null) {
+      final reminderAt = _todayAt(_weightEveningReminder!);
+      if (shouldFire('weight_evening_$todayKey', reminderAt)) {
+        await _refreshWeightDataFromStorage();
         if (!_shouldSkipWeightReminder(reminderAt)) {
           _notify(_l10n.notifWeightReminder);
         }
@@ -669,36 +728,90 @@ class ReminderService {
 
     // Subscription renewal reminder
     if (_subscriptionReminderTime != null &&
-        _subscriptionReminderTime!.hour == now.hour &&
-        _subscriptionReminderTime!.minute == now.minute) {
-      final key = 'sub_reminder_$todayKey';
-      if (!_notifiedIds.contains(key)) {
-        _notifiedIds.add(key);
-        final today = DateTime.now();
-        final todayDate = DateTime(today.year, today.month, today.day);
-        final limit = todayDate.add(const Duration(days: 3));
-        final upcoming = <String>[];
-        for (final sub in _subscriptions) {
-          if (sub.cancelType == CancelType.atExpiry) continue;
-          if (!sub.isActive && sub.cancelType == CancelType.immediate) continue;
-          final next = sub.nextBillingDate;
-          if (next != null) {
-            final nextDay = DateTime(next.year, next.month, next.day);
-            if (!nextDay.isAfter(limit)) {
-              final days = nextDay.difference(todayDate).inDays;
-              upcoming.add(
-                days == 0
-                    ? _l10n.notifSubscriptionToday(sub.name)
-                    : _l10n.notifSubscriptionDays(sub.name, days),
-              );
-            }
-          }
-        }
-        if (upcoming.isNotEmpty) {
-          _notify(_l10n.notifUpcomingRenewals(upcoming.join(', ')));
-        }
+        shouldFire(
+          'sub_reminder_$todayKey',
+          _todayAt(_subscriptionReminderTime!),
+        )) {
+      final upcoming = _upcomingRenewalLines(current);
+      if (upcoming.isNotEmpty) {
+        _notify(_l10n.notifUpcomingRenewals(upcoming.join(', ')));
       }
     }
+
+    if (notifiedChanged) {
+      await _persistNotifiedKeys(todayKey);
+    }
+  }
+
+  /// Purpose: Build renewal reminder lines for subscriptions due within 3 days of [fromDay].
+  /// Inputs: `fromDay` — the day the reminder fires (time-of-day ignored).
+  /// Returns: `List<String>` of localized per-subscription lines.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Shared by the desktop
+  /// loop and the per-day mobile schedules so both produce day-accurate text.
+  List<String> _upcomingRenewalLines(DateTime fromDay) {
+    final fromDate = DateTime(fromDay.year, fromDay.month, fromDay.day);
+    final limit = fromDate.add(const Duration(days: 3));
+    final upcoming = <String>[];
+    for (final sub in _subscriptions) {
+      if (sub.cancelType == CancelType.atExpiry) continue;
+      if (!sub.isActive && sub.cancelType == CancelType.immediate) continue;
+      final next = sub.nextBillingDate;
+      if (next == null) continue;
+      final nextDay = DateTime(next.year, next.month, next.day);
+      if (nextDay.isBefore(fromDate) || nextDay.isAfter(limit)) continue;
+      final days = nextDay.difference(fromDate).inDays;
+      upcoming.add(
+        days == 0
+            ? _l10n.notifSubscriptionToday(sub.name)
+            : _l10n.notifSubscriptionDays(sub.name, days),
+      );
+    }
+    return upcoming;
+  }
+
+  bool _notifiedKeysLoaded = false;
+  String _notifiedKeysDate = '';
+
+  /// Purpose: Load today's already-fired reminder keys from storage config.
+  /// Inputs: `todayKey` — yyyy-MM-dd of the current day.
+  /// Returns: `Future<void>`.
+  /// Side effects: Populates `_notifiedIds`; prunes keys from previous days.
+  /// Notes: Internal helper used within this file only. Keeps desktop restarts
+  /// from re-firing reminders that already fired earlier today.
+  Future<void> _loadNotifiedKeys(String todayKey) async {
+    if (_notifiedKeysDate != todayKey) {
+      _notifiedIds.removeWhere((k) => !k.endsWith(todayKey));
+      _notifiedKeysDate = todayKey;
+    }
+    if (_notifiedKeysLoaded) return;
+    _notifiedKeysLoaded = true;
+    try {
+      final config = await TodoStorage.readConfig();
+      final saved = config['reminderNotifiedKeys'];
+      if (saved is Map && saved['date'] == todayKey) {
+        final keys = saved['keys'];
+        if (keys is List) {
+          _notifiedIds.addAll(keys.whereType<String>());
+        }
+      }
+    } catch (_) {}
+  }
+
+  /// Purpose: Persist today's fired reminder keys into storage config.
+  /// Inputs: `todayKey` — yyyy-MM-dd of the current day.
+  /// Returns: `Future<void>`.
+  /// Side effects: Writes the device-local storage config.
+  /// Notes: Internal helper used within this file only.
+  Future<void> _persistNotifiedKeys(String todayKey) async {
+    try {
+      final config = await TodoStorage.readConfig();
+      config['reminderNotifiedKeys'] = {
+        'date': todayKey,
+        'keys': _notifiedIds.where((k) => k.endsWith(todayKey)).toList(),
+      };
+      await TodoStorage.writeConfig(config);
+    } catch (_) {}
   }
 
   /// Purpose: Provide the internal today at helper for this file.
@@ -763,7 +876,10 @@ class ReminderService {
   /// Inputs: None.
   /// Returns: `Future<void>`.
   /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Internal helper used within this file only. Also refreshes the
+  /// cached subscriptions and reminder time from storage and reschedules
+  /// mobile renewal reminders, so reminders work even when the finance page
+  /// was never opened in this session.
   Future<void> _processRenewals() async {
     final now = DateTime.now();
     if (_lastRenewalCheck != null &&
@@ -773,12 +889,27 @@ class ReminderService {
     _lastRenewalCheck = now;
 
     final data = await FinanceStorage.load();
-    if (data == null || data.subscriptions.isEmpty) return;
+    if (data == null) return;
+    _subscriptionReminderTime =
+        data.subscriptionReminderHour != null &&
+            data.subscriptionReminderMinute != null
+        ? TimeOfDay(
+            hour: data.subscriptionReminderHour!,
+            minute: data.subscriptionReminderMinute!,
+          )
+        : null;
+    if (data.subscriptions.isEmpty) {
+      _subscriptions = const [];
+      _scheduleMobileSubscriptionReminder();
+      return;
+    }
 
     final result = SubscriptionProcessor.process(
       data.subscriptions,
       data.transactions,
     );
+    _subscriptions = result.changed ? result.subs : data.subscriptions;
+    _scheduleMobileSubscriptionReminder();
     if (!result.changed) return;
 
     await FinanceStorage.save(

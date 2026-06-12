@@ -71,6 +71,14 @@
   "financeTitle": "Finance",
   "financeMonthlyExpense": "Monthly Expense",
   "financeTotalAssets": "Total Assets",
+  "financeMissingRateWarning": "No exchange rate for {pairs}; converted 1:1",
+  "@financeMissingRateWarning": {
+    "placeholders": {
+      "pairs": {
+        "type": "String"
+      }
+    }
+  },
   "financeAccounts": "Accounts",
   "financeCategories": "Categories",
   "financeTrends": "Trends",

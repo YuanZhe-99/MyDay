@@ -198,13 +198,25 @@ class ImportExportService {
     }
   }
 
+  /// Data file names a ZIP import is allowed to write.
+  static const _zipImportDataFiles = {
+    'todo_data.json',
+    'finance_data.json',
+    'exchange_rates.json',
+    'intimacy_data.json',
+    'weight_data.json',
+  };
+
   /// Import data from a previously exported ZIP file.
   /// Returns true on success.
   /// Purpose: Implement the import zip behavior for this file.
   /// Inputs: `filePath`.
   /// Returns: `Future<bool>`.
   /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: None.
+  /// Notes: Only allowlisted entries (the five data JSON files and flat files
+  /// under `images/`) are extracted, and the resolved output path must stay
+  /// inside the app dir, so a crafted ZIP cannot overwrite configuration such
+  /// as `webdav_config.json` or `storage_config.json`.
   static Future<bool> importZIP(String filePath) async {
     try {
       final file = File(filePath);
@@ -216,16 +228,22 @@ class ImportExportService {
 
       for (final entry in archive) {
         if (entry.isFile) {
-          // Prevent path traversal attacks
-          final normalized = p.normalize(entry.name);
-          if (p.isAbsolute(normalized) || normalized.startsWith('..')) continue;
+          final normalizedName = p.normalize(entry.name).replaceAll('\\', '/');
+          final allowed =
+              _zipImportDataFiles.contains(normalizedName) ||
+              (normalizedName.startsWith('images/') &&
+                  normalizedName.split('/').length == 2);
+          if (!allowed || normalizedName.contains('..')) continue;
 
-          final outPath = p.join(appDir.path, normalized);
-          final parent = Directory(p.dirname(outPath));
+          final outFile = File(p.join(appDir.path, normalizedName));
+          final normalizedOut = p.normalize(outFile.absolute.path);
+          final normalizedAppDir = p.normalize(appDir.absolute.path);
+          if (!p.isWithin(normalizedAppDir, normalizedOut)) continue;
+
+          final parent = Directory(p.dirname(normalizedOut));
           if (!await parent.exists()) {
             await parent.create(recursive: true);
           }
-          final outFile = File(outPath);
           await outFile.writeAsBytes(entry.content as List<int>);
         }
       }

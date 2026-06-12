@@ -2,14 +2,16 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 
+import 'reminder_service.dart';
 import 'webdav_service.dart';
 
 /// Singleton service that triggers WebDAV sync automatically when enabled.
 ///
-/// Three triggers:
+/// Four triggers (aligned with MyAnime/MyDevice):
 ///   1. App started → immediate sync
 ///   2. App resumed from background → immediate sync
 ///   3. Data saved locally → debounced sync (30 s after last save)
+///   4. Periodic timer → sync every 15 minutes while the process is alive
 class AutoSyncService with WidgetsBindingObserver {
   /// Purpose: Prevent direct instantiation of the auto-sync singleton.
   /// Inputs: None.
@@ -20,9 +22,11 @@ class AutoSyncService with WidgetsBindingObserver {
   static final instance = AutoSyncService._();
 
   Timer? _debounce;
+  Timer? _periodic;
   bool _started = false;
 
   static const _debounceDuration = Duration(seconds: 30);
+  static const _periodicInterval = Duration(minutes: 15);
 
   /// Callbacks invoked when sync writes merged data to local files.
   /// UI pages should register to reload their data.
@@ -50,6 +54,10 @@ class AutoSyncService with WidgetsBindingObserver {
     if (_started) return;
     _started = true;
     WidgetsBinding.instance.addObserver(this);
+    // Periodic background sync while the app process is alive. Mobile OS
+    // suspension may delay ticks until resume (resume also syncs).
+    _periodic?.cancel();
+    _periodic = Timer.periodic(_periodicInterval, (_) => _trySync());
     // Sync immediately on app open
     _trySync();
   }
@@ -62,6 +70,8 @@ class AutoSyncService with WidgetsBindingObserver {
   void stop() {
     _debounce?.cancel();
     _debounce = null;
+    _periodic?.cancel();
+    _periodic = null;
     WidgetsBinding.instance.removeObserver(this);
     _started = false;
   }
@@ -77,15 +87,28 @@ class AutoSyncService with WidgetsBindingObserver {
     _debounce = Timer(_debounceDuration, _trySync);
   }
 
+  /// Purpose: Trigger a sync as soon as possible, skipping the debounce timer.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Cancels any pending debounce and starts a sync attempt.
+  /// Notes: Used right after enabling/saving WebDAV auto-sync configuration.
+  void requestSyncNow() {
+    _debounce?.cancel();
+    _debounce = null;
+    unawaited(_trySync());
+  }
+
   /// Purpose: Implement the did change app lifecycle state behavior for this file.
   /// Inputs: `state`.
   /// Returns: None.
   /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: None.
+  /// Notes: On resume also refreshes mobile reminder schedules so per-day
+  /// notification bodies are recomputed from current data after suspension.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _trySync();
+      ReminderService.instance.refreshMobileSchedules();
     }
   }
 

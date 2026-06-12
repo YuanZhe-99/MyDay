@@ -162,6 +162,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get financeTotalAssets => 'Total Assets';
 
   @override
+  String financeMissingRateWarning(String pairs) {
+    return 'No exchange rate for $pairs; converted 1:1';
+  }
+
+  @override
   String get financeAccounts => 'Accounts';
 
   @override

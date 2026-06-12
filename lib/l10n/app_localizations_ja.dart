@@ -161,6 +161,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get financeTotalAssets => '総資産';
 
   @override
+  String financeMissingRateWarning(String pairs) {
+    return '為替レート未設定: $pairs(1:1で換算)';
+  }
+
+  @override
   String get financeAccounts => '口座';
 
   @override

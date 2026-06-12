@@ -129,7 +129,7 @@ class SubTask {
     this.isCompleted = false,
     DateTime? modifiedAt,
   }) : id = id ?? const Uuid().v4(),
-       modifiedAt = modifiedAt ?? DateTime.now();
+       modifiedAt = modifiedAt ?? DateTime.now().toUtc();
 
   /// Purpose: Create a copy of this value with selected fields replaced.
   /// Inputs: `modifiedAt`.
@@ -141,7 +141,7 @@ class SubTask {
       id: id,
       title: title ?? this.title,
       isCompleted: isCompleted ?? this.isCompleted,
-      modifiedAt: modifiedAt ?? DateTime.now(),
+      modifiedAt: modifiedAt ?? DateTime.now().toUtc(),
     );
   }
 
@@ -227,7 +227,7 @@ class Task {
     DateTime? modifiedAt,
   }) : id = id ?? const Uuid().v4(),
        createdDate = createdDate ?? DateTime.now(),
-       modifiedAt = modifiedAt ?? DateTime.now();
+       modifiedAt = modifiedAt ?? DateTime.now().toUtc();
 
   /// Purpose: Create a copy of this value with selected fields replaced.
   /// Inputs: `clearNote`.
@@ -270,7 +270,7 @@ class Task {
       startDate: startDate ?? this.startDate,
       dueDate: clearDueDate ? null : (dueDate ?? this.dueDate),
       recurrence: clearRecurrence ? null : (recurrence ?? this.recurrence),
-      modifiedAt: modifiedAt ?? DateTime.now(),
+      modifiedAt: modifiedAt ?? DateTime.now().toUtc(),
     );
   }
 

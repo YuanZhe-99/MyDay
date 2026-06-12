@@ -23,7 +23,7 @@ class Partner {
     this.endDate,
     DateTime? modifiedAt,
   }) : id = id ?? const Uuid().v4(),
-       modifiedAt = modifiedAt ?? DateTime.now();
+       modifiedAt = modifiedAt ?? DateTime.now().toUtc();
 
   /// Purpose: Serialize this value into a JSON-compatible map.
   /// Inputs: None.
@@ -89,7 +89,7 @@ class Toy {
     this.price,
     DateTime? modifiedAt,
   }) : id = id ?? const Uuid().v4(),
-       modifiedAt = modifiedAt ?? DateTime.now();
+       modifiedAt = modifiedAt ?? DateTime.now().toUtc();
 
   /// Purpose: Serialize this value into a JSON-compatible map.
   /// Inputs: None.
@@ -145,7 +145,7 @@ class Position {
   /// Notes: None.
   Position({String? id, required this.name, this.emoji, DateTime? modifiedAt})
     : id = id ?? const Uuid().v4(),
-      modifiedAt = modifiedAt ?? DateTime.now();
+      modifiedAt = modifiedAt ?? DateTime.now().toUtc();
 
   /// Purpose: Serialize this value into a JSON-compatible map.
   /// Inputs: None.
@@ -219,7 +219,7 @@ class IntimacyRecord {
   }) : id = id ?? const Uuid().v4(),
        thrustCountUnit = thrustCountUnit == 1 ? 1 : 100,
        datetime = datetime ?? DateTime.now(),
-       modifiedAt = modifiedAt ?? DateTime.now();
+       modifiedAt = modifiedAt ?? DateTime.now().toUtc();
 
   /// Purpose: Serialize this value into a JSON-compatible map.
   /// Inputs: None.

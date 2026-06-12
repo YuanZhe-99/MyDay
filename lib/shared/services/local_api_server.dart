@@ -1269,7 +1269,7 @@ class LocalApiServer {
       startDate: task.startDate,
       dueDate: task.dueDate,
       recurrence: task.recurrence,
-      modifiedAt: DateTime.now(),
+      modifiedAt: DateTime.now().toUtc(),
     );
   }
 

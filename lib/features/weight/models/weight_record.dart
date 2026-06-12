@@ -40,7 +40,7 @@ class WeightRecord {
     DateTime? modifiedAt,
   }) : id = id ?? const Uuid().v4(),
        datetime = datetime ?? DateTime.now(),
-       modifiedAt = modifiedAt ?? DateTime.now();
+       modifiedAt = modifiedAt ?? DateTime.now().toUtc();
 
   /// Purpose: Serialize this value into a JSON-compatible map.
   /// Inputs: None.
@@ -105,7 +105,7 @@ class WeightRecord {
     hipCm: clearHipCm ? null : (hipCm ?? this.hipCm),
     datetime: datetime ?? this.datetime,
     notes: clearNotes ? null : (notes ?? this.notes),
-    modifiedAt: DateTime.now(),
+    modifiedAt: DateTime.now().toUtc(),
   );
 }
 

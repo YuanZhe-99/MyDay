@@ -63,10 +63,12 @@ class RecordMergeResult<T> {
 /// last-writer-wins (newer `modifiedAt`). This is used by auto-sync to
 /// prevent one conflict from blocking all other records in the same file.
 /// Purpose: Merge records from the relevant sources.
-/// Inputs: `local`, `remote`, `base`, `getId`, `getModifiedAt`, `getDisplayName`, `autoResolve`.
+/// Inputs: `local`, `remote`, `base`, `getId`, `getModifiedAt`, `getDisplayName`, `autoResolve`, optional `serialize`.
 /// Returns: `RecordMergeResult<T>`.
 /// Side effects: May create, transform, or mutate data used by callers.
-/// Notes: None.
+/// Notes: When `serialize` is provided, records whose serialized content is
+/// identical are merged without raising a conflict even if both sides bumped
+/// `modifiedAt` (e.g. after a stale base caused by an earlier failed upload).
 RecordMergeResult<T> mergeRecords<T>({
   required List<T> local,
   required List<T> remote,
@@ -75,6 +77,7 @@ RecordMergeResult<T> mergeRecords<T>({
   required DateTime Function(T) getModifiedAt,
   required String Function(T) getDisplayName,
   bool autoResolve = false,
+  String Function(T)? serialize,
 }) {
   final localMap = {for (final r in local) getId(r): r};
   final remoteMap = {for (final r in remote) getId(r): r};
@@ -99,7 +102,10 @@ RecordMergeResult<T> mergeRecords<T>({
         final remoteChanged = getModifiedAt(r).isAfter(getModifiedAt(b));
 
         if (localChanged && remoteChanged) {
-          if (autoResolve) {
+          if (serialize != null && serialize(l) == serialize(r)) {
+            // Identical content on both sides is not a real conflict.
+            merged.add(l);
+          } else if (autoResolve) {
             // LWW: pick the record with the newer modifiedAt
             merged.add(getModifiedAt(l).isAfter(getModifiedAt(r)) ? l : r);
           } else {
@@ -199,79 +205,6 @@ class MergeResult {
 
 // ─── TodoData merge ─────────────────────────────────────────────────
 
-/// Purpose: Merge todo json into a single result.
-/// Inputs: `localJson`, `remoteJson`, `baseJson`.
-/// Returns: `String?`.
-/// Side effects: May read or mutate application state, storage, or service resources.
-/// Notes: None.
-String? mergeTodoJson(String localJson, String remoteJson, String? baseJson) {
-  try {
-    final local = TodoData.fromJson(
-      jsonDecode(localJson) as Map<String, dynamic>,
-    );
-    final remote = TodoData.fromJson(
-      jsonDecode(remoteJson) as Map<String, dynamic>,
-    );
-    final base = baseJson != null
-        ? TodoData.fromJson(jsonDecode(baseJson) as Map<String, dynamic>)
-        : null;
-
-    final dailyResult = mergeRecords<Task>(
-      local: local.dailyTemplates,
-      remote: remote.dailyTemplates,
-      base: base?.dailyTemplates,
-      getId: (t) => t.id,
-      getModifiedAt: (t) => t.modifiedAt,
-      getDisplayName: (t) => '${t.emoji ?? ''} ${t.title}'.trim(),
-    );
-
-    final onceResult = mergeRecords<Task>(
-      local: local.oneTimeTasks,
-      remote: remote.oneTimeTasks,
-      base: base?.oneTimeTasks,
-      getId: (t) => t.id,
-      getModifiedAt: (t) => t.modifiedAt,
-      getDisplayName: (t) => '${t.emoji ?? ''} ${t.title}'.trim(),
-    );
-
-    final mergedLog = DailyCompletionLog.merge(local.dailyLog, remote.dailyLog);
-    final mergedScores = DailyScoreLog.merge(
-      local.dailyScores,
-      remote.dailyScores,
-    );
-
-    // Settings: use more recently modified side
-    final useLocalSettings =
-        local.settingsModifiedAt.isAfter(remote.settingsModifiedAt) ||
-        local.settingsModifiedAt == remote.settingsModifiedAt;
-
-    final settingsSource = useLocalSettings ? local : remote;
-
-    // If there are conflicts, return null (caller handles)
-    if (dailyResult.conflicts.isNotEmpty || onceResult.conflicts.isNotEmpty) {
-      return null; // Conflicts detected — handled by caller
-    }
-
-    final merged = TodoData(
-      dailyTemplates: dailyResult.merged,
-      oneTimeTasks: onceResult.merged,
-      dailyLog: mergedLog,
-      dailyScores: mergedScores,
-      morningReminderHour: settingsSource.morningReminderHour,
-      morningReminderMinute: settingsSource.morningReminderMinute,
-      completionReminderHour: settingsSource.completionReminderHour,
-      completionReminderMinute: settingsSource.completionReminderMinute,
-      taskSortModes: settingsSource.taskSortModes,
-      taskCustomOrders: settingsSource.taskCustomOrders,
-      settingsModifiedAt: settingsSource.settingsModifiedAt,
-    );
-
-    return jsonEncode(merged.toJson());
-  } catch (_) {
-    return null;
-  }
-}
-
 /// Full merge returning conflicts for UI resolution.
 /// Purpose: Merge todo data into a single result.
 /// Inputs: `localJson`, `remoteJson`, `baseJson`, `autoResolve`.
@@ -302,6 +235,7 @@ TodoMergeResult mergeTodoData(
     getModifiedAt: (t) => t.modifiedAt,
     getDisplayName: (t) => '${t.emoji ?? ''} ${t.title}'.trim(),
     autoResolve: autoResolve,
+    serialize: (x) => jsonEncode(x.toJson()),
   );
 
   final onceResult = mergeRecords<Task>(
@@ -312,6 +246,7 @@ TodoMergeResult mergeTodoData(
     getModifiedAt: (t) => t.modifiedAt,
     getDisplayName: (t) => '${t.emoji ?? ''} ${t.title}'.trim(),
     autoResolve: autoResolve,
+    serialize: (x) => jsonEncode(x.toJson()),
   );
 
   final mergedLog = DailyCompletionLog.merge(local.dailyLog, remote.dailyLog);
@@ -369,11 +304,12 @@ class TodoMergeResult {
       dailyConflicts.isNotEmpty || onceConflicts.isNotEmpty;
 
   /// Purpose: Implement the build resolved behavior for this file.
-  /// Inputs: `resolutions`.
+  /// Inputs: `resolutions` — a possibly mixed-type map of record ID → chosen record.
   /// Returns: `TodoData`.
   /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: None.
-  TodoData buildResolved(Map<String, Task> resolutions) {
+  /// Notes: Accepts the shared cross-module resolutions map; only entries whose
+  /// value is a `Task` for a known conflict ID are applied (no bulk casting).
+  TodoData buildResolved(Map<String, dynamic> resolutions) {
     final daily = _resolveList(dailyMerged, dailyConflicts, resolutions);
     final once = _resolveList(onceMerged, onceConflicts, resolutions);
     return TodoData(
@@ -395,16 +331,18 @@ class TodoMergeResult {
   /// Inputs: `merged`, `conflicts`, `resolutions`.
   /// Returns: `List<T>`.
   /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Internal helper used within this file only. Unresolved or
+  /// wrongly-typed entries default to the local record so conflicting records
+  /// are never silently dropped.
   static List<T> _resolveList<T>(
     List<T> merged,
     List<RecordConflict<T>> conflicts,
-    Map<String, T> resolutions,
+    Map<String, dynamic> resolutions,
   ) {
     final result = [...merged];
     for (final c in conflicts) {
       final resolved = resolutions[c.id];
-      if (resolved != null) result.add(resolved);
+      result.add(resolved is T ? resolved : c.localRecord);
     }
     return result;
   }
@@ -441,6 +379,7 @@ FinanceMergeResult mergeFinanceData(
     getModifiedAt: (a) => a.modifiedAt,
     getDisplayName: (a) => '${a.emoji ?? ''} ${a.name}'.trim(),
     autoResolve: autoResolve,
+    serialize: (x) => jsonEncode(x.toJson()),
   );
 
   final categoryResult = mergeRecords<Category>(
@@ -451,6 +390,7 @@ FinanceMergeResult mergeFinanceData(
     getModifiedAt: (c) => c.modifiedAt,
     getDisplayName: (c) => '${c.emoji ?? ''} ${c.name}'.trim(),
     autoResolve: autoResolve,
+    serialize: (x) => jsonEncode(x.toJson()),
   );
 
   final txResult = mergeRecords<Transaction>(
@@ -462,6 +402,7 @@ FinanceMergeResult mergeFinanceData(
     getDisplayName: (t) =>
         '${t.note.isNotEmpty ? t.note : t.type.name} (${t.amount})',
     autoResolve: autoResolve,
+    serialize: (x) => jsonEncode(x.toJson()),
   );
 
   final subResult = mergeRecords<Subscription>(
@@ -472,6 +413,7 @@ FinanceMergeResult mergeFinanceData(
     getModifiedAt: (s) => s.modifiedAt,
     getDisplayName: (s) => '${s.emoji ?? ''} ${s.name}'.trim(),
     autoResolve: autoResolve,
+    serialize: (x) => jsonEncode(x.toJson()),
   );
 
   final useLocalSettings =
@@ -579,7 +521,9 @@ class FinanceMergeResult {
     final result = [...merged];
     for (final c in conflicts) {
       final resolved = resolutions[c.id];
-      if (resolved != null) result.add(resolved as T);
+      // Default to the local record when unresolved or mistyped so
+      // conflicting records are never silently dropped.
+      result.add(resolved is T ? resolved : c.localRecord);
     }
     return result;
   }
@@ -616,6 +560,7 @@ IntimacyMergeResult mergeIntimacyData(
     getModifiedAt: (p) => p.modifiedAt,
     getDisplayName: (p) => '${p.emoji ?? ''} ${p.name}'.trim(),
     autoResolve: autoResolve,
+    serialize: (x) => jsonEncode(x.toJson()),
   );
 
   final toyResult = mergeRecords<Toy>(
@@ -626,6 +571,7 @@ IntimacyMergeResult mergeIntimacyData(
     getModifiedAt: (t) => t.modifiedAt,
     getDisplayName: (t) => '${t.emoji ?? ''} ${t.name}'.trim(),
     autoResolve: autoResolve,
+    serialize: (x) => jsonEncode(x.toJson()),
   );
 
   final positionResult = mergeRecords<Position>(
@@ -636,6 +582,7 @@ IntimacyMergeResult mergeIntimacyData(
     getModifiedAt: (p) => p.modifiedAt,
     getDisplayName: (p) => '${p.emoji ?? ''} ${p.name}'.trim(),
     autoResolve: autoResolve,
+    serialize: (x) => jsonEncode(x.toJson()),
   );
 
   final recordResult = mergeRecords<IntimacyRecord>(
@@ -647,6 +594,7 @@ IntimacyMergeResult mergeIntimacyData(
     getDisplayName: (r) =>
         '${r.type} (${r.datetime.toIso8601String().substring(0, 10)})',
     autoResolve: autoResolve,
+    serialize: (x) => jsonEncode(x.toJson()),
   );
 
   // Timer history: union by start time (simple dedup, no conflicts)
@@ -796,7 +744,9 @@ class IntimacyMergeResult {
     final result = [...merged];
     for (final c in conflicts) {
       final resolved = resolutions[c.id];
-      if (resolved != null) result.add(resolved as T);
+      // Default to the local record when unresolved or mistyped so
+      // conflicting records are never silently dropped.
+      result.add(resolved is T ? resolved : c.localRecord);
     }
     return result;
   }
@@ -821,7 +771,9 @@ String mergeExchangeRateJson(String localJson, String remoteJson) {
   // Union of all snapshots
   final mergedSnapshots = {...local.snapshots, ...remote.snapshots};
 
-  // Current = whichever current snapshot was created later
+  // Current = whichever current snapshot was created later. A side whose
+  // current id does not resolve to a snapshot is ignored so the merged data
+  // never points at a missing snapshot.
   final localCurrent = local.snapshots[local.currentSnapshotId];
   final remoteCurrent = remote.snapshots[remote.currentSnapshotId];
 
@@ -830,6 +782,8 @@ String mergeExchangeRateJson(String localJson, String remoteJson) {
     currentId = localCurrent.createdAt.isAfter(remoteCurrent.createdAt)
         ? local.currentSnapshotId
         : remote.currentSnapshotId;
+  } else if (remoteCurrent != null) {
+    currentId = remote.currentSnapshotId;
   } else {
     currentId = local.currentSnapshotId;
   }
@@ -885,16 +839,19 @@ WeightMergeResult mergeWeightData(
     getDisplayName: (r) =>
         '${r.weight} kg (${r.datetime.toIso8601String().substring(0, 10)})',
     autoResolve: autoResolve,
+    serialize: (x) => jsonEncode(x.toJson()),
   );
-
-  // Height: prefer the non-null / most recently changed value
-  final height = local.height ?? remote.height;
 
   // Settings: LWW via settingsModifiedAt
   final WeightData settingsSrc =
       local.settingsModifiedAt.isAfter(remote.settingsModifiedAt)
       ? local
       : remote;
+
+  // Height follows the settings LWW winner (saving height bumps
+  // settingsModifiedAt), so clearing height syncs instead of resurrecting
+  // and the merge no longer depends on which device merges last.
+  final height = settingsSrc.height;
 
   return WeightMergeResult(
     height: height,
@@ -957,7 +914,9 @@ class WeightMergeResult {
     final result = [...recordsMerged];
     for (final c in recordConflicts) {
       final resolved = resolutions[c.id];
-      if (resolved != null) result.add(resolved as WeightRecord);
+      // Default to the local record when unresolved or mistyped so
+      // conflicting records are never silently dropped.
+      result.add(resolved is WeightRecord ? resolved : c.localRecord);
     }
     return WeightData(
       height: height,

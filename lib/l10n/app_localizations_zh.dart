@@ -161,6 +161,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get financeTotalAssets => '总资产';
 
   @override
+  String financeMissingRateWarning(String pairs) {
+    return '缺少汇率:$pairs(按 1:1 换算)';
+  }
+
+  @override
   String get financeAccounts => '账户';
 
   @override
@@ -1908,6 +1913,11 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get financeTotalAssets => '總資產';
+
+  @override
+  String financeMissingRateWarning(String pairs) {
+    return '缺少匯率:$pairs(按 1:1 換算)';
+  }
 
   @override
   String get financeAccounts => '帳戶';

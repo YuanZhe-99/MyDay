@@ -68,6 +68,7 @@
   "financeTitle": "家計",
   "financeMonthlyExpense": "月間支出",
   "financeTotalAssets": "総資産",
+  "financeMissingRateWarning": "為替レート未設定: {pairs}(1:1で換算)",
   "financeAccounts": "口座",
   "financeCategories": "カテゴリ",
   "financeTrends": "トレンド",

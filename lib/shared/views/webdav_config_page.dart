@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../services/auto_sync_service.dart';
 import '../services/webdav_service.dart';
 import '../widgets/sync_conflict_dialog.dart';
 
@@ -92,11 +93,16 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
   /// Inputs: None.
   /// Returns: `Future<void>`.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Internal helper used within this file only. Saving a fully
+  /// configured auto-sync setup triggers an immediate background sync
+  /// (aligned with MyAnime) so the first sync does not wait for a trigger.
   Future<void> _saveConfig() async {
     final config = _currentConfig;
     await WebDAVService.saveConfig(config);
     setState(() => _isConfigured = config.isConfigured);
+    if (config.isConfigured && config.autoSync) {
+      AutoSyncService.instance.requestSyncNow();
+    }
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context)!.settingsWebDAVConfigSaved)),
@@ -326,7 +332,11 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
                     value: _autoSync,
                     onChanged: (v) async {
                       setState(() => _autoSync = v);
-                      await WebDAVService.saveConfig(_currentConfig);
+                      final config = _currentConfig;
+                      await WebDAVService.saveConfig(config);
+                      if (v && config.isConfigured) {
+                        AutoSyncService.instance.requestSyncNow();
+                      }
                     },
                   ),
                   const SizedBox(height: 12),

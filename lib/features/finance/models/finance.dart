@@ -116,7 +116,7 @@ class Account {
     this.forcedBalanceDate,
     DateTime? modifiedAt,
   }) : id = id ?? const Uuid().v4(),
-       modifiedAt = modifiedAt ?? DateTime.now();
+       modifiedAt = modifiedAt ?? DateTime.now().toUtc();
 
   /// Purpose: Serialize this value into a JSON-compatible map.
   /// Inputs: None.
@@ -215,7 +215,7 @@ class Transaction {
     DateTime? modifiedAt,
   }) : id = id ?? const Uuid().v4(),
        date = date ?? DateTime.now(),
-       modifiedAt = modifiedAt ?? DateTime.now();
+       modifiedAt = modifiedAt ?? DateTime.now().toUtc();
 
   /// Purpose: Serialize this value into a JSON-compatible map.
   /// Inputs: None.
@@ -285,7 +285,7 @@ class Category {
     required this.type,
     DateTime? modifiedAt,
   }) : id = id ?? const Uuid().v4(),
-       modifiedAt = modifiedAt ?? DateTime.now();
+       modifiedAt = modifiedAt ?? DateTime.now().toUtc();
 
   /// Purpose: Serialize this value into a JSON-compatible map.
   /// Inputs: None.
@@ -367,7 +367,7 @@ class Subscription {
     this.nextBillingDate,
     DateTime? modifiedAt,
   }) : id = id ?? const Uuid().v4(),
-       modifiedAt = modifiedAt ?? DateTime.now();
+       modifiedAt = modifiedAt ?? DateTime.now().toUtc();
 
   /// The first billing date (start + trial days).
   /// Purpose: Return first billing date.
@@ -377,30 +377,53 @@ class Subscription {
   /// Notes: None.
   DateTime get firstBillingDate => startDate.add(Duration(days: trialDays));
 
+  /// Purpose: Advance a billing cursor by one cycle with month-length clamping.
+  /// Inputs: `cursor` current billing date, `cycleType`, `interval`, `anchor` first billing date.
+  /// Returns: `DateTime` — the next billing date.
+  /// Side effects: None.
+  /// Notes: Monthly cycles keep the anchor day-of-month clamped to the target
+  /// month's last day (a Jan 31 anchor bills Feb 28/29, Mar 31, Apr 30, ...)
+  /// instead of letting `DateTime` day overflow skip and drift months. Yearly
+  /// cycles clamp Feb 29 anchors in non-leap years. All billing-date advances
+  /// (model and `SubscriptionProcessor`) must go through this helper.
+  static DateTime nextBillingCursor({
+    required DateTime cursor,
+    required BillingCycleType cycleType,
+    required int interval,
+    required DateTime anchor,
+  }) {
+    final int year;
+    final int month;
+    if (cycleType == BillingCycleType.monthly) {
+      year = cursor.year;
+      month = cursor.month + interval;
+    } else {
+      year = cursor.year + interval;
+      month = anchor.month;
+    }
+    // Day 0 of the following month is the last day of the target month.
+    final lastDay = DateTime(year, month + 1, 0).day;
+    final day = anchor.day < lastDay ? anchor.day : lastDay;
+    return DateTime(year, month, day);
+  }
+
   /// Compute next billing date after [after] date.
   /// Purpose: Calculate next billing date from the available inputs.
   /// Inputs: `after`.
   /// Returns: `DateTime?`.
   /// Side effects: None.
-  /// Notes: None.
+  /// Notes: Month-end anchors are clamped per cycle via [nextBillingCursor].
   DateTime? calculateNextBillingDate({DateTime? after}) {
     after ??= DateTime.now();
     final first = firstBillingDate;
     var cursor = first;
     while (!cursor.isAfter(after)) {
-      if (billingCycleType == BillingCycleType.monthly) {
-        cursor = DateTime(
-          cursor.year,
-          cursor.month + billingInterval,
-          first.day,
-        );
-      } else {
-        cursor = DateTime(
-          cursor.year + billingInterval,
-          first.month,
-          first.day,
-        );
-      }
+      cursor = nextBillingCursor(
+        cursor: cursor,
+        cycleType: billingCycleType,
+        interval: billingInterval,
+        anchor: first,
+      );
     }
     if (cancelType == CancelType.atExpiry &&
         cancelledAt != null &&
@@ -415,26 +438,19 @@ class Subscription {
   /// Inputs: `until`.
   /// Returns: `List<DateTime>`.
   /// Side effects: None.
-  /// Notes: None.
+  /// Notes: Month-end anchors are clamped per cycle via [nextBillingCursor].
   List<DateTime> billingDatesBefore(DateTime until) {
     final dates = <DateTime>[];
     final first = firstBillingDate;
     var cursor = first;
     while (!cursor.isAfter(until)) {
       dates.add(cursor);
-      if (billingCycleType == BillingCycleType.monthly) {
-        cursor = DateTime(
-          cursor.year,
-          cursor.month + billingInterval,
-          first.day,
-        );
-      } else {
-        cursor = DateTime(
-          cursor.year + billingInterval,
-          first.month,
-          first.day,
-        );
-      }
+      cursor = nextBillingCursor(
+        cursor: cursor,
+        cycleType: billingCycleType,
+        interval: billingInterval,
+        anchor: first,
+      );
     }
     return dates;
   }

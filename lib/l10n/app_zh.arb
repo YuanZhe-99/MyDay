@@ -68,6 +68,7 @@
   "financeTitle": "财务",
   "financeMonthlyExpense": "月度支出",
   "financeTotalAssets": "总资产",
+  "financeMissingRateWarning": "缺少汇率:{pairs}(按 1:1 换算)",
   "financeAccounts": "账户",
   "financeCategories": "分类",
   "financeTrends": "趋势",

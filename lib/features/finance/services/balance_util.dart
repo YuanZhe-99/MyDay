@@ -65,16 +65,19 @@ double? _findRate(Map<String, double> rates, String from, String to) {
 /// Convert [amount] from [from] currency to [to] currency using [rates].
 /// Tries direct, reverse, then via intermediate currencies (CNY, USD, EUR).
 /// Purpose: Implement the convert currency behavior for this file.
-/// Inputs: `rates`, `amount`, `from`, `to`.
+/// Inputs: `rates`, `amount`, `from`, `to`, optional `onMissingRate` callback.
 /// Returns: `double`.
-/// Side effects: None.
-/// Notes: None.
+/// Side effects: Invokes `onMissingRate` when no rate path exists.
+/// Notes: When no direct, reverse, or intermediate rate path exists the amount
+/// falls back to 1:1; callers that aggregate converted values should pass
+/// `onMissingRate` so the silent distortion can be surfaced to the user.
 double convertCurrency(
   Map<String, double> rates,
   double amount,
   String from,
-  String to,
-) {
+  String to, {
+  void Function(String from, String to)? onMissingRate,
+}) {
   if (from == to) return amount;
   // Direct or reverse
   final rate = _findRate(rates, from, to);
@@ -86,7 +89,8 @@ double convertCurrency(
     final leg2 = _findRate(rates, via, to);
     if (leg1 != null && leg2 != null) return amount * leg1 * leg2;
   }
-  return amount; // fallback
+  onMissingRate?.call(from, to);
+  return amount; // 1:1 fallback — no rate path exists
 }
 
 /// Calculate account balance in the account's own currency.
@@ -235,7 +239,10 @@ ForcedBalanceMigrationResult migrateForcedBalances({
     }
 
     migratedAccounts.add(
-      accountWithForcedBalanceSentinel(account, modifiedAt: DateTime.now()),
+      accountWithForcedBalanceSentinel(
+        account,
+        modifiedAt: DateTime.now().toUtc(),
+      ),
     );
     changed = true;
   }

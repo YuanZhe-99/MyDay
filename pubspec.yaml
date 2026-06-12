@@ -2,7 +2,7 @@ name: my_day
 description: "MyDay!!!!! — Your daily life companion"
 publish_to: 'none'
 
-version: 0.8.0+43
+version: 1.0.0+44
 
 environment:
   sdk: ^3.11.3
@@ -53,6 +53,7 @@ dependencies:
 
   # Auto-start on boot (desktop)
   launch_at_startup: ^0.5.1
+  flutter_timezone: ^5.1.0
 
 dev_dependencies:
   flutter_test:
@@ -114,7 +115,7 @@ msix_config:
   display_name: MyDay!!!!!
   publisher_display_name: yuanzhe
   identity_name: com.yuanzhe.myday
-  msix_version: 0.8.0.0
+  msix_version: 1.0.0.0
   logo_path: assets/icon/app_icon.png
   capabilities: internetClient
   install_certificate: false

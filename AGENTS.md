@@ -29,8 +29,8 @@ Maintenance rules:
 - **Package id:** Dart package `my_day`; Android namespace/application id `com.yuanzhe.my_day`; MSIX identity `com.yuanzhe.myday`; macOS bundle id `com.yuanzhe.myDay`.
 - **Author / publisher:** `yuanzhe`.
 - **License:** GPL-3.0.
-- **Current version:** `0.8.0+43` in `pubspec.yaml`, `0.8.0.0` in `msix_config.msix_version`, and `0.8.0` in `installer.iss`.
-- **Latest tag at the time this guide was written:** `v0.8.0`.
+- **Current version:** `1.0.0+44` in `pubspec.yaml`, `1.0.0.0` in `msix_config.msix_version`, and `1.0.0` in `installer.iss`.
+- **Latest tag at the time this guide was written:** `v1.0.0`.
 - **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.41.6`.
 - **Primary platforms:** Windows x64/ARM64, Android APK/AAB, iOS sideload IPA, and macOS DMG. Linux project support exists for desktop runtime features but is not a primary release artifact.
 - **Repository:** Use the current environment's workspace root / repository path instead of hard-coding an absolute local path.
@@ -141,9 +141,11 @@ lib/
 
 Primary tests currently include:
 
+- `test/audit_fixes_test.dart` (month-end billing clamps, cross-module conflict resolution, exchange-rate/height merge rules, UTC timestamps)
 - `test/balance_util_test.dart`
 - `test/json_preservation_test.dart`
 - `test/local_api_server_test.dart`
+- `test/subscription_processor_test.dart`
 - `test/widget_test.dart`
 
 The `tool/` directory contains ad hoc generation scripts such as bank/icon generation. `tool/generate_ios_icons.dart` derives iOS default/dark/tinted icon sources and `/tmp` previews from `assets/icon/app_icon.png`; `flutter_launcher_icons.yaml` then regenerates only the iOS AppIcon set; `tool/validate_ios_icons.dart` checks iOS icon dimensions, transparency, grayscale tinted output, and `Contents.json` references. Keep release-critical behavior covered by real tests when possible.
@@ -158,7 +160,7 @@ The `tool/` directory contains ad hoc generation scripts such as bank/icon gener
 - File I/O should go through `TodoStorage.getAppDir()` so custom storage paths work.
 - Config I/O should use `TodoStorage.readConfig()` / `writeConfig()` to preserve keys written by other modules.
 - JSON saves use `JsonPreservation` for known data files so unknown top-level and per-record fields survive local saves and WebDAV merge writes.
-- Record models usually use `DateTime.now()` for `modifiedAt`; settings merge timestamps use explicit `settingsModifiedAt` fields and are compared for LWW settings resolution.
+- Record models use `DateTime.now().toUtc()` for `modifiedAt`; settings merge timestamps use explicit `settingsModifiedAt` fields (also UTC) and are compared for LWW settings resolution. Local-time `modifiedAt` values break sync conflict detection across timezones; old data written in local time stays parse-compatible but new writes must be UTC.
 - Optional null/empty fields are usually omitted from JSON using conditional map entries.
 - CI passes `--dart-define=FLAVOR=full` or `store`, but there is currently no app-side flavor gate in `lib/`; do not assume store/full behavior exists unless you add and document it.
 
@@ -195,9 +197,9 @@ Finance services include:
 - `FinanceStorage`: stores accounts including optional monthly-fee waiver criteria, categories, transactions, subscriptions, default currency, subscription reminders/sort order, account sort modes/custom orders, transaction account picker settings, and `settingsModifiedAt`.
 - `ExchangeRateStorage`: snapshot-based exchange-rate history with deduped `RateSnapshot`s and migration from old flat maps.
 - `ExchangeRateApi`: fetches from `https://open.er-api.com/v6/latest/{base}` with no API key, updates only configured pairs, and fetches at most once per day.
-- `balance_util.dart`: currency symbols, direct/reverse/intermediate conversion through CNY/USD/EUR, and account balance reconstruction around forced-balance anchors.
+- `balance_util.dart`: currency symbols, direct/reverse/intermediate conversion through CNY/USD/EUR, and account balance reconstruction around forced-balance anchors. `convertCurrency` falls back to 1:1 when no rate path exists and reports it through the optional `onMissingRate` callback; the finance home summary shows a warning with the affected currency pairs when any conversion fell back.
 - `BankPresetService`: loads 250+ bank presets from `assets/banks.json`, country currency defaults, search/grouping, and multiple logo URL sources.
-- `SubscriptionProcessor`: hourly renewal catch-up, persisted `nextBillingDate`, multi-cycle catch-up, idempotent subscription billing-day generation using existing random-id or stable-id transactions, and at-expiry cancellation handling.
+- `SubscriptionProcessor`: hourly renewal catch-up, persisted `nextBillingDate`, multi-cycle catch-up, idempotent subscription billing-day generation using existing random-id or stable-id transactions, and at-expiry cancellation handling. All billing-date advances go through `Subscription.nextBillingCursor`, which clamps month-end anchor days to the target month's length (a Jan 31 monthly subscription bills Feb 28/29, Mar 31, Apr 30, ... and never skips or drifts months; yearly Feb 29 anchors clamp in non-leap years).
 
 Finance views cover selectable-month home summaries and grouped monthly transactions, accounts with optional monthly-fee waiver criteria, account transaction pages with direct add-transaction support, transaction account picker sorting/grouping/More settings from the account page, categories, category details, exchange rates, subscriptions, subscription details, and analysis charts. The analysis page includes clickable expense/income category breakdowns including uncategorized flows, category transaction drill-down with add/edit/delete support, expense/income trends, editable custom date ranges, and a total-assets trend that reconstructs account balances at sample points.
 
@@ -248,21 +250,24 @@ WebDAV sync is per-record three-way merge, not whole-file replacement.
 
 Flow:
 
-1. Download remote JSON.
+1. Download remote JSON with a discriminated result: only HTTP 404 counts as "missing on remote"; any other failure (auth/server/network) records a per-file error and skips that file, so local data is never uploaded over an unreadable remote file.
 2. Load local JSON and `.sync_base/` base snapshots.
-3. Merge per record using `modifiedAt` where available.
+3. Merge per record using `modifiedAt` where available. Records whose serialized content is identical on both sides merge without a conflict.
 4. Auto-resolve when only one side changed.
 5. Detect conflicts when the same record changed on both sides after the last sync.
 6. Preserve unknown JSON fields from base/local/remote.
-7. Save merged local data, upload merged data, and update base snapshots.
+7. Save merged local data, upload merged data, and update base snapshots. Uploads send `If-Match` with the strong ETag captured at download (first uploads send `If-None-Match: *`); HTTP 412 and any other upload failure are recorded as per-file errors and the base snapshot is not saved, so the next sync re-merges instead of silently reporting success.
 
 Manual sync uses `autoResolve: false` and shows `SyncConflictDialog`. Auto-sync uses `autoResolve: true` and LWW per record so one conflict does not block all sync.
+
+`finalizePendingSync` takes the mixed cross-module resolutions map as-is; each merge result picks out its own record types per conflict ID (never bulk-cast the map — that crashed on cross-module conflicts). Unresolved or mistyped entries default to the local record so conflicting records are never dropped. It returns false when any file's remote read or upload fails.
 
 Important sync constraints:
 
 - `_syncing` prevents concurrent sync.
 - Local files are re-read before write to detect saves that happened during network I/O.
 - Per-file errors are accumulated so one malformed data file does not block all files.
+- Servers without ETags fall back to unconditional PUTs (previous behavior); weak ETags are never used in `If-Match`.
 - `WebDAVService.consumeLocalDataChanged()` tells `AutoSyncService` to notify UI pages to reload after sync writes local files.
 - Image sync is reference-gated: only images referenced in `finance_data.json` or `intimacy_data.json` are synced; orphan images are ignored.
 - Individual image transfer failures are non-fatal warnings surfaced through `SyncResult.warnings`.
@@ -274,27 +279,29 @@ Important sync constraints:
 | --- | --- | --- |
 | `todo_data.json` | `mergeTodoData()` | Daily/one-time records by id + `modifiedAt`; daily log union; daily score LWW per date; settings LWW |
 | `finance_data.json` | `mergeFinanceData()` | Accounts/categories/transactions/subscriptions by id + `modifiedAt`; settings LWW |
-| `exchange_rates.json` | `mergeExchangeRateJson()` | Snapshot union; current snapshot/newer `lastFetchedAt` wins |
+| `exchange_rates.json` | `mergeExchangeRateJson()` | Snapshot union; newer valid current snapshot wins (a current id that does not resolve to a snapshot is ignored); newer `lastFetchedAt` wins |
 | `intimacy_data.json` | `mergeIntimacyData()` | Partners/toys/positions/records by id + `modifiedAt`; timer history union by start; timer session LWW by `timerSessionModifiedAt`; settings LWW |
-| `weight_data.json` | `mergeWeightData()` | Records by id + `modifiedAt`; height prefers non-null; reminder/settings LWW |
+| `weight_data.json` | `mergeWeightData()` | Records by id + `modifiedAt`; height follows settings LWW (saving weight data bumps `settingsModifiedAt`, so clearing height syncs); reminder/settings LWW |
 | `images/*` | `_syncImages()` | Additive bidirectional, but only for referenced images |
 
 Files moved by `TodoStorage.setStoragePath()` are `todo_data.json`, `finance_data.json`, `exchange_rates.json`, `intimacy_data.json`, `weight_data.json`, and `webdav_config.json`. `storage_config.json` always stays in the default app directory. Directories such as `images/`, `backups/`, and `.sync_base/` are not moved by that file list.
 
 ### Auto-Sync
 
-`AutoSyncService` is a singleton `WidgetsBindingObserver` with three triggers:
+`AutoSyncService` is a singleton `WidgetsBindingObserver` with triggers aligned with MyAnime/MyDevice:
 
 - app start: immediate sync,
-- app resume: immediate sync,
-- data save: 30-second debounce after `notifySaved()`.
+- app resume: immediate sync (also refreshes mobile reminder schedules),
+- data save: 30-second debounce after `notifySaved()`,
+- periodic timer: every 15 minutes while the process is alive,
+- saving/enabling a fully configured auto-sync WebDAV setup: immediate sync via `requestSyncNow()`.
 
 Auto-sync silently ignores failures; users can run manual sync from the WebDAV page.
 
 ### Backup, Import, Export, and Images
 
 - `BackupService`: manual backups, daily auto-backup, retention, module-selective restore, JSON bundle with base64 images.
-- `ImportExportService`: ZIP export/import for all five data JSON files plus images; path traversal protection on ZIP import; CSV export/import for finance, intimacy, and weight.
+- `ImportExportService`: ZIP export/import for all five data JSON files plus images; ZIP import extracts only allowlisted entries (the five data JSON files and flat files under `images/`) with the resolved output path confined to the app dir, so a crafted ZIP cannot overwrite configuration such as `webdav_config.json` or `storage_config.json`; CSV export/import for finance, intimacy, and weight.
 - CSV import merges into existing data. Finance requires matching account name and can create categories; intimacy can create partners/toys and optional thrust count/unit columns; weight accepts `M/d/yyyy` and `yyyy-MM-dd` style dates.
 - `ImageService`: picks local images, downloads logos/photos, stores UUID filenames under `images/`, resolves relative paths, and rejects tiny placeholder downloads.
 
@@ -329,11 +336,14 @@ Do not commit real API credentials. If endpoints or payloads change, update this
 
 ### Notifications, Reminders, Tray, and Startup
 
-- `ReminderService` runs every 30 seconds while the process is alive.
-- It handles per-task reminders, morning plan reminders, completion reminders, subscription renewal reminders, hourly subscription transaction generation, weight reminders, and daily auto-backup.
-- Desktop notifications use `local_notifier`; mobile uses `flutter_local_notifications` with timezone scheduling.
-- Mobile per-task reminders are scheduled through OS-level notifications: daily templates are daily schedules, future one-time tasks first use a one-shot start-date schedule, and active one-time tasks use daily repeating schedules.
-- Notification deduplication uses date-scoped keys in `_notifiedIds`.
+- `ReminderService` runs every 30 seconds while the process is alive. Subscription renewal transaction generation (hourly) and daily auto-backup run on every platform; user-facing reminder notifications from this loop are desktop-only because mobile delivers them through OS-level scheduled notifications (no double-notify).
+- Desktop reminders fire when now ≥ the reminder time and that reminder has not fired today, so a busy or suspended process cannot skip its minute. Fired keys are date-scoped in `_notifiedIds` and persisted to `storage_config.json` (`reminderNotifiedKeys`) so desktop restarts do not re-fire.
+- The desktop loop skips soft-deleted daily templates and daily templates already completed today.
+- Desktop notifications use `local_notifier`; mobile uses `flutter_local_notifications` with timezone scheduling. The timezone location comes from the OS IANA zone id via `flutter_timezone`, never `DateTime.now().timeZoneName`.
+- Mobile per-task reminders are scheduled through OS-level notifications: daily templates are daily schedules (shifted to start tomorrow when already completed today), future one-time tasks first use a one-shot start-date schedule, and active one-time tasks use daily repeating schedules.
+- Mobile subscription renewal reminders are per-day one-shots for the next 7 days (ids 9100+offset); each day's body lists renewals due within 3 days of that day and empty days are skipped, so renewals entering the window are announced and stale text never repeats. Schedules refresh on data change, hourly renewal processing (which also loads subscriptions from storage so the finance page need not be opened), and app resume via `refreshMobileSchedules()`.
+- Mobile weight reminders keep their daily repeat when a record falls inside the grace window — the repeat is shifted to start the next day, never replaced by a one-shot.
+- `SCHEDULE_EXACT_ALARM` is intentionally not requested; scheduling uses `inexactAllowWhileIdle`.
 - `TrayService` handles tray icon/menu, Show/Quit, minimize-to-tray, close-to-tray, and settings persisted through `TodoStorage`.
 - `launch_at_startup` is configured on desktop from `PackageInfo.fromPlatform()` and `Platform.resolvedExecutable`.
 
@@ -343,7 +353,7 @@ Default app data directory is `Documents/MyDay/` on desktop or the platform app 
 
 | Data | File | Synced | Notes |
 | --- | --- | --- | --- |
-| Core preferences | `storage_config.json` | No | Custom path, intimacy visibility, theme, locale, week start day, tray, backup, local API settings |
+| Core preferences | `storage_config.json` | No | Custom path, intimacy visibility, theme, locale, week start day, tray, backup, local API settings, today's fired desktop reminder keys (`reminderNotifiedKeys`) |
 | Todo | `todo_data.json` | Yes | Tasks, daily templates, completion log, daily score log, reminders, task sort/custom order |
 | Finance | `finance_data.json` | Yes | Accounts including optional fee waiver criteria, categories, transactions, subscriptions, finance settings, transaction account picker settings |
 | Exchange rates | `exchange_rates.json` | Yes | Rate snapshots and `lastFetchedAt` |
@@ -363,7 +373,7 @@ Default app data directory is `Documents/MyDay/` on desktop or the platform app 
 - Java 17 source/target compatibility and core library desugaring are enabled.
 - Signing reads `android/key.properties` if present and falls back to debug signing locally.
 - Release signing secrets are injected in CI.
-- Manifest permissions include internet, notification, boot/exact alarm related entries needed by scheduled notifications.
+- Manifest permissions include internet, notification, and boot-related entries needed by scheduled notifications. `SCHEDULE_EXACT_ALARM` is intentionally not declared because all scheduling uses inexact modes.
 
 ### iOS
 
@@ -473,3 +483,4 @@ Use the narrowest relevant command set for verification. For sync/model/persiste
 - `v0.7.14`: Mobile one-time Todo reminders no longer start before their scheduled date; future one-time tasks use one-shot start-date notifications until active, stale task notification IDs are cleared when reminders are rescheduled, and versions are unified to `0.7.14+41` / MSIX `0.7.14.0` / installer `0.7.14`.
 - `v0.7.15`: Weight summary cards and body-measurement trend charts inherit missing bust/waist/hip values from the latest previous positive value per field while leaving each record's stored empty fields unchanged; iOS launcher icons add safe-area default, dark, and tinted variants; Windows CI sets a temporary VS/MSVC 18 coroutine deprecation compatibility flag; and versions are unified to `0.7.15+42` / MSIX `0.7.15.0` / installer `0.7.15`.
 - `v0.8.0`: Refreshed the local HTTP API for Todo, Finance, and Weight with stricter Basic Auth, enriched task/transaction/weight payloads, day score and finance account/category endpoints, converted finance summaries, transfer-aware transaction creation, body-composition weight writes, and local API regression tests; versions are unified to `0.8.0+43` / MSIX `0.8.0.0` / installer `0.8.0`.
+- `v1.0.0`: Pre-release audit hardening — WebDAV downloads distinguish 404 from errors so transient failures can never overwrite the remote or cascade into cross-device deletions, upload failures (including ETag `If-Match` 412 conflicts) surface as per-file sync errors instead of silent success, cross-module conflict resolution no longer crashes and unresolved conflicts default to the local record, all `modifiedAt`/settings timestamps are written in UTC, month-end subscription billing dates clamp instead of skipping months, the exchange-rate merge never keeps a dangling current snapshot id, weight height follows settings LWW, the in-process reminder loop is desktop-only with ≥-time due semantics and persisted per-day dedupe, mobile subscription reminders are per-day one-shots with day-accurate content, weight grace skips keep the daily repeat, deleted/completed daily templates stop reminding, IANA timezone resolution via `flutter_timezone`, 15-minute periodic auto-sync plus sync-on-config-save, allowlist-based ZIP import, missing-exchange-rate warnings on the finance summary, removed unused `SCHEDULE_EXACT_ALARM`, and versions unified to `1.0.0+44` / MSIX `1.0.0.0` / installer `1.0.0`.

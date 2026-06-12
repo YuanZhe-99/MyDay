@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
@@ -36,9 +37,13 @@ class MobileNotificationService {
     if (!isMobile || _initialized) return;
 
     tz.initializeTimeZones();
-    // Set local location to the device timezone
+    // Set local location from the OS-reported IANA zone id (flutter_timezone);
+    // `DateTime.now().timeZoneName` is an abbreviation like "JST"/"CST" that
+    // the tz database cannot look up, and an offset-only fallback may pick a
+    // zone with different DST rules.
     try {
-      tz.setLocalLocation(tz.getLocation(DateTime.now().timeZoneName));
+      final info = await FlutterTimezone.getLocalTimezone();
+      tz.setLocalLocation(tz.getLocation(info.identifier));
     } catch (_) {
       // Fallback: use UTC offset to find a matching location
       final offset = DateTime.now().timeZoneOffset;

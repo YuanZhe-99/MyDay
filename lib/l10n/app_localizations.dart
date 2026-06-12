@@ -377,6 +377,12 @@ abstract class AppLocalizations {
   /// **'Total Assets'**
   String get financeTotalAssets;
 
+  /// No description provided for @financeMissingRateWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'No exchange rate for {pairs}; converted 1:1'**
+  String financeMissingRateWarning(String pairs);
+
   /// No description provided for @financeAccounts.
   ///
   /// In en, this message translates to:

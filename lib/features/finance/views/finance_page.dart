@@ -371,6 +371,13 @@ class _FinancePageState extends State<FinancePage> {
         )
         .toList();
 
+    // Currency pairs that fell back to 1:1 because no rate path exists;
+    // surfaced as a warning under the summary so totals are not silently wrong.
+    final missingRatePairs = <String>{};
+    void trackMissingRate(String from, String to) {
+      missingRatePairs.add('$from→$to');
+    }
+
     final monthExpense = monthTransactions
         .where((t) => t.type == TransactionType.expense)
         .fold(
@@ -382,6 +389,7 @@ class _FinancePageState extends State<FinancePage> {
                 t.amount,
                 t.currency,
                 _defaultCurrency,
+                onMissingRate: trackMissingRate,
               ),
         );
     final monthIncome = monthTransactions
@@ -395,6 +403,7 @@ class _FinancePageState extends State<FinancePage> {
                 t.amount,
                 t.currency,
                 _defaultCurrency,
+                onMissingRate: trackMissingRate,
               ),
         );
     // Total assets = sum of all account balances converted to default currency
@@ -408,6 +417,7 @@ class _FinancePageState extends State<FinancePage> {
                   bal,
                   a.currency,
                   _defaultCurrency,
+                  onMissingRate: trackMissingRate,
                 );
           });
 
@@ -453,6 +463,7 @@ class _FinancePageState extends State<FinancePage> {
                   monthIncome: monthIncome,
                   totalAssets: totalAssets,
                   currencyCode: _defaultCurrency,
+                  missingRatePairs: missingRatePairs.toList()..sort(),
                   onPreviousMonth: () => setState(() {
                     _selectedFlowMonth = DateTime(
                       _selectedFlowMonth.year,
@@ -856,12 +867,13 @@ class _SummaryHeader extends StatelessWidget {
   final double monthIncome;
   final double totalAssets;
   final String currencyCode;
+  final List<String> missingRatePairs;
   final VoidCallback onPreviousMonth;
   final VoidCallback onNextMonth;
   final VoidCallback onPickMonth;
 
   /// Purpose: Create a summary header instance.
-  /// Inputs: Monthly totals and month navigation callbacks.
+  /// Inputs: Monthly totals, currency pairs lacking exchange rates, and month navigation callbacks.
   /// Returns: A new `_SummaryHeader` instance.
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
@@ -871,6 +883,7 @@ class _SummaryHeader extends StatelessWidget {
     required this.monthIncome,
     required this.totalAssets,
     required this.currencyCode,
+    required this.missingRatePairs,
     required this.onPreviousMonth,
     required this.onNextMonth,
     required this.onPickMonth,
@@ -956,6 +969,30 @@ class _SummaryHeader extends StatelessWidget {
               ),
             ),
           ),
+          if (missingRatePairs.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.warning_amber_rounded,
+                  size: 14,
+                  color: theme.colorScheme.error,
+                ),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: Text(
+                    l10n.financeMissingRateWarning(
+                      missingRatePairs.join(', '),
+                    ),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.error,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
