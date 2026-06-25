@@ -1262,6 +1262,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get intimacyPrice => '价格';
 
   @override
+  String get intimacyTotalCost => '总成本';
+
+  @override
+  String get intimacyDailyCost => '日均成本';
+
+  @override
+  String get intimacyCostTrend => '成本趋势';
+
+  @override
+  String get intimacyCostHistory => '历史';
+
+  @override
+  String get intimacyCostProjection => '预测';
+
+  @override
   String get intimacyPositions => '体位';
 
   @override
@@ -3014,6 +3029,21 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get intimacyPrice => '價格';
+
+  @override
+  String get intimacyTotalCost => '總成本';
+
+  @override
+  String get intimacyDailyCost => '日均成本';
+
+  @override
+  String get intimacyCostTrend => '成本趨勢';
+
+  @override
+  String get intimacyCostHistory => '歷史';
+
+  @override
+  String get intimacyCostProjection => '預測';
 
   @override
   String get intimacyPositions => '體位';

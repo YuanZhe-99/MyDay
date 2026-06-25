@@ -1264,6 +1264,21 @@ class AppLocalizationsJa extends AppLocalizations {
   String get intimacyPrice => '価格';
 
   @override
+  String get intimacyTotalCost => '総コスト';
+
+  @override
+  String get intimacyDailyCost => '日次コスト';
+
+  @override
+  String get intimacyCostTrend => 'コスト推移';
+
+  @override
+  String get intimacyCostHistory => '履歴';
+
+  @override
+  String get intimacyCostProjection => '予測';
+
+  @override
   String get intimacyPositions => '体位';
 
   @override

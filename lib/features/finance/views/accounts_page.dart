@@ -756,8 +756,9 @@ class _AccountsPageState extends State<AccountsPage> {
       physics: const NeverScrollableScrollPhysics(),
       buildDefaultDragHandles: false,
       itemCount: entries.length,
-      onReorder: (oldIndex, newIndex) {
-        _reorderAccounts(type, entries, oldIndex, newIndex);
+      onReorderItem: (oldIndex, newIndex) {
+        final oldStyleNewIndex = newIndex > oldIndex ? newIndex + 1 : newIndex;
+        _reorderAccounts(type, entries, oldIndex, oldStyleNewIndex);
       },
       proxyDecorator: (child, index, animation) {
         return Material(elevation: 4, child: child);
@@ -1086,7 +1087,12 @@ class _AccountPickerSettingsPageState
               physics: const NeverScrollableScrollPhysics(),
               buildDefaultDragHandles: false,
               itemCount: _orderedAccounts.length,
-              onReorder: _reorderCustomOrder,
+              onReorderItem: (oldIndex, newIndex) {
+                final oldStyleNewIndex = newIndex > oldIndex
+                    ? newIndex + 1
+                    : newIndex;
+                _reorderCustomOrder(oldIndex, oldStyleNewIndex);
+              },
               itemBuilder: (context, index) {
                 final account = _orderedAccounts[index];
                 return ListTile(

@@ -91,6 +91,48 @@ class Toy {
   }) : id = id ?? const Uuid().v4(),
        modifiedAt = modifiedAt ?? DateTime.now().toUtc();
 
+  /// Purpose: Report whether this toy has cost data to summarize.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: A zero price is still treated as explicit cost data.
+  bool get hasCostData => price != null;
+
+  /// Purpose: Calculate the toy's service days for cost averaging.
+  /// Inputs: Optional `asOf` date.
+  /// Returns: `int?`.
+  /// Side effects: None.
+  /// Notes: Requires a purchase date and clamps the minimum to one day.
+  int? serviceDays({DateTime? asOf}) {
+    if (purchaseDate == null) return null;
+    final now = asOf ?? DateTime.now();
+    var end = now;
+    if (retiredDate != null && retiredDate!.isBefore(end)) {
+      end = retiredDate!;
+    }
+    final days = end.difference(purchaseDate!).inDays + 1;
+    return days < 1 ? 1 : days;
+  }
+
+  /// Purpose: Return the toy's total recorded cost.
+  /// Inputs: Optional `asOf` date for API symmetry with daily cost.
+  /// Returns: `double`.
+  /// Side effects: None.
+  /// Notes: The current model has purchase cost only, so `asOf` is ignored.
+  double totalCost({DateTime? asOf}) => price ?? 0;
+
+  /// Purpose: Calculate the toy's average daily cost.
+  /// Inputs: Optional `asOf` date.
+  /// Returns: `double?`.
+  /// Side effects: None.
+  /// Notes: Returns null until both price and purchase date are available.
+  double? averageDailyCost({DateTime? asOf}) {
+    if (!hasCostData) return null;
+    final days = serviceDays(asOf: asOf);
+    if (days == null) return null;
+    return totalCost(asOf: asOf) / days;
+  }
+
   /// Purpose: Serialize this value into a JSON-compatible map.
   /// Inputs: None.
   /// Returns: A JSON-compatible map.

@@ -3007,8 +3007,10 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
       physics: const NeverScrollableScrollPhysics(),
       buildDefaultDragHandles: false,
       itemCount: partners.length,
-      onReorder: (oldIndex, newIndex) =>
-          _reorderPartners(statusKey, partners, oldIndex, newIndex),
+      onReorderItem: (oldIndex, newIndex) {
+        final oldStyleNewIndex = newIndex > oldIndex ? newIndex + 1 : newIndex;
+        _reorderPartners(statusKey, partners, oldIndex, oldStyleNewIndex);
+      },
       proxyDecorator: (child, index, animation) {
         return Material(elevation: 4, child: child);
       },
@@ -3802,9 +3804,8 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
   /// Side effects: May update UI state or trigger user-facing flows.
   /// Notes: Internal helper used within this file only.
   String _toySubtitle(Toy t, int recordCount) {
-    final parts = <String>[
-      AppLocalizations.of(context)!.intimacyRecordCount(recordCount),
-    ];
+    final l10n = AppLocalizations.of(context)!;
+    final parts = <String>[l10n.intimacyRecordCount(recordCount)];
     if (t.purchaseDate != null) {
       /// Purpose: Format a purchase date for the toy subtitle.
       /// Inputs: `d`.
@@ -3827,6 +3828,10 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
     }
     if (t.price != null) {
       parts.add('\$${t.price!.toStringAsFixed(2)}');
+    }
+    final dailyCost = t.averageDailyCost();
+    if (dailyCost != null) {
+      parts.add('${l10n.intimacyDailyCost}: \$${dailyCost.toStringAsFixed(2)}');
     }
     return parts.join(' · ');
   }
@@ -4030,8 +4035,10 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
       physics: const NeverScrollableScrollPhysics(),
       buildDefaultDragHandles: false,
       itemCount: toys.length,
-      onReorder: (oldIndex, newIndex) =>
-          _reorderToys(statusKey, toys, oldIndex, newIndex),
+      onReorderItem: (oldIndex, newIndex) {
+        final oldStyleNewIndex = newIndex > oldIndex ? newIndex + 1 : newIndex;
+        _reorderToys(statusKey, toys, oldIndex, oldStyleNewIndex);
+      },
       proxyDecorator: (child, index, animation) {
         return Material(elevation: 4, child: child);
       },
@@ -4586,6 +4593,17 @@ class _FilteredRecordsPageState extends ConsumerState<_FilteredRecordsPage> {
     return filtered;
   }
 
+  /// Purpose: Return the toy represented by this filtered detail page.
+  /// Inputs: None.
+  /// Returns: `Toy?`.
+  /// Side effects: None.
+  /// Notes: Partner detail pages return null so cost UI stays toy-only.
+  Toy? get _selectedToy {
+    final toyId = widget.toyId;
+    if (toyId == null) return null;
+    return widget.toys.where((toy) => toy.id == toyId).firstOrNull;
+  }
+
   /// Purpose: Return partners available in the add/edit record dialog.
   /// Inputs: Optional partner id that must be included.
   /// Returns: `List<Partner>`.
@@ -4693,12 +4711,23 @@ class _FilteredRecordsPageState extends ConsumerState<_FilteredRecordsPage> {
     return '${duration.inMinutes}m';
   }
 
+  /// Purpose: Format an intimacy toy cost amount for display.
+  /// Inputs: `amount`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Toy prices currently use the same plain dollar display as toy subtitles.
+  String _formatMoney(double amount) => '\$${amount.toStringAsFixed(2)}';
+
   /// Purpose: Build the top summary card for this filtered record set.
-  /// Inputs: `theme`, `records`.
+  /// Inputs: `theme`, `records`, optional `toy`.
   /// Returns: `Widget`.
   /// Side effects: Creates UI widgets from the current state.
-  /// Notes: Empty record sets show placeholders instead of averages.
-  Widget _buildSummaryCard(ThemeData theme, List<IntimacyRecord> records) {
+  /// Notes: Toy detail pages include cost metrics beside record averages.
+  Widget _buildSummaryCard(
+    ThemeData theme,
+    List<IntimacyRecord> records, {
+    Toy? toy,
+  }) {
     final l10n = AppLocalizations.of(context)!;
     final avgPleasure = records.isEmpty
         ? null
@@ -4715,6 +4744,30 @@ class _FilteredRecordsPageState extends ConsumerState<_FilteredRecordsPage> {
                         records.length)
                     .round(),
           );
+    final metrics = [
+      (
+        label: l10n.intimacyAvgPleasure,
+        value: avgPleasure == null
+            ? '-'
+            : '${avgPleasure.toStringAsFixed(1)}/5',
+      ),
+      (
+        label: l10n.intimacyAvgDuration,
+        value: avgDuration == null ? '-' : _formatDuration(avgDuration),
+      ),
+      if (toy != null)
+        (
+          label: l10n.intimacyTotalCost,
+          value: toy.hasCostData ? _formatMoney(toy.totalCost()) : '-',
+        ),
+      if (toy != null)
+        (
+          label: l10n.intimacyDailyCost,
+          value: toy.averageDailyCost() == null
+              ? '-'
+              : _formatMoney(toy.averageDailyCost()!),
+        ),
+    ];
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Card(
@@ -4730,26 +4783,31 @@ class _FilteredRecordsPageState extends ConsumerState<_FilteredRecordsPage> {
                 ),
               ),
               const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildSummaryMetric(
-                      theme,
-                      l10n.intimacyAvgPleasure,
-                      avgPleasure == null
-                          ? '-'
-                          : '${avgPleasure.toStringAsFixed(1)}/5',
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildSummaryMetric(
-                      theme,
-                      l10n.intimacyAvgDuration,
-                      avgDuration == null ? '-' : _formatDuration(avgDuration),
-                    ),
-                  ),
-                ],
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final columns = constraints.maxWidth >= 720
+                      ? math.min(metrics.length, 4)
+                      : constraints.maxWidth >= 360
+                      ? math.min(metrics.length, 2)
+                      : 1;
+                  final itemWidth =
+                      (constraints.maxWidth - (columns - 1) * 16) / columns;
+                  return Wrap(
+                    spacing: 16,
+                    runSpacing: 14,
+                    children: [
+                      for (final metric in metrics)
+                        SizedBox(
+                          width: itemWidth,
+                          child: _buildSummaryMetric(
+                            theme,
+                            metric.label,
+                            metric.value,
+                          ),
+                        ),
+                    ],
+                  );
+                },
               ),
             ],
           ),
@@ -4902,11 +4960,13 @@ class _FilteredRecordsPageState extends ConsumerState<_FilteredRecordsPage> {
     final l10n = AppLocalizations.of(context)!;
     final settings = ref.watch(appSettingsProvider);
     final records = _filteredRecords;
+    final selectedToy = _selectedToy;
     return Scaffold(
       appBar: AppBar(title: Text(widget.title), centerTitle: true),
       body: ListView(
         children: [
-          _buildSummaryCard(theme, records),
+          _buildSummaryCard(theme, records, toy: selectedToy),
+          if (selectedToy != null) _ToyCostTrendSection(toy: selectedToy),
           if (records.length >= 2)
             _FilteredRecordsTrendSection(records: records),
           const Divider(height: 1),
@@ -4933,6 +4993,586 @@ class _FilteredRecordsPageState extends ConsumerState<_FilteredRecordsPage> {
       ),
     );
   }
+}
+
+class _ToyCostTrendSection extends StatefulWidget {
+  final Toy toy;
+
+  /// Purpose: Create a toy cost trend section instance.
+  /// Inputs: `toy`.
+  /// Returns: A new `_ToyCostTrendSection` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  const _ToyCostTrendSection({required this.toy});
+
+  /// Purpose: Create the mutable state object for this widget.
+  /// Inputs: None.
+  /// Returns: A new `State` instance.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: None.
+  @override
+  State<_ToyCostTrendSection> createState() => _ToyCostTrendSectionState();
+}
+
+class _ToyCostTrendSectionState extends State<_ToyCostTrendSection> {
+  _IntimacyChartRange _chartRange = _IntimacyChartRange.oneYear;
+
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Shows cost data even when the toy has no matching intimacy records.
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final labels = {
+      _IntimacyChartRange.oneWeek: '1W',
+      _IntimacyChartRange.oneMonth: '1M',
+      _IntimacyChartRange.threeMonths: '3M',
+      _IntimacyChartRange.sixMonths: '6M',
+      _IntimacyChartRange.oneYear: '1Y',
+      _IntimacyChartRange.all: l10n.weightAll,
+    };
+    final today = _dateOnly(DateTime.now());
+    final historyStart = _historyStart(today);
+    final futureEnd = _futureEnd(today, historyStart);
+    final dates = _timeline(historyStart, today, futureEnd);
+    final trendData = _buildTrendData(dates, today);
+    final hasData =
+        trendData.historySpots.isNotEmpty || trendData.futureSpots.isNotEmpty;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l10n.intimacyCostTrend,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 4,
+                runSpacing: 4,
+                children: [
+                  for (final entry in labels.entries)
+                    ChoiceChip(
+                      label: Text(
+                        entry.value,
+                        style: const TextStyle(fontSize: 11),
+                      ),
+                      selected: _chartRange == entry.key,
+                      onSelected: (_) =>
+                          setState(() => _chartRange = entry.key),
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      labelPadding: const EdgeInsets.symmetric(horizontal: 6),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              if (!hasData)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 28),
+                  child: Center(
+                    child: Text(
+                      l10n.intimacyChartNoData,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                )
+              else
+                _buildCostChart(theme, l10n, trendData),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Purpose: Build the toy daily-cost line chart.
+  /// Inputs: `theme`, `l10n`, `trendData`.
+  /// Returns: `Widget`.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Values use a log scale so early high daily cost does not flatten later points.
+  Widget _buildCostChart(
+    ThemeData theme,
+    AppLocalizations l10n,
+    _ToyCostTrendData trendData,
+  ) {
+    final series = [
+      (
+        label: l10n.intimacyCostHistory,
+        color: theme.colorScheme.primary,
+        spots: trendData.historySpots,
+        dashed: false,
+      ),
+      (
+        label: l10n.intimacyCostProjection,
+        color: theme.colorScheme.primary,
+        spots: trendData.futureSpots,
+        dashed: true,
+      ),
+    ].where((item) => item.spots.isNotEmpty).toList();
+    final allSpots = series.expand((item) => item.spots).toList();
+    final minX = allSpots.map((spot) => spot.x).reduce(math.min);
+    final maxX = allSpots.map((spot) => spot.x).reduce(math.max);
+    final xPadding = minX == maxX ? const Duration(days: 1).inMilliseconds : 0;
+    final bounds = _chartBounds(trendData.minY, trendData.maxY);
+    final transformedMinY = _logTransform(bounds.minY);
+    final transformedMaxY = _logTransform(bounds.maxY);
+    final yRange = transformedMaxY - transformedMinY;
+    final horizontalInterval = yRange > 0 ? yRange / 4 : 1.0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 20,
+          runSpacing: 8,
+          children: [
+            for (final item in series)
+              _legendLine(item.color, item.label, item.dashed),
+          ],
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 220,
+          child: LineChart(
+            LineChartData(
+              minX: minX - xPadding,
+              maxX: maxX + xPadding,
+              minY: transformedMinY,
+              maxY: transformedMaxY,
+              gridData: FlGridData(
+                show: true,
+                drawVerticalLine: false,
+                horizontalInterval: horizontalInterval,
+                getDrawingHorizontalLine: (value) => FlLine(
+                  color: theme.colorScheme.outlineVariant.withValues(
+                    alpha: 0.3,
+                  ),
+                  strokeWidth: 0.5,
+                ),
+              ),
+              titlesData: FlTitlesData(
+                topTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                rightTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 28,
+                    interval: _dateInterval(minX, maxX),
+                    minIncluded: false,
+                    maxIncluded: false,
+                    getTitlesWidget: (value, meta) {
+                      final date = DateTime.fromMillisecondsSinceEpoch(
+                        value.toInt(),
+                      );
+                      return SideTitleWidget(
+                        meta: meta,
+                        child: Text(
+                          _dateLabel(date, minX, maxX, l10n.localeName),
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            fontSize: 9,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                leftTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 48,
+                    interval: horizontalInterval,
+                    getTitlesWidget: (value, meta) {
+                      if (value == transformedMinY ||
+                          value == transformedMaxY) {
+                        return const SizedBox.shrink();
+                      }
+                      return SideTitleWidget(
+                        meta: meta,
+                        child: Text(
+                          _axisText(_logInverse(value)),
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            fontSize: 9,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              borderData: FlBorderData(
+                show: true,
+                border: Border.all(
+                  color: theme.colorScheme.outlineVariant.withValues(
+                    alpha: 0.3,
+                  ),
+                ),
+              ),
+              lineBarsData: [
+                for (final item in series)
+                  LineChartBarData(
+                    spots: [
+                      for (final spot in item.spots)
+                        FlSpot(spot.x, _logTransform(spot.y)),
+                    ],
+                    isCurved: item.spots.length > 2,
+                    curveSmoothness: 0.16,
+                    preventCurveOverShooting: true,
+                    color: item.color,
+                    barWidth: 2.5,
+                    dashArray: item.dashed ? [7, 5] : null,
+                    dotData: const FlDotData(show: false),
+                    belowBarData: BarAreaData(
+                      show: !item.dashed,
+                      color: item.color.withAlpha(20),
+                    ),
+                  ),
+              ],
+              lineTouchData: LineTouchData(
+                touchTooltipData: LineTouchTooltipData(
+                  getTooltipItems: (spots) => spots.map((spot) {
+                    final item = series[spot.barIndex];
+                    final date = DateTime.fromMillisecondsSinceEpoch(
+                      spot.x.toInt(),
+                    );
+                    return LineTooltipItem(
+                      '${DateFormat('MMM d', l10n.localeName).format(date)}\n'
+                      '${item.label}: ${_moneyText(_logInverse(spot.y))}',
+                      TextStyle(
+                        color: item.color,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Purpose: Build a compact line legend marker.
+  /// Inputs: `color`, `label`, `dashed`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Matches the solid/history and dashed/projection chart styles.
+  Widget _legendLine(Color color, String label, bool dashed) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 18,
+          height: 2,
+          decoration: BoxDecoration(
+            color: dashed ? Colors.transparent : color,
+            borderRadius: BorderRadius.circular(1),
+          ),
+          child: dashed
+              ? Row(
+                  children: [
+                    Container(width: 7, color: color),
+                    const SizedBox(width: 4),
+                    Container(width: 7, color: color),
+                  ],
+                )
+              : null,
+        ),
+        const SizedBox(width: 6),
+        Text(label, style: const TextStyle(fontSize: 12)),
+      ],
+    );
+  }
+
+  /// Purpose: Build the daily-cost spots for the selected time range.
+  /// Inputs: `dates`, `today`.
+  /// Returns: `_ToyCostTrendData`.
+  /// Side effects: None.
+  /// Notes: The current day is included in both history and projection lines.
+  _ToyCostTrendData _buildTrendData(List<DateTime> dates, DateTime today) {
+    final historySpots = <FlSpot>[];
+    final futureSpots = <FlSpot>[];
+    final values = <double>[];
+
+    for (final date in dates) {
+      final value = _dailyCostAt(date);
+      if (value == null) continue;
+      values.add(value);
+      final spot = FlSpot(date.millisecondsSinceEpoch.toDouble(), value);
+      if (!date.isAfter(today)) historySpots.add(spot);
+      if (!date.isBefore(today)) futureSpots.add(spot);
+    }
+
+    if (values.isEmpty) {
+      return const _ToyCostTrendData(
+        historySpots: [],
+        futureSpots: [],
+        minY: 0,
+        maxY: 0,
+      );
+    }
+
+    return _ToyCostTrendData(
+      historySpots: historySpots,
+      futureSpots: futureSpots,
+      minY: values.reduce(math.min),
+      maxY: values.reduce(math.max),
+    );
+  }
+
+  /// Purpose: Calculate the toy's average daily cost on a specific date.
+  /// Inputs: `date`.
+  /// Returns: `double?`.
+  /// Side effects: None.
+  /// Notes: Future dates before a future purchase date do not emit chart points.
+  double? _dailyCostAt(DateTime date) {
+    if (!widget.toy.hasCostData || widget.toy.purchaseDate == null) return null;
+    final purchaseDate = _dateOnly(widget.toy.purchaseDate!);
+    if (date.isBefore(purchaseDate)) return null;
+    var serviceEnd = date;
+    if (widget.toy.retiredDate != null) {
+      final retiredDate = _dateOnly(widget.toy.retiredDate!);
+      if (retiredDate.isBefore(serviceEnd)) serviceEnd = retiredDate;
+    }
+    if (serviceEnd.isBefore(purchaseDate)) return null;
+    final days = serviceEnd.difference(purchaseDate).inDays + 1;
+    return widget.toy.totalCost() / math.max(1, days);
+  }
+
+  /// Purpose: Return the first date shown for the selected cost range.
+  /// Inputs: `today`.
+  /// Returns: `DateTime`.
+  /// Side effects: None.
+  /// Notes: The all range starts at the toy purchase date when available.
+  DateTime _historyStart(DateTime today) {
+    final purchaseDate = widget.toy.purchaseDate == null
+        ? null
+        : _dateOnly(widget.toy.purchaseDate!);
+    final start = switch (_chartRange) {
+      _IntimacyChartRange.oneWeek => today.subtract(const Duration(days: 7)),
+      _IntimacyChartRange.oneMonth => DateTime(
+        today.year,
+        today.month - 1,
+        today.day,
+      ),
+      _IntimacyChartRange.threeMonths => DateTime(
+        today.year,
+        today.month - 3,
+        today.day,
+      ),
+      _IntimacyChartRange.sixMonths => DateTime(
+        today.year,
+        today.month - 6,
+        today.day,
+      ),
+      _IntimacyChartRange.oneYear => DateTime(
+        today.year - 1,
+        today.month,
+        today.day,
+      ),
+      _IntimacyChartRange.all =>
+        purchaseDate ?? DateTime(today.year - 1, today.month, today.day),
+    };
+    return start.isAfter(today) ? today : start;
+  }
+
+  /// Purpose: Return the projected end date for the selected cost range.
+  /// Inputs: `today`, `historyStart`.
+  /// Returns: `DateTime`.
+  /// Side effects: None.
+  /// Notes: Mirrors MyDevice by projecting forward for the same range length.
+  DateTime _futureEnd(DateTime today, DateTime historyStart) {
+    final days = today.difference(historyStart).inDays.abs();
+    var futureEnd = today.add(Duration(days: math.max(days, 30)));
+    if (widget.toy.purchaseDate != null) {
+      final purchaseDate = _dateOnly(widget.toy.purchaseDate!);
+      if (purchaseDate.isAfter(futureEnd)) {
+        futureEnd = purchaseDate.add(const Duration(days: 30));
+      }
+    }
+    return futureEnd;
+  }
+
+  /// Purpose: Create sampled dates for the selected cost range.
+  /// Inputs: `historyStart`, `today`, `futureEnd`.
+  /// Returns: `List<DateTime>`.
+  /// Side effects: None.
+  /// Notes: Purchase, retirement, today, and end dates are always included.
+  List<DateTime> _timeline(
+    DateTime historyStart,
+    DateTime today,
+    DateTime futureEnd,
+  ) {
+    final totalDays = math.max(1, futureEnd.difference(historyStart).inDays);
+    final step = totalDays <= 240
+        ? const Duration(days: 1)
+        : totalDays <= 1800
+        ? const Duration(days: 7)
+        : const Duration(days: 30);
+    final dates = <DateTime>[];
+    for (
+      var date = historyStart;
+      !date.isAfter(futureEnd);
+      date = date.add(step)
+    ) {
+      dates.add(_dateOnly(date));
+    }
+    dates.add(today);
+    dates.add(futureEnd);
+    if (widget.toy.purchaseDate != null) {
+      dates.add(_dateOnly(widget.toy.purchaseDate!));
+    }
+    if (widget.toy.retiredDate != null) {
+      dates.add(_dateOnly(widget.toy.retiredDate!));
+    }
+    dates.sort();
+
+    final deduped = <DateTime>[];
+    for (final date in dates) {
+      if (deduped.isEmpty || deduped.last != date) deduped.add(date);
+    }
+    return deduped;
+  }
+
+  /// Purpose: Return a date-only value for day-based cost calculations.
+  /// Inputs: `date`.
+  /// Returns: `DateTime`.
+  /// Side effects: None.
+  /// Notes: Keeps cost days stable regardless of the original timestamp.
+  DateTime _dateOnly(DateTime date) =>
+      DateTime(date.year, date.month, date.day);
+
+  /// Purpose: Return padded chart bounds for daily-cost values.
+  /// Inputs: `minY`, `maxY`.
+  /// Returns: A min/max record.
+  /// Side effects: None.
+  /// Notes: Keeps flat zero-cost charts visible.
+  ({double minY, double maxY}) _chartBounds(double minY, double maxY) {
+    if (minY == maxY) {
+      final padding = minY.abs() * 0.1;
+      final safePadding = padding == 0 ? 1.0 : padding;
+      return (minY: math.min(0, minY - safePadding), maxY: maxY + safePadding);
+    }
+
+    final padding = (maxY - minY).abs() * 0.1;
+    return (minY: math.min(0, minY - padding), maxY: maxY + padding);
+  }
+
+  /// Purpose: Transform a cost value for log-scale charting.
+  /// Inputs: `value`.
+  /// Returns: `double`.
+  /// Side effects: None.
+  /// Notes: Supports zero and negative values without infinities.
+  double _logTransform(double value) {
+    if (value == 0) return 0;
+    final sign = value < 0 ? -1 : 1;
+    return sign * math.log(value.abs() + 1) / math.ln10;
+  }
+
+  /// Purpose: Convert a log-scale chart value back to cost.
+  /// Inputs: `value`.
+  /// Returns: `double`.
+  /// Side effects: None.
+  /// Notes: Mirrors `_logTransform` for labels and tooltips.
+  double _logInverse(double value) {
+    if (value == 0) return 0;
+    final sign = value < 0 ? -1 : 1;
+    return (sign * (math.pow(10, value.abs()) - 1)).toDouble();
+  }
+
+  /// Purpose: Return a bottom-axis date interval in milliseconds.
+  /// Inputs: `minX`, `maxX`.
+  /// Returns: `double`.
+  /// Side effects: None.
+  /// Notes: Uses broad thresholds to avoid crowded date labels.
+  double _dateInterval(double minX, double maxX) {
+    final spanDays = (maxX - minX).abs() / (86400 * 1000);
+    const day = 86400 * 1000.0;
+    if (spanDays <= 7) return 2 * day;
+    if (spanDays <= 30) return 7 * day;
+    if (spanDays <= 90) return 21 * day;
+    if (spanDays <= 180) return 45 * day;
+    if (spanDays <= 365) return 90 * day;
+    if (spanDays <= 730) return 180 * day;
+    return 365 * day;
+  }
+
+  /// Purpose: Format a chart date-axis label.
+  /// Inputs: `date`, `minX`, `maxX`, `localeName`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Uses years for long ranges and month/day for shorter ranges.
+  String _dateLabel(
+    DateTime date,
+    double minX,
+    double maxX,
+    String localeName,
+  ) {
+    final spanDays = (maxX - minX).abs() / (86400 * 1000);
+    final formatter = spanDays > 730
+        ? DateFormat('yyyy', localeName)
+        : spanDays > 365
+        ? DateFormat('M/yy', localeName)
+        : DateFormat('M/d', localeName);
+    return formatter.format(date);
+  }
+
+  /// Purpose: Format a money amount for chart tooltips.
+  /// Inputs: `amount`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Toy prices currently use plain dollar display.
+  String _moneyText(double amount) => '\$${amount.toStringAsFixed(2)}';
+
+  /// Purpose: Format a compact axis value.
+  /// Inputs: `value`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Keeps large costs readable on narrow left axes.
+  String _axisText(double value) {
+    final abs = value.abs();
+    final sign = value < 0 ? '-' : '';
+    if (abs >= 1000000) return '$sign${(abs / 1000000).toStringAsFixed(1)}m';
+    if (abs >= 1000) return '$sign${(abs / 1000).toStringAsFixed(1)}k';
+    return value.toStringAsFixed(0);
+  }
+}
+
+class _ToyCostTrendData {
+  final List<FlSpot> historySpots;
+  final List<FlSpot> futureSpots;
+  final double minY;
+  final double maxY;
+
+  /// Purpose: Create toy cost trend data for chart rendering.
+  /// Inputs: History/future spots and y-axis bounds.
+  /// Returns: A new `_ToyCostTrendData` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  const _ToyCostTrendData({
+    required this.historySpots,
+    required this.futureSpots,
+    required this.minY,
+    required this.maxY,
+  });
 }
 
 class _FilteredRecordsTrendSection extends StatefulWidget {

@@ -555,6 +555,7 @@ class IconRef {
   /// Inputs: None.
   /// Returns: `IconData`.
   /// Side effects: May create, transform, or mutate data used by callers.
-  /// Notes: None.
+  /// Notes: Dynamic persisted icon references intentionally cannot be const.
+  // ignore: non_const_argument_for_const_parameter
   IconData toIconData() => IconData(codePoint, fontFamily: fontFamily);
 }

@@ -435,7 +435,12 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
                   physics: const NeverScrollableScrollPhysics(),
                   buildDefaultDragHandles: false,
                   itemCount: _subtasks.length,
-                  onReorder: _reorderSubtask,
+                  onReorderItem: (oldIndex, newIndex) {
+                    final oldStyleNewIndex = newIndex > oldIndex
+                        ? newIndex + 1
+                        : newIndex;
+                    _reorderSubtask(oldIndex, oldStyleNewIndex);
+                  },
                   itemBuilder: (context, index) {
                     final subtask = _subtasks[index];
                     return Padding(

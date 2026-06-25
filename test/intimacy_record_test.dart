@@ -61,6 +61,31 @@ void main() {
     expect(restored.usedCondom, isTrue);
   });
 
+  test('computes toy total cost and average daily cost', () {
+    final toy = Toy(
+      name: 'Test toy',
+      price: 100,
+      purchaseDate: DateTime.utc(2026, 1),
+      retiredDate: DateTime.utc(2026, 1, 10),
+    );
+
+    expect(toy.hasCostData, isTrue);
+    expect(toy.totalCost(), 100);
+    expect(toy.serviceDays(asOf: DateTime.utc(2026, 1, 5)), 5);
+    expect(toy.averageDailyCost(asOf: DateTime.utc(2026, 1, 5)), 20);
+    expect(toy.serviceDays(asOf: DateTime.utc(2026, 1, 20)), 10);
+    expect(toy.averageDailyCost(asOf: DateTime.utc(2026, 1, 20)), 10);
+  });
+
+  test('omits toy average daily cost without purchase date', () {
+    final toy = Toy(name: 'Undated toy', price: 12);
+
+    expect(toy.hasCostData, isTrue);
+    expect(toy.totalCost(), 12);
+    expect(toy.serviceDays(asOf: DateTime.utc(2026, 1)), isNull);
+    expect(toy.averageDailyCost(asOf: DateTime.utc(2026, 1)), isNull);
+  });
+
   test('round-trips running timer session', () {
     final session = IntimacyTimerSession(
       firstStartedAt: DateTime.utc(2026, 5, 23, 20),

@@ -555,8 +555,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     final items = List.of(active);
     return ReorderableListView.builder(
       itemCount: items.length,
-      onReorder: (oldIndex, newIndex) {
-        if (newIndex > oldIndex) newIndex--;
+      onReorderItem: (oldIndex, newIndex) {
         setState(() {
           final item = _customOrder.removeAt(oldIndex);
           _customOrder.insert(newIndex, item);

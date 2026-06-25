@@ -29,9 +29,9 @@ Maintenance rules:
 - **Package id:** Dart package `my_day`; Android namespace/application id `com.yuanzhe.my_day`; MSIX identity `com.yuanzhe.myday`; macOS bundle id `com.yuanzhe.myDay`.
 - **Author / publisher:** `yuanzhe`.
 - **License:** GPL-3.0.
-- **Current version:** `1.0.0+44` in `pubspec.yaml`, `1.0.0.0` in `msix_config.msix_version`, and `1.0.0` in `installer.iss`.
-- **Latest tag at the time this guide was written:** `v1.0.0`.
-- **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.41.6`.
+- **Current version:** `1.0.1+45` in `pubspec.yaml`, `1.0.1.0` in `msix_config.msix_version`, and `1.0.1` in `installer.iss`.
+- **Latest tag at the time this guide was written:** `v1.0.1`.
+- **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.44.2`.
 - **Primary platforms:** Windows x64/ARM64, Android APK/AAB, iOS sideload IPA, and macOS DMG. Linux project support exists for desktop runtime features but is not a primary release artifact.
 - **Repository:** Use the current environment's workspace root / repository path instead of hard-coding an absolute local path.
 - **Remotes:**
@@ -210,14 +210,14 @@ The intimacy module is hidden by default and can be enabled from Settings. Hidin
 Main model: `lib/features/intimacy/models/intimacy_record.dart`.
 
 - `Partner`: optional emoji/image, relationship start/end dates, `modifiedAt`.
-- `Toy`: optional emoji/image, purchase/retired dates, purchase link, price, `modifiedAt`.
+- `Toy`: optional emoji/image, purchase/retired dates, purchase link, price, cost summary helpers, `modifiedAt`.
 - `Position`: name, optional emoji, `modifiedAt`.
 - `IntimacyRecord`: solo/partnered type, location, partner id, toy ids, position ids, pleasure level, duration, optional thrust count with x100/x1 unit, datetime, notes, orgasm/porn/condom flags, `modifiedAt`.
 - `TimerHistoryEntry`: timer start, duration, optional x100/x1 thrust count, with legacy `end` migration.
 - `IntimacyTimerSession`: persisted active/paused stopwatch session with original start time, last resume time, accumulated elapsed time, running flag, optional x100/x1 thrust count, and independent `timerSessionModifiedAt` for LWW sync.
 - `IntimacyData`: partners, toys, positions, records, timer history, active timer session, timer retention setting, partner/toy sort modes/custom orders, and `settingsModifiedAt`.
 
-The UI supports record list sorting/filtering, a limited default recent-history list with a show-all sheet, partner/toy/position management, default position import, partner break-up state, toy retirement state, exclusion of inactive partners/toys from new record pickers, EWMA/raw trend charts for pleasure/frequency and duration/thrust-count with dual axes, weekly grouping that follows the global week start day, condom tracking, and a stopwatch timer with a non-negative x100 thrust counter whose history and interrupted active/paused session are stored in `intimacy_data.json`. Stopped-and-saved timer sessions are cleared; stopped-but-unsaved and paused sessions restore as paused; running sessions resume from wall-clock time; history rows can be confirmed and restored as running sessions while removing that history row.
+The UI supports record list sorting/filtering, a limited default recent-history list with a show-all sheet, partner/toy/position management, default position import, partner break-up state, toy retirement state, toy detail total/daily cost summaries and daily-cost trend charts, per-toy daily cost subtitles, exclusion of inactive partners/toys from new record pickers, EWMA/raw trend charts for pleasure/frequency and duration/thrust-count with dual axes, weekly grouping that follows the global week start day, condom tracking, and a stopwatch timer with a non-negative x100 thrust counter whose history and interrupted active/paused session are stored in `intimacy_data.json`. Stopped-and-saved timer sessions are cleared; stopped-but-unsaved and paused sessions restore as paused; running sessions resume from wall-clock time; history rows can be confirmed and restored as running sessions while removing that history row.
 
 ### Weight
 
@@ -410,7 +410,7 @@ Default app data directory is `Documents/MyDay/` on desktop or the platform app 
 | Job | Runner | Output | Notes |
 | --- | --- | --- | --- |
 | `android` | `ubuntu-latest` | APK + AAB | Java 17, optional signing secrets, APK `FLAVOR=full`, AAB `FLAVOR=store` |
-| `windows-x64` | `windows-latest` | Inno x64 installer | Stable Flutter `3.41.6`, `iscc installer.iss` |
+| `windows-x64` | `windows-latest` | Inno x64 installer | Stable Flutter `3.44.2`, `iscc installer.iss` |
 | `windows-arm64` | `windows-11-arm` | Inno ARM64 installer | Flutter master for ARM64 engine, `iscc /DARM64 installer.iss` |
 | `ios` | `macos-latest` | Sideload IPA | Release, no codesign |
 | `macos` | `macos-latest` | DMG | Uses `create-dmg` |
@@ -484,3 +484,4 @@ Use the narrowest relevant command set for verification. For sync/model/persiste
 - `v0.7.15`: Weight summary cards and body-measurement trend charts inherit missing bust/waist/hip values from the latest previous positive value per field while leaving each record's stored empty fields unchanged; iOS launcher icons add safe-area default, dark, and tinted variants; Windows CI sets a temporary VS/MSVC 18 coroutine deprecation compatibility flag; and versions are unified to `0.7.15+42` / MSIX `0.7.15.0` / installer `0.7.15`.
 - `v0.8.0`: Refreshed the local HTTP API for Todo, Finance, and Weight with stricter Basic Auth, enriched task/transaction/weight payloads, day score and finance account/category endpoints, converted finance summaries, transfer-aware transaction creation, body-composition weight writes, and local API regression tests; versions are unified to `0.8.0+43` / MSIX `0.8.0.0` / installer `0.8.0`.
 - `v1.0.0`: Pre-release audit hardening — WebDAV downloads distinguish 404 from errors so transient failures can never overwrite the remote or cascade into cross-device deletions, upload failures (including ETag `If-Match` 412 conflicts) surface as per-file sync errors instead of silent success, cross-module conflict resolution no longer crashes and unresolved conflicts default to the local record, all `modifiedAt`/settings timestamps are written in UTC, month-end subscription billing dates clamp instead of skipping months, the exchange-rate merge never keeps a dangling current snapshot id, weight height follows settings LWW, the in-process reminder loop is desktop-only with ≥-time due semantics and persisted per-day dedupe, mobile subscription reminders are per-day one-shots with day-accurate content, weight grace skips keep the daily repeat, deleted/completed daily templates stop reminding, IANA timezone resolution via `flutter_timezone`, 15-minute periodic auto-sync plus sync-on-config-save, allowlist-based ZIP import, missing-exchange-rate warnings on the finance summary, removed unused `SCHEDULE_EXACT_ALARM`, and versions unified to `1.0.0+44` / MSIX `1.0.0.0` / installer `1.0.0`.
+- `v1.0.1`: Added intimacy toy cost summaries and daily-cost trend charts to toy detail pages, showed each toy's daily cost in toy management subtitles, updated GitHub Actions stable Flutter to `3.44.2`, configured the GitHub remote locally, and versions unified to `1.0.1+45` / MSIX `1.0.1.0` / installer `1.0.1`.

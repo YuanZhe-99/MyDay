@@ -203,8 +203,10 @@ class _TaskReorderList extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       buildDefaultDragHandles: false,
       itemCount: tasks.length,
-      onReorder: (oldIndex, newIndex) =>
-          onReorder?.call(tasks, oldIndex, newIndex),
+      onReorderItem: (oldIndex, newIndex) {
+        final oldStyleNewIndex = newIndex > oldIndex ? newIndex + 1 : newIndex;
+        onReorder?.call(tasks, oldIndex, oldStyleNewIndex);
+      },
       proxyDecorator: (child, index, animation) {
         return Material(elevation: 4, child: child);
       },

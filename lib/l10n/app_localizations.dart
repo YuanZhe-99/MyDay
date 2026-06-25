@@ -2519,6 +2519,36 @@ abstract class AppLocalizations {
   /// **'Price'**
   String get intimacyPrice;
 
+  /// No description provided for @intimacyTotalCost.
+  ///
+  /// In en, this message translates to:
+  /// **'Total cost'**
+  String get intimacyTotalCost;
+
+  /// No description provided for @intimacyDailyCost.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily cost'**
+  String get intimacyDailyCost;
+
+  /// No description provided for @intimacyCostTrend.
+  ///
+  /// In en, this message translates to:
+  /// **'Cost trend'**
+  String get intimacyCostTrend;
+
+  /// No description provided for @intimacyCostHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get intimacyCostHistory;
+
+  /// No description provided for @intimacyCostProjection.
+  ///
+  /// In en, this message translates to:
+  /// **'Projection'**
+  String get intimacyCostProjection;
+
   /// No description provided for @intimacyPositions.
   ///
   /// In en, this message translates to:
