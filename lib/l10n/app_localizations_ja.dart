@@ -1279,6 +1279,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get intimacyCostProjection => '予測';
 
   @override
+  String get intimacyToyCosts => 'トイのコスト';
+
+  @override
+  String get intimacyActiveCost => '使用中コスト';
+
+  @override
+  String get intimacyRetiredCostFinalized => '引退済みトイのコストは確定済みのため、将来推移は表示しません。';
+
+  @override
   String get intimacyPositions => '体位';
 
   @override

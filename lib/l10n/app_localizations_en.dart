@@ -1297,6 +1297,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get intimacyCostProjection => 'Projection';
 
   @override
+  String get intimacyToyCosts => 'Toy costs';
+
+  @override
+  String get intimacyActiveCost => 'Active cost';
+
+  @override
+  String get intimacyRetiredCostFinalized =>
+      'Retired toy costs are finalized, so no future trend is shown.';
+
+  @override
   String get intimacyPositions => 'Positions';
 
   @override

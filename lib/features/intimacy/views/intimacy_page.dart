@@ -32,6 +32,8 @@ enum _IntimacyChartRange {
   all,
 }
 
+enum _ToyCostScope { all, active, retired }
+
 const Color _intimacyFrequencyChartColor = Color(0xFF00796B);
 const Color _intimacyDurationChartColor = Color(0xFFF57C00);
 const Color _intimacyThrustChartColor = Color(0xFF8E24AA);
@@ -3285,6 +3287,38 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
   int _toyRecordCount(Toy toy) =>
       _records.where((r) => r.toyIds.contains(toy.id)).length;
 
+  /// Purpose: Format an intimacy toy cost amount for display.
+  /// Inputs: `amount`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Toy prices currently use plain dollar display.
+  String _formatMoney(double amount) => '\$${amount.toStringAsFixed(2)}';
+
+  /// Purpose: Sum total recorded toy costs.
+  /// Inputs: `toys`.
+  /// Returns: `double`.
+  /// Side effects: None.
+  /// Notes: Toys without a price contribute zero.
+  double _totalToyCost(List<Toy> toys) =>
+      toys.fold(0.0, (sum, toy) => sum + toy.totalCost());
+
+  /// Purpose: Sum average daily costs when they can be calculated.
+  /// Inputs: `toys`.
+  /// Returns: `double?`.
+  /// Side effects: None.
+  /// Notes: Returns null when no toy has both price and purchase date.
+  double? _totalDailyToyCost(List<Toy> toys) {
+    var total = 0.0;
+    var hasDailyCost = false;
+    for (final toy in toys) {
+      final dailyCost = toy.averageDailyCost();
+      if (dailyCost == null) continue;
+      hasDailyCost = true;
+      total += dailyCost;
+    }
+    return hasDailyCost ? total : null;
+  }
+
   /// Purpose: Provide the internal normalized order helper for this file.
   /// Inputs: `statusKey`.
   /// Returns: `List<String>`.
@@ -3498,6 +3532,18 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
           },
         ),
       ),
+    );
+  }
+
+  /// Purpose: Show the aggregate toy-cost overview page.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Pushes a route onto the navigator.
+  /// Notes: The overview covers all, active, and retired toy cost groups.
+  void _showToyCostOverview() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => _ToyCostOverviewPage(toys: _toys)),
     );
   }
 
@@ -3872,6 +3918,7 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
           ? Center(child: Text(l10n.intimacyNoToys))
           : ListView(
               children: [
+                _buildActiveCostSummary(active),
                 if (active.isNotEmpty)
                   _buildToySection(
                     title: l10n.intimacyActiveToys,
@@ -3891,6 +3938,96 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
         onPressed: _addToy,
         child: const Icon(Icons.add),
       ),
+    );
+  }
+
+  /// Purpose: Build the active-toy cost summary entry on the toy page.
+  /// Inputs: `activeToys`.
+  /// Returns: `Widget`.
+  /// Side effects: Creates UI widgets and may navigate to the cost overview.
+  /// Notes: Shows only active totals here; the overview has all/active/retired groups.
+  Widget _buildActiveCostSummary(List<Toy> activeToys) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final dailyCost = _totalDailyToyCost(activeToys);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      child: Card(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: _showToyCostOverview,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        l10n.intimacyActiveCost,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    Icon(
+                      Icons.chevron_right,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildCostMetric(
+                        theme,
+                        l10n.intimacyTotalCost,
+                        _formatMoney(_totalToyCost(activeToys)),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildCostMetric(
+                        theme,
+                        l10n.intimacyDailyCost,
+                        dailyCost == null ? '-' : _formatMoney(dailyCost),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Purpose: Build a compact cost metric column.
+  /// Inputs: `theme`, `label`, `value`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Shared by the toy page's active-cost summary.
+  Widget _buildCostMetric(ThemeData theme, String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ],
     );
   }
 
@@ -4966,7 +5103,6 @@ class _FilteredRecordsPageState extends ConsumerState<_FilteredRecordsPage> {
       body: ListView(
         children: [
           _buildSummaryCard(theme, records, toy: selectedToy),
-          if (selectedToy != null) _ToyCostTrendSection(toy: selectedToy),
           if (records.length >= 2)
             _FilteredRecordsTrendSection(records: records),
           const Divider(height: 1),
@@ -4995,15 +5131,15 @@ class _FilteredRecordsPageState extends ConsumerState<_FilteredRecordsPage> {
   }
 }
 
-class _ToyCostTrendSection extends StatefulWidget {
-  final Toy toy;
+class _ToyCostOverviewPage extends StatefulWidget {
+  final List<Toy> toys;
 
-  /// Purpose: Create a toy cost trend section instance.
-  /// Inputs: `toy`.
-  /// Returns: A new `_ToyCostTrendSection` instance.
+  /// Purpose: Create an aggregate toy-cost overview page instance.
+  /// Inputs: `toys`.
+  /// Returns: A new `_ToyCostOverviewPage` instance.
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
-  const _ToyCostTrendSection({required this.toy});
+  const _ToyCostOverviewPage({required this.toys});
 
   /// Purpose: Create the mutable state object for this widget.
   /// Inputs: None.
@@ -5011,21 +5147,184 @@ class _ToyCostTrendSection extends StatefulWidget {
   /// Side effects: May update UI state or trigger user-facing flows.
   /// Notes: None.
   @override
-  State<_ToyCostTrendSection> createState() => _ToyCostTrendSectionState();
+  State<_ToyCostOverviewPage> createState() => _ToyCostOverviewPageState();
 }
 
-class _ToyCostTrendSectionState extends State<_ToyCostTrendSection> {
+class _ToyCostOverviewPageState extends State<_ToyCostOverviewPage> {
+  _ToyCostScope _scope = _ToyCostScope.all;
   _IntimacyChartRange _chartRange = _IntimacyChartRange.oneYear;
+
+  /// Purpose: Return toys included in the current cost scope.
+  /// Inputs: None.
+  /// Returns: `List<Toy>`.
+  /// Side effects: None.
+  /// Notes: Scope filtering is independent from the management page's visual sort mode.
+  List<Toy> get _selectedToys => switch (_scope) {
+    _ToyCostScope.all => widget.toys,
+    _ToyCostScope.active =>
+      widget.toys.where((toy) => toy.retiredDate == null).toList(),
+    _ToyCostScope.retired =>
+      widget.toys.where((toy) => toy.retiredDate != null).toList(),
+  };
 
   /// Purpose: Build the current widget subtree for the active UI state.
   /// Inputs: `context`.
   /// Returns: The widget tree for the current state.
   /// Side effects: Creates UI widgets from the current state.
-  /// Notes: Shows cost data even when the toy has no matching intimacy records.
+  /// Notes: Retired scope shows finalized costs only, not a trend chart.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
+    final selectedToys = _selectedToys;
+    return Scaffold(
+      appBar: AppBar(title: Text(l10n.intimacyToyCosts), centerTitle: true),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+        children: [
+          _buildScopeSelector(l10n),
+          const SizedBox(height: 12),
+          _buildSummaryCard(theme, l10n, selectedToys),
+          const SizedBox(height: 12),
+          if (_scope == _ToyCostScope.retired)
+            _buildFinalizedCostNote(theme, l10n)
+          else
+            _buildTrendCard(theme, l10n, selectedToys),
+        ],
+      ),
+    );
+  }
+
+  /// Purpose: Build the all/active/retired scope selector.
+  /// Inputs: `l10n`.
+  /// Returns: `Widget`.
+  /// Side effects: May update local scope state.
+  /// Notes: Active and retired labels reuse the existing toy section labels.
+  Widget _buildScopeSelector(AppLocalizations l10n) {
+    return SegmentedButton<_ToyCostScope>(
+      showSelectedIcon: false,
+      segments: [
+        ButtonSegment(value: _ToyCostScope.all, label: Text(l10n.weightAll)),
+        ButtonSegment(
+          value: _ToyCostScope.active,
+          label: Text(l10n.intimacyActiveToys),
+        ),
+        ButtonSegment(
+          value: _ToyCostScope.retired,
+          label: Text(l10n.intimacyRetiredToys),
+        ),
+      ],
+      selected: {_scope},
+      onSelectionChanged: (selection) {
+        setState(() => _scope = selection.first);
+      },
+    );
+  }
+
+  /// Purpose: Build the current scope's aggregate cost summary card.
+  /// Inputs: `theme`, `l10n`, `toys`.
+  /// Returns: `Widget`.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Total cost includes undated toys; daily cost only includes dated toys.
+  Widget _buildSummaryCard(
+    ThemeData theme,
+    AppLocalizations l10n,
+    List<Toy> toys,
+  ) {
+    final dailyCost = _totalDailyCost(toys);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              _scopeLabel(l10n, _scope),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildCostMetric(
+                    theme,
+                    l10n.intimacyTotalCost,
+                    _moneyText(_totalCost(toys)),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildCostMetric(
+                    theme,
+                    l10n.intimacyDailyCost,
+                    dailyCost == null ? '-' : _moneyText(dailyCost),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Purpose: Build a compact aggregate cost metric column.
+  /// Inputs: `theme`, `label`, `value`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  Widget _buildCostMetric(ThemeData theme, String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Purpose: Build the retired-cost finalized note.
+  /// Inputs: `theme`, `l10n`.
+  /// Returns: `Widget`.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Retired toys do not render a future trend because their cost is fixed.
+  Widget _buildFinalizedCostNote(ThemeData theme, AppLocalizations l10n) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Text(
+          l10n.intimacyRetiredCostFinalized,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Purpose: Build the aggregate daily-cost trend card.
+  /// Inputs: `theme`, `l10n`, `toys`.
+  /// Returns: `Widget`.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: All scope treats retired toy daily costs as finalized fixed values.
+  Widget _buildTrendCard(
+    ThemeData theme,
+    AppLocalizations l10n,
+    List<Toy> toys,
+  ) {
     final labels = {
       _IntimacyChartRange.oneWeek: '1W',
       _IntimacyChartRange.oneMonth: '1M',
@@ -5035,70 +5334,66 @@ class _ToyCostTrendSectionState extends State<_ToyCostTrendSection> {
       _IntimacyChartRange.all: l10n.weightAll,
     };
     final today = _dateOnly(DateTime.now());
-    final historyStart = _historyStart(today);
-    final futureEnd = _futureEnd(today, historyStart);
-    final dates = _timeline(historyStart, today, futureEnd);
-    final trendData = _buildTrendData(dates, today);
+    final historyStart = _historyStart(today, toys);
+    final futureEnd = _futureEnd(today, historyStart, toys);
+    final dates = _timeline(historyStart, today, futureEnd, toys);
+    final trendData = _buildTrendData(dates, today, toys);
     final hasData =
         trendData.historySpots.isNotEmpty || trendData.futureSpots.isNotEmpty;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                l10n.intimacyCostTrend,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              l10n.intimacyCostTrend,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
               ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 4,
-                runSpacing: 4,
-                children: [
-                  for (final entry in labels.entries)
-                    ChoiceChip(
-                      label: Text(
-                        entry.value,
-                        style: const TextStyle(fontSize: 11),
-                      ),
-                      selected: _chartRange == entry.key,
-                      onSelected: (_) =>
-                          setState(() => _chartRange = entry.key),
-                      visualDensity: VisualDensity.compact,
-                      padding: EdgeInsets.zero,
-                      labelPadding: const EdgeInsets.symmetric(horizontal: 6),
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 4,
+              runSpacing: 4,
+              children: [
+                for (final entry in labels.entries)
+                  ChoiceChip(
+                    label: Text(
+                      entry.value,
+                      style: const TextStyle(fontSize: 11),
                     ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              if (!hasData)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 28),
-                  child: Center(
-                    child: Text(
-                      l10n.intimacyChartNoData,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
+                    selected: _chartRange == entry.key,
+                    onSelected: (_) => setState(() => _chartRange = entry.key),
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    labelPadding: const EdgeInsets.symmetric(horizontal: 6),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (!hasData)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 28),
+                child: Center(
+                  child: Text(
+                    l10n.intimacyChartNoData,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
-                )
-              else
-                _buildCostChart(theme, l10n, trendData),
-            ],
-          ),
+                ),
+              )
+            else
+              _buildCostChart(theme, l10n, trendData),
+          ],
         ),
       ),
     );
   }
 
-  /// Purpose: Build the toy daily-cost line chart.
+  /// Purpose: Build the aggregate daily-cost line chart.
   /// Inputs: `theme`, `l10n`, `trendData`.
   /// Returns: `Widget`.
   /// Side effects: Creates UI widgets from the current state.
@@ -5303,17 +5598,21 @@ class _ToyCostTrendSectionState extends State<_ToyCostTrendSection> {
   }
 
   /// Purpose: Build the daily-cost spots for the selected time range.
-  /// Inputs: `dates`, `today`.
+  /// Inputs: `dates`, `today`, `toys`.
   /// Returns: `_ToyCostTrendData`.
   /// Side effects: None.
   /// Notes: The current day is included in both history and projection lines.
-  _ToyCostTrendData _buildTrendData(List<DateTime> dates, DateTime today) {
+  _ToyCostTrendData _buildTrendData(
+    List<DateTime> dates,
+    DateTime today,
+    List<Toy> toys,
+  ) {
     final historySpots = <FlSpot>[];
     final futureSpots = <FlSpot>[];
     final values = <double>[];
 
     for (final date in dates) {
-      final value = _dailyCostAt(date);
+      final value = _dailyCostAt(date, toys);
       if (value == null) continue;
       values.add(value);
       final spot = FlSpot(date.millisecondsSinceEpoch.toDouble(), value);
@@ -5338,34 +5637,51 @@ class _ToyCostTrendSectionState extends State<_ToyCostTrendSection> {
     );
   }
 
-  /// Purpose: Calculate the toy's average daily cost on a specific date.
-  /// Inputs: `date`.
+  /// Purpose: Calculate aggregate average daily cost on a specific date.
+  /// Inputs: `date`, `toys`.
   /// Returns: `double?`.
   /// Side effects: None.
-  /// Notes: Future dates before a future purchase date do not emit chart points.
-  double? _dailyCostAt(DateTime date) {
-    if (!widget.toy.hasCostData || widget.toy.purchaseDate == null) return null;
-    final purchaseDate = _dateOnly(widget.toy.purchaseDate!);
+  /// Notes: Returns null until at least one included toy can be costed for that date.
+  double? _dailyCostAt(DateTime date, List<Toy> toys) {
+    var total = 0.0;
+    var hasValue = false;
+    for (final toy in toys) {
+      final value = _toyDailyCostAt(toy, date);
+      if (value == null) continue;
+      hasValue = true;
+      total += value;
+    }
+    return hasValue ? total : null;
+  }
+
+  /// Purpose: Calculate one toy's average daily cost on a specific date.
+  /// Inputs: `toy`, `date`.
+  /// Returns: `double?`.
+  /// Side effects: None.
+  /// Notes: Retired toys contribute their finalized daily cost in all-scope trends.
+  double? _toyDailyCostAt(Toy toy, DateTime date) {
+    if (!toy.hasCostData || toy.purchaseDate == null) return null;
+    final purchaseDate = _dateOnly(toy.purchaseDate!);
     if (date.isBefore(purchaseDate)) return null;
+    if (_scope == _ToyCostScope.all && toy.retiredDate != null) {
+      return toy.averageDailyCost();
+    }
     var serviceEnd = date;
-    if (widget.toy.retiredDate != null) {
-      final retiredDate = _dateOnly(widget.toy.retiredDate!);
+    if (toy.retiredDate != null) {
+      final retiredDate = _dateOnly(toy.retiredDate!);
       if (retiredDate.isBefore(serviceEnd)) serviceEnd = retiredDate;
     }
     if (serviceEnd.isBefore(purchaseDate)) return null;
     final days = serviceEnd.difference(purchaseDate).inDays + 1;
-    return widget.toy.totalCost() / math.max(1, days);
+    return toy.totalCost() / math.max(1, days);
   }
 
   /// Purpose: Return the first date shown for the selected cost range.
-  /// Inputs: `today`.
+  /// Inputs: `today`, `toys`.
   /// Returns: `DateTime`.
   /// Side effects: None.
-  /// Notes: The all range starts at the toy purchase date when available.
-  DateTime _historyStart(DateTime today) {
-    final purchaseDate = widget.toy.purchaseDate == null
-        ? null
-        : _dateOnly(widget.toy.purchaseDate!);
+  /// Notes: The all range starts at the earliest purchase date when available.
+  DateTime _historyStart(DateTime today, List<Toy> toys) {
     final start = switch (_chartRange) {
       _IntimacyChartRange.oneWeek => today.subtract(const Duration(days: 7)),
       _IntimacyChartRange.oneMonth => DateTime(
@@ -5389,30 +5705,49 @@ class _ToyCostTrendSectionState extends State<_ToyCostTrendSection> {
         today.day,
       ),
       _IntimacyChartRange.all =>
-        purchaseDate ?? DateTime(today.year - 1, today.month, today.day),
+        _earliestPurchaseDate(toys) ??
+            DateTime(today.year - 1, today.month, today.day),
     };
     return start.isAfter(today) ? today : start;
   }
 
   /// Purpose: Return the projected end date for the selected cost range.
-  /// Inputs: `today`, `historyStart`.
+  /// Inputs: `today`, `historyStart`, `toys`.
   /// Returns: `DateTime`.
   /// Side effects: None.
   /// Notes: Mirrors MyDevice by projecting forward for the same range length.
-  DateTime _futureEnd(DateTime today, DateTime historyStart) {
+  DateTime _futureEnd(DateTime today, DateTime historyStart, List<Toy> toys) {
     final days = today.difference(historyStart).inDays.abs();
     var futureEnd = today.add(Duration(days: math.max(days, 30)));
-    if (widget.toy.purchaseDate != null) {
-      final purchaseDate = _dateOnly(widget.toy.purchaseDate!);
-      if (purchaseDate.isAfter(futureEnd)) {
+    for (final toy in toys) {
+      final purchaseDate = toy.purchaseDate == null
+          ? null
+          : _dateOnly(toy.purchaseDate!);
+      if (purchaseDate != null && purchaseDate.isAfter(futureEnd)) {
         futureEnd = purchaseDate.add(const Duration(days: 30));
       }
     }
     return futureEnd;
   }
 
+  /// Purpose: Return the earliest purchase date in a toy collection.
+  /// Inputs: `toys`.
+  /// Returns: `DateTime?`.
+  /// Side effects: None.
+  /// Notes: Only dated toys can anchor the all-range chart.
+  DateTime? _earliestPurchaseDate(List<Toy> toys) {
+    DateTime? earliest;
+    for (final toy in toys) {
+      final purchaseDate = toy.purchaseDate;
+      if (purchaseDate == null) continue;
+      final date = _dateOnly(purchaseDate);
+      if (earliest == null || date.isBefore(earliest)) earliest = date;
+    }
+    return earliest;
+  }
+
   /// Purpose: Create sampled dates for the selected cost range.
-  /// Inputs: `historyStart`, `today`, `futureEnd`.
+  /// Inputs: `historyStart`, `today`, `futureEnd`, `toys`.
   /// Returns: `List<DateTime>`.
   /// Side effects: None.
   /// Notes: Purchase, retirement, today, and end dates are always included.
@@ -5420,6 +5755,7 @@ class _ToyCostTrendSectionState extends State<_ToyCostTrendSection> {
     DateTime historyStart,
     DateTime today,
     DateTime futureEnd,
+    List<Toy> toys,
   ) {
     final totalDays = math.max(1, futureEnd.difference(historyStart).inDays);
     final step = totalDays <= 240
@@ -5437,11 +5773,9 @@ class _ToyCostTrendSectionState extends State<_ToyCostTrendSection> {
     }
     dates.add(today);
     dates.add(futureEnd);
-    if (widget.toy.purchaseDate != null) {
-      dates.add(_dateOnly(widget.toy.purchaseDate!));
-    }
-    if (widget.toy.retiredDate != null) {
-      dates.add(_dateOnly(widget.toy.retiredDate!));
+    for (final toy in toys) {
+      if (toy.purchaseDate != null) dates.add(_dateOnly(toy.purchaseDate!));
+      if (toy.retiredDate != null) dates.add(_dateOnly(toy.retiredDate!));
     }
     dates.sort();
 
@@ -5553,6 +5887,44 @@ class _ToyCostTrendSectionState extends State<_ToyCostTrendSection> {
     if (abs >= 1000000) return '$sign${(abs / 1000000).toStringAsFixed(1)}m';
     if (abs >= 1000) return '$sign${(abs / 1000).toStringAsFixed(1)}k';
     return value.toStringAsFixed(0);
+  }
+
+  /// Purpose: Sum total recorded toy costs.
+  /// Inputs: `toys`.
+  /// Returns: `double`.
+  /// Side effects: None.
+  /// Notes: Toys without a price contribute zero.
+  double _totalCost(List<Toy> toys) =>
+      toys.fold(0.0, (sum, toy) => sum + toy.totalCost());
+
+  /// Purpose: Sum average daily costs when they can be calculated.
+  /// Inputs: `toys`.
+  /// Returns: `double?`.
+  /// Side effects: None.
+  /// Notes: Returns null when no toy has both price and purchase date.
+  double? _totalDailyCost(List<Toy> toys) {
+    var total = 0.0;
+    var hasDailyCost = false;
+    for (final toy in toys) {
+      final dailyCost = toy.averageDailyCost();
+      if (dailyCost == null) continue;
+      hasDailyCost = true;
+      total += dailyCost;
+    }
+    return hasDailyCost ? total : null;
+  }
+
+  /// Purpose: Return the localized label for a toy-cost scope.
+  /// Inputs: `l10n`, `scope`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  String _scopeLabel(AppLocalizations l10n, _ToyCostScope scope) {
+    return switch (scope) {
+      _ToyCostScope.all => l10n.weightAll,
+      _ToyCostScope.active => l10n.intimacyActiveToys,
+      _ToyCostScope.retired => l10n.intimacyRetiredToys,
+    };
   }
 }
 

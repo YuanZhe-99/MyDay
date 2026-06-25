@@ -2549,6 +2549,24 @@ abstract class AppLocalizations {
   /// **'Projection'**
   String get intimacyCostProjection;
 
+  /// No description provided for @intimacyToyCosts.
+  ///
+  /// In en, this message translates to:
+  /// **'Toy costs'**
+  String get intimacyToyCosts;
+
+  /// No description provided for @intimacyActiveCost.
+  ///
+  /// In en, this message translates to:
+  /// **'Active cost'**
+  String get intimacyActiveCost;
+
+  /// No description provided for @intimacyRetiredCostFinalized.
+  ///
+  /// In en, this message translates to:
+  /// **'Retired toy costs are finalized, so no future trend is shown.'**
+  String get intimacyRetiredCostFinalized;
+
   /// No description provided for @intimacyPositions.
   ///
   /// In en, this message translates to:

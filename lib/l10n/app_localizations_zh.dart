@@ -1277,6 +1277,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get intimacyCostProjection => '预测';
 
   @override
+  String get intimacyToyCosts => '玩具成本';
+
+  @override
+  String get intimacyActiveCost => '在役成本';
+
+  @override
+  String get intimacyRetiredCostFinalized => '退役玩具的成本已经确定，因此不显示未来趋势。';
+
+  @override
   String get intimacyPositions => '体位';
 
   @override
@@ -3044,6 +3053,15 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get intimacyCostProjection => '預測';
+
+  @override
+  String get intimacyToyCosts => '玩具成本';
+
+  @override
+  String get intimacyActiveCost => '在役成本';
+
+  @override
+  String get intimacyRetiredCostFinalized => '退役玩具的成本已經確定，因此不顯示未來趨勢。';
 
   @override
   String get intimacyPositions => '體位';
