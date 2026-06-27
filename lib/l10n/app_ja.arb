@@ -187,6 +187,8 @@
   "intimacyTimerRetention7d": "7日間",
   "intimacyTimerRetention14d": "14日間",
   "intimacyTimerRetentionForever": "永久",
+  "intimacyTimerKeepScreenAwake": "画面をオンのままにする",
+  "intimacyTimerKeepScreenAwakeDesc": "この端末のタイマー設定として記憶します。",
   "intimacyManage": "管理",
   "intimacyModuleVisible": "表示中",
   "intimacyModuleHidden": "非表示",

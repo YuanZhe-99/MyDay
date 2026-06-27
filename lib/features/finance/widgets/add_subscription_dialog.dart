@@ -14,17 +14,19 @@ class AddSubscriptionDialog extends StatefulWidget {
   final List<Category> categories;
   final List<Account> accounts;
   final Subscription? subscription;
+  final bool restoreAsCopy;
 
   /// Purpose: Create a add subscription dialog instance.
-  /// Inputs: `categories`.
+  /// Inputs: `categories`, `accounts`, optional `subscription`, and restore-copy mode.
   /// Returns: A new `AddSubscriptionDialog` instance.
   /// Side effects: None.
-  /// Notes: None.
+  /// Notes: `restoreAsCopy` uses the subscription as defaults but returns a new active subscription.
   const AddSubscriptionDialog({
     super.key,
     this.categories = const [],
     this.accounts = const [],
     this.subscription,
+    this.restoreAsCopy = false,
   });
 
   /// Purpose: Create the mutable state object for this widget.
@@ -93,20 +95,20 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
     ('iQIYI', '📺'),
   ];
 
-  /// Purpose: Return is editing.
+  /// Purpose: Return whether this dialog edits the existing subscription in place.
   /// Inputs: None.
   /// Returns: `bool`.
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
-  bool get _isEditing => widget.subscription != null;
+  bool get _isEditing => widget.subscription != null && !_isRestoringCopy;
 
-  /// Purpose: Return is cancelled.
+  /// Purpose: Return whether this dialog creates a new subscription from an old one.
   /// Inputs: None.
   /// Returns: `bool`.
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
-  bool get _isCancelled =>
-      widget.subscription != null && !widget.subscription!.isActive;
+  bool get _isRestoringCopy =>
+      widget.restoreAsCopy && widget.subscription != null;
 
   /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
   /// Inputs: None.
@@ -117,6 +119,8 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
   void initState() {
     super.initState();
     final sub = widget.subscription;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
     _nameController = TextEditingController(text: sub?.name ?? '');
     _amountController = TextEditingController(
       text: sub != null ? sub.amount.toStringAsFixed(2) : '',
@@ -125,7 +129,7 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
     _trialDaysController = TextEditingController(
       text: sub != null && sub.trialDays > 0 ? sub.trialDays.toString() : '',
     );
-    _startDate = sub?.startDate ?? DateTime.now();
+    _startDate = _isRestoringCopy ? today : (sub?.startDate ?? DateTime.now());
     _cycleType = sub?.billingCycleType ?? BillingCycleType.monthly;
     _billingInterval = sub?.billingInterval ?? 1;
     _selectedEmoji = sub?.emoji;
@@ -180,15 +184,17 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                _isEditing
-                    ? l10n.financeEditSubscription
-                    : l10n.financeAddSubscription,
+                _isRestoringCopy
+                    ? l10n.financeRestoreSubscription
+                    : (_isEditing
+                          ? l10n.financeEditSubscription
+                          : l10n.financeAddSubscription),
                 style: theme.textTheme.titleLarge,
               ),
               const SizedBox(height: 16),
 
               // Quick-fill presets (only when adding)
-              if (!_isEditing) ...[
+              if (!_isEditing && !_isRestoringCopy) ...[
                 Text(
                   l10n.financeSubscriptionPresets,
                   style: theme.textTheme.bodySmall,
@@ -478,7 +484,7 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
                   FilledButton(
                     onPressed: () => _submit(guard),
                     child: Text(
-                      _isCancelled
+                      _isRestoringCopy
                           ? l10n.financeRestoreSubscription
                           : (_isEditing ? l10n.commonSave : l10n.commonAdd),
                     ),
@@ -533,7 +539,7 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
     final trialDays = int.tryParse(_trialDaysController.text.trim()) ?? 0;
 
     final sub = Subscription(
-      id: widget.subscription?.id,
+      id: _isRestoringCopy ? null : widget.subscription?.id,
       name: name,
       emoji: _selectedEmoji,
       imagePath: _imagePath,
@@ -546,31 +552,35 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
       accountId: _selectedAccount?.id ?? '',
       categoryId: _selectedCategory?.id,
       note: _noteController.text.trim(),
-      // When restoring a cancelled sub, re-activate it
-      isActive: _isCancelled ? true : (widget.subscription?.isActive ?? true),
-      cancelledAt: _isCancelled ? null : widget.subscription?.cancelledAt,
-      cancelType: _isCancelled ? null : widget.subscription?.cancelType,
+      isActive: _isRestoringCopy
+          ? true
+          : (widget.subscription?.isActive ?? true),
+      cancelledAt: _isRestoringCopy ? null : widget.subscription?.cancelledAt,
+      cancelType: _isRestoringCopy ? null : widget.subscription?.cancelType,
     );
 
-    // Restoring a cancelled subscription: ask about adding first transaction
-    if (_isCancelled &&
-        sub.firstBillingDate.isBefore(
-          DateTime.now().add(const Duration(days: 1)),
-        )) {
-      _askImportHistory(sub, guard);
-      return;
-    }
-
     // Check if we should ask about historical import
-    // Only ask if first billing date (start + trial) is in the past
-    final shouldAskImport =
-        !_isEditing && sub.firstBillingDate.isBefore(DateTime.now());
+    // Only ask if first billing day (start + trial) is before today.
+    final shouldAskImport = !_isEditing && _firstBillingDayBeforeToday(sub);
 
     if (shouldAskImport) {
       _askImportHistory(sub, guard);
     } else {
       guard.pop((sub: sub, importHistory: false));
     }
+  }
+
+  /// Purpose: Return whether a subscription's first billing day is before today.
+  /// Inputs: `sub`.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: Date-only comparison prevents same-day new subscriptions from asking for history.
+  bool _firstBillingDayBeforeToday(Subscription sub) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final first = sub.firstBillingDate;
+    final firstDay = DateTime(first.year, first.month, first.day);
+    return firstDay.isBefore(today);
   }
 
   /// Purpose: Provide the internal build image preview helper for this file.

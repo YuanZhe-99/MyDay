@@ -516,6 +516,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get intimacyTimerRetentionForever => 'Forever';
 
   @override
+  String get intimacyTimerKeepScreenAwake => 'Keep screen awake';
+
+  @override
+  String get intimacyTimerKeepScreenAwakeDesc =>
+      'Remember this local timer preference.';
+
+  @override
   String get intimacyManage => 'Manage';
 
   @override

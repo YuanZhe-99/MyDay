@@ -514,6 +514,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get intimacyTimerRetentionForever => '永久';
 
   @override
+  String get intimacyTimerKeepScreenAwake => '防止设备熄屏';
+
+  @override
+  String get intimacyTimerKeepScreenAwakeDesc => '记住此本机计时器偏好。';
+
+  @override
   String get intimacyManage => '管理';
 
   @override
@@ -2290,6 +2296,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get intimacyTimerRetentionForever => '永久';
+
+  @override
+  String get intimacyTimerKeepScreenAwake => '防止裝置熄屏';
+
+  @override
+  String get intimacyTimerKeepScreenAwakeDesc => '記住此本機計時器偏好。';
 
   @override
   String get intimacyManage => '管理';

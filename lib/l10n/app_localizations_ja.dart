@@ -514,6 +514,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get intimacyTimerRetentionForever => '永久';
 
   @override
+  String get intimacyTimerKeepScreenAwake => '画面をオンのままにする';
+
+  @override
+  String get intimacyTimerKeepScreenAwakeDesc => 'この端末のタイマー設定として記憶します。';
+
+  @override
   String get intimacyManage => '管理';
 
   @override

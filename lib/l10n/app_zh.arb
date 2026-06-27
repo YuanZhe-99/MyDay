@@ -187,6 +187,8 @@
   "intimacyTimerRetention7d": "7 天",
   "intimacyTimerRetention14d": "14 天",
   "intimacyTimerRetentionForever": "永久",
+  "intimacyTimerKeepScreenAwake": "防止设备熄屏",
+  "intimacyTimerKeepScreenAwakeDesc": "记住此本机计时器偏好。",
   "intimacyManage": "管理",
   "intimacyModuleVisible": "已显示",
   "intimacyModuleHidden": "已隐藏",

@@ -200,6 +200,8 @@
   "intimacyTimerRetention7d": "7 days",
   "intimacyTimerRetention14d": "14 days",
   "intimacyTimerRetentionForever": "Forever",
+  "intimacyTimerKeepScreenAwake": "Keep screen awake",
+  "intimacyTimerKeepScreenAwakeDesc": "Remember this local timer preference.",
   "intimacyManage": "Manage",
   "intimacyModuleVisible": "Visible",
   "intimacyModuleHidden": "Hidden",

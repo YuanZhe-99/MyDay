@@ -1067,6 +1067,18 @@ abstract class AppLocalizations {
   /// **'Forever'**
   String get intimacyTimerRetentionForever;
 
+  /// No description provided for @intimacyTimerKeepScreenAwake.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep screen awake'**
+  String get intimacyTimerKeepScreenAwake;
+
+  /// No description provided for @intimacyTimerKeepScreenAwakeDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Remember this local timer preference.'**
+  String get intimacyTimerKeepScreenAwakeDesc;
+
   /// No description provided for @intimacyManage.
   ///
   /// In en, this message translates to:

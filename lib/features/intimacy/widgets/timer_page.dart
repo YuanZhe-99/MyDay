@@ -2,8 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../todo/services/todo_storage.dart';
 import '../models/intimacy_record.dart';
 import 'add_record_dialog.dart';
 
@@ -86,7 +88,9 @@ class TimerPage extends StatefulWidget {
 }
 
 class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
-  static const int _thrustStep = 100;
+  static const int _estimatedThrustUnit = 100;
+  static const String _keepScreenAwakeConfigKey =
+      'intimacyTimerKeepScreenAwake';
 
   // Wall-clock based timer: immune to screen-off / app-suspend.
   DateTime? _firstStartedAt; // wall-clock moment the user first pressed Start
@@ -95,6 +99,9 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
   Timer? _ticker;
   bool _running = false;
   int _thrustCount = 0;
+  bool _keepScreenAwake = false;
+  bool _wakelockEnabledByPage = false;
+  bool _disposed = false;
 
   late List<TimerHistoryEntry> _history;
   late int? _retentionDays;
@@ -135,11 +142,13 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
       _startedAt = session.running ? session.startedAt : null;
       _accumulated = session.accumulated;
       _running = session.running;
-      _thrustCount = session.thrustCountUnit == _thrustStep
-          ? session.thrustCount
-          : session.thrustCount ~/ _thrustStep;
+      _thrustCount = _actualThrustCount(
+        session.thrustCount,
+        session.thrustCountUnit,
+      );
       if (_running) _ensureTicker();
     }
+    unawaited(_loadKeepScreenAwakeSetting());
   }
 
   /// Purpose: Release listeners, controllers, and other owned resources.
@@ -149,8 +158,10 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
   /// Notes: Call the superclass implementation in the expected lifecycle order.
   @override
   void dispose() {
+    _disposed = true;
     WidgetsBinding.instance.removeObserver(this);
     _ticker?.cancel();
+    _releaseWakelock();
     super.dispose();
   }
 
@@ -161,10 +172,72 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
   /// Notes: None.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && _running) {
-      _ensureTicker();
-      setState(() {});
+    if (state == AppLifecycleState.resumed) {
+      if (_running) {
+        _ensureTicker();
+        setState(() {});
+      }
+      if (_keepScreenAwake) {
+        unawaited(_applyWakelock());
+      }
     }
+  }
+
+  /// Purpose: Load the timer wakelock preference from local-only app config.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: Reads storage config, updates UI state, and may enable wakelock.
+  /// Notes: This preference is intentionally not part of synced intimacy data.
+  Future<void> _loadKeepScreenAwakeSetting() async {
+    final config = await TodoStorage.readConfig();
+    final enabled = config[_keepScreenAwakeConfigKey] == true;
+    if (!mounted) return;
+    setState(() => _keepScreenAwake = enabled);
+    await _applyWakelock();
+  }
+
+  /// Purpose: Persist and apply the timer wakelock preference.
+  /// Inputs: `enabled`.
+  /// Returns: `Future<void>`.
+  /// Side effects: Writes storage config, updates UI state, and toggles wakelock.
+  /// Notes: Storage config preserves unrelated keys written by other modules.
+  Future<void> _setKeepScreenAwake(bool enabled) async {
+    setState(() => _keepScreenAwake = enabled);
+    await _applyWakelock();
+    final config = await TodoStorage.readConfig();
+    config[_keepScreenAwakeConfigKey] = enabled;
+    await TodoStorage.writeConfig(config);
+  }
+
+  /// Purpose: Apply the current wakelock preference while this page is visible.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: Enables or disables the platform screen wakelock.
+  /// Notes: The page only disables wakelock if it enabled it earlier.
+  Future<void> _applyWakelock() async {
+    if (_keepScreenAwake && !_disposed) {
+      await WakelockPlus.enable();
+      if (_disposed || !_keepScreenAwake) {
+        await WakelockPlus.disable();
+        _wakelockEnabledByPage = false;
+      } else {
+        _wakelockEnabledByPage = true;
+      }
+    } else if (_wakelockEnabledByPage) {
+      await WakelockPlus.disable();
+      _wakelockEnabledByPage = false;
+    }
+  }
+
+  /// Purpose: Release a wakelock held by this timer page.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: May disable the platform screen wakelock.
+  /// Notes: Called from `dispose`, so the async platform call is intentionally unawaited.
+  void _releaseWakelock() {
+    if (!_wakelockEnabledByPage) return;
+    _wakelockEnabledByPage = false;
+    unawaited(WakelockPlus.disable());
   }
 
   // ── retention ──────────────────────────────────────────────────────
@@ -212,17 +285,54 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
     await _persistState(timerSessionChanged: true);
   }
 
-  /// Purpose: Adjust the timer's thrust count in x100 units.
-  /// Inputs: `deltaUnits`.
+  /// Purpose: Adjust the timer's thrust count by actual repetitions.
+  /// Inputs: `delta`.
   /// Returns: `Future<void>`.
   /// Side effects: Updates UI state and persists the timer session snapshot.
   /// Notes: The counter is clamped at zero so accidental decrements never go negative.
-  Future<void> _changeThrustCount(int deltaUnits) async {
-    final next = (_thrustCount + deltaUnits).clamp(0, 999999).toInt();
+  Future<void> _changeThrustCount(int delta) async {
+    final next = (_thrustCount + delta).clamp(0, 999999).toInt();
     if (next == _thrustCount) return;
     setState(() => _thrustCount = next);
     await _persistState(timerSessionChanged: true);
   }
+
+  /// Purpose: Convert a stored count/unit pair to actual repetitions.
+  /// Inputs: Stored `count` and `unit`.
+  /// Returns: Actual repetition count.
+  /// Side effects: None.
+  /// Notes: `x100` stores estimates compactly; `x1` stores exact non-round counts.
+  int _actualThrustCount(int count, int unit) {
+    if (count <= 0) return 0;
+    return unit == 1 ? count : count * unit;
+  }
+
+  /// Purpose: Return the unit that should be used when persisting the current count.
+  /// Inputs: None.
+  /// Returns: `int`.
+  /// Side effects: None.
+  /// Notes: Non-100-multiple values must be stored as exact `x1` counts.
+  int get _storedThrustCountUnit =>
+      _thrustCount > 0 && _thrustCount % _estimatedThrustUnit != 0
+      ? 1
+      : _estimatedThrustUnit;
+
+  /// Purpose: Return the count value to persist with the current unit.
+  /// Inputs: None.
+  /// Returns: `int`.
+  /// Side effects: None.
+  /// Notes: `x100` values store hundreds, while `x1` values store actual repetitions.
+  int get _storedThrustCount => _storedThrustCountUnit == 1
+      ? _thrustCount
+      : _thrustCount ~/ _estimatedThrustUnit;
+
+  /// Purpose: Format the current thrust count for display.
+  /// Inputs: None.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Mirrors the persisted unit selection so users can see when exact `x1` is used.
+  String get _thrustCountLabel =>
+      '$_storedThrustCount x$_storedThrustCountUnit';
 
   /// Purpose: Provide the internal reset helper for this file.
   /// Inputs: None.
@@ -272,8 +382,8 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
       startedAt: _running ? _startedAt : null,
       accumulated: _accumulated,
       running: _running,
-      thrustCount: _thrustCount,
-      thrustCountUnit: _thrustStep,
+      thrustCount: _storedThrustCount,
+      thrustCountUnit: _storedThrustCountUnit,
     );
   }
 
@@ -335,8 +445,9 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
   /// Notes: Internal helper used within this file only.
   Future<void> _saveRecord({TimerHistoryEntry? prefillEntry}) async {
     final elapsed = prefillEntry?.duration ?? _elapsed;
-    final prefillThrustCount = prefillEntry?.thrustCount ?? _thrustCount;
-    final prefillThrustCountUnit = prefillEntry?.thrustCountUnit ?? _thrustStep;
+    final prefillThrustCount = prefillEntry?.thrustCount ?? _storedThrustCount;
+    final prefillThrustCountUnit =
+        prefillEntry?.thrustCountUnit ?? _storedThrustCountUnit;
     final sessionStart = prefillEntry != null
         ? prefillEntry.start
         : (_sessionStartTime ?? DateTime.now().subtract(elapsed));
@@ -347,8 +458,8 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
       final entry = TimerHistoryEntry(
         start: sessionStart,
         duration: elapsed,
-        thrustCount: _thrustCount,
-        thrustCountUnit: _thrustStep,
+        thrustCount: _storedThrustCount,
+        thrustCountUnit: _storedThrustCountUnit,
       );
       setState(() {
         _history.insert(0, entry);
@@ -454,9 +565,10 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
       _startedAt = DateTime.now();
       _accumulated = entry.duration;
       _running = true;
-      _thrustCount = entry.thrustCountUnit == _thrustStep
-          ? entry.thrustCount
-          : entry.thrustCount ~/ _thrustStep;
+      _thrustCount = _actualThrustCount(
+        entry.thrustCount,
+        entry.thrustCountUnit,
+      );
       _timerSessionChanged = true;
     });
     _ensureTicker();
@@ -490,133 +602,166 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
           children: [
             // ── main timer area ──
             Expanded(
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    if (sessionStart != null)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Text(
-                          '${l10n.intimacyTimerStartedAt} ${_formatDateTime(sessionStart)}',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.outline,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 24,
+                ),
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (sessionStart != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Text(
+                            '${l10n.intimacyTimerStartedAt} ${_formatDateTime(sessionStart)}',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.outline,
+                            ),
                           ),
                         ),
-                      ),
 
-                    Text(
-                      _formatDuration(_elapsed),
-                      style: theme.textTheme.displayLarge?.copyWith(
-                        fontWeight: FontWeight.w300,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                      ),
-                    ),
-                    if (sessionStart != null || hasElapsed) ...[
-                      const SizedBox(height: 16),
                       Text(
-                        '${l10n.intimacyThrustCountShort}: $_thrustCount x$_thrustStep',
-                        style: theme.textTheme.titleMedium?.copyWith(
+                        _formatDuration(_elapsed),
+                        style: theme.textTheme.displayLarge?.copyWith(
+                          fontWeight: FontWeight.w300,
                           fontFeatures: const [FontFeature.tabularFigures()],
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      if (sessionStart != null || hasElapsed) ...[
+                        const SizedBox(height: 16),
+                        Text(
+                          '${l10n.intimacyThrustCountShort}: $_thrustCountLabel',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          alignment: WrapAlignment.center,
+                          spacing: 12,
+                          runSpacing: 8,
+                          children: [
+                            OutlinedButton.icon(
+                              onPressed: _thrustCount > 0
+                                  ? () => _changeThrustCount(-100)
+                                  : null,
+                              icon: const Icon(Icons.remove),
+                              label: const Text('-100'),
+                            ),
+                            FilledButton.icon(
+                              onPressed: () => _changeThrustCount(100),
+                              icon: const Icon(Icons.add),
+                              label: const Text('+100'),
+                            ),
+                            FilledButton.tonalIcon(
+                              onPressed: () => _changeThrustCount(50),
+                              icon: const Icon(Icons.add),
+                              label: const Text('+50'),
+                            ),
+                            FilledButton.tonalIcon(
+                              onPressed: () => _changeThrustCount(10),
+                              icon: const Icon(Icons.add),
+                              label: const Text('+10'),
+                            ),
+                          ],
+                        ),
+                      ],
+                      const SizedBox(height: 16),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 420),
+                        child: SwitchListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                          ),
+                          secondary: const Icon(Icons.lightbulb_outline),
+                          title: Text(l10n.intimacyTimerKeepScreenAwake),
+                          subtitle: Text(l10n.intimacyTimerKeepScreenAwakeDesc),
+                          value: _keepScreenAwake,
+                          onChanged: (value) {
+                            unawaited(_setKeepScreenAwake(value));
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+
                       Wrap(
                         alignment: WrapAlignment.center,
                         spacing: 12,
+                        runSpacing: 12,
                         children: [
-                          OutlinedButton.icon(
-                            onPressed: _thrustCount > 0
-                                ? () => _changeThrustCount(-1)
-                                : null,
-                            icon: const Icon(Icons.remove),
-                            label: const Text('-100'),
-                          ),
-                          FilledButton.icon(
-                            onPressed: () => _changeThrustCount(1),
-                            icon: const Icon(Icons.add),
-                            label: const Text('+100'),
-                          ),
+                          if (!isRunning && !hasElapsed)
+                            FilledButton.icon(
+                              onPressed: () => _start(),
+                              icon: const Icon(Icons.play_arrow),
+                              label: Text(l10n.intimacyStart),
+                              style: FilledButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 32,
+                                  vertical: 16,
+                                ),
+                              ),
+                            ),
+
+                          if (isRunning) ...[
+                            OutlinedButton.icon(
+                              onPressed: () => _pause(),
+                              icon: const Icon(Icons.pause),
+                              label: Text(l10n.intimacyPause),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                  vertical: 16,
+                                ),
+                              ),
+                            ),
+                            FilledButton.icon(
+                              onPressed: () => _saveRecord(),
+                              icon: const Icon(Icons.stop),
+                              label: Text(l10n.intimacyStopSave),
+                              style: FilledButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                  vertical: 16,
+                                ),
+                              ),
+                            ),
+                          ],
+
+                          if (!isRunning && hasElapsed) ...[
+                            OutlinedButton.icon(
+                              onPressed: () => _start(),
+                              icon: const Icon(Icons.play_arrow),
+                              label: Text(l10n.intimacyResume),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                  vertical: 16,
+                                ),
+                              ),
+                            ),
+                            FilledButton.icon(
+                              onPressed: () => _saveRecord(),
+                              icon: const Icon(Icons.save),
+                              label: Text(l10n.commonSave),
+                              style: FilledButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                  vertical: 16,
+                                ),
+                              ),
+                            ),
+                            TextButton.icon(
+                              onPressed: () => _reset(),
+                              icon: const Icon(Icons.refresh),
+                              label: Text(l10n.intimacyReset),
+                            ),
+                          ],
                         ],
                       ),
                     ],
-                    const SizedBox(height: 32),
-
-                    Wrap(
-                      alignment: WrapAlignment.center,
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: [
-                        if (!isRunning && !hasElapsed)
-                          FilledButton.icon(
-                            onPressed: () => _start(),
-                            icon: const Icon(Icons.play_arrow),
-                            label: Text(l10n.intimacyStart),
-                            style: FilledButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 32,
-                                vertical: 16,
-                              ),
-                            ),
-                          ),
-
-                        if (isRunning) ...[
-                          OutlinedButton.icon(
-                            onPressed: () => _pause(),
-                            icon: const Icon(Icons.pause),
-                            label: Text(l10n.intimacyPause),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                                vertical: 16,
-                              ),
-                            ),
-                          ),
-                          FilledButton.icon(
-                            onPressed: () => _saveRecord(),
-                            icon: const Icon(Icons.stop),
-                            label: Text(l10n.intimacyStopSave),
-                            style: FilledButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                                vertical: 16,
-                              ),
-                            ),
-                          ),
-                        ],
-
-                        if (!isRunning && hasElapsed) ...[
-                          OutlinedButton.icon(
-                            onPressed: () => _start(),
-                            icon: const Icon(Icons.play_arrow),
-                            label: Text(l10n.intimacyResume),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                                vertical: 16,
-                              ),
-                            ),
-                          ),
-                          FilledButton.icon(
-                            onPressed: () => _saveRecord(),
-                            icon: const Icon(Icons.save),
-                            label: Text(l10n.commonSave),
-                            style: FilledButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                                vertical: 16,
-                              ),
-                            ),
-                          ),
-                          TextButton.icon(
-                            onPressed: () => _reset(),
-                            icon: const Icon(Icons.refresh),
-                            label: Text(l10n.intimacyReset),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),

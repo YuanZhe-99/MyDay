@@ -242,59 +242,68 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
       ),
     );
     if (result != null) {
-      final now = DateTime.now();
-      final today = DateTime(now.year, now.month, now.day);
-      // Compute initial nextBillingDate.
-      // If importing history: next billing is the first date after today.
-      // If NOT importing: next billing is the first date >= today (today's
-      // billing will be caught by the processor).
-      final tempSub = Subscription(
-        id: result.sub.id,
-        name: result.sub.name,
-        emoji: result.sub.emoji,
-        imagePath: result.sub.imagePath,
-        startDate: result.sub.startDate,
-        trialDays: result.sub.trialDays,
-        billingCycleType: result.sub.billingCycleType,
-        billingInterval: result.sub.billingInterval,
-        amount: result.sub.amount,
-        currency: result.sub.currency,
-        accountId: result.sub.accountId,
-        categoryId: result.sub.categoryId,
-        note: result.sub.note,
-      );
-      final initialNBD = result.importHistory
-          ? tempSub.calculateNextBillingDate(after: today)
-          : tempSub.calculateNextBillingDate(
-              after: today.subtract(const Duration(days: 1)),
-            );
-      final sub = Subscription(
-        id: result.sub.id,
-        name: result.sub.name,
-        emoji: result.sub.emoji,
-        imagePath: result.sub.imagePath,
-        startDate: result.sub.startDate,
-        trialDays: result.sub.trialDays,
-        billingCycleType: result.sub.billingCycleType,
-        billingInterval: result.sub.billingInterval,
-        amount: result.sub.amount,
-        currency: result.sub.currency,
-        accountId: result.sub.accountId,
-        categoryId: result.sub.categoryId,
-        note: result.sub.note,
-        nextBillingDate: initialNBD,
-      );
-      setState(() {
-        _subscriptions.add(sub);
-        if (_sortMode == 'custom') _customOrder.add(sub.id);
-      });
-      widget.onSubscriptionsChanged(_subscriptions);
-      if (_sortMode == 'custom') {
-        widget.onSortChanged(_sortMode, _customOrder);
-      }
-      if (result.importHistory) {
-        _importHistoricalTransactions(sub);
-      }
+      _insertNewSubscription(result);
+    }
+  }
+
+  /// Purpose: Insert a newly created subscription and optionally import history.
+  /// Inputs: Dialog result containing the subscription draft and import choice.
+  /// Returns: None.
+  /// Side effects: Updates subscription state, persists through callbacks, and may add transactions.
+  /// Notes: Used by both ordinary additions and copy-restore additions.
+  void _insertNewSubscription(({Subscription sub, bool importHistory}) result) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    // Compute initial nextBillingDate.
+    // If importing history: next billing is the first date after today.
+    // If NOT importing: next billing is the first date >= today (today's
+    // billing will be caught by the processor).
+    final tempSub = Subscription(
+      id: result.sub.id,
+      name: result.sub.name,
+      emoji: result.sub.emoji,
+      imagePath: result.sub.imagePath,
+      startDate: result.sub.startDate,
+      trialDays: result.sub.trialDays,
+      billingCycleType: result.sub.billingCycleType,
+      billingInterval: result.sub.billingInterval,
+      amount: result.sub.amount,
+      currency: result.sub.currency,
+      accountId: result.sub.accountId,
+      categoryId: result.sub.categoryId,
+      note: result.sub.note,
+    );
+    final initialNBD = result.importHistory
+        ? tempSub.calculateNextBillingDate(after: today)
+        : tempSub.calculateNextBillingDate(
+            after: today.subtract(const Duration(days: 1)),
+          );
+    final sub = Subscription(
+      id: result.sub.id,
+      name: result.sub.name,
+      emoji: result.sub.emoji,
+      imagePath: result.sub.imagePath,
+      startDate: result.sub.startDate,
+      trialDays: result.sub.trialDays,
+      billingCycleType: result.sub.billingCycleType,
+      billingInterval: result.sub.billingInterval,
+      amount: result.sub.amount,
+      currency: result.sub.currency,
+      accountId: result.sub.accountId,
+      categoryId: result.sub.categoryId,
+      note: result.sub.note,
+      nextBillingDate: initialNBD,
+    );
+    setState(() {
+      _subscriptions.add(sub);
+      if (_sortMode == 'custom') _customOrder.add(sub.id);
+    });
+    widget.onSubscriptionsChanged(_subscriptions);
+    if (_sortMode == 'custom') {
+      widget.onSortChanged(_sortMode, _customOrder);
+    }
+    if (result.importHistory) {
+      _importHistoricalTransactions(sub);
     }
   }
 
@@ -313,18 +322,17 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
       ),
     );
     if (result != null) {
-      final wasRestored = !sub.isActive && result.sub.isActive;
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
 
-      // Recalculate nextBillingDate when restoring OR when billing parameters changed
+      // Recalculate nextBillingDate when billing parameters changed.
       DateTime? nbd;
       final billingChanged =
           sub.startDate != result.sub.startDate ||
           sub.trialDays != result.sub.trialDays ||
           sub.billingCycleType != result.sub.billingCycleType ||
           sub.billingInterval != result.sub.billingInterval;
-      if (wasRestored || billingChanged) {
+      if (billingChanged) {
         final tempSub = Subscription(
           startDate: result.sub.startDate,
           trialDays: result.sub.trialDays,
@@ -334,11 +342,9 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
           name: result.sub.name,
           accountId: result.sub.accountId,
         );
-        nbd = (wasRestored && result.importHistory)
-            ? tempSub.calculateNextBillingDate(after: today)
-            : tempSub.calculateNextBillingDate(
-                after: today.subtract(const Duration(days: 1)),
-              );
+        nbd = tempSub.calculateNextBillingDate(
+          after: today.subtract(const Duration(days: 1)),
+        );
       } else {
         nbd = sub.nextBillingDate;
       }
@@ -367,10 +373,85 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
         if (idx != -1) _subscriptions[idx] = edited;
       });
       widget.onSubscriptionsChanged(_subscriptions);
-      if (wasRestored && result.importHistory) {
-        _importHistoricalTransactions(edited);
-      }
     }
+  }
+
+  /// Purpose: Restore a subscription based on its current cancellation state.
+  /// Inputs: `sub`.
+  /// Returns: `Future<void>`.
+  /// Side effects: Updates subscription state or opens a copy-restore dialog.
+  /// Notes: Pending at-expiry cancellations are undone in place; historical subscriptions are copied.
+  Future<void> _restoreSubscription(Subscription sub) async {
+    if (sub.isActive && sub.cancelType == CancelType.atExpiry) {
+      _undoAtExpiryCancellation(sub);
+      return;
+    }
+    if (!sub.isActive) {
+      await _copyRestoreSubscription(sub);
+    }
+  }
+
+  /// Purpose: Undo an at-expiry cancellation without changing the subscription identity.
+  /// Inputs: `sub`.
+  /// Returns: None.
+  /// Side effects: Updates subscription state and persists through the parent callback.
+  /// Notes: This is equivalent to removing the scheduled cancellation marker.
+  void _undoAtExpiryCancellation(Subscription sub) {
+    final restored = Subscription(
+      id: sub.id,
+      name: sub.name,
+      emoji: sub.emoji,
+      imagePath: sub.imagePath,
+      startDate: sub.startDate,
+      trialDays: sub.trialDays,
+      billingCycleType: sub.billingCycleType,
+      billingInterval: sub.billingInterval,
+      amount: sub.amount,
+      currency: sub.currency,
+      accountId: sub.accountId,
+      categoryId: sub.categoryId,
+      note: sub.note,
+      isActive: true,
+      nextBillingDate: sub.nextBillingDate ?? _nextBillingDateFromToday(sub),
+    );
+    setState(() {
+      final idx = _subscriptions.indexWhere((s) => s.id == sub.id);
+      if (idx != -1) _subscriptions[idx] = restored;
+    });
+    widget.onSubscriptionsChanged(_subscriptions);
+  }
+
+  /// Purpose: Create a new active subscription from a historical subscription.
+  /// Inputs: `sub`.
+  /// Returns: `Future<void>`.
+  /// Side effects: Opens the subscription dialog, updates state, and may add transactions.
+  /// Notes: The source subscription is preserved unchanged.
+  Future<void> _copyRestoreSubscription(Subscription sub) async {
+    final result = await showDialog<({Subscription sub, bool importHistory})>(
+      context: context,
+      builder: (_) => AddSubscriptionDialog(
+        categories: widget.categories,
+        accounts: widget.accounts,
+        subscription: sub,
+        restoreAsCopy: true,
+      ),
+    );
+    if (result != null) {
+      _insertNewSubscription(result);
+    }
+  }
+
+  /// Purpose: Calculate the first billing date on or after today.
+  /// Inputs: `sub`.
+  /// Returns: `DateTime?`.
+  /// Side effects: None.
+  /// Notes: Used as a fallback when old data lacks `nextBillingDate`.
+  DateTime? _nextBillingDateFromToday(Subscription sub) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    return sub.calculateNextBillingDate(
+      after: today.subtract(const Duration(days: 1)),
+    );
   }
 
   /// Purpose: Provide the internal delete subscription helper for this file.
@@ -881,6 +962,11 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                                 onTap: () => _openDetail(sub),
                                 onEdit: () => _editSubscription(sub),
                                 onCancel: () => _cancelSubscription(sub),
+                                onRestore: sub.cancelType == CancelType.atExpiry
+                                    ? () {
+                                        _restoreSubscription(sub);
+                                      }
+                                    : null,
                                 onDelete: () async {
                                   final confirmed = await confirmDelete(
                                     context,
@@ -941,6 +1027,9 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                                 defaultCurrency: widget.defaultCurrency,
                                 onTap: () => _openDetail(sub),
                                 onEdit: () => _editSubscription(sub),
+                                onRestore: () {
+                                  _restoreSubscription(sub);
+                                },
                                 onDelete: () async {
                                   final confirmed = await confirmDelete(
                                     context,
@@ -1079,6 +1168,7 @@ class _SubscriptionTile extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onEdit;
   final VoidCallback? onCancel;
+  final VoidCallback? onRestore;
   final VoidCallback onDelete;
 
   /// Purpose: Create a subscription tile instance.
@@ -1094,6 +1184,7 @@ class _SubscriptionTile extends StatelessWidget {
     required this.onTap,
     required this.onEdit,
     this.onCancel,
+    this.onRestore,
     required this.onDelete,
   });
 
@@ -1205,6 +1296,15 @@ class _SubscriptionTile extends StatelessWidget {
                 onTap: () {
                   Navigator.pop(ctx);
                   onCancel!();
+                },
+              ),
+            if (onRestore != null)
+              ListTile(
+                leading: const Icon(Icons.restore),
+                title: Text(l10n.financeRestoreSubscription),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  onRestore!();
                 },
               ),
             ListTile(
