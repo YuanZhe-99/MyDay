@@ -324,7 +324,7 @@ class WebDAVService {
   static const _lockFileName = '.lock';
   static const _clientIdFileName = 'client_id.txt';
   static const _localLockFileName = 'upload_lock.json';
-  static const _lockTtlSeconds = 150;
+  static const _lockTtlSeconds = 60;
 
   /// Global lock to prevent concurrent syncs (auto + manual).
   static bool _syncing = false;
@@ -559,12 +559,10 @@ class WebDAVService {
   /// Inputs: `config`, `fileName`, `mergedJson` (serialized resolved data).
   /// Returns: `Future<bool>` — false when the remote read or upload fails.
   /// Side effects: Downloads the current remote file for unknown-field preservation
-  /// and If-Match preconditions, writes the local file, uploads, saves the base snapshot.
-  /// Notes: Internal helper used within this file only. On HTTP 412 (remote changed
-  /// between download and upload) the upload is retried once with a fresh download.
-  /// A remote download error aborts the file so resolutions are never uploaded over
-  /// an unreadable remote. An upload failure leaves the base snapshot untouched so
-  /// the next sync re-merges.
+  /// context, writes the local file, uploads, saves the base snapshot.
+  /// Notes: Internal helper used within this file only. Resolved data is
+  /// force-uploaded under the held remote `.lock`; a remote download error aborts
+  /// the file so resolutions are never uploaded over an unreadable remote.
   static Future<bool> _finalizeFile(
     WebDAVConfig config,
     String fileName,
@@ -574,54 +572,43 @@ class WebDAVService {
     final appDir = await TodoStorage.getAppDir();
     final localFile = File('${appDir.path}/$fileName');
 
-    for (var attempt = 0; attempt < 2; attempt++) {
-      String? localJson;
-      if (await localFile.exists()) {
-        localJson = await localFile.readAsString();
-      }
-      final remote = await _download(config, fileName);
-      if (remote.status == RemoteFileStatus.error) return false;
-      final preservedJson = _preserveUnknownJson(
-        fileName,
-        mergedJson,
-        localJson: localJson,
-        remoteJson: remote.content,
-      );
-      await _atomicWrite(localFile, preservedJson);
-      _localDataChanged = true;
-      final result = await _uploadWithSession(
-        config,
-        fileName,
-        preservedJson,
-        uploadSession,
-        ifMatchEtag: _strongEtag(remote.etag),
-        ifNoneMatchAll: remote.status == RemoteFileStatus.notFound,
-      );
-      if (result.error == null) {
-        await _saveBase(fileName, preservedJson);
-        return true;
-      }
-      if (!result.is412) return false;
-      // 412: remote changed between download and upload — retry once with a
-      // fresh download to get the new ETag.
+    String? localJson;
+    if (await localFile.exists()) {
+      localJson = await localFile.readAsString();
     }
-    return false;
+    final remote = await _download(config, fileName);
+    if (remote.status == RemoteFileStatus.error) return false;
+    final preservedJson = _preserveUnknownJson(
+      fileName,
+      mergedJson,
+      localJson: localJson,
+      remoteJson: remote.content,
+    );
+    await _atomicWrite(localFile, preservedJson);
+    _localDataChanged = true;
+    final result = await _uploadWithSession(
+      config,
+      fileName,
+      preservedJson,
+      uploadSession,
+    );
+    if (result.error != null) return false;
+    await _saveBase(fileName, preservedJson);
+    return true;
   }
 
-  /// Purpose: Upload merged JSON with one 412 retry, writing local file and saving base.
-  /// Inputs: `config`, `fileName`, `mergedJson`, `remoteEtag`, `remoteNotFound`,
-  ///   `localFile`, `baseJson`, `sourceLocalJson`, `remoteJson` (for unknown-field preservation).
+  /// Purpose: Force-upload merged JSON under the held remote `.lock`.
+  /// Inputs: `config`, `fileName`, `mergedJson`, `localFile`, `baseJson`,
+  ///   `sourceLocalJson`, `remoteJson` (for unknown-field preservation).
   /// Returns: `String?` — `null` on success, otherwise an error message.
   /// Side effects: Writes the local file, uploads to remote, saves the base snapshot.
-  /// Notes: Internal helper used within this file only. On HTTP 412, re-downloads
-  /// the remote file, re-preserves unknown fields, and retries the upload once.
+  /// Notes: Internal helper used within this file only. Data-file ETags are not
+  /// used here because the remote `.lock` is the upload concurrency guard.
   static Future<String?> _uploadMergedJson(
     WebDAVConfig config,
     String fileName,
     String mergedJson, {
     required Future<_UploadSession?> Function() ensureUploadSession,
-    required String? remoteEtag,
-    required bool remoteNotFound,
     required File localFile,
     String? baseJson,
     String? sourceLocalJson,
@@ -643,14 +630,11 @@ class WebDAVService {
       fileName,
       preservedJson,
       uploadSession,
-      ifMatchEtag: remoteEtag,
-      ifNoneMatchAll: remoteNotFound,
     );
     if (result.error == null) {
       await _saveBase(fileName, preservedJson);
       return null;
     }
-    if (result.is412) return 'HTTP 412';
     return result.error;
   }
 
@@ -727,14 +711,13 @@ class WebDAVService {
     } catch (_) {}
   }
 
-  /// Purpose: Provide the internal upload helper for this file.
-  /// Inputs: `config`, `fileName`, `content`, optional `ifMatchEtag`, optional `ifNoneMatchAll`.
+  /// Purpose: Upload content to a remote WebDAV path.
+  /// Inputs: `config`, `fileName`, `content`, optional lock-file preconditions.
   /// Returns: `Future<({bool is412, String? error})>` — `error` is `null` on success.
   /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: Internal helper used within this file only. When `ifMatchEtag` is set the PUT
-  /// carries an `If-Match` precondition; `ifNoneMatchAll` sends `If-None-Match: *` so a
-  /// first upload cannot overwrite a file created concurrently by another device.
-  /// HTTP 412 means the remote changed during sync; callers can retry by re-downloading.
+  /// Notes: Conditional headers are used for `.lock` writes only. Data JSON
+  /// writes go through `_uploadWithSession()` and do not pass data-file
+  /// preconditions.
   static Future<({bool is412, String? error})> _upload(
     WebDAVConfig config,
     String fileName,
@@ -757,10 +740,7 @@ class WebDAVService {
           )
           .timeout(const Duration(seconds: 30));
       if (response.statusCode == 412) {
-        return (
-          is412: true,
-          error: 'remote file changed during sync (HTTP 412)',
-        );
+        return (is412: true, error: 'conditional WebDAV PUT failed (HTTP 412)');
       }
       if (response.statusCode >= 200 && response.statusCode < 300) {
         return (is412: false, error: null);
@@ -771,12 +751,12 @@ class WebDAVService {
     }
   }
 
-  /// Purpose: Return [etag] only when it is a strong ETag usable in `If-Match`.
+  /// Purpose: Return [etag] only when it is a strong ETag usable for lock preconditions.
   /// Inputs: `etag` from a download response, possibly null or weak (`W/...`).
   /// Returns: `String?` — the strong ETag, or null when absent/weak.
   /// Side effects: None.
   /// Notes: Internal helper used within this file only. Weak ETags must not be
-  /// used in `If-Match` preconditions (RFC 9110 strong comparison).
+  /// used in `.lock` `If-Match` preconditions (RFC 9110 strong comparison).
   static String? _strongEtag(String? etag) {
     if (etag == null || etag.startsWith('W/')) return null;
     return etag;
@@ -1036,28 +1016,21 @@ class WebDAVService {
     return null;
   }
 
-  /// Purpose: Upload content after refreshing the held upload lock.
-  /// Inputs: `config`, `fileName`, `content`, `session`, optional preconditions.
+  /// Purpose: Force-upload content after refreshing the held upload lock.
+  /// Inputs: `config`, `fileName`, `content`, `session`.
   /// Returns: Upload result.
   /// Side effects: Performs network I/O.
-  /// Notes: Callers still handle HTTP 412 by re-downloading and re-merging.
+  /// Notes: Data JSON writes are protected by `.lock`, so they intentionally do
+  /// not send data-file `If-Match`/`If-None-Match` preconditions.
   static Future<({bool is412, String? error})> _uploadWithSession(
     WebDAVConfig config,
     String fileName,
     String content,
-    _UploadSession session, {
-    String? ifMatchEtag,
-    bool ifNoneMatchAll = false,
-  }) async {
+    _UploadSession session,
+  ) async {
     final lockError = await _refreshUploadLock(config, session);
     if (lockError != null) return (is412: false, error: lockError);
-    return _upload(
-      config,
-      fileName,
-      content,
-      ifMatchEtag: ifMatchEtag,
-      ifNoneMatchAll: ifNoneMatchAll,
-    );
+    return _upload(config, fileName, content);
   }
 
   /// Purpose: Upload bytes after refreshing the held upload lock.
@@ -1347,52 +1320,42 @@ class WebDAVService {
       if (interrupted.error != null) {
         return SyncResult(success: false, error: interrupted.error);
       }
+      final acquired = await _acquireUploadSession(
+        config,
+        clientId,
+        resumeToken: interrupted.resumeToken,
+      );
+      uploadSession = acquired.session;
+      if (uploadSession == null) {
+        return SyncResult(
+          success: false,
+          error: acquired.error ?? 'Upload lock was not acquired',
+        );
+      }
 
-      String? lockError;
-
-      /// Purpose: Acquire the upload lock once, lazily before the first upload.
+      /// Purpose: Return the upload lock acquired before data downloads.
       /// Inputs: None.
       /// Returns: The active upload session, or null if acquisition failed.
       /// Side effects: May write local and remote lock files.
       /// Notes: Internal helper used only within this sync attempt.
       Future<_UploadSession?> ensureUploadSession() async {
-        if (uploadSession != null) return uploadSession;
-        final acquired = await _acquireUploadSession(
-          config,
-          clientId,
-          resumeToken: interrupted.resumeToken,
-        );
-        lockError = acquired.error;
-        uploadSession = acquired.session;
         return uploadSession;
       }
 
-      /// Purpose: Upload JSON while holding the remote upload lock.
-      /// Inputs: `fileName`, `content`, optional ETag or create-only flag.
+      /// Purpose: Force-upload JSON while holding the remote upload lock.
+      /// Inputs: `fileName`, `content`.
       /// Returns: Upload result.
       /// Side effects: Performs network I/O.
       /// Notes: Internal helper used only within this sync attempt.
       Future<({bool is412, String? error})> uploadJson(
         String fileName,
-        String content, {
-        String? ifMatchEtag,
-        bool ifNoneMatchAll = false,
-      }) async {
+        String content,
+      ) async {
         final session = await ensureUploadSession();
         if (session == null) {
-          return (
-            is412: false,
-            error: lockError ?? 'Upload lock was not acquired',
-          );
+          return (is412: false, error: 'Upload lock was not acquired');
         }
-        return _uploadWithSession(
-          config,
-          fileName,
-          content,
-          session,
-          ifMatchEtag: ifMatchEtag,
-          ifNoneMatchAll: ifNoneMatchAll,
-        );
+        return _uploadWithSession(config, fileName, content, session);
       }
 
       TodoMergeResult? pendingTodo;
@@ -1421,7 +1384,6 @@ class WebDAVService {
           continue;
         }
         var remoteRaw = remote.content;
-        var remoteEtag = _strongEtag(remote.etag);
 
         if (!localExists && remoteRaw == null) continue;
 
@@ -1440,26 +1402,14 @@ class WebDAVService {
         if (name == 'intimacy_data.json') localIntimacyJson = localRaw;
 
         if (localExists && remoteRaw == null) {
-          // Only on local → upload as new; If-None-Match: * prevents
-          // overwriting a file another device created concurrently.
-          final result = await uploadJson(name, localRaw, ifNoneMatchAll: true);
+          // Only on local → force-upload as new under the remote lock.
+          final result = await uploadJson(name, localRaw);
           if (result.error == null) {
             await _saveBase(name, localRaw);
             continue;
           }
-          if (!result.is412) {
-            perFileErrors.add('$name: upload failed: ${result.error}');
-            continue;
-          }
-
-          final freshRemote = await _download(config, name);
-          if (freshRemote.status != RemoteFileStatus.found ||
-              freshRemote.content == null) {
-            perFileErrors.add('$name: re-download after HTTP 412 failed');
-            continue;
-          }
-          remoteRaw = freshRemote.content;
-          remoteEtag = _strongEtag(freshRemote.etag);
+          perFileErrors.add('$name: force-upload failed: ${result.error}');
+          continue;
         }
 
         if (name == 'finance_data.json') remoteFinanceJson = remoteRaw;
@@ -1490,11 +1440,7 @@ class WebDAVService {
             );
             await _atomicWrite(localFile, mergedJson);
             _localDataChanged = true;
-            final result = await uploadJson(
-              name,
-              mergedJson,
-              ifMatchEtag: remoteEtag,
-            );
+            final result = await uploadJson(name, mergedJson);
             if (result.error == null) {
               await _saveBase(name, mergedJson);
             } else {
@@ -1507,30 +1453,28 @@ class WebDAVService {
           switch (name) {
             case 'todo_data.json':
               var currentLocalJson = localJson;
-              var currentRemoteJson = remoteJson;
-              var currentRemoteEtag = remoteEtag;
-              var completedFile = false;
-              var sawConflict = false;
-
-              for (var attempt = 0; attempt < 3; attempt++) {
-                var result = mergeTodoData(
-                  currentLocalJson,
-                  currentRemoteJson,
-                  baseJson,
-                  autoResolve: autoResolve,
-                );
-                if (!result.hasConflicts) {
-                  final freshLocalJson = await localFile.readAsString();
-                  if (freshLocalJson != currentLocalJson) {
-                    currentLocalJson = freshLocalJson;
-                    continue;
-                  }
+              final currentRemoteJson = remoteJson;
+              var result = mergeTodoData(
+                currentLocalJson,
+                currentRemoteJson,
+                baseJson,
+                autoResolve: autoResolve,
+              );
+              if (!result.hasConflicts) {
+                final freshLocalJson = await localFile.readAsString();
+                if (freshLocalJson != currentLocalJson) {
+                  currentLocalJson = freshLocalJson;
+                  result = mergeTodoData(
+                    currentLocalJson,
+                    currentRemoteJson,
+                    baseJson,
+                    autoResolve: autoResolve,
+                  );
                 }
-                if (result.hasConflicts) {
-                  pendingTodo = result;
-                  sawConflict = true;
-                  break;
-                }
+              }
+              if (result.hasConflicts) {
+                pendingTodo = result;
+              } else {
                 final mergedData = result.buildResolved(const {});
                 final mergedJson = jsonEncode(mergedData.toJson());
                 final uploadError = await _uploadMergedJson(
@@ -1538,67 +1482,42 @@ class WebDAVService {
                   name,
                   mergedJson,
                   ensureUploadSession: ensureUploadSession,
-                  remoteEtag: currentRemoteEtag,
-                  remoteNotFound: false,
                   localFile: localFile,
                   baseJson: baseJson,
                   sourceLocalJson: currentLocalJson,
                   remoteJson: currentRemoteJson,
                 );
-                if (uploadError == null) {
-                  completedFile = true;
-                  break;
+                if (uploadError != null) {
+                  perFileErrors.add('$name: force-upload failed: $uploadError');
                 }
-                if (uploadError != 'HTTP 412') {
-                  perFileErrors.add('$name: upload failed: $uploadError');
-                  completedFile = true;
-                  break;
-                }
-                final freshRemote = await _download(config, name);
-                if (freshRemote.status != RemoteFileStatus.found ||
-                    freshRemote.content == null) {
-                  perFileErrors.add('$name: re-download after HTTP 412 failed');
-                  completedFile = true;
-                  break;
-                }
-                currentRemoteJson = freshRemote.content!;
-                currentRemoteEtag = _strongEtag(freshRemote.etag);
-                currentLocalJson = await localFile.readAsString();
-              }
-              if (!completedFile && !sawConflict) {
-                perFileErrors.add(
-                  '$name: upload failed after repeated concurrent updates',
-                );
               }
 
             case 'finance_data.json':
               var currentLocalJson = localJson;
-              var currentRemoteJson = remoteJson;
-              var currentRemoteEtag = remoteEtag;
-              var completedFile = false;
-              var sawConflict = false;
-
-              for (var attempt = 0; attempt < 3; attempt++) {
-                var result = mergeFinanceData(
-                  currentLocalJson,
-                  currentRemoteJson,
-                  baseJson,
-                  autoResolve: autoResolve,
-                );
-                if (!result.hasConflicts) {
-                  final freshLocalJson = await localFile.readAsString();
-                  if (freshLocalJson != currentLocalJson) {
-                    currentLocalJson = freshLocalJson;
-                    localFinanceJson = freshLocalJson;
-                    continue;
-                  }
+              final currentRemoteJson = remoteJson;
+              var result = mergeFinanceData(
+                currentLocalJson,
+                currentRemoteJson,
+                baseJson,
+                autoResolve: autoResolve,
+              );
+              if (!result.hasConflicts) {
+                final freshLocalJson = await localFile.readAsString();
+                if (freshLocalJson != currentLocalJson) {
+                  currentLocalJson = freshLocalJson;
+                  localFinanceJson = freshLocalJson;
+                  result = mergeFinanceData(
+                    currentLocalJson,
+                    currentRemoteJson,
+                    baseJson,
+                    autoResolve: autoResolve,
+                  );
                 }
-                if (result.hasConflicts) {
-                  pendingFinance = result;
-                  remoteFinanceJson = currentRemoteJson;
-                  sawConflict = true;
-                  break;
-                }
+              }
+              if (result.hasConflicts) {
+                pendingFinance = result;
+                remoteFinanceJson = currentRemoteJson;
+              } else {
                 final mergedData = await _migrateFinanceForcedBalances(
                   result.buildResolved(const {}),
                 );
@@ -1608,8 +1527,6 @@ class WebDAVService {
                   name,
                   mergedJson,
                   ensureUploadSession: ensureUploadSession,
-                  remoteEtag: currentRemoteEtag,
-                  remoteNotFound: false,
                   localFile: localFile,
                   baseJson: baseJson,
                   sourceLocalJson: currentLocalJson,
@@ -1617,61 +1534,37 @@ class WebDAVService {
                 );
                 if (uploadError == null) {
                   localFinanceJson = mergedJson;
-                  completedFile = true;
-                  break;
+                } else {
+                  perFileErrors.add('$name: force-upload failed: $uploadError');
                 }
-                if (uploadError != 'HTTP 412') {
-                  perFileErrors.add('$name: upload failed: $uploadError');
-                  completedFile = true;
-                  break;
-                }
-                final freshRemote = await _download(config, name);
-                if (freshRemote.status != RemoteFileStatus.found ||
-                    freshRemote.content == null) {
-                  perFileErrors.add('$name: re-download after HTTP 412 failed');
-                  completedFile = true;
-                  break;
-                }
-                currentRemoteJson = freshRemote.content!;
-                currentRemoteEtag = _strongEtag(freshRemote.etag);
-                remoteFinanceJson = currentRemoteJson;
-                currentLocalJson = await localFile.readAsString();
-                localFinanceJson = currentLocalJson;
-              }
-              if (!completedFile && !sawConflict) {
-                perFileErrors.add(
-                  '$name: upload failed after repeated concurrent updates',
-                );
               }
 
             case 'intimacy_data.json':
               var currentLocalJson = localJson;
-              var currentRemoteJson = remoteJson;
-              var currentRemoteEtag = remoteEtag;
-              var completedFile = false;
-              var sawConflict = false;
-
-              for (var attempt = 0; attempt < 3; attempt++) {
-                var result = mergeIntimacyData(
-                  currentLocalJson,
-                  currentRemoteJson,
-                  baseJson,
-                  autoResolve: autoResolve,
-                );
-                if (!result.hasConflicts) {
-                  final freshLocalJson = await localFile.readAsString();
-                  if (freshLocalJson != currentLocalJson) {
-                    currentLocalJson = freshLocalJson;
-                    localIntimacyJson = freshLocalJson;
-                    continue;
-                  }
+              final currentRemoteJson = remoteJson;
+              var result = mergeIntimacyData(
+                currentLocalJson,
+                currentRemoteJson,
+                baseJson,
+                autoResolve: autoResolve,
+              );
+              if (!result.hasConflicts) {
+                final freshLocalJson = await localFile.readAsString();
+                if (freshLocalJson != currentLocalJson) {
+                  currentLocalJson = freshLocalJson;
+                  localIntimacyJson = freshLocalJson;
+                  result = mergeIntimacyData(
+                    currentLocalJson,
+                    currentRemoteJson,
+                    baseJson,
+                    autoResolve: autoResolve,
+                  );
                 }
-                if (result.hasConflicts) {
-                  pendingIntimacy = result;
-                  remoteIntimacyJson = currentRemoteJson;
-                  sawConflict = true;
-                  break;
-                }
+              }
+              if (result.hasConflicts) {
+                pendingIntimacy = result;
+                remoteIntimacyJson = currentRemoteJson;
+              } else {
                 final mergedData = result.buildResolved(const {});
                 final mergedJson = jsonEncode(mergedData.toJson());
                 final uploadError = await _uploadMergedJson(
@@ -1679,8 +1572,6 @@ class WebDAVService {
                   name,
                   mergedJson,
                   ensureUploadSession: ensureUploadSession,
-                  remoteEtag: currentRemoteEtag,
-                  remoteNotFound: false,
                   localFile: localFile,
                   baseJson: baseJson,
                   sourceLocalJson: currentLocalJson,
@@ -1688,59 +1579,35 @@ class WebDAVService {
                 );
                 if (uploadError == null) {
                   localIntimacyJson = mergedJson;
-                  completedFile = true;
-                  break;
+                } else {
+                  perFileErrors.add('$name: force-upload failed: $uploadError');
                 }
-                if (uploadError != 'HTTP 412') {
-                  perFileErrors.add('$name: upload failed: $uploadError');
-                  completedFile = true;
-                  break;
-                }
-                final freshRemote = await _download(config, name);
-                if (freshRemote.status != RemoteFileStatus.found ||
-                    freshRemote.content == null) {
-                  perFileErrors.add('$name: re-download after HTTP 412 failed');
-                  completedFile = true;
-                  break;
-                }
-                currentRemoteJson = freshRemote.content!;
-                currentRemoteEtag = _strongEtag(freshRemote.etag);
-                remoteIntimacyJson = currentRemoteJson;
-                currentLocalJson = await localFile.readAsString();
-                localIntimacyJson = currentLocalJson;
-              }
-              if (!completedFile && !sawConflict) {
-                perFileErrors.add(
-                  '$name: upload failed after repeated concurrent updates',
-                );
               }
 
             case 'weight_data.json':
               var currentLocalJson = localJson;
-              var currentRemoteJson = remoteJson;
-              var currentRemoteEtag = remoteEtag;
-              var completedFile = false;
-              var sawConflict = false;
-
-              for (var attempt = 0; attempt < 3; attempt++) {
-                var result = mergeWeightData(
-                  currentLocalJson,
-                  currentRemoteJson,
-                  baseJson,
-                  autoResolve: autoResolve,
-                );
-                if (!result.hasConflicts) {
-                  final freshLocalJson = await localFile.readAsString();
-                  if (freshLocalJson != currentLocalJson) {
-                    currentLocalJson = freshLocalJson;
-                    continue;
-                  }
+              final currentRemoteJson = remoteJson;
+              var result = mergeWeightData(
+                currentLocalJson,
+                currentRemoteJson,
+                baseJson,
+                autoResolve: autoResolve,
+              );
+              if (!result.hasConflicts) {
+                final freshLocalJson = await localFile.readAsString();
+                if (freshLocalJson != currentLocalJson) {
+                  currentLocalJson = freshLocalJson;
+                  result = mergeWeightData(
+                    currentLocalJson,
+                    currentRemoteJson,
+                    baseJson,
+                    autoResolve: autoResolve,
+                  );
                 }
-                if (result.hasConflicts) {
-                  pendingWeight = result;
-                  sawConflict = true;
-                  break;
-                }
+              }
+              if (result.hasConflicts) {
+                pendingWeight = result;
+              } else {
                 final mergedData = result.buildResolved(const {});
                 final mergedJson = jsonEncode(mergedData.toJson());
                 final uploadError = await _uploadMergedJson(
@@ -1748,37 +1615,14 @@ class WebDAVService {
                   name,
                   mergedJson,
                   ensureUploadSession: ensureUploadSession,
-                  remoteEtag: currentRemoteEtag,
-                  remoteNotFound: false,
                   localFile: localFile,
                   baseJson: baseJson,
                   sourceLocalJson: currentLocalJson,
                   remoteJson: currentRemoteJson,
                 );
-                if (uploadError == null) {
-                  completedFile = true;
-                  break;
+                if (uploadError != null) {
+                  perFileErrors.add('$name: force-upload failed: $uploadError');
                 }
-                if (uploadError != 'HTTP 412') {
-                  perFileErrors.add('$name: upload failed: $uploadError');
-                  completedFile = true;
-                  break;
-                }
-                final freshRemote = await _download(config, name);
-                if (freshRemote.status != RemoteFileStatus.found ||
-                    freshRemote.content == null) {
-                  perFileErrors.add('$name: re-download after HTTP 412 failed');
-                  completedFile = true;
-                  break;
-                }
-                currentRemoteJson = freshRemote.content!;
-                currentRemoteEtag = _strongEtag(freshRemote.etag);
-                currentLocalJson = await localFile.readAsString();
-              }
-              if (!completedFile && !sawConflict) {
-                perFileErrors.add(
-                  '$name: upload failed after repeated concurrent updates',
-                );
               }
           }
         } catch (e) {

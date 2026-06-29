@@ -29,8 +29,8 @@ Maintenance rules:
 - **Package id:** Dart package `my_day`; Android namespace/application id `com.yuanzhe.my_day`; MSIX identity `com.yuanzhe.myday`; macOS bundle id `com.yuanzhe.myDay`.
 - **Author / publisher:** `yuanzhe`.
 - **License:** GPL-3.0.
-- **Current version:** `1.1.1+48` in `pubspec.yaml`, `1.1.1.0` in `msix_config.msix_version`, and `1.1.1` in `installer.iss`.
-- **Latest tag at the time this guide was written:** `v1.0.2`.
+- **Current version:** `1.1.2+49` in `pubspec.yaml`, `1.1.2.0` in `msix_config.msix_version`, and `1.1.2` in `installer.iss`.
+- **Latest tag at the time this guide was written:** `v1.1.2`.
 - **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.44.2`.
 - **Primary platforms:** Windows x64/ARM64, Android APK/AAB, iOS sideload IPA, and macOS DMG. Linux project support exists for desktop runtime features but is not a primary release artifact.
 - **Repository:** Use the current environment's workspace root / repository path instead of hard-coding an absolute local path.
@@ -251,26 +251,27 @@ WebDAV sync is per-record three-way merge, not whole-file replacement.
 
 Flow:
 
-1. Download remote JSON with a discriminated result: only HTTP 404 counts as "missing on remote"; any other failure (auth/server/network) records a per-file error and skips that file, so local data is never uploaded over an unreadable remote file.
-2. Load local JSON and `.sync_base/` base snapshots.
-3. Merge per record using `modifiedAt` where available. Records whose serialized content is identical on both sides merge without a conflict.
-4. Auto-resolve when only one side changed.
-5. Detect conflicts when the same record changed on both sides after the last sync.
-6. Preserve unknown JSON fields from base/local/remote.
-7. Before any upload, acquire remote `.lock` with the local client id, upload token, UTC timestamp, and 150-second TTL. Active locks from another client block uploads; expired locks are treated as failed uploads and may be replaced. Local `.sync_base/upload_lock.json` lets the next launch detect interrupted uploads and re-download/re-merge before uploading again.
-8. Save merged local data, upload merged data, and update base snapshots. Uploads send `If-Match` with the strong ETag captured at download (first uploads send `If-None-Match: *`); HTTP 412 triggers a fresh remote download and another per-record merge, and only unresolvable record conflicts are shown to the user.
-9. Clear the matching remote/local upload lock after upload completion.
+1. Acquire remote `.lock` before data downloads with the stable local client id, one upload token, UTC timestamp, and 60-second TTL. Active locks from another client block uploads; expired locks are treated as failed uploads and may be replaced. Local `.sync_base/upload_lock.json` lets the next launch detect interrupted uploads and re-download/re-merge before uploading again.
+2. Download remote JSON with a discriminated result: only HTTP 404 counts as "missing on remote"; any other failure (auth/server/network) records a per-file error and skips that file, so local data is never uploaded over an unreadable remote file.
+3. Load local JSON and `.sync_base/` base snapshots.
+4. Merge per record using `modifiedAt` where available. Records whose serialized content is identical on both sides merge without a conflict.
+5. Auto-resolve when only one side changed.
+6. Detect conflicts when the same record changed on both sides after the last sync.
+7. Preserve unknown JSON fields from base/local/remote.
+8. If there are no record conflicts, save merged local data, force-upload the complete merged JSON while `.lock` is valid, and update base snapshots. Data JSON PUTs do not use data-file `If-Match` or `If-None-Match`; `.lock` is the concurrency guard.
+9. If there are record conflicts, return them to the user. After the user resolves them, `finalizePendingSync` reacquires `.lock` and force-uploads each complete resolved JSON.
+10. Clear the matching remote/local upload lock after upload completion.
 
 Manual sync uses `autoResolve: false` and shows `SyncConflictDialog`. Auto-sync also leaves `autoResolve` disabled: it records failures and true two-sided conflicts as visible status in Settings/WebDAV instead of silently applying last-writer-wins. Users must open the WebDAV page and resolve conflicts manually.
 
-`finalizePendingSync` takes the mixed cross-module resolutions map as-is; each merge result picks out its own record types per conflict ID (never bulk-cast the map — that crashed on cross-module conflicts). Unresolved or mistyped entries default to the local record so conflicting records are never dropped. It returns false when any file's remote read or upload fails.
+`finalizePendingSync` takes the mixed cross-module resolutions map as-is; each merge result picks out its own record types per conflict ID (never bulk-cast the map — that crashed on cross-module conflicts). Unresolved or mistyped entries default to the local record so conflicting records are never dropped. It reacquires `.lock` and returns false when any file's remote read or force-upload fails.
 
 Important sync constraints:
 
 - `_syncing` prevents concurrent sync.
 - Local files are re-read before write to detect saves that happened during network I/O.
 - Per-file errors are accumulated so one malformed data file does not block all files.
-- Servers without ETags fall back to unconditional PUTs (previous behavior); weak ETags are never used in `If-Match`.
+- Data JSON uploads are complete-file force PUTs under `.lock`; only `.lock` writes/deletes use ETag preconditions, and weak ETags are never used for those lock preconditions.
 - `WebDAVService.consumeLocalDataChanged()` tells `AutoSyncService` to notify UI pages to reload after sync writes local files.
 - Image sync is reference-gated: only images referenced in `finance_data.json` or `intimacy_data.json` are synced; orphan images are ignored.
 - Individual image transfer failures are non-fatal warnings surfaced through `SyncResult.warnings`.
@@ -490,3 +491,4 @@ Use the narrowest relevant command set for verification. For sync/model/persiste
 - `v1.0.2`: Subscriptions can restore pending at-expiry cancellations in place and restore expired/immediately cancelled subscriptions by copying them into new editable active subscriptions; the intimacy timer adds +50/+10 thrust controls with automatic x1 storage for non-100-multiple counts plus a remembered local-only keep-screen-awake switch using `wakelock_plus`; versions unified to `1.0.2+46` / MSIX `1.0.2.0` / installer `1.0.2`.
 - `v1.1.0`: Hardened finance and data import safety so corrupt finance JSON cannot be treated as empty data, saves are serialized and atomic, ZIP/JSON import and backup restore validate known data before replacement, WebDAV auto-sync failures/conflicts are visible and no longer background-resolved with LWW, and versions are unified to `1.1.0+47` / MSIX `1.1.0.0` / installer `1.1.0`.
 - `v1.1.1`: Settings import/export was rebuilt as ZIP-only and removed CSV/JSON-file import flows; WebDAV uploads now use a remote `.lock` with a stable local client id and 150-second TTL, interrupted local uploads are detected on the next sync, and HTTP 412 upload races re-download remote data and re-run per-record merge before surfacing only true record conflicts; versions are unified to `1.1.1+48` / MSIX `1.1.1.0` / installer `1.1.1`.
+- `v1.1.2`: WebDAV now acquires `.lock` before downloading and merging remote data, lowers the lock TTL to 60 seconds, and force-uploads complete merged/resolved JSON under the valid lock without data-file `If-Match`/`If-None-Match` retry loops; versions are unified to `1.1.2+49` / MSIX `1.1.2.0` / installer `1.1.2`.
