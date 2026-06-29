@@ -688,6 +688,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsWebDAVSyncFailed => '同步失败';
 
   @override
+  String get settingsWebDAVAutoSyncFailed => '自动同步失败';
+
+  @override
+  String get settingsWebDAVAutoSyncConflict => '自动同步发现冲突';
+
+  @override
+  String get settingsWebDAVLastSuccess => '上次成功同步';
+
+  @override
   String get settingsWebDAVConflictTitle => '同步冲突';
 
   @override
@@ -839,7 +848,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsExportCSVPlaintext => '财务交易为纯文本';
 
   @override
-  String get settingsImportRestore => '从ZIP备份恢复';
+  String get settingsImportRestore => '从 ZIP 或 JSON 备份恢复';
 
   @override
   String get settingsImportData => '导入数据';
@@ -923,6 +932,19 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get financeBankNoResults => '未找到匹配的银行';
+
+  @override
+  String get financeDataUnreadableTitle => '财务数据无法读取';
+
+  @override
+  String get financeDataUnreadableMessage =>
+      '财务文件存在，但不是有效数据。已禁用编辑，避免覆盖原文件。请还原备份或替换损坏文件后重试。';
+
+  @override
+  String get financeDataRetry => '重试';
+
+  @override
+  String get financeDataWriteBlocked => '财务数据无法读取，已阻止保存以保护现有文件。';
 
   @override
   String get financeSubscriptions => '订阅';
@@ -2472,6 +2494,15 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get settingsWebDAVSyncFailed => '同步失敗';
 
   @override
+  String get settingsWebDAVAutoSyncFailed => '自動同步失敗';
+
+  @override
+  String get settingsWebDAVAutoSyncConflict => '自動同步發現衝突';
+
+  @override
+  String get settingsWebDAVLastSuccess => '上次成功同步';
+
+  @override
   String get settingsWebDAVConflictTitle => '同步衝突';
 
   @override
@@ -2623,7 +2654,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get settingsExportCSVPlaintext => '財務交易為純文字';
 
   @override
-  String get settingsImportRestore => '從ZIP備份還原';
+  String get settingsImportRestore => '從 ZIP 或 JSON 備份還原';
 
   @override
   String get settingsImportData => '匯入資料';
@@ -2707,6 +2738,19 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get financeBankNoResults => '未找到符合的銀行';
+
+  @override
+  String get financeDataUnreadableTitle => '財務資料無法讀取';
+
+  @override
+  String get financeDataUnreadableMessage =>
+      '財務檔案存在，但不是有效資料。已停用編輯，避免覆蓋原檔案。請還原備份或替換損壞檔案後重試。';
+
+  @override
+  String get financeDataRetry => '重試';
+
+  @override
+  String get financeDataWriteBlocked => '財務資料無法讀取，已阻止儲存以保護現有檔案。';
 
   @override
   String get financeSubscriptions => '訂閱';

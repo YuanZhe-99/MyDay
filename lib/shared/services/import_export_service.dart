@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:archive/archive.dart';
@@ -11,6 +12,21 @@ import '../../features/intimacy/services/intimacy_storage.dart';
 import '../../features/weight/models/weight_record.dart';
 import '../../features/weight/services/weight_storage.dart';
 import '../../features/todo/services/todo_storage.dart';
+import 'backup_service.dart';
+import 'data_file_safety.dart';
+
+class ImportResult {
+  final bool success;
+  final int fileCount;
+  final String? error;
+
+  /// Purpose: Create an import result.
+  /// Inputs: `success`, `fileCount`, optional `error`.
+  /// Returns: A new `ImportResult` instance.
+  /// Side effects: None.
+  /// Notes: Carries detailed import failures to the UI.
+  const ImportResult({required this.success, this.fileCount = 0, this.error});
+}
 
 class ImportExportService {
   static const _dataFileNames = [
@@ -198,14 +214,30 @@ class ImportExportService {
     }
   }
 
-  /// Data file names a ZIP import is allowed to write.
-  static const _zipImportDataFiles = {
-    'todo_data.json',
-    'finance_data.json',
-    'exchange_rates.json',
-    'intimacy_data.json',
-    'weight_data.json',
-  };
+  /// Purpose: Import data from a ZIP, a single data JSON file, or a backup JSON bundle.
+  /// Inputs: `filePath`.
+  /// Returns: `Future<ImportResult>`.
+  /// Side effects: May create a safety backup and overwrite validated app data files.
+  /// Notes: All JSON is validated before any app data file is replaced.
+  static Future<ImportResult> importFile(String filePath) async {
+    try {
+      final name = p.basename(filePath);
+      final ext = p.extension(name).toLowerCase();
+      if (ext == '.zip') return _importZIPDetailed(filePath);
+      if (ext == '.json') {
+        if (DataFileSafety.dataFileNames.contains(name)) {
+          return _importSingleDataJson(filePath, name);
+        }
+        return _importBackupJsonBundle(filePath);
+      }
+      return const ImportResult(
+        success: false,
+        error: 'Unsupported import file type',
+      );
+    } catch (e) {
+      return ImportResult(success: false, error: e.toString());
+    }
+  }
 
   /// Import data from a previously exported ZIP file.
   /// Returns true on success.
@@ -218,19 +250,33 @@ class ImportExportService {
   /// inside the app dir, so a crafted ZIP cannot overwrite configuration such
   /// as `webdav_config.json` or `storage_config.json`.
   static Future<bool> importZIP(String filePath) async {
+    final result = await _importZIPDetailed(filePath);
+    return result.success;
+  }
+
+  /// Purpose: Import a ZIP archive with validation and detailed failure reporting.
+  /// Inputs: `filePath`.
+  /// Returns: `Future<ImportResult>`.
+  /// Side effects: Creates a safety backup and writes validated data/images.
+  /// Notes: Internal helper used within this file only.
+  static Future<ImportResult> _importZIPDetailed(String filePath) async {
     try {
       final file = File(filePath);
-      if (!await file.exists()) return false;
+      if (!await file.exists()) {
+        return const ImportResult(success: false, error: 'File not found');
+      }
 
       final bytes = await file.readAsBytes();
       final archive = ZipDecoder().decodeBytes(bytes);
       final appDir = await TodoStorage.getAppDir();
+      final dataWrites = <String, String>{};
+      final byteWrites = <String, List<int>>{};
 
       for (final entry in archive) {
         if (entry.isFile) {
           final normalizedName = p.normalize(entry.name).replaceAll('\\', '/');
           final allowed =
-              _zipImportDataFiles.contains(normalizedName) ||
+              DataFileSafety.dataFileNames.contains(normalizedName) ||
               (normalizedName.startsWith('images/') &&
                   normalizedName.split('/').length == 2);
           if (!allowed || normalizedName.contains('..')) continue;
@@ -240,18 +286,137 @@ class ImportExportService {
           final normalizedAppDir = p.normalize(appDir.absolute.path);
           if (!p.isWithin(normalizedAppDir, normalizedOut)) continue;
 
-          final parent = Directory(p.dirname(normalizedOut));
-          if (!await parent.exists()) {
-            await parent.create(recursive: true);
+          final content = entry.content as List<int>;
+          if (DataFileSafety.dataFileNames.contains(normalizedName)) {
+            final raw = utf8.decode(content);
+            DataFileSafety.validateDataJson(normalizedName, raw);
+            dataWrites[normalizedName] = raw;
+          } else {
+            byteWrites[normalizedName] = List<int>.from(content);
           }
-          await outFile.writeAsBytes(entry.content as List<int>);
         }
       }
 
-      return true;
-    } catch (_) {
-      return false;
+      if (dataWrites.isEmpty && byteWrites.isEmpty) {
+        return const ImportResult(
+          success: false,
+          error: 'No supported files found in archive',
+        );
+      }
+
+      final safetyBackup = await BackupService.createBackup();
+      if (safetyBackup == null) {
+        return const ImportResult(
+          success: false,
+          error: 'Could not create safety backup before import',
+        );
+      }
+
+      for (final entry in dataWrites.entries) {
+        await DataFileSafety.writeValidatedDataJson(
+          File(p.join(appDir.path, entry.key)),
+          entry.value,
+        );
+      }
+      for (final entry in byteWrites.entries) {
+        await DataFileSafety.atomicWriteBytes(
+          File(p.join(appDir.path, entry.key)),
+          entry.value,
+        );
+      }
+
+      return ImportResult(success: true, fileCount: dataWrites.length);
+    } catch (e) {
+      return ImportResult(success: false, error: e.toString());
     }
+  }
+
+  /// Purpose: Import one known app data JSON file.
+  /// Inputs: `filePath`, `fileName`.
+  /// Returns: `Future<ImportResult>`.
+  /// Side effects: Creates a safety backup and replaces one validated data file.
+  /// Notes: Internal helper used within this file only.
+  static Future<ImportResult> _importSingleDataJson(
+    String filePath,
+    String fileName,
+  ) async {
+    final source = File(filePath);
+    if (!await source.exists()) {
+      return const ImportResult(success: false, error: 'File not found');
+    }
+    final raw = await source.readAsString();
+    DataFileSafety.validateDataJson(fileName, raw);
+    final safetyBackup = await BackupService.createBackup();
+    if (safetyBackup == null) {
+      return const ImportResult(
+        success: false,
+        error: 'Could not create safety backup before import',
+      );
+    }
+    final appDir = await TodoStorage.getAppDir();
+    await DataFileSafety.writeValidatedDataJson(
+      File(p.join(appDir.path, fileName)),
+      raw,
+    );
+    return const ImportResult(success: true, fileCount: 1);
+  }
+
+  /// Purpose: Import a JSON backup bundle created by `BackupService`.
+  /// Inputs: `filePath`.
+  /// Returns: `Future<ImportResult>`.
+  /// Side effects: Creates a safety backup and replaces validated data files.
+  /// Notes: Internal helper used within this file only.
+  static Future<ImportResult> _importBackupJsonBundle(String filePath) async {
+    final source = File(filePath);
+    if (!await source.exists()) {
+      return const ImportResult(success: false, error: 'File not found');
+    }
+    final raw = await source.readAsString();
+    final bundle = jsonDecode(raw) as Map<String, dynamic>;
+    final dataWrites = <String, String>{};
+    for (final name in DataFileSafety.dataFileNames) {
+      final value = bundle[name];
+      if (value is! String) continue;
+      DataFileSafety.validateDataJson(name, value);
+      dataWrites[name] = value;
+    }
+    if (dataWrites.isEmpty) {
+      return const ImportResult(
+        success: false,
+        error: 'JSON file is not a supported MyDay data file or backup bundle',
+      );
+    }
+    final safetyBackup = await BackupService.createBackup();
+    if (safetyBackup == null) {
+      return const ImportResult(
+        success: false,
+        error: 'Could not create safety backup before import',
+      );
+    }
+    final appDir = await TodoStorage.getAppDir();
+    for (final entry in dataWrites.entries) {
+      await DataFileSafety.writeValidatedDataJson(
+        File(p.join(appDir.path, entry.key)),
+        entry.value,
+      );
+    }
+    final images = bundle['_images'];
+    if (images is Map<String, dynamic>) {
+      for (final entry in images.entries) {
+        final normalizedName = p.normalize(entry.key).replaceAll('\\', '/');
+        if (!normalizedName.startsWith('images/') ||
+            normalizedName.split('/').length != 2 ||
+            normalizedName.contains('..') ||
+            entry.value is! String) {
+          continue;
+        }
+        await DataFileSafety.atomicWriteBytes(
+          File(p.join(appDir.path, normalizedName)),
+          base64Decode(entry.value as String),
+        );
+      }
+    }
+    return ImportResult(success: true, fileCount: dataWrites.length);
   }
 
   // ── CSV helpers ──

@@ -10,6 +10,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/providers/app_settings.dart';
 import '../../../shared/providers/intimacy_visibility.dart';
+import '../../../shared/services/auto_sync_service.dart';
 import '../../../shared/services/local_api_server.dart';
 import '../../../shared/services/tray_service.dart';
 import '../../../shared/services/webdav_service.dart';
@@ -74,11 +75,32 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     _loadStoragePath();
     _loadVersion();
     _loadWebDAVStatus();
+    AutoSyncService.instance.addOnStatusChanged(_refreshSyncStatus);
     if (_isDesktop) {
       _loadTraySettings();
       _loadAutoStartStatus();
       _loadApiSettings();
     }
+  }
+
+  /// Purpose: Release listeners, controllers, and other owned resources.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Releases the WebDAV status listener.
+  /// Notes: Call the superclass implementation in the expected lifecycle order.
+  @override
+  void dispose() {
+    AutoSyncService.instance.removeOnStatusChanged(_refreshSyncStatus);
+    super.dispose();
+  }
+
+  /// Purpose: Refresh settings when sync status changes.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Triggers a rebuild.
+  /// Notes: Internal helper used within this file only.
+  void _refreshSyncStatus() {
+    if (mounted) setState(() {});
   }
 
   /// Purpose: Provide the internal load tray settings helper for this file.
@@ -309,6 +331,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       l10n.localeName,
       width: WeekdayLabelWidth.long,
     );
+    final syncError = AutoSyncService.instance.lastError;
+    final syncSubtitle = syncError != null
+        ? AutoSyncService.instance.hasPendingConflicts
+              ? '${l10n.settingsWebDAVAutoSyncConflict}: $syncError'
+              : '${l10n.settingsWebDAVAutoSyncFailed}: $syncError'
+        : _webdavConfigured
+        ? l10n.settingsWebDAVConfigured
+        : l10n.settingsWebDAVNotConfigured;
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settingsTitle)),
@@ -470,11 +500,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ListTile(
               leading: const Icon(Icons.sync),
               title: Text(l10n.settingsWebDAVSync),
-              subtitle: Text(
-                _webdavConfigured
-                    ? l10n.settingsWebDAVConfigured
-                    : l10n.settingsWebDAVNotConfigured,
-              ),
+              subtitle: Text(syncSubtitle),
               trailing: const Icon(Icons.chevron_right),
               onTap: () async {
                 await Navigator.push(

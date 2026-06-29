@@ -1415,6 +1415,24 @@ abstract class AppLocalizations {
   /// **'Sync failed'**
   String get settingsWebDAVSyncFailed;
 
+  /// No description provided for @settingsWebDAVAutoSyncFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-sync failed'**
+  String get settingsWebDAVAutoSyncFailed;
+
+  /// No description provided for @settingsWebDAVAutoSyncConflict.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-sync found conflicts'**
+  String get settingsWebDAVAutoSyncConflict;
+
+  /// No description provided for @settingsWebDAVLastSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Last successful sync'**
+  String get settingsWebDAVLastSuccess;
+
   /// No description provided for @settingsWebDAVConflictTitle.
   ///
   /// In en, this message translates to:
@@ -1712,7 +1730,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsImportRestore.
   ///
   /// In en, this message translates to:
-  /// **'Restore from ZIP backup'**
+  /// **'Restore from ZIP or JSON backup'**
   String get settingsImportRestore;
 
   /// No description provided for @settingsImportData.
@@ -1876,6 +1894,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No matching banks found'**
   String get financeBankNoResults;
+
+  /// No description provided for @financeDataUnreadableTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Finance data cannot be read'**
+  String get financeDataUnreadableTitle;
+
+  /// No description provided for @financeDataUnreadableMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The finance file exists but is not valid data. Editing is disabled so the file cannot be overwritten. Restore a backup or replace the damaged file, then retry.'**
+  String get financeDataUnreadableMessage;
+
+  /// No description provided for @financeDataRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get financeDataRetry;
+
+  /// No description provided for @financeDataWriteBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Finance data is unreadable. Save is blocked to protect the existing file.'**
+  String get financeDataWriteBlocked;
 
   /// No description provided for @financeSubscriptions.
   ///

@@ -217,7 +217,7 @@ class ImportExportPage extends StatelessWidget {
   /// Inputs: `context`.
   /// Returns: `Future<void>`.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Accepts ZIP archives, single known data JSON files, and JSON backup bundles.
   Future<void> _importJSON(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
     final navigator = Navigator.of(context);
@@ -244,22 +244,36 @@ class ImportExportPage extends StatelessWidget {
     final result = await FilePicker.platform.pickFiles(
       dialogTitle: l10n.filePickerBackupFile,
       type: FileType.custom,
-      allowedExtensions: ['zip'],
+      allowedExtensions: ['zip', 'json'],
     );
     if (result == null || result.files.isEmpty) return;
 
     final filePath = result.files.single.path;
     if (filePath == null) return;
 
-    final ok = await ImportExportService.importZIP(filePath);
+    final importResult = await ImportExportService.importFile(filePath);
     if (!context.mounted) return;
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(
-          ok ? l10n.settingsImportSuccess : l10n.settingsImportFailed,
+    if (!importResult.success) {
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(l10n.settingsImportFailed),
+          content: SingleChildScrollView(
+            child: SelectableText(importResult.error ?? '-'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text(l10n.commonOk),
+            ),
+          ],
         ),
-      ),
-    );
+      );
+      return;
+    }
+
+    AutoSyncService.instance.notifySaved();
+    messenger.showSnackBar(SnackBar(content: Text(l10n.settingsImportSuccess)));
   }
 
   /// Purpose: Provide the internal import csv helper for this file.

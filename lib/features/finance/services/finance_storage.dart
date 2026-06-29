@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -124,8 +125,28 @@ class FinanceData {
   );
 }
 
+class FinanceStorageException implements Exception {
+  final String message;
+
+  /// Purpose: Create a finance storage exception with a user-visible message.
+  /// Inputs: `message`.
+  /// Returns: A new `FinanceStorageException` instance.
+  /// Side effects: None.
+  /// Notes: Thrown when finance data exists but cannot be safely read or written.
+  const FinanceStorageException(this.message);
+
+  /// Purpose: Return a readable exception message.
+  /// Inputs: None.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Used by UI and sync/import error reporting.
+  @override
+  String toString() => message;
+}
+
 class FinanceStorage {
   static const _fileName = 'finance_data.json';
+  static Future<void> _writeQueue = Future<void>.value();
 
   /// Purpose: Provide the internal get file helper for this file.
   /// Inputs: None.
@@ -141,11 +162,13 @@ class FinanceStorage {
   /// Inputs: None.
   /// Returns: `Future<FinanceData?>`.
   /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: Legacy forced-balance fields are migrated into adjustment transactions before returning data.
+  /// Notes: A missing file returns null, but an unreadable existing file throws
+  /// so callers never treat corrupted finance data as an empty dataset.
   static Future<FinanceData?> load() async {
+    final file = await _getFile();
+    if (!await file.exists()) return null;
+
     try {
-      final file = await _getFile();
-      if (!await file.exists()) return null;
       final raw = await file.readAsString();
 
       final json = jsonDecode(raw) as Map<String, dynamic>;
@@ -158,8 +181,10 @@ class FinanceStorage {
         await save(migrated);
       } catch (_) {}
       return migrated;
-    } catch (_) {
-      return null;
+    } on FormatException catch (e) {
+      throw FinanceStorageException('$_fileName is not valid JSON: $e');
+    } catch (e) {
+      throw FinanceStorageException('Failed to load $_fileName: $e');
     }
   }
 
@@ -199,15 +224,61 @@ class FinanceStorage {
   /// Purpose: Implement the save behavior for this file.
   /// Inputs: `data`.
   /// Returns: `Future<void>`.
-  /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: None.
+  /// Side effects: Serializes finance writes, validates generated JSON, and atomically replaces the data file.
+  /// Notes: Prevents overlapping writers from interleaving and corrupting JSON.
   static Future<void> save(FinanceData data) async {
+    final next = _writeQueue.then(
+      (_) => _saveNow(data),
+      onError: (_) => _saveNow(data),
+    );
+    _writeQueue = next.catchError((_) {});
+    return next;
+  }
+
+  /// Purpose: Persist finance data after the caller has entered the write queue.
+  /// Inputs: `data`.
+  /// Returns: `Future<void>`.
+  /// Side effects: Writes `finance_data.json` through a validated temporary file.
+  /// Notes: Internal helper used within this file only.
+  static Future<void> _saveNow(FinanceData data) async {
     final file = await _getFile();
     final jsonStr = await JsonPreservation.encodeForFile(
       file: file,
       next: data.toJson(),
       schema: dataFilePreservationSchemas[_fileName]!,
     );
-    await file.writeAsString(jsonStr);
+    await _atomicWriteJson(file, jsonStr);
+  }
+
+  /// Purpose: Replace a JSON file only after the replacement content validates.
+  /// Inputs: `file`, `jsonStr`.
+  /// Returns: `Future<void>`.
+  /// Side effects: Creates and renames a temporary file in the same directory.
+  /// Notes: Internal helper used within this file only.
+  static Future<void> _atomicWriteJson(File file, String jsonStr) async {
+    try {
+      jsonDecode(jsonStr) as Map<String, dynamic>;
+    } catch (e) {
+      throw FinanceStorageException('Refusing to write invalid $_fileName: $e');
+    }
+
+    final parent = file.parent;
+    if (!await parent.exists()) {
+      await parent.create(recursive: true);
+    }
+    final tmp = File(
+      '${file.path}.tmp-${DateTime.now().microsecondsSinceEpoch}',
+    );
+    await tmp.writeAsString(jsonStr, flush: true);
+    try {
+      jsonDecode(await tmp.readAsString()) as Map<String, dynamic>;
+      await tmp.rename(file.path);
+    } catch (e) {
+      try {
+        if (await tmp.exists()) await tmp.delete();
+      } catch (_) {}
+      if (e is FinanceStorageException) rethrow;
+      throw FinanceStorageException('Failed to write $_fileName safely: $e');
+    }
   }
 }

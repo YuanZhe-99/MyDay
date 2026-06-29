@@ -694,6 +694,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsWebDAVSyncFailed => 'Sync failed';
 
   @override
+  String get settingsWebDAVAutoSyncFailed => 'Auto-sync failed';
+
+  @override
+  String get settingsWebDAVAutoSyncConflict => 'Auto-sync found conflicts';
+
+  @override
+  String get settingsWebDAVLastSuccess => 'Last successful sync';
+
+  @override
   String get settingsWebDAVConflictTitle => 'Sync Conflicts';
 
   @override
@@ -850,7 +859,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsExportCSVPlaintext => 'Finance transactions as plaintext';
 
   @override
-  String get settingsImportRestore => 'Restore from ZIP backup';
+  String get settingsImportRestore => 'Restore from ZIP or JSON backup';
 
   @override
   String get settingsImportData => 'Import Data';
@@ -938,6 +947,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get financeBankNoResults => 'No matching banks found';
+
+  @override
+  String get financeDataUnreadableTitle => 'Finance data cannot be read';
+
+  @override
+  String get financeDataUnreadableMessage =>
+      'The finance file exists but is not valid data. Editing is disabled so the file cannot be overwritten. Restore a backup or replace the damaged file, then retry.';
+
+  @override
+  String get financeDataRetry => 'Retry';
+
+  @override
+  String get financeDataWriteBlocked =>
+      'Finance data is unreadable. Save is blocked to protect the existing file.';
 
   @override
   String get financeSubscriptions => 'Subscriptions';

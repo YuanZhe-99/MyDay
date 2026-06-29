@@ -58,6 +58,7 @@ class _FinancePageState extends State<FinancePage> {
   DateTime _settingsModifiedAt = DateTime.fromMillisecondsSinceEpoch(0);
   late DateTime _selectedFlowMonth;
   bool _loaded = false;
+  String? _loadError;
 
   /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
   /// Inputs: None.
@@ -90,11 +91,23 @@ class _FinancePageState extends State<FinancePage> {
   /// Inputs: None.
   /// Returns: `Future<void>`.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Existing but unreadable finance data is shown as an error and is
+  /// never treated as an empty dataset.
   Future<void> _loadData() async {
-    final data = await FinanceStorage.load();
+    FinanceData? data;
+    try {
+      data = await FinanceStorage.load();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loadError = e.toString();
+        _loaded = true;
+      });
+      return;
+    }
     final rateData = await ExchangeRateStorage.load();
     setState(() {
+      _loadError = null;
       if (data != null) {
         _accounts = data.accounts;
         _categories = data.categories;
@@ -170,8 +183,21 @@ class _FinancePageState extends State<FinancePage> {
   /// Inputs: None.
   /// Returns: `Future<void>`.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Refuses to save while the current finance file is unreadable so a
+  /// corrupted file cannot be overwritten by empty in-memory state.
   Future<void> _saveData() async {
+    if (_loadError != null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.financeDataWriteBlocked,
+            ),
+          ),
+        );
+      }
+      return;
+    }
     await FinanceStorage.save(
       FinanceData(
         accounts: _accounts,
@@ -431,29 +457,35 @@ class _FinancePageState extends State<FinancePage> {
           IconButton(
             icon: const Icon(Icons.account_balance),
             tooltip: l10n.financeAccounts,
-            onPressed: () => _openAccounts(context),
+            onPressed: _loadError == null ? () => _openAccounts(context) : null,
           ),
           IconButton(
             icon: const Icon(Icons.analytics_outlined),
             tooltip: l10n.financeAnalysis,
-            onPressed: () => _openAnalysis(context),
+            onPressed: _loadError == null ? () => _openAnalysis(context) : null,
           ),
           IconButton(
             icon: const Icon(Icons.repeat),
             tooltip: l10n.financeSubscriptions,
-            onPressed: () => _openSubscriptions(context),
+            onPressed: _loadError == null
+                ? () => _openSubscriptions(context)
+                : null,
           ),
           IconButton(
             icon: const Icon(Icons.more_vert),
             tooltip: l10n.financeAccountsCategories,
-            onPressed: () {
-              _showFinanceMenu(context);
-            },
+            onPressed: _loadError == null
+                ? () {
+                    _showFinanceMenu(context);
+                  }
+                : null,
           ),
         ],
       ),
       body: !_loaded
           ? const Center(child: CircularProgressIndicator())
+          : _loadError != null
+          ? _FinanceDataError(message: _loadError!, onRetry: _loadData)
           : Column(
               children: [
                 // L1: Summary cards
@@ -620,7 +652,7 @@ class _FinancePageState extends State<FinancePage> {
               ],
             ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _addTransaction,
+        onPressed: _loadError == null ? _addTransaction : null,
         child: const Icon(Icons.add),
       ),
     );
@@ -861,6 +893,70 @@ class _FinancePageState extends State<FinancePage> {
   }
 }
 
+class _FinanceDataError extends StatelessWidget {
+  final String message;
+  final Future<void> Function() onRetry;
+
+  /// Purpose: Show a blocking finance data read error.
+  /// Inputs: `message`, `onRetry`.
+  /// Returns: A new `_FinanceDataError` instance.
+  /// Side effects: None.
+  /// Notes: Keeps write actions unavailable while the finance JSON is unreadable.
+  const _FinanceDataError({required this.message, required this.onRetry});
+
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.warning_amber_rounded,
+              color: theme.colorScheme.error,
+              size: 48,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              l10n.financeDataUnreadableTitle,
+              style: theme.textTheme.titleLarge,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              l10n.financeDataUnreadableMessage,
+              style: theme.textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            SelectableText(
+              message,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.error,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: Text(l10n.financeDataRetry),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _SummaryHeader extends StatelessWidget {
   final String monthLabel;
   final double monthExpense;
@@ -982,9 +1078,7 @@ class _SummaryHeader extends StatelessWidget {
                 const SizedBox(width: 4),
                 Flexible(
                   child: Text(
-                    l10n.financeMissingRateWarning(
-                      missingRatePairs.join(', '),
-                    ),
+                    l10n.financeMissingRateWarning(missingRatePairs.join(', ')),
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.error,
                     ),

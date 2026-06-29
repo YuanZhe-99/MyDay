@@ -688,6 +688,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsWebDAVSyncFailed => '同期失敗';
 
   @override
+  String get settingsWebDAVAutoSyncFailed => '自動同期失敗';
+
+  @override
+  String get settingsWebDAVAutoSyncConflict => '自動同期で競合を検出';
+
+  @override
+  String get settingsWebDAVLastSuccess => '前回の同期成功';
+
+  @override
   String get settingsWebDAVConflictTitle => '同期の競合';
 
   @override
@@ -840,7 +849,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsExportCSVPlaintext => '財務取引を平文で出力';
 
   @override
-  String get settingsImportRestore => 'ZIPバックアップから復元';
+  String get settingsImportRestore => 'ZIP または JSON バックアップから復元';
 
   @override
   String get settingsImportData => 'データをインポート';
@@ -924,6 +933,20 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get financeBankNoResults => '該当する銀行が見つかりません';
+
+  @override
+  String get financeDataUnreadableTitle => '財務データを読み取れません';
+
+  @override
+  String get financeDataUnreadableMessage =>
+      '財務ファイルは存在しますが、有効なデータではありません。元のファイルを上書きしないよう編集を無効にしました。バックアップを復元するか破損したファイルを置き換えてから再試行してください。';
+
+  @override
+  String get financeDataRetry => '再試行';
+
+  @override
+  String get financeDataWriteBlocked =>
+      '財務データを読み取れないため、既存ファイルを保護するため保存をブロックしました。';
 
   @override
   String get financeSubscriptions => 'サブスクリプション';

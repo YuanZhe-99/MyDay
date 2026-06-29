@@ -29,7 +29,7 @@ Maintenance rules:
 - **Package id:** Dart package `my_day`; Android namespace/application id `com.yuanzhe.my_day`; MSIX identity `com.yuanzhe.myday`; macOS bundle id `com.yuanzhe.myDay`.
 - **Author / publisher:** `yuanzhe`.
 - **License:** GPL-3.0.
-- **Current version:** `1.0.2+46` in `pubspec.yaml`, `1.0.2.0` in `msix_config.msix_version`, and `1.0.2` in `installer.iss`.
+- **Current version:** `1.1.0+47` in `pubspec.yaml`, `1.1.0.0` in `msix_config.msix_version`, and `1.1.0` in `installer.iss`.
 - **Latest tag at the time this guide was written:** `v1.0.2`.
 - **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.44.2`.
 - **Primary platforms:** Windows x64/ARM64, Android APK/AAB, iOS sideload IPA, and macOS DMG. Linux project support exists for desktop runtime features but is not a primary release artifact.
@@ -143,6 +143,7 @@ Primary tests currently include:
 
 - `test/audit_fixes_test.dart` (month-end billing clamps, cross-module conflict resolution, exchange-rate/height merge rules, UTC timestamps)
 - `test/balance_util_test.dart`
+- `test/data_file_safety_test.dart`
 - `test/json_preservation_test.dart`
 - `test/local_api_server_test.dart`
 - `test/subscription_processor_test.dart`
@@ -258,7 +259,7 @@ Flow:
 6. Preserve unknown JSON fields from base/local/remote.
 7. Save merged local data, upload merged data, and update base snapshots. Uploads send `If-Match` with the strong ETag captured at download (first uploads send `If-None-Match: *`); HTTP 412 and any other upload failure are recorded as per-file errors and the base snapshot is not saved, so the next sync re-merges instead of silently reporting success.
 
-Manual sync uses `autoResolve: false` and shows `SyncConflictDialog`. Auto-sync uses `autoResolve: true` and LWW per record so one conflict does not block all sync.
+Manual sync uses `autoResolve: false` and shows `SyncConflictDialog`. Auto-sync also leaves `autoResolve` disabled: it records failures and true two-sided conflicts as visible status in Settings/WebDAV instead of silently applying last-writer-wins. Users must open the WebDAV page and resolve conflicts manually.
 
 `finalizePendingSync` takes the mixed cross-module resolutions map as-is; each merge result picks out its own record types per conflict ID (never bulk-cast the map — that crashed on cross-module conflicts). Unresolved or mistyped entries default to the local record so conflicting records are never dropped. It returns false when any file's remote read or upload fails.
 
@@ -296,12 +297,12 @@ Files moved by `TodoStorage.setStoragePath()` are `todo_data.json`, `finance_dat
 - periodic timer: every 15 minutes while the process is alive,
 - saving/enabling a fully configured auto-sync WebDAV setup: immediate sync via `requestSyncNow()`.
 
-Auto-sync silently ignores failures; users can run manual sync from the WebDAV page.
+Auto-sync records the latest success, failure, or pending-conflict state in memory and surfaces it in Settings and the WebDAV page. Failures must not be silently swallowed; conflicts must not be auto-resolved by LWW in the background.
 
 ### Backup, Import, Export, and Images
 
 - `BackupService`: manual backups, daily auto-backup, retention, module-selective restore, JSON bundle with base64 images.
-- `ImportExportService`: ZIP export/import for all five data JSON files plus images; ZIP import extracts only allowlisted entries (the five data JSON files and flat files under `images/`) with the resolved output path confined to the app dir, so a crafted ZIP cannot overwrite configuration such as `webdav_config.json` or `storage_config.json`; CSV export/import for finance, intimacy, and weight.
+- `ImportExportService`: ZIP export/import for all five data JSON files plus images; ZIP import extracts only allowlisted entries (the five data JSON files and flat files under `images/`) with the resolved output path confined to the app dir, so a crafted ZIP cannot overwrite configuration such as `webdav_config.json` or `storage_config.json`; JSON data imports and backup restores validate known data files before replacing anything and write through tmp-then-rename; CSV export/import for finance, intimacy, and weight.
 - CSV import merges into existing data. Finance requires matching account name and can create categories; intimacy can create partners/toys and optional thrust count/unit columns; weight accepts `M/d/yyyy` and `yyyy-MM-dd` style dates.
 - `ImageService`: picks local images, downloads logos/photos, stores UUID filenames under `images/`, resolves relative paths, and rejects tiny placeholder downloads.
 
@@ -486,3 +487,4 @@ Use the narrowest relevant command set for verification. For sync/model/persiste
 - `v1.0.0`: Pre-release audit hardening — WebDAV downloads distinguish 404 from errors so transient failures can never overwrite the remote or cascade into cross-device deletions, upload failures (including ETag `If-Match` 412 conflicts) surface as per-file sync errors instead of silent success, cross-module conflict resolution no longer crashes and unresolved conflicts default to the local record, all `modifiedAt`/settings timestamps are written in UTC, month-end subscription billing dates clamp instead of skipping months, the exchange-rate merge never keeps a dangling current snapshot id, weight height follows settings LWW, the in-process reminder loop is desktop-only with ≥-time due semantics and persisted per-day dedupe, mobile subscription reminders are per-day one-shots with day-accurate content, weight grace skips keep the daily repeat, deleted/completed daily templates stop reminding, IANA timezone resolution via `flutter_timezone`, 15-minute periodic auto-sync plus sync-on-config-save, allowlist-based ZIP import, missing-exchange-rate warnings on the finance summary, removed unused `SCHEDULE_EXACT_ALARM`, and versions unified to `1.0.0+44` / MSIX `1.0.0.0` / installer `1.0.0`.
 - `v1.0.1`: Added intimacy toy management active-cost summaries, an aggregate toy-cost overview for all/active/retired toys with active/all daily-cost trends and finalized retired costs, single-toy total/daily cost summaries, each toy's daily cost in toy management subtitles, updated GitHub Actions stable Flutter to `3.44.2`, configured the GitHub remote locally, and versions unified to `1.0.1+45` / MSIX `1.0.1.0` / installer `1.0.1`.
 - `v1.0.2`: Subscriptions can restore pending at-expiry cancellations in place and restore expired/immediately cancelled subscriptions by copying them into new editable active subscriptions; the intimacy timer adds +50/+10 thrust controls with automatic x1 storage for non-100-multiple counts plus a remembered local-only keep-screen-awake switch using `wakelock_plus`; versions unified to `1.0.2+46` / MSIX `1.0.2.0` / installer `1.0.2`.
+- `v1.1.0`: Hardened finance and data import safety so corrupt finance JSON cannot be treated as empty data, saves are serialized and atomic, ZIP/JSON import and backup restore validate known data before replacement, WebDAV auto-sync failures/conflicts are visible and no longer background-resolved with LWW, and versions are unified to `1.1.0+47` / MSIX `1.1.0.0` / installer `1.1.0`.

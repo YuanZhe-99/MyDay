@@ -41,7 +41,17 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
   @override
   void initState() {
     super.initState();
+    AutoSyncService.instance.addOnStatusChanged(_refreshSyncStatus);
     _loadConfig();
+  }
+
+  /// Purpose: Refresh this page when background sync status changes.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Triggers a rebuild.
+  /// Notes: Internal helper used within this file only.
+  void _refreshSyncStatus() {
+    if (mounted) setState(() {});
   }
 
   /// Purpose: Provide the internal load config helper for this file.
@@ -69,6 +79,7 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
   /// Notes: Call the superclass implementation in the expected lifecycle order.
   @override
   void dispose() {
+    AutoSyncService.instance.removeOnStatusChanged(_refreshSyncStatus);
     _urlController.dispose();
     _userController.dispose();
     _passController.dispose();
@@ -82,12 +93,12 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
   /// Side effects: None.
   /// Notes: Internal helper used within this file only.
   WebDAVConfig get _currentConfig => WebDAVConfig(
-        serverUrl: _urlController.text.trim(),
-        username: _userController.text.trim(),
-        password: _passController.text.trim(),
-        remotePath: _pathController.text.trim(),
-        autoSync: _autoSync,
-      );
+    serverUrl: _urlController.text.trim(),
+    username: _userController.text.trim(),
+    password: _passController.text.trim(),
+    remotePath: _pathController.text.trim(),
+    autoSync: _autoSync,
+  );
 
   /// Purpose: Provide the internal save config helper for this file.
   /// Inputs: None.
@@ -105,7 +116,11 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
     }
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.settingsWebDAVConfigSaved)),
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)!.settingsWebDAVConfigSaved,
+          ),
+        ),
       );
     }
   }
@@ -122,8 +137,12 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
       setState(() => _testing = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content:
-                Text(ok ? AppLocalizations.of(context)!.settingsWebDAVConnectionSuccess : AppLocalizations.of(context)!.settingsWebDAVConnectionFailed)),
+          content: Text(
+            ok
+                ? AppLocalizations.of(context)!.settingsWebDAVConnectionSuccess
+                : AppLocalizations.of(context)!.settingsWebDAVConnectionFailed,
+          ),
+        ),
       );
     }
   }
@@ -137,53 +156,112 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
     setState(() => _syncing = true);
     final result = await WebDAVService.sync(_currentConfig);
     if (!mounted) return;
+    AutoSyncService.instance.recordSyncResult(result);
 
     if (result.hasConflicts) {
       setState(() => _syncing = false);
       final resolutions = await showDialog<Map<String, dynamic>>(
         context: context,
         barrierDismissible: false,
-        builder: (_) => SyncConflictDialog(
-          conflicts: result.pending!.allConflicts,
-        ),
+        builder: (_) =>
+            SyncConflictDialog(conflicts: result.pending!.allConflicts),
       );
       if (resolutions != null && mounted) {
         setState(() => _syncing = true);
         final ok = await WebDAVService.finalizePendingSync(
-          _currentConfig, result.pending!, resolutions);
+          _currentConfig,
+          result.pending!,
+          resolutions,
+        );
+        AutoSyncService.instance.recordFinalizeResult(ok);
         if (mounted) {
           setState(() => _syncing = false);
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(ok
-                ? AppLocalizations.of(context)!.settingsWebDAVSyncSuccess
-                : AppLocalizations.of(context)!.settingsWebDAVSyncFailed)),
+            SnackBar(
+              content: Text(
+                ok
+                    ? AppLocalizations.of(context)!.settingsWebDAVSyncSuccess
+                    : AppLocalizations.of(context)!.settingsWebDAVSyncFailed,
+              ),
+            ),
           );
         }
       } else {
+        AutoSyncService.instance.recordSyncResult(result);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(AppLocalizations.of(context)!.settingsWebDAVSyncFailed)),
+            SnackBar(
+              content: Text(
+                AppLocalizations.of(context)!.settingsWebDAVSyncFailed,
+              ),
+            ),
           );
         }
       }
     } else {
       setState(() => _syncing = false);
       if (!mounted) return;
-      final msg = result.success
-          ? AppLocalizations.of(context)!.settingsWebDAVSyncSuccess
-          : '${AppLocalizations.of(context)!.settingsWebDAVSyncFailed}: ${result.error ?? ''}';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(msg)),
-      );
-      if (result.warnings.isNotEmpty && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Image sync warnings:\n${result.warnings.join('\n')}'),
-            duration: const Duration(seconds: 8),
-          ),
+      if (!result.success) {
+        await _showSyncDialog(
+          AppLocalizations.of(context)!.settingsWebDAVSyncFailed,
+          result.error ?? '-',
         );
+        return;
       }
+      if (result.warnings.isNotEmpty && mounted) {
+        await _showSyncDialog(
+          AppLocalizations.of(context)!.settingsWebDAVSyncSuccess,
+          'Image sync warnings:\n${result.warnings.join('\n')}',
+        );
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)!.settingsWebDAVSyncSuccess,
+          ),
+        ),
+      );
     }
+  }
+
+  /// Purpose: Show a detailed sync result dialog.
+  /// Inputs: `title`, `message`.
+  /// Returns: `Future<void>`.
+  /// Side effects: Opens a modal dialog.
+  /// Notes: Used for long sync errors that do not fit in snackbars.
+  Future<void> _showSyncDialog(String title, String message) async {
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: SingleChildScrollView(child: SelectableText(message)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(AppLocalizations.of(context)!.commonOk),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Purpose: Build a short sync health summary for display.
+  /// Inputs: None.
+  /// Returns: `String?`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  String? _syncStatusText() {
+    final service = AutoSyncService.instance;
+    if (service.lastError != null) {
+      return service.hasPendingConflicts
+          ? '${AppLocalizations.of(context)!.settingsWebDAVAutoSyncConflict}: ${service.lastError}'
+          : '${AppLocalizations.of(context)!.settingsWebDAVAutoSyncFailed}: ${service.lastError}';
+    }
+    if (service.lastSuccessAt != null) {
+      return '${AppLocalizations.of(context)!.settingsWebDAVLastSuccess}: ${service.lastSuccessAt!.toLocal()}';
+    }
+    return null;
   }
 
   /// Purpose: Provide the internal disconnect helper for this file.
@@ -203,7 +281,11 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
     });
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.settingsWebDAVConfigRemoved)),
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)!.settingsWebDAVConfigRemoved,
+          ),
+        ),
       );
     }
   }
@@ -214,7 +296,8 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
   /// Side effects: May update UI state or trigger user-facing flows.
   /// Notes: Internal helper used within this file only.
   void _fillNextcloud() {
-    _urlController.text = 'https://your-nextcloud-host/remote.php/dav/files/USERNAME';
+    _urlController.text =
+        'https://your-nextcloud-host/remote.php/dav/files/USERNAME';
     _pathController.text = '/MyDay';
     setState(() {});
   }
@@ -244,7 +327,9 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
                     OutlinedButton.icon(
                       onPressed: _fillNextcloud,
                       icon: const Icon(Icons.cloud, size: 18),
-                      label: Text(AppLocalizations.of(context)!.settingsWebDAVNextcloud),
+                      label: Text(
+                        AppLocalizations.of(context)!.settingsWebDAVNextcloud,
+                      ),
                     ),
                   ],
                 ),
@@ -254,7 +339,9 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
                 TextField(
                   controller: _urlController,
                   decoration: InputDecoration(
-                    labelText: AppLocalizations.of(context)!.settingsWebDAVServerURL,
+                    labelText: AppLocalizations.of(
+                      context,
+                    )!.settingsWebDAVServerURL,
                     hintText: 'https://example.com/remote.php/dav/files/user',
                   ),
                   keyboardType: TextInputType.url,
@@ -264,14 +351,22 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
                 // Username
                 TextField(
                   controller: _userController,
-                  decoration: InputDecoration(labelText: AppLocalizations.of(context)!.settingsWebDAVUsername),
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.of(
+                      context,
+                    )!.settingsWebDAVUsername,
+                  ),
                 ),
                 const SizedBox(height: 12),
 
                 // Password
                 TextField(
                   controller: _passController,
-                  decoration: InputDecoration(labelText: AppLocalizations.of(context)!.settingsWebDAVPassword),
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.of(
+                      context,
+                    )!.settingsWebDAVPassword,
+                  ),
                   obscureText: true,
                 ),
                 const SizedBox(height: 12),
@@ -280,7 +375,9 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
                 TextField(
                   controller: _pathController,
                   decoration: InputDecoration(
-                    labelText: AppLocalizations.of(context)!.settingsWebDAVRemotePath,
+                    labelText: AppLocalizations.of(
+                      context,
+                    )!.settingsWebDAVRemotePath,
                     hintText: '/MyDay',
                   ),
                 ),
@@ -303,9 +400,15 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
                             ? const SizedBox(
                                 width: 16,
                                 height: 16,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 2))
-                            : Text(AppLocalizations.of(context)!.settingsWebDAVTestConnection),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(
+                                AppLocalizations.of(
+                                  context,
+                                )!.settingsWebDAVTestConnection,
+                              ),
                       ),
                     ),
                   ],
@@ -313,22 +416,49 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
                 const SizedBox(height: 12),
 
                 if (_isConfigured) ...[
+                  if (_syncStatusText() != null) ...[
+                    Card(
+                      color: AutoSyncService.instance.lastError == null
+                          ? theme.colorScheme.surfaceContainerHighest
+                          : theme.colorScheme.errorContainer,
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Text(
+                          _syncStatusText()!,
+                          style: TextStyle(
+                            color: AutoSyncService.instance.lastError == null
+                                ? theme.colorScheme.onSurfaceVariant
+                                : theme.colorScheme.onErrorContainer,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                   FilledButton.icon(
                     onPressed: _syncing ? null : _syncNow,
                     icon: _syncing
                         ? const SizedBox(
                             width: 16,
                             height: 16,
-                            child:
-                                CircularProgressIndicator(strokeWidth: 2))
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
                         : const Icon(Icons.sync),
-                    label: Text(_syncing ? AppLocalizations.of(context)!.settingsWebDAVSyncing : AppLocalizations.of(context)!.settingsWebDAVSyncNow),
+                    label: Text(
+                      _syncing
+                          ? AppLocalizations.of(context)!.settingsWebDAVSyncing
+                          : AppLocalizations.of(context)!.settingsWebDAVSyncNow,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: Text(AppLocalizations.of(context)!.settingsWebDAVAutoSync),
-                    subtitle: Text(AppLocalizations.of(context)!.settingsWebDAVAutoSyncDesc),
+                    title: Text(
+                      AppLocalizations.of(context)!.settingsWebDAVAutoSync,
+                    ),
+                    subtitle: Text(
+                      AppLocalizations.of(context)!.settingsWebDAVAutoSyncDesc,
+                    ),
                     value: _autoSync,
                     onChanged: (v) async {
                       setState(() => _autoSync = v);
@@ -342,8 +472,10 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
                   const SizedBox(height: 12),
                   TextButton(
                     onPressed: _disconnect,
-                    child: Text(AppLocalizations.of(context)!.settingsWebDAVDisconnect,
-                        style: TextStyle(color: theme.colorScheme.error)),
+                    child: Text(
+                      AppLocalizations.of(context)!.settingsWebDAVDisconnect,
+                      style: TextStyle(color: theme.colorScheme.error),
+                    ),
                   ),
                 ],
               ],

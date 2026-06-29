@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../../features/todo/services/todo_storage.dart';
+import 'data_file_safety.dart';
 
 /// Manages local backups with manual/auto creation and retention policies.
 class BackupService {
@@ -138,7 +139,9 @@ class BackupService {
     final existing = await listBackups();
     final alreadyToday = existing.any((b) {
       final d = b.date;
-      return d.year == today.year && d.month == today.month && d.day == today.day;
+      return d.year == today.year &&
+          d.month == today.month &&
+          d.day == today.day;
     });
     if (alreadyToday) {
       _lastAutoBackup = now;
@@ -161,7 +164,8 @@ class BackupService {
 
     final files = <BackupInfo>[];
     await for (final entity in backupDir.list()) {
-      if (entity is File && p.basename(entity.path).startsWith('backup_') &&
+      if (entity is File &&
+          p.basename(entity.path).startsWith('backup_') &&
           entity.path.endsWith('.json')) {
         final stat = await entity.stat();
         final name = p.basenameWithoutExtension(entity.path);
@@ -173,11 +177,7 @@ class BackupService {
         } catch (_) {
           date = stat.modified;
         }
-        files.add(BackupInfo(
-          file: entity,
-          date: date,
-          sizeBytes: stat.size,
-        ));
+        files.add(BackupInfo(file: entity, date: date, sizeBytes: stat.size));
       }
     }
     files.sort((a, b) => b.date.compareTo(a.date));
@@ -210,7 +210,7 @@ class BackupService {
   /// Inputs: `file`, `moduleKeys`.
   /// Returns: `Future<bool>`.
   /// Side effects: May overwrite app data files and restore image assets from the backup bundle.
-  /// Notes: None.
+  /// Notes: Validates every selected JSON payload before writing any data file.
   static Future<bool> restoreBackup(
     File file, {
     Set<String>? moduleKeys,
@@ -219,26 +219,41 @@ class BackupService {
       final raw = await file.readAsString();
       final bundle = jsonDecode(raw) as Map<String, dynamic>;
       final appDir = await TodoStorage.getAppDir();
+      final writes = <String, String>{};
 
       for (final entry in modules.entries) {
         final fileName = entry.key;
         final moduleId = entry.value;
         if (moduleKeys != null && !moduleKeys.contains(moduleId)) continue;
         if (!bundle.containsKey(fileName)) continue;
-        final outFile = File(p.join(appDir.path, fileName));
-        await outFile.writeAsString(bundle[fileName] as String);
+        final content = bundle[fileName] as String;
+        DataFileSafety.validateDataJson(fileName, content);
+        writes[fileName] = content;
+      }
+
+      for (final entry in writes.entries) {
+        await DataFileSafety.writeValidatedDataJson(
+          File(p.join(appDir.path, entry.key)),
+          entry.value,
+        );
       }
 
       // Restore images (always, if present and any module is selected)
       if (bundle.containsKey('_images')) {
         final imagesMap = bundle['_images'] as Map<String, dynamic>;
-        final imgDir = Directory(p.join(appDir.path, 'images'));
-        if (!await imgDir.exists()) {
-          await imgDir.create(recursive: true);
-        }
         for (final e in imagesMap.entries) {
-          final f = File(p.join(appDir.path, e.key));
-          await f.writeAsBytes(base64Decode(e.value as String));
+          final normalizedName = p.normalize(e.key).replaceAll('\\', '/');
+          if (!normalizedName.startsWith('images/') ||
+              normalizedName.split('/').length != 2 ||
+              normalizedName.contains('..') ||
+              e.value is! String) {
+            continue;
+          }
+          final f = File(p.join(appDir.path, normalizedName));
+          await DataFileSafety.atomicWriteBytes(
+            f,
+            base64Decode(e.value as String),
+          );
         }
       }
 
@@ -337,7 +352,9 @@ class BackupInfo {
   /// Notes: None.
   String get displaySize {
     if (sizeBytes < 1024) return '$sizeBytes B';
-    if (sizeBytes < 1024 * 1024) return '${(sizeBytes / 1024).toStringAsFixed(1)} KB';
+    if (sizeBytes < 1024 * 1024) {
+      return '${(sizeBytes / 1024).toStringAsFixed(1)} KB';
+    }
     return '${(sizeBytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 }
