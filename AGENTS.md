@@ -25,11 +25,11 @@ Maintenance rules:
 ## Project Snapshot
 
 - **Name:** MyDay!!!!!, with five exclamation marks in user-facing app names, installer metadata, macOS bundle names, and notification titles.
-- **Description:** A privacy-first Flutter daily life companion for Todo management, personal finance, weight tracking, an optional intimacy module, WebDAV sync, local backup, ZIP/CSV import/export, desktop tray behavior, startup launch, and a local HTTP API.
+- **Description:** A privacy-first Flutter daily life companion for Todo management, personal finance, weight tracking, an optional intimacy module, WebDAV sync, local backup, ZIP import/export, desktop tray behavior, startup launch, and a local HTTP API.
 - **Package id:** Dart package `my_day`; Android namespace/application id `com.yuanzhe.my_day`; MSIX identity `com.yuanzhe.myday`; macOS bundle id `com.yuanzhe.myDay`.
 - **Author / publisher:** `yuanzhe`.
 - **License:** GPL-3.0.
-- **Current version:** `1.1.0+47` in `pubspec.yaml`, `1.1.0.0` in `msix_config.msix_version`, and `1.1.0` in `installer.iss`.
+- **Current version:** `1.1.1+48` in `pubspec.yaml`, `1.1.1.0` in `msix_config.msix_version`, and `1.1.1` in `installer.iss`.
 - **Latest tag at the time this guide was written:** `v1.0.2`.
 - **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.44.2`.
 - **Primary platforms:** Windows x64/ARM64, Android APK/AAB, iOS sideload IPA, and macOS DMG. Linux project support exists for desktop runtime features but is not a primary release artifact.
@@ -257,7 +257,9 @@ Flow:
 4. Auto-resolve when only one side changed.
 5. Detect conflicts when the same record changed on both sides after the last sync.
 6. Preserve unknown JSON fields from base/local/remote.
-7. Save merged local data, upload merged data, and update base snapshots. Uploads send `If-Match` with the strong ETag captured at download (first uploads send `If-None-Match: *`); HTTP 412 and any other upload failure are recorded as per-file errors and the base snapshot is not saved, so the next sync re-merges instead of silently reporting success.
+7. Before any upload, acquire remote `.lock` with the local client id, upload token, UTC timestamp, and 150-second TTL. Active locks from another client block uploads; expired locks are treated as failed uploads and may be replaced. Local `.sync_base/upload_lock.json` lets the next launch detect interrupted uploads and re-download/re-merge before uploading again.
+8. Save merged local data, upload merged data, and update base snapshots. Uploads send `If-Match` with the strong ETag captured at download (first uploads send `If-None-Match: *`); HTTP 412 triggers a fresh remote download and another per-record merge, and only unresolvable record conflicts are shown to the user.
+9. Clear the matching remote/local upload lock after upload completion.
 
 Manual sync uses `autoResolve: false` and shows `SyncConflictDialog`. Auto-sync also leaves `autoResolve` disabled: it records failures and true two-sided conflicts as visible status in Settings/WebDAV instead of silently applying last-writer-wins. Users must open the WebDAV page and resolve conflicts manually.
 
@@ -302,8 +304,7 @@ Auto-sync records the latest success, failure, or pending-conflict state in memo
 ### Backup, Import, Export, and Images
 
 - `BackupService`: manual backups, daily auto-backup, retention, module-selective restore, JSON bundle with base64 images.
-- `ImportExportService`: ZIP export/import for all five data JSON files plus images; ZIP import extracts only allowlisted entries (the five data JSON files and flat files under `images/`) with the resolved output path confined to the app dir, so a crafted ZIP cannot overwrite configuration such as `webdav_config.json` or `storage_config.json`; JSON data imports and backup restores validate known data files before replacing anything and write through tmp-then-rename; CSV export/import for finance, intimacy, and weight.
-- CSV import merges into existing data. Finance requires matching account name and can create categories; intimacy can create partners/toys and optional thrust count/unit columns; weight accepts `M/d/yyyy` and `yyyy-MM-dd` style dates.
+- `ImportExportService`: Settings import/export is ZIP-only for all five data JSON files plus images; ZIP import extracts only allowlisted entries (the five data JSON files and flat files under `images/`) with the resolved output path confined to the app dir, so a crafted ZIP cannot overwrite configuration such as `webdav_config.json` or `storage_config.json`; imported data JSON files validate before anything is replaced and write through tmp-then-rename.
 - `ImageService`: picks local images, downloads logos/photos, stores UUID filenames under `images/`, resolves relative paths, and rejects tiny placeholder downloads.
 
 ### Local HTTP API
@@ -488,3 +489,4 @@ Use the narrowest relevant command set for verification. For sync/model/persiste
 - `v1.0.1`: Added intimacy toy management active-cost summaries, an aggregate toy-cost overview for all/active/retired toys with active/all daily-cost trends and finalized retired costs, single-toy total/daily cost summaries, each toy's daily cost in toy management subtitles, updated GitHub Actions stable Flutter to `3.44.2`, configured the GitHub remote locally, and versions unified to `1.0.1+45` / MSIX `1.0.1.0` / installer `1.0.1`.
 - `v1.0.2`: Subscriptions can restore pending at-expiry cancellations in place and restore expired/immediately cancelled subscriptions by copying them into new editable active subscriptions; the intimacy timer adds +50/+10 thrust controls with automatic x1 storage for non-100-multiple counts plus a remembered local-only keep-screen-awake switch using `wakelock_plus`; versions unified to `1.0.2+46` / MSIX `1.0.2.0` / installer `1.0.2`.
 - `v1.1.0`: Hardened finance and data import safety so corrupt finance JSON cannot be treated as empty data, saves are serialized and atomic, ZIP/JSON import and backup restore validate known data before replacement, WebDAV auto-sync failures/conflicts are visible and no longer background-resolved with LWW, and versions are unified to `1.1.0+47` / MSIX `1.1.0.0` / installer `1.1.0`.
+- `v1.1.1`: Settings import/export was rebuilt as ZIP-only and removed CSV/JSON-file import flows; WebDAV uploads now use a remote `.lock` with a stable local client id and 150-second TTL, interrupted local uploads are detected on the next sync, and HTTP 412 upload races re-download remote data and re-run per-record merge before surfacing only true record conflicts; versions are unified to `1.1.1+48` / MSIX `1.1.1.0` / installer `1.1.1`.

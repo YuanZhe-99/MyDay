@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,6 +12,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../shared/providers/app_settings.dart';
 import '../../../shared/providers/intimacy_visibility.dart';
 import '../../../shared/services/auto_sync_service.dart';
+import '../../../shared/services/import_export_service.dart';
 import '../../../shared/services/local_api_server.dart';
 import '../../../shared/services/tray_service.dart';
 import '../../../shared/services/webdav_service.dart';
@@ -18,7 +20,6 @@ import '../../../shared/utils/week_grouping.dart';
 import '../../../shared/widgets/app_date_picker.dart';
 import '../../../shared/widgets/unsaved_changes_guard.dart';
 import '../../../shared/views/backup_page.dart';
-import '../../../shared/views/import_export_page.dart';
 import '../../../shared/views/webdav_config_page.dart';
 import '../../finance/services/subscription_processor.dart';
 import '../../todo/services/todo_storage.dart';
@@ -192,6 +193,72 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       _apiUsername = config['apiUsername'] as String? ?? '';
       _apiPassword = config['apiPassword'] as String? ?? '';
     });
+  }
+
+  /// Purpose: Export all app data as a ZIP file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: Opens a directory picker, writes a ZIP, and shows a snackbar.
+  /// Notes: Settings import/export intentionally supports ZIP only.
+  Future<void> _exportData() async {
+    final l10n = AppLocalizations.of(context)!;
+    final dir = await FilePicker.platform.getDirectoryPath();
+    if (dir == null || !mounted) return;
+
+    final path = await ImportExportService.exportZIP(dir);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          path != null ? l10n.settingsExportSuccess : l10n.settingsExportFailed,
+        ),
+      ),
+    );
+  }
+
+  /// Purpose: Import all app data from a ZIP file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: Opens a file picker, may overwrite app data, and shows a snackbar.
+  /// Notes: Settings import/export intentionally supports ZIP only.
+  Future<void> _importData() async {
+    final l10n = AppLocalizations.of(context)!;
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['zip'],
+    );
+    if (result == null || result.files.single.path == null || !mounted) return;
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.settingsImportData),
+        content: Text(l10n.settingsImportConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.settingsImportData),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+
+    final success = await ImportExportService.importZIP(
+      result.files.single.path!,
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          success ? l10n.settingsImportSuccess : l10n.settingsImportFailed,
+        ),
+      ),
+    );
   }
 
   /// Purpose: Provide the internal show api settings dialog helper for this file.
@@ -511,13 +578,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.import_export),
-              title: Text(l10n.settingsImportExport),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ImportExportPage()),
-              ),
+              leading: const Icon(Icons.archive_outlined),
+              title: Text(l10n.settingsExportJSON),
+              onTap: _exportData,
+            ),
+            ListTile(
+              leading: const Icon(Icons.upload_file),
+              title: Text(l10n.settingsImportData),
+              onTap: _importData,
             ),
             ListTile(
               leading: const Icon(Icons.backup),

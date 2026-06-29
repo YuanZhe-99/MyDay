@@ -1,32 +1,11 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:archive/archive.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 
-import '../../features/finance/models/finance.dart';
-import '../../features/finance/services/finance_storage.dart';
-import '../../features/intimacy/models/intimacy_record.dart';
-import '../../features/intimacy/services/intimacy_storage.dart';
-import '../../features/weight/models/weight_record.dart';
-import '../../features/weight/services/weight_storage.dart';
 import '../../features/todo/services/todo_storage.dart';
-import 'backup_service.dart';
 import 'data_file_safety.dart';
-
-class ImportResult {
-  final bool success;
-  final int fileCount;
-  final String? error;
-
-  /// Purpose: Create an import result.
-  /// Inputs: `success`, `fileCount`, optional `error`.
-  /// Returns: A new `ImportResult` instance.
-  /// Side effects: None.
-  /// Notes: Carries detailed import failures to the UI.
-  const ImportResult({required this.success, this.fileCount = 0, this.error});
-}
 
 class ImportExportService {
   static const _dataFileNames = [
@@ -37,27 +16,24 @@ class ImportExportService {
     'weight_data.json',
   ];
 
-  /// Export all data as a ZIP file containing JSON data files and images.
-  /// Returns the exported file path, or null on failure.
-  /// Purpose: Implement the export zip behavior for this file.
+  /// Purpose: Export all app data as a ZIP file.
   /// Inputs: `destDir`.
-  /// Returns: `Future<String?>`.
-  /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: None.
+  /// Returns: Exported file path, or null on failure.
+  /// Side effects: Reads app data files/images and writes a ZIP file.
+  /// Notes: Settings import/export supports ZIP only.
   static Future<String?> exportZIP(String destDir) async {
     try {
       final appDir = await TodoStorage.getAppDir();
       final archive = Archive();
 
       for (final name in _dataFileNames) {
-        final file = File('${appDir.path}/$name');
+        final file = File(p.join(appDir.path, name));
         if (await file.exists()) {
           final bytes = await file.readAsBytes();
           archive.addFile(ArchiveFile(name, bytes.length, bytes));
         }
       }
 
-      // Include images
       final imgDir = Directory(p.join(appDir.path, 'images'));
       if (await imgDir.exists()) {
         await for (final entity in imgDir.list()) {
@@ -70,827 +46,83 @@ class ImportExportService {
       }
 
       final zipData = ZipEncoder().encode(archive);
-
       final stamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
       final outFile = File(p.join(destDir, 'myday_backup_$stamp.zip'));
-      await outFile.writeAsBytes(zipData);
+      await outFile.writeAsBytes(zipData, flush: true);
       return outFile.path;
     } catch (_) {
       return null;
     }
   }
 
-  /// Export finance transactions as CSV.
-  /// Returns the exported file path, or null on failure.
-  /// Purpose: Implement the export csv behavior for this file.
-  /// Inputs: `destDir`.
-  /// Returns: `Future<String?>`.
-  /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: None.
-  static Future<String?> exportCSV(String destDir) async {
-    try {
-      final data = await FinanceStorage.load();
-      if (data == null) return null;
-
-      final buf = StringBuffer();
-      buf.writeln('Date,Type,Category,Amount,Currency,Account,Note');
-      for (final tx in data.transactions) {
-        final date = DateFormat('yyyy-MM-dd HH:mm').format(tx.date);
-        final cat =
-            data.categories
-                .where((c) => c.id == tx.categoryId)
-                .firstOrNull
-                ?.name ??
-            '';
-        final acct = data.accounts
-            .where((a) => a.id == tx.accountId)
-            .firstOrNull;
-        final acctName = acct?.name ?? '';
-        final note = tx.note.replaceAll('"', '""');
-        buf.writeln(
-          '$date,${tx.type.name},"$cat",${tx.amount},${tx.currency},"$acctName","$note"',
-        );
-      }
-
-      final stamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-      final outFile = File('$destDir/myday_finance_$stamp.csv');
-      await outFile.writeAsString(buf.toString());
-      return outFile.path;
-    } catch (_) {
-      return null;
-    }
-  }
-
-  /// Export intimacy records as CSV.
-  /// Returns the exported file path, or null on failure.
-  /// Purpose: Implement the export intimacy csv behavior for this file.
-  /// Inputs: `destDir`.
-  /// Returns: `Future<String?>`.
-  /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: None.
-  static Future<String?> exportIntimacyCSV(String destDir) async {
-    try {
-      final data = await IntimacyStorage.load();
-      if (data == null) return null;
-
-      final buf = StringBuffer();
-      buf.writeln(
-        'Date,Type,IsSolo,Partner,Toys,PleasureLevel,Duration(min),ThrustCount,ThrustUnit,HadOrgasm,WatchedPorn,UsedCondom,Location,Notes',
-      );
-      for (final r in data.records) {
-        final date = DateFormat('yyyy-MM-dd HH:mm').format(r.datetime);
-        final partner = r.partnerId != null
-            ? data.partners
-                      .where((p) => p.id == r.partnerId)
-                      .firstOrNull
-                      ?.name ??
-                  ''
-            : '';
-        final toyNames = r.toyIds
-            .map(
-              (id) =>
-                  data.toys.where((t) => t.id == id).firstOrNull?.name ?? '',
-            )
-            .where((n) => n.isNotEmpty)
-            .join(';');
-        final durMin = (r.duration.inSeconds / 60.0).toStringAsFixed(1);
-        final thrustCount = r.thrustCount?.toString() ?? '';
-        final thrustUnit = r.thrustCount != null ? 'x${r.thrustCountUnit}' : '';
-        final location = (r.location ?? '').replaceAll('"', '""');
-        final notes = (r.notes ?? '').replaceAll('"', '""');
-        final partnerEscaped = partner.replaceAll('"', '""');
-        buf.writeln(
-          '$date,${r.type},${r.isSolo},"$partnerEscaped","$toyNames",${r.pleasureLevel},$durMin,$thrustCount,$thrustUnit,${r.hadOrgasm},${r.watchedPorn},${r.usedCondom},"$location","$notes"',
-        );
-      }
-
-      final stamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-      final outFile = File('$destDir/myday_intimacy_$stamp.csv');
-      await outFile.writeAsString(buf.toString());
-      return outFile.path;
-    } catch (_) {
-      return null;
-    }
-  }
-
-  /// Export weight records as CSV.
-  /// Format extends MyWeight² CSV: Date, Time, Weight (kg), optional measurements.
-  /// Purpose: Implement the export weight csv behavior for this file.
-  /// Inputs: `destDir`.
-  /// Returns: `Future<String?>`.
-  /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: None.
-  static Future<String?> exportWeightCSV(String destDir) async {
-    try {
-      final data = await WeightStorage.load();
-      if (data == null || data.records.isEmpty) return null;
-
-      final sorted = List<WeightRecord>.from(data.records)
-        ..sort((a, b) => a.datetime.compareTo(b.datetime));
-
-      final buf = StringBuffer();
-      buf.writeln('Date, Time, Weight (kg), Bust (cm), Waist (cm), Hip (cm)');
-      for (final r in sorted) {
-        final date = DateFormat('M/d/yyyy').format(r.datetime);
-        final time = DateFormat('HH:mm').format(r.datetime);
-        buf.writeln(
-          [
-            date,
-            time,
-            r.weight.toStringAsFixed(2),
-            _formatOptionalDecimal(r.bustCm),
-            _formatOptionalDecimal(r.waistCm),
-            _formatOptionalDecimal(r.hipCm),
-          ].join(', '),
-        );
-      }
-
-      final stamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-      final outFile = File('$destDir/myday_weight_$stamp.csv');
-      await outFile.writeAsString(buf.toString());
-      return outFile.path;
-    } catch (_) {
-      return null;
-    }
-  }
-
-  /// Purpose: Import data from a ZIP, a single data JSON file, or a backup JSON bundle.
+  /// Purpose: Import app data from a ZIP file.
   /// Inputs: `filePath`.
-  /// Returns: `Future<ImportResult>`.
-  /// Side effects: May create a safety backup and overwrite validated app data files.
-  /// Notes: All JSON is validated before any app data file is replaced.
-  static Future<ImportResult> importFile(String filePath) async {
-    try {
-      final name = p.basename(filePath);
-      final ext = p.extension(name).toLowerCase();
-      if (ext == '.zip') return _importZIPDetailed(filePath);
-      if (ext == '.json') {
-        if (DataFileSafety.dataFileNames.contains(name)) {
-          return _importSingleDataJson(filePath, name);
-        }
-        return _importBackupJsonBundle(filePath);
-      }
-      return const ImportResult(
-        success: false,
-        error: 'Unsupported import file type',
-      );
-    } catch (e) {
-      return ImportResult(success: false, error: e.toString());
-    }
-  }
-
-  /// Import data from a previously exported ZIP file.
-  /// Returns true on success.
-  /// Purpose: Implement the import zip behavior for this file.
-  /// Inputs: `filePath`.
-  /// Returns: `Future<bool>`.
-  /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: Only allowlisted entries (the five data JSON files and flat files
-  /// under `images/`) are extracted, and the resolved output path must stay
-  /// inside the app dir, so a crafted ZIP cannot overwrite configuration such
-  /// as `webdav_config.json` or `storage_config.json`.
+  /// Returns: `true` when the ZIP was validated and imported.
+  /// Side effects: Replaces allowlisted app data files and images.
+  /// Notes: Rejects path traversal and validates data JSON before writing anything.
   static Future<bool> importZIP(String filePath) async {
-    final result = await _importZIPDetailed(filePath);
-    return result.success;
-  }
-
-  /// Purpose: Import a ZIP archive with validation and detailed failure reporting.
-  /// Inputs: `filePath`.
-  /// Returns: `Future<ImportResult>`.
-  /// Side effects: Creates a safety backup and writes validated data/images.
-  /// Notes: Internal helper used within this file only.
-  static Future<ImportResult> _importZIPDetailed(String filePath) async {
     try {
-      final file = File(filePath);
-      if (!await file.exists()) {
-        return const ImportResult(success: false, error: 'File not found');
-      }
+      final zipFile = File(filePath);
+      if (!await zipFile.exists()) return false;
 
-      final bytes = await file.readAsBytes();
-      final archive = ZipDecoder().decodeBytes(bytes);
+      final archive = ZipDecoder().decodeBytes(await zipFile.readAsBytes());
       final appDir = await TodoStorage.getAppDir();
+      final appRoot = p.normalize(appDir.absolute.path);
       final dataWrites = <String, String>{};
-      final byteWrites = <String, List<int>>{};
+      final imageWrites = <String, List<int>>{};
 
-      for (final entry in archive) {
-        if (entry.isFile) {
-          final normalizedName = p.normalize(entry.name).replaceAll('\\', '/');
-          final allowed =
-              DataFileSafety.dataFileNames.contains(normalizedName) ||
-              (normalizedName.startsWith('images/') &&
-                  normalizedName.split('/').length == 2);
-          if (!allowed || normalizedName.contains('..')) continue;
-
-          final outFile = File(p.join(appDir.path, normalizedName));
-          final normalizedOut = p.normalize(outFile.absolute.path);
-          final normalizedAppDir = p.normalize(appDir.absolute.path);
-          if (!p.isWithin(normalizedAppDir, normalizedOut)) continue;
-
-          final content = entry.content as List<int>;
-          if (DataFileSafety.dataFileNames.contains(normalizedName)) {
-            final raw = utf8.decode(content);
-            DataFileSafety.validateDataJson(normalizedName, raw);
-            dataWrites[normalizedName] = raw;
-          } else {
-            byteWrites[normalizedName] = List<int>.from(content);
-          }
+      for (final entry in archive.files) {
+        if (!entry.isFile) continue;
+        final normalized = p.url.normalize(entry.name).replaceAll('\\', '/');
+        if (normalized.startsWith('../') || normalized.contains('/../')) {
+          return false;
         }
-      }
 
-      if (dataWrites.isEmpty && byteWrites.isEmpty) {
-        return const ImportResult(
-          success: false,
-          error: 'No supported files found in archive',
-        );
-      }
-
-      final safetyBackup = await BackupService.createBackup();
-      if (safetyBackup == null) {
-        return const ImportResult(
-          success: false,
-          error: 'Could not create safety backup before import',
-        );
-      }
-
-      for (final entry in dataWrites.entries) {
-        await DataFileSafety.writeValidatedDataJson(
-          File(p.join(appDir.path, entry.key)),
-          entry.value,
-        );
-      }
-      for (final entry in byteWrites.entries) {
-        await DataFileSafety.atomicWriteBytes(
-          File(p.join(appDir.path, entry.key)),
-          entry.value,
-        );
-      }
-
-      return ImportResult(success: true, fileCount: dataWrites.length);
-    } catch (e) {
-      return ImportResult(success: false, error: e.toString());
-    }
-  }
-
-  /// Purpose: Import one known app data JSON file.
-  /// Inputs: `filePath`, `fileName`.
-  /// Returns: `Future<ImportResult>`.
-  /// Side effects: Creates a safety backup and replaces one validated data file.
-  /// Notes: Internal helper used within this file only.
-  static Future<ImportResult> _importSingleDataJson(
-    String filePath,
-    String fileName,
-  ) async {
-    final source = File(filePath);
-    if (!await source.exists()) {
-      return const ImportResult(success: false, error: 'File not found');
-    }
-    final raw = await source.readAsString();
-    DataFileSafety.validateDataJson(fileName, raw);
-    final safetyBackup = await BackupService.createBackup();
-    if (safetyBackup == null) {
-      return const ImportResult(
-        success: false,
-        error: 'Could not create safety backup before import',
-      );
-    }
-    final appDir = await TodoStorage.getAppDir();
-    await DataFileSafety.writeValidatedDataJson(
-      File(p.join(appDir.path, fileName)),
-      raw,
-    );
-    return const ImportResult(success: true, fileCount: 1);
-  }
-
-  /// Purpose: Import a JSON backup bundle created by `BackupService`.
-  /// Inputs: `filePath`.
-  /// Returns: `Future<ImportResult>`.
-  /// Side effects: Creates a safety backup and replaces validated data files.
-  /// Notes: Internal helper used within this file only.
-  static Future<ImportResult> _importBackupJsonBundle(String filePath) async {
-    final source = File(filePath);
-    if (!await source.exists()) {
-      return const ImportResult(success: false, error: 'File not found');
-    }
-    final raw = await source.readAsString();
-    final bundle = jsonDecode(raw) as Map<String, dynamic>;
-    final dataWrites = <String, String>{};
-    for (final name in DataFileSafety.dataFileNames) {
-      final value = bundle[name];
-      if (value is! String) continue;
-      DataFileSafety.validateDataJson(name, value);
-      dataWrites[name] = value;
-    }
-    if (dataWrites.isEmpty) {
-      return const ImportResult(
-        success: false,
-        error: 'JSON file is not a supported MyDay data file or backup bundle',
-      );
-    }
-    final safetyBackup = await BackupService.createBackup();
-    if (safetyBackup == null) {
-      return const ImportResult(
-        success: false,
-        error: 'Could not create safety backup before import',
-      );
-    }
-    final appDir = await TodoStorage.getAppDir();
-    for (final entry in dataWrites.entries) {
-      await DataFileSafety.writeValidatedDataJson(
-        File(p.join(appDir.path, entry.key)),
-        entry.value,
-      );
-    }
-    final images = bundle['_images'];
-    if (images is Map<String, dynamic>) {
-      for (final entry in images.entries) {
-        final normalizedName = p.normalize(entry.key).replaceAll('\\', '/');
-        if (!normalizedName.startsWith('images/') ||
-            normalizedName.split('/').length != 2 ||
-            normalizedName.contains('..') ||
-            entry.value is! String) {
+        if (_dataFileNames.contains(normalized)) {
+          final content = String.fromCharCodes(entry.content as List<int>);
+          DataFileSafety.validateDataJson(normalized, content);
+          dataWrites[normalized] = content;
           continue;
         }
-        await DataFileSafety.atomicWriteBytes(
-          File(p.join(appDir.path, normalizedName)),
-          base64Decode(entry.value as String),
-        );
-      }
-    }
-    return ImportResult(success: true, fileCount: dataWrites.length);
-  }
 
-  // ── CSV helpers ──
-
-  /// Parse a CSV line handling quoted fields with commas and escaped quotes.
-  /// Purpose: Provide the internal parse csv line helper for this file.
-  /// Inputs: `line`.
-  /// Returns: `List<String>`.
-  /// Side effects: None.
-  /// Notes: Internal helper used within this file only.
-  static List<String> _parseCsvLine(String line) {
-    final fields = <String>[];
-    final buf = StringBuffer();
-    var inQuote = false;
-    for (var i = 0; i < line.length; i++) {
-      final c = line[i];
-      if (inQuote) {
-        if (c == '"') {
-          if (i + 1 < line.length && line[i + 1] == '"') {
-            buf.write('"');
-            i++;
-          } else {
-            inQuote = false;
+        if (normalized.startsWith('images/')) {
+          final basename = p.basename(normalized);
+          if (basename.isEmpty || normalized != 'images/$basename') {
+            return false;
           }
-        } else {
-          buf.write(c);
-        }
-      } else {
-        if (c == '"') {
-          inQuote = true;
-        } else if (c == ',') {
-          fields.add(buf.toString());
-          buf.clear();
-        } else {
-          buf.write(c);
-        }
-      }
-    }
-    fields.add(buf.toString());
-    return fields;
-  }
-
-  /// Purpose: Format an optional CSV numeric value.
-  /// Inputs: `value`.
-  /// Returns: `String`.
-  /// Side effects: None.
-  /// Notes: Empty strings keep optional CSV columns backward-compatible.
-  static String _formatOptionalDecimal(double? value) {
-    if (value == null || value <= 0) return '';
-    return value.toStringAsFixed(1);
-  }
-
-  /// Purpose: Parse optional positive CSV numeric values.
-  /// Inputs: `value`.
-  /// Returns: `double?`.
-  /// Side effects: None.
-  /// Notes: Zero, negative, missing, and malformed values are treated as absent.
-  static double? _parseOptionalPositiveDouble(String? value) {
-    final parsed = double.tryParse(value?.trim() ?? '');
-    if (parsed == null || parsed <= 0) return null;
-    return parsed;
-  }
-
-  /// Import finance transactions from CSV and merge into existing data.
-  /// CSV columns: Date,Type,Category,Amount,Currency,Account,Note
-  /// Returns (success, importedCount) tuple.
-  /// Purpose: Implement the import finance csv behavior for this file.
-  /// Inputs: `filePath`.
-  /// Returns: `Future<(bool, int)>`.
-  /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: None.
-  static Future<(bool, int)> importFinanceCSV(String filePath) async {
-    try {
-      final file = File(filePath);
-      if (!await file.exists()) return (false, 0);
-
-      final lines = (await file.readAsString())
-          .split(RegExp(r'\r?\n'))
-          .where((l) => l.trim().isNotEmpty)
-          .toList();
-      if (lines.length < 2) return (true, 0); // header only
-
-      final data = await FinanceStorage.load();
-      final accounts = List<Account>.from(data?.accounts ?? []);
-      final categories = List<Category>.from(data?.categories ?? []);
-      final transactions = List<Transaction>.from(data?.transactions ?? []);
-      final existingIds = transactions.map((t) => t.id).toSet();
-
-      var imported = 0;
-      for (var i = 1; i < lines.length; i++) {
-        final fields = _parseCsvLine(lines[i]);
-        if (fields.length < 7) continue;
-
-        final dateStr = fields[0].trim();
-        final typeStr = fields[1].trim().toLowerCase();
-        final catName = fields[2].trim();
-        final amountStr = fields[3].trim();
-        final currency = fields[4].trim();
-        final acctName = fields[5].trim();
-        final note = fields[6].trim();
-
-        // Parse date
-        DateTime date;
-        try {
-          date = DateFormat('yyyy-MM-dd HH:mm').parse(dateStr);
-        } catch (_) {
-          try {
-            date = DateTime.parse(dateStr);
-          } catch (_) {
-            continue; // skip unparseable rows
-          }
+          imageWrites[basename] = List<int>.from(entry.content as List<int>);
+          continue;
         }
 
-        // Parse type
-        TransactionType txType;
-        switch (typeStr) {
-          case 'expense':
-            txType = TransactionType.expense;
-          case 'income':
-            txType = TransactionType.income;
-          case 'transfer':
-            txType = TransactionType.transfer;
-          default:
-            continue;
-        }
-
-        // Parse amount
-        final amount = double.tryParse(amountStr);
-        if (amount == null) continue;
-
-        // Resolve account by name (must exist)
-        final acct = accounts.where((a) => a.name == acctName).firstOrNull;
-        if (acct == null) continue; // skip if account not found
-
-        // Resolve or create category by name
-        String? categoryId;
-        if (catName.isNotEmpty) {
-          var cat = categories
-              .where((c) => c.name == catName && c.type == txType)
-              .firstOrNull;
-          if (cat == null && txType != TransactionType.transfer) {
-            cat = Category(
-              name: catName,
-              icon: const IconRef(codePoint: 0xe5d2), // label icon
-              type: txType,
-            );
-            categories.add(cat);
-          }
-          categoryId = cat?.id;
-        }
-
-        final tx = Transaction(
-          type: txType,
-          amount: amount,
-          currency: currency.isEmpty
-              ? (data?.defaultCurrency ?? 'CNY')
-              : currency,
-          accountId: acct.id,
-          categoryId: categoryId,
-          note: note,
-          date: date,
-        );
-
-        if (!existingIds.contains(tx.id)) {
-          transactions.add(tx);
-          imported++;
-        }
+        return false;
       }
 
-      // Save merged data
-      await FinanceStorage.save(
-        FinanceData(
-          accounts: accounts,
-          categories: categories,
-          transactions: transactions,
-          subscriptions: data?.subscriptions ?? [],
-          defaultCurrency: data?.defaultCurrency ?? 'CNY',
-          settingsModifiedAt:
-              data?.settingsModifiedAt ??
-              DateTime.fromMillisecondsSinceEpoch(0),
-          subscriptionReminderHour: data?.subscriptionReminderHour,
-          subscriptionReminderMinute: data?.subscriptionReminderMinute,
-          subscriptionSortMode: data?.subscriptionSortMode,
-          subscriptionCustomOrder: data?.subscriptionCustomOrder,
-          accountSortModes: data?.accountSortModes ?? const {},
-          accountCustomOrders: data?.accountCustomOrders ?? const {},
-          accountPickerSettings:
-              data?.accountPickerSettings ?? const AccountPickerSettings(),
-        ),
-      );
+      for (final item in dataWrites.entries) {
+        final target = File(p.join(appDir.path, item.key));
+        if (!_isInside(appRoot, target.absolute.path)) return false;
+        await DataFileSafety.writeValidatedDataJson(target, item.value);
+      }
 
-      return (true, imported);
+      for (final item in imageWrites.entries) {
+        final target = File(p.join(appDir.path, 'images', item.key));
+        if (!_isInside(appRoot, target.absolute.path)) return false;
+        await DataFileSafety.atomicWriteBytes(target, item.value);
+      }
+
+      return true;
     } catch (_) {
-      return (false, 0);
+      return false;
     }
   }
 
-  /// Import intimacy records from CSV and merge into existing data.
-  /// CSV columns: Date,Type,IsSolo,Partner,Toys,PleasureLevel,Duration(min),
-  ///              ThrustCount,ThrustUnit,HadOrgasm,WatchedPorn,UsedCondom,Location,Notes
-  /// Returns (success, importedCount) tuple.
-  /// Purpose: Implement the import intimacy csv behavior for this file.
-  /// Inputs: `filePath`.
-  /// Returns: `Future<(bool, int)>`.
-  /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: None.
-  static Future<(bool, int)> importIntimacyCSV(String filePath) async {
-    try {
-      final file = File(filePath);
-      if (!await file.exists()) return (false, 0);
-
-      final lines = (await file.readAsString())
-          .split(RegExp(r'\r?\n'))
-          .where((l) => l.trim().isNotEmpty)
-          .toList();
-      if (lines.length < 2) return (true, 0);
-
-      final data = await IntimacyStorage.load();
-      final partners = List<Partner>.from(data?.partners ?? []);
-      final toys = List<Toy>.from(data?.toys ?? []);
-      final records = List<IntimacyRecord>.from(data?.records ?? []);
-
-      var imported = 0;
-      for (var i = 1; i < lines.length; i++) {
-        final fields = _parseCsvLine(lines[i]);
-        if (fields.length < 11) continue;
-        final hasThrustColumns = fields.length >= 13;
-        final hasCondomColumn = fields.length >= 14;
-
-        final dateStr = fields[0].trim();
-        final type = fields[1].trim();
-        final isSoloStr = fields[2].trim().toLowerCase();
-        final partnerName = fields[3].trim();
-        final toysStr = fields[4].trim();
-        final plStr = fields[5].trim();
-        final durStr = fields[6].trim();
-        final thrustCountStr = hasThrustColumns ? fields[7].trim() : '';
-        final thrustUnitStr = hasThrustColumns
-            ? fields[8].trim().toLowerCase()
-            : '';
-        final orgasmStr = fields[hasThrustColumns ? 9 : 7].trim().toLowerCase();
-        final pornStr = fields[hasThrustColumns ? 10 : 8].trim().toLowerCase();
-        final condomStr = hasCondomColumn
-            ? fields[11].trim().toLowerCase()
-            : '';
-        final location =
-            fields[hasCondomColumn ? 12 : (hasThrustColumns ? 11 : 9)].trim();
-        final notes =
-            fields[hasCondomColumn ? 13 : (hasThrustColumns ? 12 : 10)].trim();
-
-        // Parse date
-        DateTime datetime;
-        try {
-          datetime = DateFormat('yyyy-MM-dd HH:mm').parse(dateStr);
-        } catch (_) {
-          try {
-            datetime = DateTime.parse(dateStr);
-          } catch (_) {
-            continue;
-          }
-        }
-
-        final isSolo = isSoloStr == 'true' || isSoloStr == '1';
-        final pleasureLevel = int.tryParse(plStr) ?? 0;
-        if (pleasureLevel < 0 || pleasureLevel > 5) continue;
-
-        final durationMin = double.tryParse(durStr) ?? 0;
-        final parsedThrustCount = int.tryParse(thrustCountStr);
-        final thrustCount = parsedThrustCount != null && parsedThrustCount > 0
-            ? parsedThrustCount
-            : null;
-        final thrustCountUnit = thrustUnitStr == 'x1' || thrustUnitStr == '1'
-            ? 1
-            : 100;
-
-        final hadOrgasm = orgasmStr == 'true' || orgasmStr == '1';
-        final watchedPorn = pornStr == 'true' || pornStr == '1';
-        final usedCondom = condomStr == 'true' || condomStr == '1';
-
-        // Resolve or create partner
-        String? partnerId;
-        if (!isSolo && partnerName.isNotEmpty) {
-          var partner = partners
-              .where((p) => p.name == partnerName)
-              .firstOrNull;
-          if (partner == null) {
-            partner = Partner(name: partnerName);
-            partners.add(partner);
-          }
-          partnerId = partner.id;
-        }
-
-        // Resolve or create toys (semicolon-separated)
-        final toyIds = <String>[];
-        if (toysStr.isNotEmpty) {
-          for (final toyName
-              in toysStr
-                  .split(';')
-                  .map((s) => s.trim())
-                  .where((s) => s.isNotEmpty)) {
-            var toy = toys.where((t) => t.name == toyName).firstOrNull;
-            if (toy == null) {
-              toy = Toy(name: toyName);
-              toys.add(toy);
-            }
-            toyIds.add(toy.id);
-          }
-        }
-
-        final record = IntimacyRecord(
-          type: type.isEmpty ? (isSolo ? 'Solo' : 'Regular') : type,
-          isSolo: isSolo,
-          partnerId: partnerId,
-          toyIds: toyIds,
-          pleasureLevel: pleasureLevel,
-          duration: Duration(seconds: (durationMin * 60).round()),
-          thrustCount: thrustCount,
-          thrustCountUnit: thrustCountUnit,
-          datetime: datetime,
-          hadOrgasm: hadOrgasm,
-          watchedPorn: watchedPorn,
-          usedCondom: usedCondom,
-          location: location.isEmpty ? null : location,
-          notes: notes.isEmpty ? null : notes,
-        );
-
-        records.add(record);
-        imported++;
-      }
-
-      // Save merged data
-      await IntimacyStorage.save(
-        IntimacyData(
-          partners: partners,
-          toys: toys,
-          positions: data?.positions ?? const [],
-          records: records,
-          timerHistory: data?.timerHistory ?? const [],
-          timerSession: data?.timerSession,
-          timerSessionModifiedAt: data?.timerSessionModifiedAt,
-          timerHistoryRetentionDays: data?.timerHistoryRetentionDays,
-          partnerSortModes: data?.partnerSortModes ?? const {},
-          partnerCustomOrders: data?.partnerCustomOrders ?? const {},
-          toySortModes: data?.toySortModes ?? const {},
-          toyCustomOrders: data?.toyCustomOrders ?? const {},
-          settingsModifiedAt:
-              data?.settingsModifiedAt ??
-              DateTime.fromMillisecondsSinceEpoch(0),
-        ),
-      );
-
-      return (true, imported);
-    } catch (_) {
-      return (false, 0);
-    }
-  }
-
-  /// Import weight records from CSV and merge into existing data.
-  /// Supports old Date/Time/Weight CSV and optional Bust/Waist/Hip cm columns.
-  /// Returns (success, importedCount) tuple.
-  /// Purpose: Implement the import weight csv behavior for this file.
-  /// Inputs: `filePath`.
-  /// Returns: `Future<(bool, int)>`.
-  /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: None.
-  static Future<(bool, int)> importWeightCSV(String filePath) async {
-    try {
-      final file = File(filePath);
-      if (!await file.exists()) return (false, 0);
-
-      final lines = (await file.readAsString())
-          .split(RegExp(r'\r?\n'))
-          .where((l) => l.trim().isNotEmpty)
-          .toList();
-      if (lines.length < 2) return (true, 0);
-
-      final data = await WeightStorage.load();
-      final records = List<WeightRecord>.from(data?.records ?? []);
-      final existingIds = records.map((r) => r.id).toSet();
-
-      var imported = 0;
-      for (var i = 1; i < lines.length; i++) {
-        final fields = _parseCsvLine(lines[i]);
-        if (fields.length < 3) continue;
-
-        final dateStr = fields[0].trim();
-        final timeStr = fields[1].trim();
-        final weightStr = fields[2].trim();
-        final bustCm = fields.length > 3
-            ? _parseOptionalPositiveDouble(fields[3])
-            : null;
-        final waistCm = fields.length > 4
-            ? _parseOptionalPositiveDouble(fields[4])
-            : null;
-        final hipCm = fields.length > 5
-            ? _parseOptionalPositiveDouble(fields[5])
-            : null;
-
-        // Parse date and time
-        DateTime datetime;
-        try {
-          // Try M/d/yyyy format first (MyWeight² style)
-          final datePart = DateFormat('M/d/yyyy').parse(dateStr);
-          final timeParts = timeStr.split(':');
-          final hour = int.parse(timeParts[0]);
-          final minute = int.parse(timeParts[1]);
-          datetime = DateTime(
-            datePart.year,
-            datePart.month,
-            datePart.day,
-            hour,
-            minute,
-          );
-        } catch (_) {
-          try {
-            // Try yyyy-MM-dd format
-            final datePart = DateFormat('yyyy-MM-dd').parse(dateStr);
-            final timeParts = timeStr.split(':');
-            final hour = int.parse(timeParts[0]);
-            final minute = int.parse(timeParts[1]);
-            datetime = DateTime(
-              datePart.year,
-              datePart.month,
-              datePart.day,
-              hour,
-              minute,
-            );
-          } catch (_) {
-            try {
-              // Try combined as a single datetime string
-              datetime = DateTime.parse('$dateStr $timeStr');
-            } catch (_) {
-              continue;
-            }
-          }
-        }
-
-        // Parse weight
-        final weight = double.tryParse(weightStr);
-        if (weight == null || weight <= 0) continue;
-
-        final record = WeightRecord(
-          weight: weight,
-          bustCm: bustCm,
-          waistCm: waistCm,
-          hipCm: hipCm,
-          datetime: datetime,
-        );
-
-        if (!existingIds.contains(record.id)) {
-          records.add(record);
-          imported++;
-        }
-      }
-
-      await WeightStorage.save(
-        WeightData(
-          height: data?.height,
-          records: records,
-          reminderMode: data?.reminderMode ?? 'none',
-          morningHour: data?.morningHour,
-          morningMinute: data?.morningMinute,
-          eveningHour: data?.eveningHour,
-          eveningMinute: data?.eveningMinute,
-          reminderGraceMinutes: data?.reminderGraceMinutes ?? 180,
-          settingsModifiedAt:
-              data?.settingsModifiedAt ??
-              DateTime.fromMillisecondsSinceEpoch(0),
-        ),
-      );
-
-      return (true, imported);
-    } catch (_) {
-      return (false, 0);
-    }
+  /// Purpose: Return whether [childPath] stays inside [rootPath].
+  /// Inputs: `rootPath`, `childPath`.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: Protects ZIP import from path traversal writes.
+  static bool _isInside(String rootPath, String childPath) {
+    final root = p.normalize(rootPath);
+    final child = p.normalize(childPath);
+    return child == root || child.startsWith('$root${p.separator}');
   }
 }
