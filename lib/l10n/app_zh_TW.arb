@@ -268,6 +268,7 @@
   "settingsExportFailed": "匯出失敗",
   "settingsImportSuccess": "匯入成功",
   "settingsImportFailed": "匯入失敗",
+  "settingsImportUnsupportedType": "不支援的檔案類型，請選擇 .zip、.json 或 .csv 檔案。",
   "settingsImportConfirm": "此操作將取代所有目前資料。是否繼續？",
   "settingsExportCSVWarning": "CSV 資料將以明文匯出。是否繼續？",
   "settingsAbout": "關於",

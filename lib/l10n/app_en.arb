@@ -283,6 +283,7 @@
   "settingsExportFailed": "Export failed",
   "settingsImportSuccess": "Imported successfully",
   "settingsImportFailed": "Import failed",
+  "settingsImportUnsupportedType": "Unsupported file type. Please select a .zip, .json, or .csv file.",
   "settingsImportConfirm": "This will replace all current data. Continue?",
   "settingsExportCSVWarning": "CSV data will be exported as plaintext. Continue?",
   "settingsAbout": "About",

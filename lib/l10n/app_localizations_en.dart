@@ -767,6 +767,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsImportFailed => 'Import failed';
 
   @override
+  String get settingsImportUnsupportedType =>
+      'Unsupported file type. Please select a .zip, .json, or .csv file.';
+
+  @override
   String get settingsImportConfirm =>
       'This will replace all current data. Continue?';
 

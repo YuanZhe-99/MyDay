@@ -270,6 +270,7 @@
   "settingsExportFailed": "导出失败",
   "settingsImportSuccess": "导入成功",
   "settingsImportFailed": "导入失败",
+  "settingsImportUnsupportedType": "不支持的文件类型，请选择 .zip、.json 或 .csv 文件。",
   "settingsImportConfirm": "此操作将替换所有当前数据。是否继续？",
   "settingsExportCSVWarning": "CSV 数据将以明文导出。是否继续？",
   "settingsAbout": "关于",

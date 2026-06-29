@@ -243,13 +243,20 @@ class ImportExportPage extends StatelessWidget {
 
     final result = await FilePicker.platform.pickFiles(
       dialogTitle: l10n.filePickerBackupFile,
-      type: FileType.custom,
-      allowedExtensions: ['zip', 'json'],
+      type: FileType.any,
     );
     if (result == null || result.files.isEmpty) return;
 
     final filePath = result.files.single.path;
     if (filePath == null) return;
+
+    final ext = p.extension(filePath).toLowerCase();
+    if (ext != '.zip' && ext != '.json') {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.settingsImportUnsupportedType)),
+      );
+      return;
+    }
 
     final importResult = await ImportExportService.importFile(filePath);
     if (!context.mounted) return;
@@ -310,13 +317,20 @@ class ImportExportPage extends StatelessWidget {
 
     final result = await FilePicker.platform.pickFiles(
       dialogTitle: l10n.filePickerCsvFile,
-      type: FileType.custom,
-      allowedExtensions: ['csv'],
+      type: FileType.any,
     );
     if (result == null || result.files.isEmpty) return;
 
     final filePath = result.files.single.path;
     if (filePath == null) return;
+
+    final ext = p.extension(filePath).toLowerCase();
+    if (ext != '.csv') {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.settingsImportUnsupportedType)),
+      );
+      return;
+    }
 
     final (ok, count) = switch (type) {
       _CSVType.finance => await ImportExportService.importFinanceCSV(filePath),

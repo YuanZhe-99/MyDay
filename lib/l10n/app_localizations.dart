@@ -1559,6 +1559,12 @@ abstract class AppLocalizations {
   /// **'Import failed'**
   String get settingsImportFailed;
 
+  /// No description provided for @settingsImportUnsupportedType.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsupported file type. Please select a .zip, .json, or .csv file.'**
+  String get settingsImportUnsupportedType;
+
   /// No description provided for @settingsImportConfirm.
   ///
   /// In en, this message translates to:

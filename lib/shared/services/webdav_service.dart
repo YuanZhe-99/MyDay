@@ -406,10 +406,11 @@ class WebDAVService {
   /// Returns: `Future<bool>` — false when the remote read or upload fails.
   /// Side effects: Downloads the current remote file for unknown-field preservation
   /// and If-Match preconditions, writes the local file, uploads, saves the base snapshot.
-  /// Notes: Internal helper used within this file only. A remote download error
-  /// aborts the file so resolutions are never uploaded over an unreadable remote;
-  /// an upload failure (including HTTP 412 when the remote changed since download)
-  /// leaves the base snapshot untouched so the next sync re-merges.
+  /// Notes: Internal helper used within this file only. On HTTP 412 (remote changed
+  /// between download and upload) the upload is retried once with a fresh download.
+  /// A remote download error aborts the file so resolutions are never uploaded over
+  /// an unreadable remote. An upload failure leaves the base snapshot untouched so
+  /// the next sync re-merges.
   static Future<bool> _finalizeFile(
     WebDAVConfig config,
     String fileName,
@@ -417,30 +418,94 @@ class WebDAVService {
   ) async {
     final appDir = await TodoStorage.getAppDir();
     final localFile = File('${appDir.path}/$fileName');
-    String? localJson;
-    if (await localFile.exists()) {
-      localJson = await localFile.readAsString();
+
+    for (var attempt = 0; attempt < 2; attempt++) {
+      String? localJson;
+      if (await localFile.exists()) {
+        localJson = await localFile.readAsString();
+      }
+      final remote = await _download(config, fileName);
+      if (remote.status == RemoteFileStatus.error) return false;
+      final preservedJson = _preserveUnknownJson(
+        fileName,
+        mergedJson,
+        localJson: localJson,
+        remoteJson: remote.content,
+      );
+      await _atomicWrite(localFile, preservedJson);
+      _localDataChanged = true;
+      final result = await _upload(
+        config,
+        fileName,
+        preservedJson,
+        ifMatchEtag: _strongEtag(remote.etag),
+        ifNoneMatchAll: remote.status == RemoteFileStatus.notFound,
+      );
+      if (result.error == null) {
+        await _saveBase(fileName, preservedJson);
+        return true;
+      }
+      if (!result.is412) return false;
+      // 412: remote changed between download and upload — retry once with a
+      // fresh download to get the new ETag.
     }
-    final remote = await _download(config, fileName);
-    if (remote.status == RemoteFileStatus.error) return false;
-    final preservedJson = _preserveUnknownJson(
-      fileName,
-      mergedJson,
-      localJson: localJson,
-      remoteJson: remote.content,
-    );
-    await _atomicWrite(localFile, preservedJson);
-    _localDataChanged = true;
-    final uploadError = await _upload(
-      config,
-      fileName,
-      preservedJson,
-      ifMatchEtag: _strongEtag(remote.etag),
-      ifNoneMatchAll: remote.status == RemoteFileStatus.notFound,
-    );
-    if (uploadError != null) return false;
-    await _saveBase(fileName, preservedJson);
-    return true;
+    return false;
+  }
+
+  /// Purpose: Upload merged JSON with one 412 retry, writing local file and saving base.
+  /// Inputs: `config`, `fileName`, `mergedJson`, `remoteEtag`, `remoteNotFound`,
+  ///   `localFile`, `baseJson`, `sourceLocalJson`, `remoteJson` (for unknown-field preservation).
+  /// Returns: `String?` — `null` on success, otherwise an error message.
+  /// Side effects: Writes the local file, uploads to remote, saves the base snapshot.
+  /// Notes: Internal helper used within this file only. On HTTP 412, re-downloads
+  /// the remote file, re-preserves unknown fields, and retries the upload once.
+  static Future<String?> _uploadMergedJson(
+    WebDAVConfig config,
+    String fileName,
+    String mergedJson, {
+    required String? remoteEtag,
+    required bool remoteNotFound,
+    required File localFile,
+    String? baseJson,
+    String? sourceLocalJson,
+    String? remoteJson,
+  }) async {
+    var currentEtag = remoteEtag;
+    var currentNotFound = remoteNotFound;
+    var currentRemoteJson = remoteJson;
+
+    for (var attempt = 0; attempt < 2; attempt++) {
+      final preservedJson = _preserveUnknownJson(
+        fileName,
+        mergedJson,
+        baseJson: baseJson,
+        localJson: sourceLocalJson,
+        remoteJson: currentRemoteJson,
+      );
+      await _atomicWrite(localFile, preservedJson);
+      _localDataChanged = true;
+      final result = await _upload(
+        config,
+        fileName,
+        preservedJson,
+        ifMatchEtag: currentEtag,
+        ifNoneMatchAll: currentNotFound,
+      );
+      if (result.error == null) {
+        await _saveBase(fileName, preservedJson);
+        return null;
+      }
+      if (!result.is412) return result.error;
+      // 412: re-download to get the new ETag and remote content, then retry.
+      final freshRemote = await _download(config, fileName);
+      if (freshRemote.status == RemoteFileStatus.error) {
+        return 're-download failed after 412: ${freshRemote.error}';
+      }
+      currentEtag = _strongEtag(freshRemote.etag);
+      currentNotFound = freshRemote.status == RemoteFileStatus.notFound;
+      currentRemoteJson = freshRemote.content;
+    }
+    return 'upload failed after 412 retry';
   }
 
   // ── HTTP helpers ──
@@ -518,13 +583,13 @@ class WebDAVService {
 
   /// Purpose: Provide the internal upload helper for this file.
   /// Inputs: `config`, `fileName`, `content`, optional `ifMatchEtag`, optional `ifNoneMatchAll`.
-  /// Returns: `Future<String?>` — `null` on success, otherwise an error message.
+  /// Returns: `Future<({bool is412, String? error})>` — `error` is `null` on success.
   /// Side effects: May read or mutate application state, storage, or service resources.
   /// Notes: Internal helper used within this file only. When `ifMatchEtag` is set the PUT
   /// carries an `If-Match` precondition; `ifNoneMatchAll` sends `If-None-Match: *` so a
   /// first upload cannot overwrite a file created concurrently by another device.
-  /// HTTP 412 means the remote changed during sync and the caller must re-sync.
-  static Future<String?> _upload(
+  /// HTTP 412 means the remote changed during sync; callers can retry by re-downloading.
+  static Future<({bool is412, String? error})> _upload(
     WebDAVConfig config,
     String fileName,
     String content, {
@@ -546,12 +611,17 @@ class WebDAVService {
           )
           .timeout(const Duration(seconds: 30));
       if (response.statusCode == 412) {
-        return 'remote file changed during sync (HTTP 412); run sync again';
+        return (
+          is412: true,
+          error: 'remote file changed during sync (HTTP 412)',
+        );
       }
-      if (response.statusCode >= 200 && response.statusCode < 300) return null;
-      return 'HTTP ${response.statusCode}';
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return (is412: false, error: null);
+      }
+      return (is412: false, error: 'HTTP ${response.statusCode}');
     } catch (e) {
-      return '$e';
+      return (is412: false, error: '$e');
     }
   }
 
@@ -906,16 +976,16 @@ class WebDAVService {
         if (localExists && remoteRaw == null) {
           // Only on local → upload as new; If-None-Match: * prevents
           // overwriting a file another device created concurrently.
-          final uploadError = await _upload(
+          final result = await _upload(
             config,
             name,
             localRaw,
             ifNoneMatchAll: true,
           );
-          if (uploadError == null) {
+          if (result.error == null) {
             await _saveBase(name, localRaw);
           } else {
-            perFileErrors.add('$name: upload failed: $uploadError');
+            perFileErrors.add('$name: upload failed: ${result.error}');
           }
           continue;
         }
@@ -948,16 +1018,16 @@ class WebDAVService {
             );
             await _atomicWrite(localFile, mergedJson);
             _localDataChanged = true;
-            final uploadError = await _upload(
+            final result = await _upload(
               config,
               name,
               mergedJson,
               ifMatchEtag: remoteEtag,
             );
-            if (uploadError == null) {
+            if (result.error == null) {
               await _saveBase(name, mergedJson);
             } else {
-              perFileErrors.add('$name: upload failed: $uploadError');
+              perFileErrors.add('$name: upload failed: ${result.error}');
             }
             continue;
           }
@@ -989,24 +1059,19 @@ class WebDAVService {
                 pendingTodo = result;
               } else {
                 final mergedData = result.buildResolved(const {});
-                final mergedJson = _preserveUnknownJson(
-                  name,
-                  jsonEncode(mergedData.toJson()),
-                  baseJson: baseJson,
-                  localJson: sourceLocalJson,
-                  remoteJson: remoteJson,
-                );
-                await _atomicWrite(localFile, mergedJson);
-                _localDataChanged = true;
-                final uploadError = await _upload(
+                final mergedJson = jsonEncode(mergedData.toJson());
+                final uploadError = await _uploadMergedJson(
                   config,
                   name,
                   mergedJson,
-                  ifMatchEtag: remoteEtag,
+                  remoteEtag: remoteEtag,
+                  remoteNotFound: false,
+                  localFile: localFile,
+                  baseJson: baseJson,
+                  sourceLocalJson: sourceLocalJson,
+                  remoteJson: remoteJson,
                 );
-                if (uploadError == null) {
-                  await _saveBase(name, mergedJson);
-                } else {
+                if (uploadError != null) {
                   perFileErrors.add('$name: upload failed: $uploadError');
                 }
               }
@@ -1037,24 +1102,19 @@ class WebDAVService {
                 final mergedData = await _migrateFinanceForcedBalances(
                   result.buildResolved(const {}),
                 );
-                final mergedJson = _preserveUnknownJson(
-                  name,
-                  jsonEncode(mergedData.toJson()),
-                  baseJson: baseJson,
-                  localJson: sourceLocalJson,
-                  remoteJson: remoteJson,
-                );
-                await _atomicWrite(localFile, mergedJson);
-                _localDataChanged = true;
-                final uploadError = await _upload(
+                final mergedJson = jsonEncode(mergedData.toJson());
+                final uploadError = await _uploadMergedJson(
                   config,
                   name,
                   mergedJson,
-                  ifMatchEtag: remoteEtag,
+                  remoteEtag: remoteEtag,
+                  remoteNotFound: false,
+                  localFile: localFile,
+                  baseJson: baseJson,
+                  sourceLocalJson: sourceLocalJson,
+                  remoteJson: remoteJson,
                 );
-                if (uploadError == null) {
-                  await _saveBase(name, mergedJson);
-                } else {
+                if (uploadError != null) {
                   perFileErrors.add('$name: upload failed: $uploadError');
                 }
                 // Use merged result for image reference computation.
@@ -1085,24 +1145,19 @@ class WebDAVService {
                 pendingIntimacy = result;
               } else {
                 final mergedData = result.buildResolved(const {});
-                final mergedJson = _preserveUnknownJson(
-                  name,
-                  jsonEncode(mergedData.toJson()),
-                  baseJson: baseJson,
-                  localJson: sourceLocalJson,
-                  remoteJson: remoteJson,
-                );
-                await _atomicWrite(localFile, mergedJson);
-                _localDataChanged = true;
-                final uploadError = await _upload(
+                final mergedJson = jsonEncode(mergedData.toJson());
+                final uploadError = await _uploadMergedJson(
                   config,
                   name,
                   mergedJson,
-                  ifMatchEtag: remoteEtag,
+                  remoteEtag: remoteEtag,
+                  remoteNotFound: false,
+                  localFile: localFile,
+                  baseJson: baseJson,
+                  sourceLocalJson: sourceLocalJson,
+                  remoteJson: remoteJson,
                 );
-                if (uploadError == null) {
-                  await _saveBase(name, mergedJson);
-                } else {
+                if (uploadError != null) {
                   perFileErrors.add('$name: upload failed: $uploadError');
                 }
                 // Use merged result for image reference computation.
@@ -1133,24 +1188,19 @@ class WebDAVService {
                 pendingWeight = result;
               } else {
                 final mergedData = result.buildResolved(const {});
-                final mergedJson = _preserveUnknownJson(
-                  name,
-                  jsonEncode(mergedData.toJson()),
-                  baseJson: baseJson,
-                  localJson: sourceLocalJson,
-                  remoteJson: remoteJson,
-                );
-                await _atomicWrite(localFile, mergedJson);
-                _localDataChanged = true;
-                final uploadError = await _upload(
+                final mergedJson = jsonEncode(mergedData.toJson());
+                final uploadError = await _uploadMergedJson(
                   config,
                   name,
                   mergedJson,
-                  ifMatchEtag: remoteEtag,
+                  remoteEtag: remoteEtag,
+                  remoteNotFound: false,
+                  localFile: localFile,
+                  baseJson: baseJson,
+                  sourceLocalJson: sourceLocalJson,
+                  remoteJson: remoteJson,
                 );
-                if (uploadError == null) {
-                  await _saveBase(name, mergedJson);
-                } else {
+                if (uploadError != null) {
                   perFileErrors.add('$name: upload failed: $uploadError');
                 }
               }

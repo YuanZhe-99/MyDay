@@ -761,6 +761,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsImportFailed => 'インポート失敗';
 
   @override
+  String get settingsImportUnsupportedType =>
+      '対応していないファイル形式です。.zip、.json、または .csv ファイルを選択してください。';
+
+  @override
   String get settingsImportConfirm => 'すべてのデータが置き換えられます。続行しますか？';
 
   @override

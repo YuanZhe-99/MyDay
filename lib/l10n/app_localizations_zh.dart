@@ -760,6 +760,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsImportFailed => '导入失败';
 
   @override
+  String get settingsImportUnsupportedType =>
+      '不支持的文件类型，请选择 .zip、.json 或 .csv 文件。';
+
+  @override
   String get settingsImportConfirm => '此操作将替换所有当前数据。是否继续？';
 
   @override
@@ -2564,6 +2568,10 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get settingsImportFailed => '匯入失敗';
+
+  @override
+  String get settingsImportUnsupportedType =>
+      '不支援的檔案類型，請選擇 .zip、.json 或 .csv 檔案。';
 
   @override
   String get settingsImportConfirm => '此操作將取代所有目前資料。是否繼續？';
