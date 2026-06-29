@@ -45,7 +45,10 @@ Do not include secrets, credentials, private personal data, WebDAV credentials, 
 1. Treat the user's message as the modification request.
 2. Before making any modification, check whether the relevant remote has new commits by fetching and comparing the current branch with its upstream. If the branch is behind or has diverged, stop and resolve that situation before editing.
 3. Read this `AGENTS.md`, then read the function explanations in the relevant source files as the first-pass orientation layer, then inspect the implementation details you need before editing.
-4. Make a concise plan when the work is non-trivial, then implement the requested changes directly in the workspace.
+4. Follow a strict Plan-Build-Execute workflow:
+   - **PLAN mode**: Identify problems as thoroughly as possible and produce a detailed plan. Do not modify any code.
+   - **BUILD mode**: Follow the Plan exactly. If no Plan has been created, switch to PLAN mode first without modifying code. Once in BUILD mode, do not alter the Plan. Do not deviate from the Plan's specifications.
+   - **EXECUTE mode**: Only run commands (e.g., compile, run tests, launch programs). Do not modify any code. Since the exact definition of EXECUTE mode varies by client, treat any user instruction that only asks to run, execute, compile, or test as EXECUTE mode.
 5. Keep changes scoped. Do not revert unrelated user work in the tree.
 6. Update `AGENTS.md` in the same change set whenever architecture, behavior, data formats, commands, release process, version locations, remotes, caveats, feature descriptions, or project history change. This document replaces the older external summary role and must stay current and complete.
 7. Verify with the narrowest meaningful checks for the change. For Dart changes, prefer `flutter analyze` plus relevant `flutter test` targets.
