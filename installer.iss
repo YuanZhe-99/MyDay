@@ -1,7 +1,7 @@
 [Setup]
 AppId={{B2C3D4E5-F6A7-8901-BCDE-F12345678901}
 AppName=MyDay!!!!!
-AppVersion=1.1.2
+AppVersion=1.1.3
 AppPublisher=yuanzhe
 AppPublisherURL=https://github.com/yuanzhe
 DefaultDirName={autopf}\MyDay

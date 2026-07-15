@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:archive/archive.dart';
@@ -79,7 +80,7 @@ class ImportExportService {
         }
 
         if (_dataFileNames.contains(normalized)) {
-          final content = String.fromCharCodes(entry.content as List<int>);
+          final content = utf8.decode(entry.content as List<int>);
           DataFileSafety.validateDataJson(normalized, content);
           dataWrites[normalized] = content;
           continue;

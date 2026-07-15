@@ -1,13 +1,16 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:archive/archive.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 
 import 'package:my_day/features/finance/services/finance_storage.dart';
+import 'package:my_day/features/todo/models/task.dart';
 import 'package:my_day/features/todo/services/todo_storage.dart';
 import 'package:my_day/shared/services/data_file_safety.dart';
+import 'package:my_day/shared/services/import_export_service.dart';
 
 /// Purpose: Run data file safety regression tests.
 /// Inputs: None.
@@ -59,6 +62,40 @@ void main() {
       expect(await file.readAsString(), valid);
     },
   );
+
+  test('ZIP import preserves UTF-8 Chinese JSON text', () async {
+    const title = '购买水果和蔬菜';
+    final todoJson = jsonEncode(
+      TodoData(
+        dailyTemplates: [],
+        oneTimeTasks: [
+          Task(id: 'chinese-task', title: title, type: TaskType.routineOnce),
+        ],
+        dailyLog: DailyCompletionLog(),
+      ).toJson(),
+    );
+    final archive = Archive()
+      ..addFile(
+        ArchiveFile(
+          'todo_data.json',
+          utf8.encode(todoJson).length,
+          utf8.encode(todoJson),
+        ),
+      );
+    final zipFile = File(p.join(tempDir.path, 'chinese.zip'));
+    await zipFile.writeAsBytes(ZipEncoder().encode(archive));
+
+    expect(await ImportExportService.importZIP(zipFile.path), isTrue);
+
+    final appDir = await TodoStorage.getAppDir();
+    final imported =
+        jsonDecode(
+              await File(p.join(appDir.path, 'todo_data.json')).readAsString(),
+            )
+            as Map<String, dynamic>;
+    final tasks = imported['oneTimeTasks'] as List<dynamic>;
+    expect((tasks.single as Map<String, dynamic>)['title'], title);
+  });
 }
 
 class _FakePathProvider extends PathProviderPlatform {

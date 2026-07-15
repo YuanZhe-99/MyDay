@@ -29,8 +29,8 @@ Maintenance rules:
 - **Package id:** Dart package `my_day`; Android namespace/application id `com.yuanzhe.my_day`; MSIX identity `com.yuanzhe.myday`; macOS bundle id `com.yuanzhe.myDay`.
 - **Author / publisher:** `yuanzhe`.
 - **License:** GPL-3.0.
-- **Current version:** `1.1.2+49` in `pubspec.yaml`, `1.1.2.0` in `msix_config.msix_version`, and `1.1.2` in `installer.iss`.
-- **Latest tag at the time this guide was written:** `v1.1.2`.
+- **Current version:** `1.1.3+50` in `pubspec.yaml`, `1.1.3.0` in `msix_config.msix_version`, and `1.1.3` in `installer.iss`.
+- **Latest tag at the time this guide was written:** `v1.1.3`.
 - **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.44.2`.
 - **Primary platforms:** Windows x64/ARM64, Android APK/AAB, iOS sideload IPA, and macOS DMG. Linux project support exists for desktop runtime features but is not a primary release artifact.
 - **Repository:** Use the current environment's workspace root / repository path instead of hard-coding an absolute local path.
@@ -305,7 +305,7 @@ Auto-sync records the latest success, failure, or pending-conflict state in memo
 ### Backup, Import, Export, and Images
 
 - `BackupService`: manual backups, daily auto-backup, retention, module-selective restore, JSON bundle with base64 images.
-- `ImportExportService`: Settings import/export is ZIP-only for all five data JSON files plus images; ZIP import extracts only allowlisted entries (the five data JSON files and flat files under `images/`) with the resolved output path confined to the app dir, so a crafted ZIP cannot overwrite configuration such as `webdav_config.json` or `storage_config.json`; imported data JSON files validate before anything is replaced and write through tmp-then-rename.
+- `ImportExportService`: Settings import/export is ZIP-only for all five data JSON files plus images; ZIP import extracts only allowlisted entries (the five data JSON files and flat files under `images/`) with the resolved output path confined to the app dir, so a crafted ZIP cannot overwrite configuration such as `webdav_config.json` or `storage_config.json`; imported data JSON files are strictly UTF-8 decoded, validate before anything is replaced, and write through tmp-then-rename.
 - `ImageService`: picks local images, downloads logos/photos, stores UUID filenames under `images/`, resolves relative paths, and rejects tiny placeholder downloads.
 
 ### Local HTTP API
@@ -492,3 +492,4 @@ Use the narrowest relevant command set for verification. For sync/model/persiste
 - `v1.1.0`: Hardened finance and data import safety so corrupt finance JSON cannot be treated as empty data, saves are serialized and atomic, ZIP/JSON import and backup restore validate known data before replacement, WebDAV auto-sync failures/conflicts are visible and no longer background-resolved with LWW, and versions are unified to `1.1.0+47` / MSIX `1.1.0.0` / installer `1.1.0`.
 - `v1.1.1`: Settings import/export was rebuilt as ZIP-only and removed CSV/JSON-file import flows; WebDAV uploads now use a remote `.lock` with a stable local client id and 150-second TTL, interrupted local uploads are detected on the next sync, and HTTP 412 upload races re-download remote data and re-run per-record merge before surfacing only true record conflicts; versions are unified to `1.1.1+48` / MSIX `1.1.1.0` / installer `1.1.1`.
 - `v1.1.2`: WebDAV now acquires `.lock` before downloading and merging remote data, lowers the lock TTL to 60 seconds, and force-uploads complete merged/resolved JSON under the valid lock without data-file `If-Match`/`If-None-Match` retry loops; versions are unified to `1.1.2+49` / MSIX `1.1.2.0` / installer `1.1.2`.
+- `v1.1.3`: ZIP data import now strictly decodes JSON entries as UTF-8 so Chinese and other non-ASCII text is preserved; versions are unified to `1.1.3+50` / MSIX `1.1.3.0` / installer `1.1.3`.
