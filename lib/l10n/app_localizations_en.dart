@@ -685,7 +685,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Automatically sync after editing and when the app resumes';
 
   @override
-  String get settingsWebDAVSyncing => 'Syncing...';
+  String get settingsWebDAVSyncing => 'Syncing…';
 
   @override
   String get settingsWebDAVSyncSuccess => 'Sync completed';
@@ -720,6 +720,59 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsWebDAVNextcloud => 'Nextcloud Preset';
+
+  @override
+  String settingsWebDAVSyncImageWarnings(int count) {
+    return 'Sync completed, but $count image(s) failed to transfer';
+  }
+
+  @override
+  String get settingsWebDAVForceUpload => 'Force Upload';
+
+  @override
+  String get settingsWebDAVForceDownload => 'Force Download';
+
+  @override
+  String get settingsWebDAVForceUploadConfirmTitle => 'Force upload?';
+
+  @override
+  String get settingsWebDAVForceUploadConfirmBody =>
+      'This will overwrite all remote data and images with your local copies. Remote changes since the last sync will be lost.';
+
+  @override
+  String get settingsWebDAVForceDownloadConfirmTitle => 'Force download?';
+
+  @override
+  String get settingsWebDAVForceDownloadConfirmBody =>
+      'This will replace all local data and images with the remote copies. Local changes since the last sync will be lost.';
+
+  @override
+  String get syncPhaseConnecting => 'Connecting…';
+
+  @override
+  String syncPhaseDownloadingData(String file, int current, int total) {
+    return 'Downloading $file ($current/$total)';
+  }
+
+  @override
+  String syncPhaseMerging(String file) {
+    return 'Merging $file…';
+  }
+
+  @override
+  String syncPhaseUploadingData(String file) {
+    return 'Uploading $file…';
+  }
+
+  @override
+  String syncPhaseUploadingImages(int current, int total) {
+    return 'Uploading images ($current/$total)';
+  }
+
+  @override
+  String syncPhaseDownloadingImages(int current, int total) {
+    return 'Downloading images ($current/$total)';
+  }
 
   @override
   String get settingsWebDAVCustom => 'Custom Server';

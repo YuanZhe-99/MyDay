@@ -1400,7 +1400,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsWebDAVSyncing.
   ///
   /// In en, this message translates to:
-  /// **'Syncing...'**
+  /// **'Syncing…'**
   String get settingsWebDAVSyncing;
 
   /// No description provided for @settingsWebDAVSyncSuccess.
@@ -1468,6 +1468,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Nextcloud Preset'**
   String get settingsWebDAVNextcloud;
+
+  /// No description provided for @settingsWebDAVSyncImageWarnings.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync completed, but {count} image(s) failed to transfer'**
+  String settingsWebDAVSyncImageWarnings(int count);
+
+  /// No description provided for @settingsWebDAVForceUpload.
+  ///
+  /// In en, this message translates to:
+  /// **'Force Upload'**
+  String get settingsWebDAVForceUpload;
+
+  /// No description provided for @settingsWebDAVForceDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Force Download'**
+  String get settingsWebDAVForceDownload;
+
+  /// No description provided for @settingsWebDAVForceUploadConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Force upload?'**
+  String get settingsWebDAVForceUploadConfirmTitle;
+
+  /// No description provided for @settingsWebDAVForceUploadConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This will overwrite all remote data and images with your local copies. Remote changes since the last sync will be lost.'**
+  String get settingsWebDAVForceUploadConfirmBody;
+
+  /// No description provided for @settingsWebDAVForceDownloadConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Force download?'**
+  String get settingsWebDAVForceDownloadConfirmTitle;
+
+  /// No description provided for @settingsWebDAVForceDownloadConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This will replace all local data and images with the remote copies. Local changes since the last sync will be lost.'**
+  String get settingsWebDAVForceDownloadConfirmBody;
+
+  /// No description provided for @syncPhaseConnecting.
+  ///
+  /// In en, this message translates to:
+  /// **'Connecting…'**
+  String get syncPhaseConnecting;
+
+  /// No description provided for @syncPhaseDownloadingData.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading {file} ({current}/{total})'**
+  String syncPhaseDownloadingData(String file, int current, int total);
+
+  /// No description provided for @syncPhaseMerging.
+  ///
+  /// In en, this message translates to:
+  /// **'Merging {file}…'**
+  String syncPhaseMerging(String file);
+
+  /// No description provided for @syncPhaseUploadingData.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading {file}…'**
+  String syncPhaseUploadingData(String file);
+
+  /// No description provided for @syncPhaseUploadingImages.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading images ({current}/{total})'**
+  String syncPhaseUploadingImages(int current, int total);
+
+  /// No description provided for @syncPhaseDownloadingImages.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading images ({current}/{total})'**
+  String syncPhaseDownloadingImages(int current, int total);
 
   /// No description provided for @settingsWebDAVCustom.
   ///

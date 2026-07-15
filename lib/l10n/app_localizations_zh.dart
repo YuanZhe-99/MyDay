@@ -679,7 +679,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsWebDAVAutoSyncDesc => '编辑后和应用恢复时自动同步';
 
   @override
-  String get settingsWebDAVSyncing => '同步中...';
+  String get settingsWebDAVSyncing => '同步中…';
 
   @override
   String get settingsWebDAVSyncSuccess => '同步完成';
@@ -713,6 +713,59 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsWebDAVNextcloud => 'Nextcloud 预设';
+
+  @override
+  String settingsWebDAVSyncImageWarnings(int count) {
+    return '同步完成，但$count张图片传输失败';
+  }
+
+  @override
+  String get settingsWebDAVForceUpload => '强制上传';
+
+  @override
+  String get settingsWebDAVForceDownload => '强制下载';
+
+  @override
+  String get settingsWebDAVForceUploadConfirmTitle => '确认强制上传？';
+
+  @override
+  String get settingsWebDAVForceUploadConfirmBody =>
+      '将用本地数据和图片覆盖远程内容。上次同步后远程的更改将丢失。';
+
+  @override
+  String get settingsWebDAVForceDownloadConfirmTitle => '确认强制下载？';
+
+  @override
+  String get settingsWebDAVForceDownloadConfirmBody =>
+      '将用远程数据和图片替换本地内容。上次同步后本地的更改将丢失。';
+
+  @override
+  String get syncPhaseConnecting => '正在连接…';
+
+  @override
+  String syncPhaseDownloadingData(String file, int current, int total) {
+    return '正在下载 $file（$current/$total）';
+  }
+
+  @override
+  String syncPhaseMerging(String file) {
+    return '正在合并 $file…';
+  }
+
+  @override
+  String syncPhaseUploadingData(String file) {
+    return '正在上传 $file…';
+  }
+
+  @override
+  String syncPhaseUploadingImages(int current, int total) {
+    return '正在上传图片（$current/$total）';
+  }
+
+  @override
+  String syncPhaseDownloadingImages(int current, int total) {
+    return '正在下载图片（$current/$total）';
+  }
 
   @override
   String get settingsWebDAVCustom => '自定义服务器';
@@ -1945,7 +1998,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String todoSubtasksProgress(int done, int total) {
-    return '子任务：$done/$total';
+    return '子任務：$done/$total';
   }
 
   @override
@@ -1959,7 +2012,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   }
 
   @override
-  String get todoThisTask => '此任务';
+  String get todoThisTask => '此任務';
 
   @override
   String get financeTitle => '財務';
@@ -2489,7 +2542,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get settingsWebDAVAutoSyncDesc => '編輯後和應用程式恢復時自動同步';
 
   @override
-  String get settingsWebDAVSyncing => '同步中...';
+  String get settingsWebDAVSyncing => '同步中…';
 
   @override
   String get settingsWebDAVSyncSuccess => '同步完成';
@@ -2523,6 +2576,59 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get settingsWebDAVNextcloud => 'Nextcloud 預設';
+
+  @override
+  String settingsWebDAVSyncImageWarnings(int count) {
+    return '同步完成，但$count張圖片傳輸失敗';
+  }
+
+  @override
+  String get settingsWebDAVForceUpload => '強制上傳';
+
+  @override
+  String get settingsWebDAVForceDownload => '強制下載';
+
+  @override
+  String get settingsWebDAVForceUploadConfirmTitle => '確認強制上傳？';
+
+  @override
+  String get settingsWebDAVForceUploadConfirmBody =>
+      '將用本地資料與圖片覆蓋遠端內容。上次同步後遠端的變更將遺失。';
+
+  @override
+  String get settingsWebDAVForceDownloadConfirmTitle => '確認強制下載？';
+
+  @override
+  String get settingsWebDAVForceDownloadConfirmBody =>
+      '將用遠端資料與圖片取代本地內容。上次同步後本地的變更將遺失。';
+
+  @override
+  String get syncPhaseConnecting => '正在連線…';
+
+  @override
+  String syncPhaseDownloadingData(String file, int current, int total) {
+    return '正在下載 $file（$current/$total）';
+  }
+
+  @override
+  String syncPhaseMerging(String file) {
+    return '正在合併 $file…';
+  }
+
+  @override
+  String syncPhaseUploadingData(String file) {
+    return '正在上傳 $file…';
+  }
+
+  @override
+  String syncPhaseUploadingImages(int current, int total) {
+    return '正在上傳圖片（$current/$total）';
+  }
+
+  @override
+  String syncPhaseDownloadingImages(int current, int total) {
+    return '正在下載圖片（$current/$total）';
+  }
 
   @override
   String get settingsWebDAVCustom => '自訂伺服器';

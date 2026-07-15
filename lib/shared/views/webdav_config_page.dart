@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../services/auto_sync_service.dart';
+import '../services/sync_progress.dart';
 import '../services/webdav_service.dart';
 import '../widgets/sync_conflict_dialog.dart';
 
@@ -157,6 +158,7 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
     final result = await WebDAVService.sync(_currentConfig);
     if (!mounted) return;
     AutoSyncService.instance.recordSyncResult(result);
+    AutoSyncService.instance.notifyLocalDataChangedIfNeeded();
 
     if (result.hasConflicts) {
       setState(() => _syncing = false);
@@ -200,28 +202,142 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
       }
     } else {
       setState(() => _syncing = false);
-      if (!mounted) return;
-      if (!result.success) {
-        await _showSyncDialog(
-          AppLocalizations.of(context)!.settingsWebDAVSyncFailed,
-          result.error ?? '-',
-        );
-        return;
-      }
-      if (result.warnings.isNotEmpty && mounted) {
-        await _showSyncDialog(
-          AppLocalizations.of(context)!.settingsWebDAVSyncSuccess,
-          'Image sync warnings:\n${result.warnings.join('\n')}',
-        );
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppLocalizations.of(context)!.settingsWebDAVSyncSuccess,
-          ),
-        ),
+      await _showSyncResult(result);
+    }
+  }
+
+  /// Purpose: Present a non-conflict sync/force result to the user.
+  /// Inputs: `result`.
+  /// Returns: `Future<void>`.
+  /// Side effects: Shows a dialog for failures/warnings or a snackbar on success.
+  /// Notes: Internal helper used within this file only.
+  Future<void> _showSyncResult(SyncResult result) async {
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+    if (!result.success) {
+      await _showSyncDialog(l10n.settingsWebDAVSyncFailed, result.error ?? '-');
+      return;
+    }
+    if (result.warnings.isNotEmpty) {
+      await _showSyncDialog(
+        l10n.settingsWebDAVSyncSuccess,
+        '${l10n.settingsWebDAVSyncImageWarnings(result.warnings.length)}\n'
+        '${result.warnings.join('\n')}',
       );
+      return;
+    }
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l10n.settingsWebDAVSyncSuccess)));
+  }
+
+  /// Purpose: Confirm and run a force upload (local overwrites remote).
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: Overwrites remote data after user confirmation.
+  /// Notes: Internal helper used within this file only.
+  Future<void> _forceUpload() async {
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await _confirmForceAction(
+      title: l10n.settingsWebDAVForceUploadConfirmTitle,
+      body: l10n.settingsWebDAVForceUploadConfirmBody,
+      confirmLabel: l10n.settingsWebDAVForceUpload,
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _syncing = true);
+    final result = await WebDAVService.forceUpload(_currentConfig);
+    if (!mounted) return;
+    AutoSyncService.instance.recordSyncResult(result);
+    AutoSyncService.instance.notifyLocalDataChangedIfNeeded();
+    setState(() => _syncing = false);
+    await _showSyncResult(result);
+  }
+
+  /// Purpose: Confirm and run a force download (remote overwrites local).
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: Overwrites local data after user confirmation.
+  /// Notes: Internal helper used within this file only.
+  Future<void> _forceDownload() async {
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await _confirmForceAction(
+      title: l10n.settingsWebDAVForceDownloadConfirmTitle,
+      body: l10n.settingsWebDAVForceDownloadConfirmBody,
+      confirmLabel: l10n.settingsWebDAVForceDownload,
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _syncing = true);
+    final result = await WebDAVService.forceDownload(_currentConfig);
+    if (!mounted) return;
+    AutoSyncService.instance.recordSyncResult(result);
+    AutoSyncService.instance.notifyLocalDataChangedIfNeeded();
+    setState(() => _syncing = false);
+    await _showSyncResult(result);
+  }
+
+  /// Purpose: Ask the user to confirm a destructive force upload/download.
+  /// Inputs: `title`, `body`, `confirmLabel`.
+  /// Returns: `Future<bool?>` — true when confirmed.
+  /// Side effects: Opens a modal dialog.
+  /// Notes: Internal helper used within this file only.
+  Future<bool?> _confirmForceAction({
+    required String title,
+    required String body,
+    required String confirmLabel,
+  }) {
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: Text(body),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(AppLocalizations.of(ctx)!.commonCancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+              foregroundColor: Theme.of(ctx).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(confirmLabel),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Purpose: Map a sync progress snapshot to a localized status line.
+  /// Inputs: `l10n`, `progress`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  String _progressText(AppLocalizations l10n, SyncProgress progress) {
+    switch (progress.phase) {
+      case SyncPhase.connecting:
+        return l10n.syncPhaseConnecting;
+      case SyncPhase.downloadingData:
+        return l10n.syncPhaseDownloadingData(
+          progress.detail ?? '',
+          progress.current,
+          progress.total,
+        );
+      case SyncPhase.merging:
+        return l10n.syncPhaseMerging(progress.detail ?? '');
+      case SyncPhase.uploadingData:
+        return l10n.syncPhaseUploadingData(progress.detail ?? '');
+      case SyncPhase.uploadingImages:
+        return l10n.syncPhaseUploadingImages(progress.current, progress.total);
+      case SyncPhase.downloadingImages:
+        return l10n.syncPhaseDownloadingImages(
+          progress.current,
+          progress.total,
+        );
+      case SyncPhase.idle:
+      case SyncPhase.done:
+      case SyncPhase.error:
+        return '';
     }
   }
 
@@ -435,6 +551,29 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
                     ),
                     const SizedBox(height: 12),
                   ],
+                  ValueListenableBuilder<SyncProgress>(
+                    valueListenable: WebDAVService.progress,
+                    builder: (context, progress, _) {
+                      if (!progress.isRunning) {
+                        return const SizedBox.shrink();
+                      }
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          LinearProgressIndicator(value: progress.fraction),
+                          const SizedBox(height: 8),
+                          Text(
+                            _progressText(
+                              AppLocalizations.of(context)!,
+                              progress,
+                            ),
+                            style: theme.textTheme.bodySmall,
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+                      );
+                    },
+                  ),
                   FilledButton.icon(
                     onPressed: _syncing ? null : _syncNow,
                     icon: _syncing
@@ -449,6 +588,34 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
                           ? AppLocalizations.of(context)!.settingsWebDAVSyncing
                           : AppLocalizations.of(context)!.settingsWebDAVSyncNow,
                     ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _syncing ? null : _forceUpload,
+                          icon: const Icon(Icons.upload, size: 18),
+                          label: Text(
+                            AppLocalizations.of(
+                              context,
+                            )!.settingsWebDAVForceUpload,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _syncing ? null : _forceDownload,
+                          icon: const Icon(Icons.download, size: 18),
+                          label: Text(
+                            AppLocalizations.of(
+                              context,
+                            )!.settingsWebDAVForceDownload,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 12),
                   SwitchListTile(
@@ -470,11 +637,14 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
                     },
                   ),
                   const SizedBox(height: 12),
-                  TextButton(
+                  OutlinedButton.icon(
                     onPressed: _disconnect,
-                    child: Text(
+                    icon: const Icon(Icons.link_off),
+                    label: Text(
                       AppLocalizations.of(context)!.settingsWebDAVDisconnect,
-                      style: TextStyle(color: theme.colorScheme.error),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: theme.colorScheme.error,
                     ),
                   ),
                 ],

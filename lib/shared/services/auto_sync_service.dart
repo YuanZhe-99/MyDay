@@ -23,6 +23,7 @@ class AutoSyncService with WidgetsBindingObserver {
 
   Timer? _debounce;
   Timer? _periodic;
+  bool _syncing = false;
   bool _started = false;
   DateTime? _lastSuccessAt;
   DateTime? _lastFailureAt;
@@ -112,6 +113,22 @@ class AutoSyncService with WidgetsBindingObserver {
     }
   }
 
+  /// Purpose: Notify UI reload listeners after a manual sync or force
+  /// operation wrote local data files.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Consumes the WebDAV local-data-changed flag and invokes
+  /// registered reload callbacks.
+  /// Notes: Manual sync pages call this so open pages reload without waiting
+  /// for the next background sync.
+  void notifyLocalDataChangedIfNeeded() {
+    if (WebDAVService.consumeLocalDataChanged()) {
+      for (final cb in List.of(_onLocalDataChanged)) {
+        cb();
+      }
+    }
+  }
+
   /// Purpose: Record a finalize-pending-sync result.
   /// Inputs: `ok`.
   /// Returns: None.
@@ -162,8 +179,10 @@ class AutoSyncService with WidgetsBindingObserver {
   /// Inputs: None.
   /// Returns: None.
   /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: None.
+  /// Notes: Ignored before `start()` so early storage writes cannot schedule
+  /// a sync while the service is not yet observing the app lifecycle.
   void notifySaved() {
+    if (!_started) return;
     _debounce?.cancel();
     _debounce = Timer(_debounceDuration, _trySync);
   }
@@ -197,10 +216,14 @@ class AutoSyncService with WidgetsBindingObserver {
   /// Inputs: None.
   /// Returns: `Future<void>`.
   /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Internal helper used within this file only. The `_syncing` guard
+  /// silently skips overlapping triggers (timer/resume/debounce) so they do
+  /// not surface a spurious "Sync already in progress" failure banner.
   Future<void> _trySync() async {
+    if (_syncing) return;
     final config = await WebDAVService.loadConfig();
     if (config == null || !config.isConfigured || !config.autoSync) return;
+    _syncing = true;
     try {
       final result = await WebDAVService.sync(config);
       if (result.hasConflicts) {
@@ -221,6 +244,8 @@ class AutoSyncService with WidgetsBindingObserver {
       }
     } catch (e) {
       _recordFailure(e.toString());
+    } finally {
+      _syncing = false;
     }
   }
 

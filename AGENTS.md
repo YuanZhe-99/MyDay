@@ -29,8 +29,8 @@ Maintenance rules:
 - **Package id:** Dart package `my_day`; Android namespace/application id `com.yuanzhe.my_day`; MSIX identity `com.yuanzhe.myday`; macOS bundle id `com.yuanzhe.myDay`.
 - **Author / publisher:** `yuanzhe`.
 - **License:** GPL-3.0.
-- **Current version:** `1.1.3+50` in `pubspec.yaml`, `1.1.3.0` in `msix_config.msix_version`, and `1.1.3` in `installer.iss`.
-- **Latest tag at the time this guide was written:** `v1.1.3`.
+- **Current version:** `1.2.0+51` in `pubspec.yaml`, `1.2.0.0` in `msix_config.msix_version`, and `1.2.0` in `installer.iss`.
+- **Latest tag at the time this guide was written:** `v1.2.0`.
 - **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.44.2`.
 - **Primary platforms:** Windows x64/ARM64, Android APK/AAB, iOS sideload IPA, and macOS DMG. Linux project support exists for desktop runtime features but is not a primary release artifact.
 - **Repository:** Use the current environment's workspace root / repository path instead of hard-coding an absolute local path.
@@ -130,6 +130,7 @@ lib/
       mobile_notification_service.dart
       reminder_service.dart
       sync_merge.dart
+      sync_progress.dart
       tray_service.dart
       webdav_service.dart
     utils/json_preservation.dart
@@ -147,6 +148,7 @@ Primary tests currently include:
 - `test/json_preservation_test.dart`
 - `test/local_api_server_test.dart`
 - `test/subscription_processor_test.dart`
+- `test/weight_reminder_grace_test.dart` (grace window anchored on the actual fire time)
 - `test/widget_test.dart`
 
 The `tool/` directory contains ad hoc generation scripts such as bank/icon generation. `tool/generate_ios_icons.dart` derives iOS default/dark/tinted icon sources and `/tmp` previews from `assets/icon/app_icon.png`; `flutter_launcher_icons.yaml` then regenerates only the iOS AppIcon set; `tool/validate_ios_icons.dart` checks iOS icon dimensions, transparency, grayscale tinted output, and `Contents.json` references. Keep release-critical behavior covered by real tests when possible.
@@ -228,7 +230,7 @@ Main model: `lib/features/weight/models/weight_record.dart`.
 - `WeightData`: optional height, records, reminder mode (`none`, `once`, `twice`), morning/evening reminder times, `reminderGraceMinutes` default 180, and `settingsModifiedAt`.
 - BMI is computed by `WeightData.calculateBMI()`. Waist-hip ratio is computed by `WeightData.calculateWaistHipRatio()` and returns null unless waist and hip measurements are both positive.
 
-The Weight page includes add/edit records, optional bust/waist/hip measurement entry, chart range selection, raw and EWMA weight trend display, a separate raw/EWMA bust-waist-hip trend chart, BMI/measurement/waist-hip-ratio summary cards with compact color bars, weekly grouped history that follows the global week start day, "show all" history, and reminder settings. For summary cards and measurement trend charts, missing bust/waist/hip fields inherit the previous positive value independently without writing that value back into the record. A reminder is skipped when a record exists inside the configured pre-reminder grace window.
+The Weight page includes add/edit records, optional bust/waist/hip measurement entry, chart range selection, raw and EWMA weight trend display, a separate raw/EWMA bust-waist-hip trend chart, BMI/measurement/waist-hip-ratio summary cards with compact color bars, weekly grouped history that follows the global week start day, "show all" history, and reminder settings. For summary cards and measurement trend charts, missing bust/waist/hip fields inherit the previous positive value independently without writing that value back into the record. A reminder is skipped when a record exists inside the configured grace window measured against the moment the reminder actually fires: the desktop loop anchors the window on `now` (so a record logged after the scheduled minute still suppresses a late-firing check), while mobile pre-scheduling anchors it on the scheduled candidate fire time. The pure decision lives in `ReminderService.shouldSkipWeightReminderAt` and is covered by `test/weight_reminder_grace_test.dart`.
 
 ### Settings
 
@@ -276,6 +278,12 @@ Important sync constraints:
 - Image sync is reference-gated: only images referenced in `finance_data.json` or `intimacy_data.json` are synced; orphan images are ignored.
 - Individual image transfer failures are non-fatal warnings surfaced through `SyncResult.warnings`.
 - When adding persisted fields or record containers, update the model, storage save path, `JsonPreservation` schema, merge function, and this guide's data inventory.
+- Remote image directory listings return null on any failure; `_syncImages` then skips the image phase with a visible warning instead of treating the unknown remote state as empty, which previously re-uploaded every referenced image after a transient PROPFIND failure.
+- Downloaded images set the local-data-changed flag so UI pages reload even when the data JSON itself did not change.
+- Transient network failures (socket/timeout/client errors and HTTP 5xx) are retried up to 2 extra times with 1s/2s backoff on data GET/PUT, byte GET/PUT, and PROPFIND listings. `.lock` writes are never retried so a retried create-only PUT cannot misreport lock contention; 4xx responses are never retried.
+- `WebDAVService.progress` is a `ValueNotifier<SyncProgress>` (see `sync_progress.dart`) publishing connecting/downloading/merging/uploading phases with per-file and per-image counts. The service emits raw phases and file names only; the WebDAV page maps phases to localized text and renders a `LinearProgressIndicator`.
+- `WebDAVService.forceUpload()` overwrites remote data files and uploads referenced images without any merge or conflict check, under the remote `.lock`, then saves base snapshots. `WebDAVService.forceDownload()` replaces local data files (JSON-validated first, atomic writes) and downloads referenced images without merging, saves base snapshots, and sets the local-data-changed flag; it is download-only and takes no remote lock. Both share the `_syncing` guard and require a destructive-action confirmation dialog in the WebDAV page.
+- After manual sync or force operations the WebDAV page calls `AutoSyncService.notifyLocalDataChangedIfNeeded()` so open pages reload without waiting for the next background sync.
 
 ### Sync Data Reference
 
@@ -301,6 +309,8 @@ Files moved by `TodoStorage.setStoragePath()` are `todo_data.json`, `finance_dat
 - saving/enabling a fully configured auto-sync WebDAV setup: immediate sync via `requestSyncNow()`.
 
 Auto-sync records the latest success, failure, or pending-conflict state in memory and surfaces it in Settings and the WebDAV page. Failures must not be silently swallowed; conflicts must not be auto-resolved by LWW in the background.
+
+`_trySync` holds an instance-level `_syncing` guard so overlapping triggers (timer/resume/debounce) are silently skipped instead of surfacing a spurious "Sync already in progress" failure banner. `notifySaved()` is ignored before `start()` so early storage writes cannot schedule a sync before the service observes the app lifecycle.
 
 ### Backup, Import, Export, and Images
 
@@ -493,3 +503,4 @@ Use the narrowest relevant command set for verification. For sync/model/persiste
 - `v1.1.1`: Settings import/export was rebuilt as ZIP-only and removed CSV/JSON-file import flows; WebDAV uploads now use a remote `.lock` with a stable local client id and 150-second TTL, interrupted local uploads are detected on the next sync, and HTTP 412 upload races re-download remote data and re-run per-record merge before surfacing only true record conflicts; versions are unified to `1.1.1+48` / MSIX `1.1.1.0` / installer `1.1.1`.
 - `v1.1.2`: WebDAV now acquires `.lock` before downloading and merging remote data, lowers the lock TTL to 60 seconds, and force-uploads complete merged/resolved JSON under the valid lock without data-file `If-Match`/`If-None-Match` retry loops; versions are unified to `1.1.2+49` / MSIX `1.1.2.0` / installer `1.1.2`.
 - `v1.1.3`: ZIP data import now strictly decodes JSON entries as UTF-8 so Chinese and other non-ASCII text is preserved; versions are unified to `1.1.3+50` / MSIX `1.1.3.0` / installer `1.1.3`.
+- `v1.2.0`: WebDAV sync hardening and force transfers — remote image listing failures no longer masquerade as an empty directory (fixing repeated re-uploads of already-uploaded images), transient network errors and HTTP 5xx are retried with backoff, sync progress is published through `WebDAVService.progress` and shown as a progress bar with localized phase text, Force Upload / Force Download actions with confirmation dialogs were added to the WebDAV page, auto-sync gained a re-entrancy guard and ignores `notifySaved` before start, the weight reminder grace window is anchored on the actual fire time so a record logged after the scheduled minute suppresses a late desktop reminder (with unit tests), downloaded images trigger UI reloads, manual sync notifies reload listeners, image warnings in the sync dialog are localized, zh_TW simplified-character leaks in todo strings were fixed, WebDAV terminology and the `…` ellipsis were standardized across MyAnime/MyDay/MyDevice, the About page version format matches the other apps (`version+build`), and versions are unified to `1.2.0+51` / MSIX `1.2.0.0` / installer `1.2.0`.

@@ -153,7 +153,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   /// Notes: Internal helper used within this file only.
   Future<void> _loadVersion() async {
     final info = await PackageInfo.fromPlatform();
-    if (mounted) setState(() => _appVersion = 'v${info.version}');
+    // Format matches MyAnime/MyDevice: "<version>+<build>".
+    if (mounted) {
+      setState(() => _appVersion = '${info.version}+${info.buildNumber}');
+    }
   }
 
   /// Purpose: Provide the internal load web dav status helper for this file.

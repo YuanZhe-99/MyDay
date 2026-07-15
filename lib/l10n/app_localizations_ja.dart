@@ -679,7 +679,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsWebDAVAutoSyncDesc => '編集後やアプリ復帰時に自動で同期します';
 
   @override
-  String get settingsWebDAVSyncing => '同期中...';
+  String get settingsWebDAVSyncing => '同期中…';
 
   @override
   String get settingsWebDAVSyncSuccess => '同期完了';
@@ -714,6 +714,59 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsWebDAVNextcloud => 'Nextcloud プリセット';
+
+  @override
+  String settingsWebDAVSyncImageWarnings(int count) {
+    return '同期完了（画像$count件の転送に失敗）';
+  }
+
+  @override
+  String get settingsWebDAVForceUpload => '強制アップロード';
+
+  @override
+  String get settingsWebDAVForceDownload => '強制ダウンロード';
+
+  @override
+  String get settingsWebDAVForceUploadConfirmTitle => '強制アップロードしますか？';
+
+  @override
+  String get settingsWebDAVForceUploadConfirmBody =>
+      'リモートのデータと画像をローカルの内容で上書きします。前回の同期以降のリモートの変更は失われます。';
+
+  @override
+  String get settingsWebDAVForceDownloadConfirmTitle => '強制ダウンロードしますか？';
+
+  @override
+  String get settingsWebDAVForceDownloadConfirmBody =>
+      'ローカルのデータと画像をリモートの内容で置き換えます。前回の同期以降のローカルの変更は失われます。';
+
+  @override
+  String get syncPhaseConnecting => '接続中…';
+
+  @override
+  String syncPhaseDownloadingData(String file, int current, int total) {
+    return '$file をダウンロード中（$current/$total）';
+  }
+
+  @override
+  String syncPhaseMerging(String file) {
+    return '$file をマージ中…';
+  }
+
+  @override
+  String syncPhaseUploadingData(String file) {
+    return '$file をアップロード中…';
+  }
+
+  @override
+  String syncPhaseUploadingImages(int current, int total) {
+    return '画像をアップロード中（$current/$total）';
+  }
+
+  @override
+  String syncPhaseDownloadingImages(int current, int total) {
+    return '画像をダウンロード中（$current/$total）';
+  }
 
   @override
   String get settingsWebDAVCustom => 'カスタムサーバー';

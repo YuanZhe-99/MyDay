@@ -704,12 +704,14 @@ class ReminderService {
       await _refreshWeightDataFromStorage();
     }
 
-    // Weight morning reminder
+    // Weight morning reminder. The grace check is anchored on the actual
+    // fire moment (`current`), not the scheduled minute, so a record logged
+    // between the scheduled time and a late check still suppresses it.
     if (_weightMorningReminder != null) {
       final reminderAt = _todayAt(_weightMorningReminder!);
       if (shouldFire('weight_morning_$todayKey', reminderAt)) {
         await _refreshWeightDataFromStorage();
-        if (!_shouldSkipWeightReminder(reminderAt)) {
+        if (!_shouldSkipWeightReminder(current)) {
           _notify(_l10n.notifWeightReminder);
         }
       }
@@ -720,7 +722,7 @@ class ReminderService {
       final reminderAt = _todayAt(_weightEveningReminder!);
       if (shouldFire('weight_evening_$todayKey', reminderAt)) {
         await _refreshWeightDataFromStorage();
-        if (!_shouldSkipWeightReminder(reminderAt)) {
+        if (!_shouldSkipWeightReminder(current)) {
           _notify(_l10n.notifWeightReminder);
         }
       }
@@ -824,18 +826,41 @@ class ReminderService {
     return DateTime(today.year, today.month, today.day, time.hour, time.minute);
   }
 
-  /// Purpose: Provide the internal should skip weight reminder helper for this file.
-  /// Inputs: `reminderAt`.
+  /// Purpose: Decide whether a weight reminder should be suppressed because a
+  /// record already exists inside the grace window.
+  /// Inputs: `firesAt` — the moment the reminder actually fires (now for the
+  /// desktop loop, the scheduled candidate time for mobile pre-scheduling).
   /// Returns: `bool`.
-  /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: Internal helper used within this file only.
-  bool _shouldSkipWeightReminder(DateTime reminderAt) {
-    if (_weightReminderGraceMinutes <= 0) return false;
-    final windowStart = reminderAt.subtract(
-      Duration(minutes: _weightReminderGraceMinutes),
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. The window is
+  /// `[firesAt − grace, firesAt + 1 min)` and must be anchored on the actual
+  /// fire moment, not the configured reminder minute — otherwise a record
+  /// logged after the scheduled minute never suppresses a late-firing
+  /// desktop reminder (e.g. reminder 08:00, record 08:30, app opened 11:00).
+  bool _shouldSkipWeightReminder(DateTime firesAt) {
+    return shouldSkipWeightReminderAt(
+      firesAt: firesAt,
+      records: _weightRecords,
+      graceMinutes: _weightReminderGraceMinutes,
     );
-    final windowEnd = reminderAt.add(const Duration(minutes: 1));
-    return _weightRecords.any((record) {
+  }
+
+  /// Purpose: Pure grace-window decision for weight reminder suppression.
+  /// Inputs: `firesAt`, `records`, `graceMinutes`.
+  /// Returns: `bool` — true when a record falls in `[firesAt − grace, firesAt + 1 min)`.
+  /// Side effects: None.
+  /// Notes: Exposed statically so unit tests can cover the window semantics;
+  /// production code goes through `_shouldSkipWeightReminder`.
+  @visibleForTesting
+  static bool shouldSkipWeightReminderAt({
+    required DateTime firesAt,
+    required List<WeightRecord> records,
+    required int graceMinutes,
+  }) {
+    if (graceMinutes <= 0) return false;
+    final windowStart = firesAt.subtract(Duration(minutes: graceMinutes));
+    final windowEnd = firesAt.add(const Duration(minutes: 1));
+    return records.any((record) {
       return !record.datetime.isBefore(windowStart) &&
           record.datetime.isBefore(windowEnd);
     });
