@@ -155,9 +155,9 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
   /// Side effects: May update UI state or trigger user-facing flows. Holds
   /// the sync wake lock while the sync request and any conflict finalize
   /// upload run.
-  /// Notes: Internal helper used within this file only. The wake lock is
-  /// released in `finally` around each network operation and never held
-  /// across the conflict dialog.
+  /// Notes: Internal helper used within this file only. The wake lock and
+  /// the `_syncing` busy flag are both reset in `finally` around each network
+  /// operation, and the lock is never held across the conflict dialog.
   Future<void> _syncNow() async {
     setState(() => _syncing = true);
     await SyncWakeLock.acquire();
@@ -166,13 +166,13 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
       result = await WebDAVService.sync(_currentConfig);
     } finally {
       await SyncWakeLock.release();
+      if (mounted) setState(() => _syncing = false);
     }
     if (!mounted) return;
     AutoSyncService.instance.recordSyncResult(result);
     AutoSyncService.instance.notifyLocalDataChangedIfNeeded();
 
     if (result.hasConflicts) {
-      setState(() => _syncing = false);
       final resolutions = await showDialog<Map<String, dynamic>>(
         context: context,
         barrierDismissible: false,
@@ -191,10 +191,10 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
           );
         } finally {
           await SyncWakeLock.release();
+          if (mounted) setState(() => _syncing = false);
         }
         AutoSyncService.instance.recordFinalizeResult(ok);
         if (mounted) {
-          setState(() => _syncing = false);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
@@ -218,7 +218,6 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
         }
       }
     } else {
-      setState(() => _syncing = false);
       await _showSyncResult(result);
     }
   }
@@ -254,7 +253,8 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
   /// Side effects: Overwrites remote data after user confirmation. Holds the
   /// sync wake lock while the upload runs.
   /// Notes: Internal helper used within this file only. The wake lock is
-  /// acquired only after the user confirms and released in `finally`.
+  /// acquired only after the user confirms; it and the `_syncing` busy flag
+  /// are both reset in `finally`.
   Future<void> _forceUpload() async {
     final l10n = AppLocalizations.of(context)!;
     final confirmed = await _confirmForceAction(
@@ -270,11 +270,11 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
       result = await WebDAVService.forceUpload(_currentConfig);
     } finally {
       await SyncWakeLock.release();
+      if (mounted) setState(() => _syncing = false);
     }
     if (!mounted) return;
     AutoSyncService.instance.recordSyncResult(result);
     AutoSyncService.instance.notifyLocalDataChangedIfNeeded();
-    setState(() => _syncing = false);
     await _showSyncResult(result);
   }
 
@@ -284,7 +284,8 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
   /// Side effects: Overwrites local data after user confirmation. Holds the
   /// sync wake lock while the download runs.
   /// Notes: Internal helper used within this file only. The wake lock is
-  /// acquired only after the user confirms and released in `finally`.
+  /// acquired only after the user confirms; it and the `_syncing` busy flag
+  /// are both reset in `finally`.
   Future<void> _forceDownload() async {
     final l10n = AppLocalizations.of(context)!;
     final confirmed = await _confirmForceAction(
@@ -300,11 +301,11 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
       result = await WebDAVService.forceDownload(_currentConfig);
     } finally {
       await SyncWakeLock.release();
+      if (mounted) setState(() => _syncing = false);
     }
     if (!mounted) return;
     AutoSyncService.instance.recordSyncResult(result);
     AutoSyncService.instance.notifyLocalDataChangedIfNeeded();
-    setState(() => _syncing = false);
     await _showSyncResult(result);
   }
 
