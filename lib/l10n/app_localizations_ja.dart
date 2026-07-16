@@ -1198,6 +1198,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get backupRestoreFailed => '復元失敗';
 
   @override
+  String backupRestoreMissingImages(int count) {
+    return '復元しましたが、バックアップ画像ストアに$count件の画像が見つかりませんでした';
+  }
+
+  @override
   String get backupDeleteConfirmTitle => 'バックアップ削除';
 
   @override

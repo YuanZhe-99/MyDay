@@ -429,6 +429,10 @@
   "backupRestoreAll": "全选",
   "backupRestoreSuccess": "备份已还原",
   "backupRestoreFailed": "还原失败",
+  "backupRestoreMissingImages": "已还原，但备份图片存储中缺少 {count} 张图片",
+  "@backupRestoreMissingImages": {
+    "placeholders": { "count": { "type": "int" } }
+  },
   "backupDeleteConfirmTitle": "删除备份",
   "backupDeleteConfirmDesc": "该备份将被永久删除，此操作无法撤销。",
   "backupModuleTodo": "待办事项",

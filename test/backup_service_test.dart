@@ -103,11 +103,36 @@ void main() {
 
       await File(p.join(tempDir.path, 'images', 'logo1.png')).delete();
 
-      final ok = await BackupService.restoreBackup(b1!);
-      expect(ok, isTrue);
+      final result = await BackupService.restoreBackup(b1!);
+      expect(result.ok, isTrue);
+      expect(result.wroteAnything, isTrue);
+      expect(result.missingImages, 0);
       expect(
         await File(p.join(tempDir.path, 'images', 'logo1.png')).readAsBytes(),
         [1, 2, 3, 4],
+      );
+    });
+
+    test('restore reports missing blobs instead of dropping them silently',
+        () async {
+      await writeData(
+          'todo_data.json', '{"dailyTemplates": [], "oneTimeTasks": []}');
+      await writeImage('logo1.png', [1, 2, 3, 4]);
+      final b1 = await BackupService.createBackup();
+
+      // Simulate an incomplete blob store, e.g. a bundle copied to another
+      // machine without backups/blobs/.
+      for (final blob in await listBlobs()) {
+        await blob.delete();
+      }
+      await File(p.join(tempDir.path, 'images', 'logo1.png')).delete();
+
+      final result = await BackupService.restoreBackup(b1!);
+      expect(result.ok, isTrue);
+      expect(result.missingImages, 1);
+      expect(
+        await File(p.join(tempDir.path, 'images', 'logo1.png')).exists(),
+        isFalse,
       );
     });
   });
@@ -129,8 +154,8 @@ void main() {
       );
       await file.writeAsString(jsonEncode(legacy));
 
-      final ok = await BackupService.restoreBackup(file);
-      expect(ok, isTrue);
+      final result = await BackupService.restoreBackup(file);
+      expect(result.ok, isTrue);
       expect(
         await File(p.join(tempDir.path, 'images', 'legacy.png')).exists(),
         isTrue,
@@ -152,8 +177,9 @@ void main() {
         jsonEncode({'todo_data.json': 'not valid json'}),
       );
 
-      final ok = await BackupService.restoreBackup(file);
-      expect(ok, isFalse);
+      final result = await BackupService.restoreBackup(file);
+      expect(result.ok, isFalse);
+      expect(result.wroteAnything, isFalse);
       expect(
         await File(p.join(tempDir.path, 'todo_data.json')).readAsString(),
         '{"dailyTemplates": [], "oneTimeTasks": []}',

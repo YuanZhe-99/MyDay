@@ -463,6 +463,10 @@
   "backupRestoreAll": "Select All",
   "backupRestoreSuccess": "Backup restored",
   "backupRestoreFailed": "Restore failed",
+  "backupRestoreMissingImages": "Restored, but {count} image(s) were missing from the backup image store",
+  "@backupRestoreMissingImages": {
+    "placeholders": { "count": { "type": "int" } }
+  },
   "backupDeleteConfirmTitle": "Delete Backup",
   "backupDeleteConfirmDesc": "This backup will be permanently deleted. This cannot be undone.",
   "backupModuleTodo": "Todo",

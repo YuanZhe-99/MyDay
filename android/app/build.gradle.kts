@@ -2,8 +2,11 @@ import java.util.Properties
 
 plugins {
     id("com.android.application")
-    id("kotlin-android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    // Built-in Kotlin: the app no longer applies the Kotlin Gradle Plugin
+    // itself (Flutter/AGP provide Kotlin support). The KGP version stays
+    // declared in settings.gradle.kts because several Flutter plugins still
+    // apply KGP and resolve it from there.
+    // The Flutter Gradle Plugin must be applied after the Android plugin.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
@@ -22,10 +25,6 @@ android {
         isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
     defaultConfig {
@@ -60,6 +59,15 @@ android {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+}
+
+// Built-in Kotlin migration: align the Kotlin jvmTarget with the Java 17
+// compileOptions above. Without this, Kotlin defaults to the running JDK's
+// target and the build fails with an Inconsistent JVM Target error.
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+    }
 }
 
 flutter {
