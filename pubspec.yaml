@@ -2,7 +2,7 @@ name: my_day
 description: "MyDay!!!!! — Your daily life companion"
 publish_to: 'none'
 
-version: 1.2.1+52
+version: 1.2.2+53
 
 environment:
   sdk: ^3.11.3
@@ -34,6 +34,7 @@ dependencies:
 
   # Utilities
   uuid: ^4.5.1
+  crypto: ^3.0.6
   path: ^1.9.0
   path_provider: ^2.1.5
   archive: ^4.0.4
@@ -116,7 +117,7 @@ msix_config:
   display_name: MyDay!!!!!
   publisher_display_name: yuanzhe
   identity_name: com.yuanzhe.myday
-  msix_version: 1.2.1.0
+  msix_version: 1.2.2.0
   logo_path: assets/icon/app_icon.png
   capabilities: internetClient
   install_certificate: false

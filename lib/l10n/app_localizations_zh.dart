@@ -1131,13 +1131,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get backupTitle => '备份';
 
   @override
-  String get backupLocalOnlyNote => '备份仅保存在本机，如需云端同步请使用 WebDAV 同步。';
+  String get backupLocalOnlyNote => '备份仅存储在本设备上。云端备份请使用 WebDAV 同步。';
 
   @override
   String get backupSettings => '设置';
 
   @override
-  String get backupAutoDaily => '每日自动备份';
+  String get backupAutoDaily => '自动备份';
 
   @override
   String get backupAutoDailyDesc => '每天自动创建一次备份';
@@ -1180,16 +1180,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get backupRestoreConfirmTitle => '确认还原';
 
   @override
-  String get backupRestoreConfirmDesc => '这将替换所选模块的数据，是否继续？';
+  String get backupRestoreConfirmDesc => '这将使用备份覆盖所选数据，是否继续？';
 
   @override
   String get backupRestoreSelectModules => '选择要还原的模块';
 
   @override
-  String get backupRestoreAll => '全部模块';
+  String get backupRestoreAll => '全选';
 
   @override
-  String get backupRestoreSuccess => '还原成功，请重启应用。';
+  String get backupRestoreSuccess => '备份已还原';
 
   @override
   String get backupRestoreFailed => '还原失败';
@@ -1198,7 +1198,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get backupDeleteConfirmTitle => '删除备份';
 
   @override
-  String get backupDeleteConfirmDesc => '该备份将被永久删除。';
+  String get backupDeleteConfirmDesc => '该备份将被永久删除，此操作无法撤销。';
 
   @override
   String get backupModuleTodo => '待办事项';
@@ -1211,6 +1211,31 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get backupModuleIntimacy => '亲密';
+
+  @override
+  String get backupModuleWeight => '体重';
+
+  @override
+  String get backupSubtitle => '完整本机备份（数据 + 图片）';
+
+  @override
+  String get backupCorrupt => '已损坏';
+
+  @override
+  String get backupRestoredSyncDisabled => '备份已还原。为保护还原的数据，已停用自动同步。';
+
+  @override
+  String get backupForceUploadPrompt =>
+      '现在将还原的数据上传到 WebDAV 吗？远程数据将被还原后的本地数据覆盖。';
+
+  @override
+  String get backupForceUploadSkip => '暂不';
+
+  @override
+  String get backupForceUploadDone => '强制上传完成';
+
+  @override
+  String get backupForceUploadFailed => '强制上传失败';
 
   @override
   String intimacyRecordCount(int count) {
@@ -2991,13 +3016,13 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get backupTitle => '備份';
 
   @override
-  String get backupLocalOnlyNote => '備份僅儲存在本機，如需雲端同步請使用 WebDAV 同步。';
+  String get backupLocalOnlyNote => '備份僅儲存在本裝置上。雲端備份請使用 WebDAV 同步。';
 
   @override
   String get backupSettings => '設定';
 
   @override
-  String get backupAutoDaily => '每日自動備份';
+  String get backupAutoDaily => '自動備份';
 
   @override
   String get backupAutoDailyDesc => '每天自動建立一次備份';
@@ -3025,7 +3050,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   }
 
   @override
-  String get backupEmpty => '尚無備份';
+  String get backupEmpty => '暫無備份';
 
   @override
   String get backupCreated => '備份已建立';
@@ -3040,16 +3065,16 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get backupRestoreConfirmTitle => '確認還原';
 
   @override
-  String get backupRestoreConfirmDesc => '這將替換所選模組的資料，是否繼續？';
+  String get backupRestoreConfirmDesc => '這將使用備份覆蓋所選資料，是否繼續？';
 
   @override
   String get backupRestoreSelectModules => '選擇要還原的模組';
 
   @override
-  String get backupRestoreAll => '全部模組';
+  String get backupRestoreAll => '全選';
 
   @override
-  String get backupRestoreSuccess => '還原成功，請重啟應用。';
+  String get backupRestoreSuccess => '備份已還原';
 
   @override
   String get backupRestoreFailed => '還原失敗';
@@ -3058,7 +3083,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get backupDeleteConfirmTitle => '刪除備份';
 
   @override
-  String get backupDeleteConfirmDesc => '該備份將被永久刪除。';
+  String get backupDeleteConfirmDesc => '該備份將被永久刪除，此操作無法復原。';
 
   @override
   String get backupModuleTodo => '待辦事項';
@@ -3071,6 +3096,31 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get backupModuleIntimacy => '親密';
+
+  @override
+  String get backupModuleWeight => '體重';
+
+  @override
+  String get backupSubtitle => '完整本機備份（資料 + 圖片）';
+
+  @override
+  String get backupCorrupt => '已損壞';
+
+  @override
+  String get backupRestoredSyncDisabled => '備份已還原。為保護還原的資料，已停用自動同步。';
+
+  @override
+  String get backupForceUploadPrompt =>
+      '現在將還原的資料上傳到 WebDAV 嗎？遠端資料將被還原後的本地資料覆蓋。';
+
+  @override
+  String get backupForceUploadSkip => '暫不';
+
+  @override
+  String get backupForceUploadDone => '強制上傳完成';
+
+  @override
+  String get backupForceUploadFailed => '強制上傳失敗';
 
   @override
   String intimacyRecordCount(int count) {

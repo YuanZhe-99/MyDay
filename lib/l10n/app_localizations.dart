@@ -2252,13 +2252,13 @@ abstract class AppLocalizations {
   /// No description provided for @backupAutoDaily.
   ///
   /// In en, this message translates to:
-  /// **'Daily Auto-Backup'**
+  /// **'Auto Backup'**
   String get backupAutoDaily;
 
   /// No description provided for @backupAutoDailyDesc.
   ///
   /// In en, this message translates to:
-  /// **'Automatically create backup once per day'**
+  /// **'Automatically creates one backup per day'**
   String get backupAutoDailyDesc;
 
   /// No description provided for @backupRetention.
@@ -2330,7 +2330,7 @@ abstract class AppLocalizations {
   /// No description provided for @backupRestoreConfirmDesc.
   ///
   /// In en, this message translates to:
-  /// **'This will replace selected module data. Continue?'**
+  /// **'This will overwrite the selected data with the backup. Continue?'**
   String get backupRestoreConfirmDesc;
 
   /// No description provided for @backupRestoreSelectModules.
@@ -2342,13 +2342,13 @@ abstract class AppLocalizations {
   /// No description provided for @backupRestoreAll.
   ///
   /// In en, this message translates to:
-  /// **'All Modules'**
+  /// **'Select All'**
   String get backupRestoreAll;
 
   /// No description provided for @backupRestoreSuccess.
   ///
   /// In en, this message translates to:
-  /// **'Restore successful. Please restart the app.'**
+  /// **'Backup restored'**
   String get backupRestoreSuccess;
 
   /// No description provided for @backupRestoreFailed.
@@ -2366,7 +2366,7 @@ abstract class AppLocalizations {
   /// No description provided for @backupDeleteConfirmDesc.
   ///
   /// In en, this message translates to:
-  /// **'This backup will be permanently deleted.'**
+  /// **'This backup will be permanently deleted. This cannot be undone.'**
   String get backupDeleteConfirmDesc;
 
   /// No description provided for @backupModuleTodo.
@@ -2392,6 +2392,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Intimacy'**
   String get backupModuleIntimacy;
+
+  /// No description provided for @backupModuleWeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Weight'**
+  String get backupModuleWeight;
+
+  /// No description provided for @backupSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Full local backup (data + images)'**
+  String get backupSubtitle;
+
+  /// No description provided for @backupCorrupt.
+  ///
+  /// In en, this message translates to:
+  /// **'Corrupted'**
+  String get backupCorrupt;
+
+  /// No description provided for @backupRestoredSyncDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup restored. Auto-sync has been disabled to protect the restored data.'**
+  String get backupRestoredSyncDisabled;
+
+  /// No description provided for @backupForceUploadPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload the restored data to WebDAV now? The remote data will be overwritten with the restored local data.'**
+  String get backupForceUploadPrompt;
+
+  /// No description provided for @backupForceUploadSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get backupForceUploadSkip;
+
+  /// No description provided for @backupForceUploadDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Force upload completed'**
+  String get backupForceUploadDone;
+
+  /// No description provided for @backupForceUploadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Force upload failed'**
+  String get backupForceUploadFailed;
 
   /// No description provided for @intimacyRecordCount.
   ///

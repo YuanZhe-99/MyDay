@@ -1156,10 +1156,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupSettings => 'Settings';
 
   @override
-  String get backupAutoDaily => 'Daily Auto-Backup';
+  String get backupAutoDaily => 'Auto Backup';
 
   @override
-  String get backupAutoDailyDesc => 'Automatically create backup once per day';
+  String get backupAutoDailyDesc => 'Automatically creates one backup per day';
 
   @override
   String get backupRetention => 'Retention Period';
@@ -1200,17 +1200,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backupRestoreConfirmDesc =>
-      'This will replace selected module data. Continue?';
+      'This will overwrite the selected data with the backup. Continue?';
 
   @override
   String get backupRestoreSelectModules => 'Select Modules to Restore';
 
   @override
-  String get backupRestoreAll => 'All Modules';
+  String get backupRestoreAll => 'Select All';
 
   @override
-  String get backupRestoreSuccess =>
-      'Restore successful. Please restart the app.';
+  String get backupRestoreSuccess => 'Backup restored';
 
   @override
   String get backupRestoreFailed => 'Restore failed';
@@ -1220,7 +1219,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backupDeleteConfirmDesc =>
-      'This backup will be permanently deleted.';
+      'This backup will be permanently deleted. This cannot be undone.';
 
   @override
   String get backupModuleTodo => 'Todo';
@@ -1233,6 +1232,32 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backupModuleIntimacy => 'Intimacy';
+
+  @override
+  String get backupModuleWeight => 'Weight';
+
+  @override
+  String get backupSubtitle => 'Full local backup (data + images)';
+
+  @override
+  String get backupCorrupt => 'Corrupted';
+
+  @override
+  String get backupRestoredSyncDisabled =>
+      'Backup restored. Auto-sync has been disabled to protect the restored data.';
+
+  @override
+  String get backupForceUploadPrompt =>
+      'Upload the restored data to WebDAV now? The remote data will be overwritten with the restored local data.';
+
+  @override
+  String get backupForceUploadSkip => 'Not now';
+
+  @override
+  String get backupForceUploadDone => 'Force upload completed';
+
+  @override
+  String get backupForceUploadFailed => 'Force upload failed';
 
   @override
   String intimacyRecordCount(int count) {

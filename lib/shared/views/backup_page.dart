@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../services/auto_sync_service.dart';
 import '../services/backup_service.dart';
+import '../services/reminder_service.dart';
+import '../services/sync_wake_lock.dart';
+import '../services/webdav_service.dart';
 
 class BackupPage extends StatefulWidget {
   /// Purpose: Create a backup page instance.
@@ -181,9 +185,84 @@ class _BackupPageState extends State<BackupPage> {
       moduleKeys: selected,
     );
     if (!mounted) return;
+    if (!ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.backupRestoreFailed)),
+      );
+      return;
+    }
+
+    // Reload open pages and reminder schedules with the restored data.
+    AutoSyncService.instance.notifyLocalDataChangedNow();
+    ReminderService.instance.refreshMobileSchedules();
+
+    await _handlePostRestoreSync();
+  }
+
+  /// Purpose: Disable auto-sync after a restore and offer a force upload.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May rewrite `webdav_config.json` with auto-sync disabled,
+  /// force-upload local data to the WebDAV remote under a wake lock, and
+  /// show dialogs/snackbars.
+  /// Notes: Internal helper used within this file only. Does nothing beyond
+  /// a success snackbar when WebDAV sync is not configured: restoring an
+  /// older backup and letting auto-sync merge it would otherwise propagate
+  /// stale records and deletions to the remote and other devices.
+  Future<void> _handlePostRestoreSync() async {
+    final l10n = AppLocalizations.of(context)!;
+
+    final config = await WebDAVService.loadConfig();
+    if (config == null || !config.isConfigured) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.backupRestoreSuccess)),
+      );
+      return;
+    }
+
+    await WebDAVService.saveConfig(config.copyWith(autoSync: false));
+    if (!mounted) return;
+
+    final forceUpload = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.backupRestoreSuccess),
+        content: Text(
+          '${l10n.backupRestoredSyncDisabled}\n\n'
+          '${l10n.backupForceUploadPrompt}',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.backupForceUploadSkip),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.settingsWebDAVForceUpload),
+          ),
+        ],
+      ),
+    );
+    if (forceUpload != true || !mounted) return;
+
+    await SyncWakeLock.acquire();
+    SyncResult result;
+    try {
+      result = await WebDAVService.forceUpload(config);
+    } finally {
+      await SyncWakeLock.release();
+    }
+    if (!mounted) return;
+    AutoSyncService.instance.recordSyncResult(result);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(ok ? l10n.backupRestoreSuccess : l10n.backupRestoreFailed),
+        content: Text(
+          result.success
+              ? l10n.backupForceUploadDone
+              : l10n.backupForceUploadFailed,
+        ),
       ),
     );
   }
@@ -287,16 +366,29 @@ class _BackupPageState extends State<BackupPage> {
                       : _backups.map((b) {
                           final dateStr = DateFormat('yyyy-MM-dd HH:mm').format(b.date);
                           return ListTile(
-                            leading: const Icon(Icons.inventory_2_outlined),
+                            leading: Icon(
+                              b.corrupt
+                                  ? Icons.error_outline
+                                  : Icons.inventory_2_outlined,
+                              color: b.corrupt
+                                  ? theme.colorScheme.error
+                                  : null,
+                            ),
                             title: Text(dateStr),
-                            subtitle: Text(b.displaySize),
+                            subtitle: Text(
+                              b.corrupt
+                                  ? '${b.displaySize} · ${l10n.backupCorrupt}'
+                                  : b.displaySize,
+                            ),
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 IconButton(
                                   icon: const Icon(Icons.restore),
                                   tooltip: l10n.backupRestore,
-                                  onPressed: () => _restoreBackup(b),
+                                  onPressed: b.corrupt
+                                      ? null
+                                      : () => _restoreBackup(b),
                                 ),
                                 IconButton(
                                   icon: const Icon(Icons.delete_outline),
@@ -366,6 +458,7 @@ class _RestoreModuleDialogState extends State<_RestoreModuleDialog> {
     'finance': ('Finance', Icons.account_balance_wallet_outlined),
     'exchangeRates': ('Exchange Rates', Icons.currency_exchange),
     'intimacy': ('Intimacy', Icons.favorite_outline),
+    'weight': ('Weight', Icons.monitor_weight_outlined),
   };
 
   /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
@@ -453,6 +546,7 @@ class _RestoreModuleDialogState extends State<_RestoreModuleDialog> {
       'finance' => l10n.backupModuleFinance,
       'exchangeRates' => l10n.backupModuleRates,
       'intimacy' => l10n.backupModuleIntimacy,
+      'weight' => l10n.backupModuleWeight,
       _ => moduleId,
     };
   }

@@ -129,6 +129,19 @@ class AutoSyncService with WidgetsBindingObserver {
     }
   }
 
+  /// Purpose: Notify UI reload listeners unconditionally after local data
+  /// files were replaced outside of sync (backup restore, ZIP import).
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Invokes registered reload callbacks.
+  /// Notes: Unlike [notifyLocalDataChangedIfNeeded] this does not depend on
+  /// the WebDAV local-data-changed flag.
+  void notifyLocalDataChangedNow() {
+    for (final cb in List.of(_onLocalDataChanged)) {
+      cb();
+    }
+  }
+
   /// Purpose: Record a finalize-pending-sync result.
   /// Inputs: `ok`.
   /// Returns: None.

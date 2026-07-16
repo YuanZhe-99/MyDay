@@ -1134,16 +1134,16 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get backupLocalOnlyNote =>
-      'バックアップはこのデバイスのみに保存されます。クラウドバックアップにはWebDAV同期をご利用ください。';
+      'バックアップはこのデバイスにのみ保存されます。クラウドバックアップにはWebDAV同期を使用してください。';
 
   @override
   String get backupSettings => '設定';
 
   @override
-  String get backupAutoDaily => '毎日自動バックアップ';
+  String get backupAutoDaily => '自動バックアップ';
 
   @override
-  String get backupAutoDailyDesc => '毎日自動的にバックアップを作成';
+  String get backupAutoDailyDesc => '1日1回自動でバックアップを作成します';
 
   @override
   String get backupRetention => '保持期間';
@@ -1168,7 +1168,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get backupEmpty => 'バックアップなし';
+  String get backupEmpty => 'バックアップはまだありません';
 
   @override
   String get backupCreated => 'バックアップを作成しました';
@@ -1183,16 +1183,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get backupRestoreConfirmTitle => '復元確認';
 
   @override
-  String get backupRestoreConfirmDesc => '選択したモジュールのデータが置き換えられます。続行しますか？';
+  String get backupRestoreConfirmDesc => '選択したデータがバックアップで上書きされます。続行しますか？';
 
   @override
   String get backupRestoreSelectModules => '復元するモジュールを選択';
 
   @override
-  String get backupRestoreAll => '全モジュール';
+  String get backupRestoreAll => 'すべて選択';
 
   @override
-  String get backupRestoreSuccess => '復元成功。アプリを再起動してください。';
+  String get backupRestoreSuccess => 'バックアップを復元しました';
 
   @override
   String get backupRestoreFailed => '復元失敗';
@@ -1201,7 +1201,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get backupDeleteConfirmTitle => 'バックアップ削除';
 
   @override
-  String get backupDeleteConfirmDesc => 'このバックアップは完全に削除されます。';
+  String get backupDeleteConfirmDesc => 'このバックアップは完全に削除されます。この操作は取り消せません。';
 
   @override
   String get backupModuleTodo => 'Todo';
@@ -1214,6 +1214,32 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get backupModuleIntimacy => '親密';
+
+  @override
+  String get backupModuleWeight => '体重';
+
+  @override
+  String get backupSubtitle => '完全ローカルバックアップ（データ＋画像）';
+
+  @override
+  String get backupCorrupt => '破損';
+
+  @override
+  String get backupRestoredSyncDisabled =>
+      'バックアップを復元しました。復元したデータを保護するため、自動同期を無効にしました。';
+
+  @override
+  String get backupForceUploadPrompt =>
+      '復元したデータを今すぐWebDAVにアップロードしますか？リモートのデータは復元したローカルデータで上書きされます。';
+
+  @override
+  String get backupForceUploadSkip => '後で';
+
+  @override
+  String get backupForceUploadDone => '強制アップロードが完了しました';
+
+  @override
+  String get backupForceUploadFailed => '強制アップロードに失敗しました';
 
   @override
   String intimacyRecordCount(int count) {

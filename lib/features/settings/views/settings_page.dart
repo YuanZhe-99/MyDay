@@ -593,6 +593,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ListTile(
               leading: const Icon(Icons.backup),
               title: Text(l10n.backupTitle),
+              subtitle: Text(l10n.backupSubtitle),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => Navigator.push(
                 context,
