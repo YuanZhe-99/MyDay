@@ -473,18 +473,6 @@ abstract class AppLocalizations {
   /// **'Account'**
   String get financeAccount;
 
-  /// No description provided for @financeFromAccount.
-  ///
-  /// In en, this message translates to:
-  /// **'From Account'**
-  String get financeFromAccount;
-
-  /// No description provided for @financeToAccount.
-  ///
-  /// In en, this message translates to:
-  /// **'To Account'**
-  String get financeToAccount;
-
   /// No description provided for @financeAccountPickerSettings.
   ///
   /// In en, this message translates to:
@@ -545,29 +533,11 @@ abstract class AppLocalizations {
   /// **'No transactions'**
   String get financeNoTransactions;
 
-  /// No description provided for @financeForceBalance.
-  ///
-  /// In en, this message translates to:
-  /// **'Force Balance'**
-  String get financeForceBalance;
-
-  /// No description provided for @financeCurrentBalance.
-  ///
-  /// In en, this message translates to:
-  /// **'Current Balance'**
-  String get financeCurrentBalance;
-
   /// No description provided for @financeAddAccount.
   ///
   /// In en, this message translates to:
   /// **'Add Account'**
   String get financeAddAccount;
-
-  /// No description provided for @financeEditAccount.
-  ///
-  /// In en, this message translates to:
-  /// **'Edit Account'**
-  String get financeEditAccount;
 
   /// No description provided for @financeAddCategory.
   ///
@@ -587,18 +557,6 @@ abstract class AppLocalizations {
   /// **'Name'**
   String get financeName;
 
-  /// No description provided for @financeBankApp.
-  ///
-  /// In en, this message translates to:
-  /// **'Bank / App'**
-  String get financeBankApp;
-
-  /// No description provided for @financeCardNumber.
-  ///
-  /// In en, this message translates to:
-  /// **'Card Number (optional)'**
-  String get financeCardNumber;
-
   /// No description provided for @financeExpiry.
   ///
   /// In en, this message translates to:
@@ -610,12 +568,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Security Code'**
   String get financeSecurityCode;
-
-  /// No description provided for @financeIcon.
-  ///
-  /// In en, this message translates to:
-  /// **'Icon'**
-  String get financeIcon;
 
   /// No description provided for @financeEmoji.
   ///
@@ -1298,13 +1250,13 @@ abstract class AppLocalizations {
   /// No description provided for @settingsResetDefaultLocation.
   ///
   /// In en, this message translates to:
-  /// **'Reset to default location'**
+  /// **'Storage location reset to default'**
   String get settingsResetDefaultLocation;
 
   /// No description provided for @settingsStoragePathUpdated.
   ///
   /// In en, this message translates to:
-  /// **'Storage path updated'**
+  /// **'Storage location updated'**
   String get settingsStoragePathUpdated;
 
   /// No description provided for @settingsOpenDataFolder.
@@ -1388,7 +1340,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsWebDAVAutoSync.
   ///
   /// In en, this message translates to:
-  /// **'Auto Sync'**
+  /// **'Auto-sync'**
   String get settingsWebDAVAutoSync;
 
   /// No description provided for @settingsWebDAVAutoSyncDesc.
@@ -1562,7 +1514,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsExportJSON.
   ///
   /// In en, this message translates to:
-  /// **'Export ZIP'**
+  /// **'Export Data'**
   String get settingsExportJSON;
 
   /// No description provided for @settingsExportCSV.
@@ -1606,12 +1558,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Weight records as plaintext'**
   String get csvExportWeightDesc;
-
-  /// No description provided for @settingsImport.
-  ///
-  /// In en, this message translates to:
-  /// **'Import from File'**
-  String get settingsImport;
 
   /// No description provided for @settingsExportSuccess.
   ///
@@ -1970,7 +1916,7 @@ abstract class AppLocalizations {
   /// No description provided for @financeBankSearch.
   ///
   /// In en, this message translates to:
-  /// **'Search bank or app...'**
+  /// **'Search bank or app…'**
   String get financeBankSearch;
 
   /// No description provided for @financeBankNoResults.
@@ -2318,13 +2264,13 @@ abstract class AppLocalizations {
   /// No description provided for @backupRetention.
   ///
   /// In en, this message translates to:
-  /// **'Keep backups'**
+  /// **'Retention Period'**
   String get backupRetention;
 
   /// No description provided for @backupRetentionForever.
   ///
   /// In en, this message translates to:
-  /// **'Forever'**
+  /// **'Keep forever'**
   String get backupRetentionForever;
 
   /// No description provided for @backupRetentionDays.
@@ -2342,13 +2288,13 @@ abstract class AppLocalizations {
   /// No description provided for @backupCreateNow.
   ///
   /// In en, this message translates to:
-  /// **'Create Backup Now'**
+  /// **'Create Backup'**
   String get backupCreateNow;
 
   /// No description provided for @backupHistory.
   ///
   /// In en, this message translates to:
-  /// **'Backups ({count})'**
+  /// **'History ({count})'**
   String backupHistory(int count);
 
   /// No description provided for @backupEmpty.
@@ -2360,7 +2306,7 @@ abstract class AppLocalizations {
   /// No description provided for @backupCreated.
   ///
   /// In en, this message translates to:
-  /// **'Backup created successfully'**
+  /// **'Backup created'**
   String get backupCreated;
 
   /// No description provided for @backupFailed.
@@ -3221,6 +3167,12 @@ abstract class AppLocalizations {
   /// **'Balance'**
   String get financeBalance;
 
+  /// No description provided for @financeEditAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Account'**
+  String get financeEditAccount;
+
   /// No description provided for @financeNewAccount.
   ///
   /// In en, this message translates to:
@@ -3257,11 +3209,23 @@ abstract class AppLocalizations {
   /// **'Account Name'**
   String get financeAccountName;
 
+  /// No description provided for @financeBankApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Bank / App'**
+  String get financeBankApp;
+
   /// No description provided for @financeBankAppHint.
   ///
   /// In en, this message translates to:
   /// **'e.g. ICBC, Alipay'**
   String get financeBankAppHint;
+
+  /// No description provided for @financeCardNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Card Number (optional)'**
+  String get financeCardNumber;
 
   /// No description provided for @financeCardNumberHint.
   ///
@@ -3310,6 +3274,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **' or '**
   String get financeFeeWaiverSeparator;
+
+  /// No description provided for @financeIcon.
+  ///
+  /// In en, this message translates to:
+  /// **'Icon'**
+  String get financeIcon;
+
+  /// No description provided for @financeForceBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Force Balance'**
+  String get financeForceBalance;
+
+  /// No description provided for @financeCurrentBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Current Balance'**
+  String get financeCurrentBalance;
 
   /// No description provided for @financeCurrentBalanceHint.
   ///
@@ -3431,6 +3413,18 @@ abstract class AppLocalizations {
   /// **'What was this for?'**
   String get financeNoteHint;
 
+  /// No description provided for @financeFromAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'From Account'**
+  String get financeFromAccount;
+
+  /// No description provided for @financeToAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'To Account'**
+  String get financeToAccount;
+
   /// No description provided for @financeThisAccount.
   ///
   /// In en, this message translates to:
@@ -3518,7 +3512,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsApiNeedCredentials.
   ///
   /// In en, this message translates to:
-  /// **'Credentials required for non-localhost'**
+  /// **'Set username and password before listening on non-localhost'**
   String get settingsApiNeedCredentials;
 
   /// No description provided for @settingsApiRestarted.

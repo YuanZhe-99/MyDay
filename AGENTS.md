@@ -29,8 +29,8 @@ Maintenance rules:
 - **Package id:** Dart package `my_day`; Android namespace/application id `com.yuanzhe.my_day`; MSIX identity `com.yuanzhe.myday`; macOS bundle id `com.yuanzhe.myDay`.
 - **Author / publisher:** `yuanzhe`.
 - **License:** GPL-3.0.
-- **Current version:** `1.2.0+51` in `pubspec.yaml`, `1.2.0.0` in `msix_config.msix_version`, and `1.2.0` in `installer.iss`.
-- **Latest tag at the time this guide was written:** `v1.2.0`.
+- **Current version:** `1.2.1+52` in `pubspec.yaml`, `1.2.1.0` in `msix_config.msix_version`, and `1.2.1` in `installer.iss`.
+- **Latest tag at the time this guide was written:** `v1.2.1`.
 - **Framework:** Flutter with Dart SDK `^3.11.3`; CI uses Flutter `3.44.2`.
 - **Primary platforms:** Windows x64/ARM64, Android APK/AAB, iOS sideload IPA, and macOS DMG. Linux project support exists for desktop runtime features but is not a primary release artifact.
 - **Repository:** Use the current environment's workspace root / repository path instead of hard-coding an absolute local path.
@@ -131,6 +131,7 @@ lib/
       reminder_service.dart
       sync_merge.dart
       sync_progress.dart
+      sync_wake_lock.dart
       tray_service.dart
       webdav_service.dart
     utils/json_preservation.dart
@@ -265,6 +266,8 @@ Flow:
 10. Clear the matching remote/local upload lock after upload completion.
 
 Manual sync uses `autoResolve: false` and shows `SyncConflictDialog`. Auto-sync also leaves `autoResolve` disabled: it records failures and true two-sided conflicts as visible status in Settings/WebDAV instead of silently applying last-writer-wins. Users must open the WebDAV page and resolve conflicts manually.
+
+Foreground sync operations on the WebDAV page (manual sync, conflict finalize upload, force upload, force download) hold a screen wake lock through `shared/services/sync_wake_lock.dart` (`wakelock_plus`). The lock is reference-counted, only enabled if no other feature already holds one (so it never turns off the intimacy timer's page-held lock), acquired only after force-action confirmation, released in `finally` on completion/failure/cancel/exception, and never used by background auto-sync.
 
 `finalizePendingSync` takes the mixed cross-module resolutions map as-is; each merge result picks out its own record types per conflict ID (never bulk-cast the map — that crashed on cross-module conflicts). Unresolved or mistyped entries default to the local record so conflicting records are never dropped. It reacquires `.lock` and returns false when any file's remote read or force-upload fails.
 
@@ -504,3 +507,4 @@ Use the narrowest relevant command set for verification. For sync/model/persiste
 - `v1.1.2`: WebDAV now acquires `.lock` before downloading and merging remote data, lowers the lock TTL to 60 seconds, and force-uploads complete merged/resolved JSON under the valid lock without data-file `If-Match`/`If-None-Match` retry loops; versions are unified to `1.1.2+49` / MSIX `1.1.2.0` / installer `1.1.2`.
 - `v1.1.3`: ZIP data import now strictly decodes JSON entries as UTF-8 so Chinese and other non-ASCII text is preserved; versions are unified to `1.1.3+50` / MSIX `1.1.3.0` / installer `1.1.3`.
 - `v1.2.0`: WebDAV sync hardening and force transfers — remote image listing failures no longer masquerade as an empty directory (fixing repeated re-uploads of already-uploaded images), transient network errors and HTTP 5xx are retried with backoff, sync progress is published through `WebDAVService.progress` and shown as a progress bar with localized phase text, Force Upload / Force Download actions with confirmation dialogs were added to the WebDAV page, auto-sync gained a re-entrancy guard and ignores `notifySaved` before start, the weight reminder grace window is anchored on the actual fire time so a record logged after the scheduled minute suppresses a late desktop reminder (with unit tests), downloaded images trigger UI reloads, manual sync notifies reload listeners, image warnings in the sync dialog are localized, zh_TW simplified-character leaks in todo strings were fixed, WebDAV terminology and the `…` ellipsis were standardized across MyAnime/MyDay/MyDevice, the About page version format matches the other apps (`version+build`), and versions are unified to `1.2.0+51` / MSIX `1.2.0.0` / installer `1.2.0`.
+- `v1.2.1`: Foreground sync operations (manual sync, conflict finalize, force upload/download) hold a screen wake lock via the new `sync_wake_lock.dart` reusing `wakelock_plus`, released in `finally` on completion/failure/cancel/exception and safe alongside the intimacy timer's lock; backup retention gains a 3-day option; the eight duplicated `finance*` ARB keys were deduplicated in all four locales (keeping the currently effective values) and the unused `settingsImport` key was removed; settings/backup terminology was standardized with MyAnime/MyDevice ("Export Data", "Create Backup", "Retention Period", "Keep forever", "History ({count})", "Backup created", actionable API credentials warning, "Auto-sync", "Storage location updated/reset to default"); the last ASCII `...` was converted to `…`; and versions are unified to `1.2.1+52` / MSIX `1.2.1.0` / installer `1.2.1`.

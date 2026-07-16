@@ -211,12 +211,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get financeAccount => '口座';
 
   @override
-  String get financeFromAccount => '振替元口座';
-
-  @override
-  String get financeToAccount => '振替先口座';
-
-  @override
   String get financeAccountPickerSettings => '取引の口座リスト';
 
   @override
@@ -250,16 +244,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get financeNoTransactions => '取引なし';
 
   @override
-  String get financeForceBalance => '残高を固定';
-
-  @override
-  String get financeCurrentBalance => '現在の残高';
-
-  @override
   String get financeAddAccount => '口座を追加';
-
-  @override
-  String get financeEditAccount => '口座を編集';
 
   @override
   String get financeAddCategory => 'カテゴリを追加';
@@ -271,19 +256,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get financeName => '名前';
 
   @override
-  String get financeBankApp => '銀行 / アプリ';
-
-  @override
-  String get financeCardNumber => 'カード番号（任意）';
-
-  @override
   String get financeExpiry => '有効期限';
 
   @override
   String get financeSecurityCode => 'セキュリティコード';
-
-  @override
-  String get financeIcon => 'アイコン';
 
   @override
   String get financeEmoji => '絵文字';
@@ -631,7 +607,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsResetDefaultLocation => 'デフォルトの保存場所に戻しました';
 
   @override
-  String get settingsStoragePathUpdated => '保存パスを更新しました';
+  String get settingsStoragePathUpdated => '保存場所を更新しました';
 
   @override
   String get settingsOpenDataFolder => 'データフォルダを開く';
@@ -775,7 +751,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsImportExport => 'インポート/エクスポート';
 
   @override
-  String get settingsExportJSON => 'ZIP エクスポート';
+  String get settingsExportJSON => 'データをエクスポート';
 
   @override
   String get settingsExportCSV => 'CSV エクスポート';
@@ -797,9 +773,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get csvExportWeightDesc => '体重記録を平文で出力';
-
-  @override
-  String get settingsImport => 'ファイルからインポート';
 
   @override
   String get settingsExportSuccess => 'エクスポート成功';
@@ -986,7 +959,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get financeBankPresets => '銀行プリセット';
 
   @override
-  String get financeBankSearch => '銀行またはアプリを検索...';
+  String get financeBankSearch => '銀行またはアプリを検索…';
 
   @override
   String get financeBankNoResults => '該当する銀行が見つかりません';
@@ -1173,10 +1146,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get backupAutoDailyDesc => '毎日自動的にバックアップを作成';
 
   @override
-  String get backupRetention => 'バックアップ保持';
+  String get backupRetention => '保持期間';
 
   @override
-  String get backupRetentionForever => '永久保存';
+  String get backupRetentionForever => '永久保持';
 
   @override
   String backupRetentionDays(int count) {
@@ -1187,18 +1160,18 @@ class AppLocalizationsJa extends AppLocalizations {
   String get backupManual => '手動バックアップ';
 
   @override
-  String get backupCreateNow => '今すぐバックアップ';
+  String get backupCreateNow => 'バックアップを作成';
 
   @override
   String backupHistory(int count) {
-    return 'バックアップ履歴 ($count)';
+    return '履歴 ($count)';
   }
 
   @override
   String get backupEmpty => 'バックアップなし';
 
   @override
-  String get backupCreated => 'バックアップ作成成功';
+  String get backupCreated => 'バックアップを作成しました';
 
   @override
   String get backupFailed => 'バックアップ失敗';
@@ -1652,6 +1625,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get financeBalance => '残高';
 
   @override
+  String get financeEditAccount => '口座を編集';
+
+  @override
   String get financeNewAccount => '新規口座';
 
   @override
@@ -1670,7 +1646,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get financeAccountName => '口座名';
 
   @override
+  String get financeBankApp => '銀行 / アプリ';
+
+  @override
   String get financeBankAppHint => '例：三菱UFJ、PayPay';
+
+  @override
+  String get financeCardNumber => 'カード番号（任意）';
 
   @override
   String get financeCardNumberHint => '下4桁';
@@ -1695,6 +1677,15 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get financeFeeWaiverSeparator => ' または ';
+
+  @override
+  String get financeIcon => 'アイコン';
+
+  @override
+  String get financeForceBalance => '残高を固定';
+
+  @override
+  String get financeCurrentBalance => '現在の残高';
 
   @override
   String get financeCurrentBalanceHint => '空欄の場合取引から計算';
@@ -1761,6 +1752,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get financeNoteHint => '何のため？';
 
   @override
+  String get financeFromAccount => '振替元口座';
+
+  @override
+  String get financeToAccount => '振替先口座';
+
+  @override
   String get financeThisAccount => 'この口座';
 
   @override
@@ -1805,7 +1802,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsApiStopped => '停止中';
 
   @override
-  String get settingsApiNeedCredentials => 'ローカル以外のアクセスには認証が必要';
+  String get settingsApiNeedCredentials =>
+      'localhost以外でリッスンする場合、ユーザー名とパスワードを設定してください';
 
   @override
   String settingsApiRestarted(int port) {

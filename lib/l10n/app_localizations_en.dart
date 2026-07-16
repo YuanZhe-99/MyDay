@@ -212,12 +212,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get financeAccount => 'Account';
 
   @override
-  String get financeFromAccount => 'From Account';
-
-  @override
-  String get financeToAccount => 'To Account';
-
-  @override
   String get financeAccountPickerSettings => 'Transaction Account List';
 
   @override
@@ -251,16 +245,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get financeNoTransactions => 'No transactions';
 
   @override
-  String get financeForceBalance => 'Force Balance';
-
-  @override
-  String get financeCurrentBalance => 'Current Balance';
-
-  @override
   String get financeAddAccount => 'Add Account';
-
-  @override
-  String get financeEditAccount => 'Edit Account';
 
   @override
   String get financeAddCategory => 'Add Category';
@@ -272,19 +257,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get financeName => 'Name';
 
   @override
-  String get financeBankApp => 'Bank / App';
-
-  @override
-  String get financeCardNumber => 'Card Number (optional)';
-
-  @override
   String get financeExpiry => 'Expiry';
 
   @override
   String get financeSecurityCode => 'Security Code';
-
-  @override
-  String get financeIcon => 'Icon';
 
   @override
   String get financeEmoji => 'Emoji';
@@ -632,10 +608,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsResetDefault => 'Reset to Default';
 
   @override
-  String get settingsResetDefaultLocation => 'Reset to default location';
+  String get settingsResetDefaultLocation =>
+      'Storage location reset to default';
 
   @override
-  String get settingsStoragePathUpdated => 'Storage path updated';
+  String get settingsStoragePathUpdated => 'Storage location updated';
 
   @override
   String get settingsOpenDataFolder => 'Open Data Folder';
@@ -678,7 +655,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsWebDAVSyncNow => 'Sync Now';
 
   @override
-  String get settingsWebDAVAutoSync => 'Auto Sync';
+  String get settingsWebDAVAutoSync => 'Auto-sync';
 
   @override
   String get settingsWebDAVAutoSyncDesc =>
@@ -781,7 +758,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsImportExport => 'Import / Export';
 
   @override
-  String get settingsExportJSON => 'Export ZIP';
+  String get settingsExportJSON => 'Export Data';
 
   @override
   String get settingsExportCSV => 'Export CSV';
@@ -803,9 +780,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get csvExportWeightDesc => 'Weight records as plaintext';
-
-  @override
-  String get settingsImport => 'Import from File';
 
   @override
   String get settingsExportSuccess => 'Exported successfully';
@@ -1000,7 +974,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get financeBankPresets => 'Bank Presets';
 
   @override
-  String get financeBankSearch => 'Search bank or app...';
+  String get financeBankSearch => 'Search bank or app…';
 
   @override
   String get financeBankNoResults => 'No matching banks found';
@@ -1188,10 +1162,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupAutoDailyDesc => 'Automatically create backup once per day';
 
   @override
-  String get backupRetention => 'Keep backups';
+  String get backupRetention => 'Retention Period';
 
   @override
-  String get backupRetentionForever => 'Forever';
+  String get backupRetentionForever => 'Keep forever';
 
   @override
   String backupRetentionDays(int count) {
@@ -1202,18 +1176,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupManual => 'Manual Backup';
 
   @override
-  String get backupCreateNow => 'Create Backup Now';
+  String get backupCreateNow => 'Create Backup';
 
   @override
   String backupHistory(int count) {
-    return 'Backups ($count)';
+    return 'History ($count)';
   }
 
   @override
   String get backupEmpty => 'No backups yet';
 
   @override
-  String get backupCreated => 'Backup created successfully';
+  String get backupCreated => 'Backup created';
 
   @override
   String get backupFailed => 'Backup failed';
@@ -1675,6 +1649,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get financeBalance => 'Balance';
 
   @override
+  String get financeEditAccount => 'Edit Account';
+
+  @override
   String get financeNewAccount => 'New Account';
 
   @override
@@ -1693,7 +1670,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get financeAccountName => 'Account Name';
 
   @override
+  String get financeBankApp => 'Bank / App';
+
+  @override
   String get financeBankAppHint => 'e.g. ICBC, Alipay';
+
+  @override
+  String get financeCardNumber => 'Card Number (optional)';
 
   @override
   String get financeCardNumberHint => 'Last 4 digits';
@@ -1719,6 +1702,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get financeFeeWaiverSeparator => ' or ';
+
+  @override
+  String get financeIcon => 'Icon';
+
+  @override
+  String get financeForceBalance => 'Force Balance';
+
+  @override
+  String get financeCurrentBalance => 'Current Balance';
 
   @override
   String get financeCurrentBalanceHint =>
@@ -1787,6 +1779,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get financeNoteHint => 'What was this for?';
 
   @override
+  String get financeFromAccount => 'From Account';
+
+  @override
+  String get financeToAccount => 'To Account';
+
+  @override
   String get financeThisAccount => 'this account';
 
   @override
@@ -1832,7 +1830,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsApiNeedCredentials =>
-      'Credentials required for non-localhost';
+      'Set username and password before listening on non-localhost';
 
   @override
   String settingsApiRestarted(int port) {

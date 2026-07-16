@@ -211,12 +211,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get financeAccount => '账户';
 
   @override
-  String get financeFromAccount => '转出账户';
-
-  @override
-  String get financeToAccount => '转入账户';
-
-  @override
   String get financeAccountPickerSettings => '流水账户列表';
 
   @override
@@ -250,16 +244,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get financeNoTransactions => '暂无交易';
 
   @override
-  String get financeForceBalance => '强制余额';
-
-  @override
-  String get financeCurrentBalance => '当前余额';
-
-  @override
   String get financeAddAccount => '添加账户';
-
-  @override
-  String get financeEditAccount => '编辑账户';
 
   @override
   String get financeAddCategory => '添加分类';
@@ -271,19 +256,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get financeName => '名称';
 
   @override
-  String get financeBankApp => '银行 / 应用';
-
-  @override
-  String get financeCardNumber => '卡号（可选）';
-
-  @override
   String get financeExpiry => '有效期';
 
   @override
   String get financeSecurityCode => '安全码';
-
-  @override
-  String get financeIcon => '图标';
 
   @override
   String get financeEmoji => '表情';
@@ -631,7 +607,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsResetDefaultLocation => '已恢复默认存储位置';
 
   @override
-  String get settingsStoragePathUpdated => '存储路径已更新';
+  String get settingsStoragePathUpdated => '存储位置已更新';
 
   @override
   String get settingsOpenDataFolder => '打开数据目录';
@@ -774,7 +750,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsImportExport => '导入/导出';
 
   @override
-  String get settingsExportJSON => '导出 ZIP';
+  String get settingsExportJSON => '导出数据';
 
   @override
   String get settingsExportCSV => '导出 CSV';
@@ -796,9 +772,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get csvExportWeightDesc => '体重记录为纯文本';
-
-  @override
-  String get settingsImport => '从文件导入';
 
   @override
   String get settingsExportSuccess => '导出成功';
@@ -985,7 +958,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get financeBankPresets => '银行预设';
 
   @override
-  String get financeBankSearch => '搜索银行或应用...';
+  String get financeBankSearch => '搜索银行或应用…';
 
   @override
   String get financeBankNoResults => '未找到匹配的银行';
@@ -1170,10 +1143,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get backupAutoDailyDesc => '每天自动创建一次备份';
 
   @override
-  String get backupRetention => '保留备份';
+  String get backupRetention => '保留期限';
 
   @override
-  String get backupRetentionForever => '永久保存';
+  String get backupRetentionForever => '永久保留';
 
   @override
   String backupRetentionDays(int count) {
@@ -1184,18 +1157,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get backupManual => '手动备份';
 
   @override
-  String get backupCreateNow => '立即创建备份';
+  String get backupCreateNow => '创建备份';
 
   @override
   String backupHistory(int count) {
-    return '备份历史 ($count)';
+    return '历史记录 ($count)';
   }
 
   @override
   String get backupEmpty => '暂无备份';
 
   @override
-  String get backupCreated => '备份创建成功';
+  String get backupCreated => '备份已创建';
 
   @override
   String get backupFailed => '备份失败';
@@ -1649,6 +1622,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get financeBalance => '余额';
 
   @override
+  String get financeEditAccount => '编辑账户';
+
+  @override
   String get financeNewAccount => '新建账户';
 
   @override
@@ -1667,7 +1643,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get financeAccountName => '账户名称';
 
   @override
+  String get financeBankApp => '银行 / 应用';
+
+  @override
   String get financeBankAppHint => '例如工行、支付宝';
+
+  @override
+  String get financeCardNumber => '卡号（可选）';
 
   @override
   String get financeCardNumberHint => '后四位';
@@ -1692,6 +1674,15 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get financeFeeWaiverSeparator => ' 或 ';
+
+  @override
+  String get financeIcon => '图标';
+
+  @override
+  String get financeForceBalance => '强制余额';
+
+  @override
+  String get financeCurrentBalance => '当前余额';
 
   @override
   String get financeCurrentBalanceHint => '留空则根据交易计算';
@@ -1758,6 +1749,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get financeNoteHint => '这笔钱用于？';
 
   @override
+  String get financeFromAccount => '转出账户';
+
+  @override
+  String get financeToAccount => '转入账户';
+
+  @override
   String get financeThisAccount => '此账户';
 
   @override
@@ -1802,7 +1799,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsApiStopped => '已停止';
 
   @override
-  String get settingsApiNeedCredentials => '非本地访问需设置凭据';
+  String get settingsApiNeedCredentials => '监听非 localhost 时需设置用户名和密码';
 
   @override
   String settingsApiRestarted(int port) {
@@ -2074,12 +2071,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get financeAccount => '帳戶';
 
   @override
-  String get financeFromAccount => '轉出帳戶';
-
-  @override
-  String get financeToAccount => '轉入帳戶';
-
-  @override
   String get financeAccountPickerSettings => '流水帳戶列表';
 
   @override
@@ -2113,16 +2104,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get financeNoTransactions => '暫無交易';
 
   @override
-  String get financeForceBalance => '強制餘額';
-
-  @override
-  String get financeCurrentBalance => '目前餘額';
-
-  @override
   String get financeAddAccount => '新增帳戶';
-
-  @override
-  String get financeEditAccount => '編輯帳戶';
 
   @override
   String get financeAddCategory => '新增分類';
@@ -2134,19 +2116,10 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get financeName => '名稱';
 
   @override
-  String get financeBankApp => '銀行 / App';
-
-  @override
-  String get financeCardNumber => '卡號（選填）';
-
-  @override
   String get financeExpiry => '有效期';
 
   @override
   String get financeSecurityCode => '安全碼';
-
-  @override
-  String get financeIcon => '圖示';
 
   @override
   String get financeEmoji => '表情';
@@ -2494,7 +2467,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get settingsResetDefaultLocation => '已恢復預設儲存位置';
 
   @override
-  String get settingsStoragePathUpdated => '儲存路徑已更新';
+  String get settingsStoragePathUpdated => '儲存位置已更新';
 
   @override
   String get settingsOpenDataFolder => '開啟資料目錄';
@@ -2637,7 +2610,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get settingsImportExport => '匯入/匯出';
 
   @override
-  String get settingsExportJSON => '匯出 ZIP';
+  String get settingsExportJSON => '匯出資料';
 
   @override
   String get settingsExportCSV => '匯出 CSV';
@@ -2659,9 +2632,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get csvExportWeightDesc => '體重記錄為純文字';
-
-  @override
-  String get settingsImport => '從檔案匯入';
 
   @override
   String get settingsExportSuccess => '匯出成功';
@@ -2848,7 +2818,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get financeBankPresets => '銀行預設';
 
   @override
-  String get financeBankSearch => '搜尋銀行或應用...';
+  String get financeBankSearch => '搜尋銀行或應用…';
 
   @override
   String get financeBankNoResults => '未找到符合的銀行';
@@ -3033,10 +3003,10 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get backupAutoDailyDesc => '每天自動建立一次備份';
 
   @override
-  String get backupRetention => '保留備份';
+  String get backupRetention => '保留期限';
 
   @override
-  String get backupRetentionForever => '永久保存';
+  String get backupRetentionForever => '永久保留';
 
   @override
   String backupRetentionDays(int count) {
@@ -3047,18 +3017,18 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get backupManual => '手動備份';
 
   @override
-  String get backupCreateNow => '立即建立備份';
+  String get backupCreateNow => '建立備份';
 
   @override
   String backupHistory(int count) {
-    return '備份歷史 ($count)';
+    return '歷史記錄 ($count)';
   }
 
   @override
   String get backupEmpty => '尚無備份';
 
   @override
-  String get backupCreated => '備份建立成功';
+  String get backupCreated => '備份已建立';
 
   @override
   String get backupFailed => '備份失敗';
@@ -3512,6 +3482,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get financeBalance => '餘額';
 
   @override
+  String get financeEditAccount => '編輯帳戶';
+
+  @override
   String get financeNewAccount => '新增帳戶';
 
   @override
@@ -3530,7 +3503,13 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get financeAccountName => '帳戶名稱';
 
   @override
+  String get financeBankApp => '銀行 / App';
+
+  @override
   String get financeBankAppHint => '例如：玉山銀行、街口支付';
+
+  @override
+  String get financeCardNumber => '卡號（選填）';
 
   @override
   String get financeCardNumberHint => '末4碼';
@@ -3555,6 +3534,15 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get financeFeeWaiverSeparator => ' 或 ';
+
+  @override
+  String get financeIcon => '圖示';
+
+  @override
+  String get financeForceBalance => '強制餘額';
+
+  @override
+  String get financeCurrentBalance => '目前餘額';
 
   @override
   String get financeCurrentBalanceHint => '留空則從交易記錄計算';
@@ -3621,6 +3609,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get financeNoteHint => '這筆是為了什麼？';
 
   @override
+  String get financeFromAccount => '轉出帳戶';
+
+  @override
+  String get financeToAccount => '轉入帳戶';
+
+  @override
   String get financeThisAccount => '此帳戶';
 
   @override
@@ -3665,7 +3659,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get settingsApiStopped => '已停止';
 
   @override
-  String get settingsApiNeedCredentials => '非本機存取需設定認證';
+  String get settingsApiNeedCredentials => '監聽非 localhost 時需設定使用者名稱和密碼';
 
   @override
   String settingsApiRestarted(int port) {
