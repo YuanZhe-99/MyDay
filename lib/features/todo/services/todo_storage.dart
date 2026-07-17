@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:path_provider/path_provider.dart';
 
+import '../../../shared/services/data_file_safety.dart';
 import '../../../shared/utils/json_preservation.dart';
 import '../models/task.dart';
 
@@ -114,9 +116,29 @@ class TodoData {
   }
 }
 
+class TodoStorageException implements Exception {
+  final String message;
+
+  /// Purpose: Create a todo storage exception with a user-visible message.
+  /// Inputs: `message`.
+  /// Returns: A new `TodoStorageException` instance.
+  /// Side effects: None.
+  /// Notes: Thrown when todo data exists but cannot be safely read or written.
+  const TodoStorageException(this.message);
+
+  /// Purpose: Return a readable exception message.
+  /// Inputs: None.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Used by UI and sync/import error reporting.
+  @override
+  String toString() => message;
+}
+
 class TodoStorage {
   static const _fileName = 'todo_data.json';
   static const _configFileName = 'storage_config.json';
+  static Future<void> _writeQueue = Future<void>.value();
 
   /// Custom storage directory path override.
   static String? _customPath;
@@ -429,21 +451,25 @@ class TodoStorage {
     return file.exists();
   }
 
-  /// Load data. Returns null if file does not exist or on error.
+  /// Load data. Returns null only when the file does not exist.
   /// Purpose: Implement the load behavior for this file.
   /// Inputs: None.
   /// Returns: `Future<TodoData?>`.
   /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: None.
+  /// Notes: An unreadable existing file throws so callers never treat
+  /// corrupted todo data as an empty dataset.
   static Future<TodoData?> load() async {
+    final file = await _getFile();
+    if (!await file.exists()) return null;
+
     try {
-      final file = await _getFile();
-      if (!await file.exists()) return null;
       final raw = await file.readAsString();
       final json = jsonDecode(raw) as Map<String, dynamic>;
       return TodoData.fromJson(json);
-    } catch (_) {
-      return null;
+    } on FormatException catch (e) {
+      throw TodoStorageException('$_fileName is not valid JSON: $e');
+    } catch (e) {
+      throw TodoStorageException('Failed to load $_fileName: $e');
     }
   }
 
@@ -451,16 +477,30 @@ class TodoStorage {
   /// Purpose: Implement the save behavior for this file.
   /// Inputs: `data`.
   /// Returns: `Future<void>`.
-  /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: None.
+  /// Side effects: Serializes todo writes, validates generated JSON, and atomically replaces the data file.
+  /// Notes: Prevents overlapping writers from interleaving and corrupting JSON.
   static Future<void> save(TodoData data) async {
+    final next = _writeQueue.then(
+      (_) => _saveNow(data),
+      onError: (_) => _saveNow(data),
+    );
+    _writeQueue = next.catchError((_) {});
+    return next;
+  }
+
+  /// Purpose: Persist todo data after the caller has entered the write queue.
+  /// Inputs: `data`.
+  /// Returns: `Future<void>`.
+  /// Side effects: Writes `todo_data.json` through a validated temporary file.
+  /// Notes: Internal helper used within this file only.
+  static Future<void> _saveNow(TodoData data) async {
     final file = await _getFile();
     final jsonStr = await JsonPreservation.encodeForFile(
       file: file,
       next: data.toJson(),
       schema: dataFilePreservationSchemas[_fileName]!,
     );
-    await file.writeAsString(jsonStr);
+    await DataFileSafety.writeValidatedDataJson(file, jsonStr);
   }
 
   /// Get the storage directory path for display.

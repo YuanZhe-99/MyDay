@@ -85,8 +85,12 @@ class _BodySectionViewState extends ConsumerState<BodySectionView> {
   double? _bust;
   double? _waist;
   double? _hip;
+  double? _persistedBust;
+  double? _persistedWaist;
+  double? _persistedHip;
 
   bool _weightLoaded = false;
+  bool _weightLoadFailed = false;
   bool _syncWarningDisabled = false;
   bool _syncWarningAcknowledged = false;
   Timer? _weightCommitTimer;
@@ -136,9 +140,21 @@ class _BodySectionViewState extends ConsumerState<BodySectionView> {
   /// Side effects: Reads weight data and storage config, updates state.
   /// Notes: User mode only. Each of bust/waist/hip independently shows its
   /// most recent positive value, so a newer record missing a field falls
-  /// back to the last earlier record that contains it.
+  /// back to the last earlier record that contains it. A corrupted weight
+  /// file disables the measurement fields instead of reading as empty.
   Future<void> _loadUserMeasurements() async {
-    final data = await WeightStorage.load();
+    WeightData? data;
+    try {
+      data = await WeightStorage.load();
+    } catch (_) {
+      data = null;
+      if (!mounted) return;
+      setState(() {
+        _weightLoadFailed = true;
+        _weightLoaded = true;
+      });
+      return;
+    }
     final config = await TodoStorage.readConfig();
     if (!mounted) return;
     setState(() {
@@ -150,6 +166,10 @@ class _BodySectionViewState extends ConsumerState<BodySectionView> {
       _bust = effective?.bustCm;
       _waist = effective?.waistCm;
       _hip = effective?.hipCm;
+      _persistedBust = _bust;
+      _persistedWaist = _waist;
+      _persistedHip = _hip;
+      _weightLoadFailed = false;
       _syncWarningDisabled = config[bodyWeightSyncWarningDisabledKey] == true;
       _weightLoaded = true;
     });
@@ -204,8 +224,7 @@ class _BodySectionViewState extends ConsumerState<BodySectionView> {
               const SizedBox(height: 8),
               CheckboxListTile(
                 value: dontRemind,
-                onChanged: (v) =>
-                    setDialogState(() => dontRemind = v ?? false),
+                onChanged: (v) => setDialogState(() => dontRemind = v ?? false),
                 title: Text(l10n.intimacyBodyDontRemindAgain),
                 controlAffinity: ListTileControlAffinity.leading,
                 contentPadding: EdgeInsets.zero,
@@ -273,30 +292,52 @@ class _BodySectionViewState extends ConsumerState<BodySectionView> {
   /// Returns: `Future<void>`.
   /// Side effects: Appends a record to weight_data.json and notifies
   /// auto-sync; existing records and weight settings stay untouched.
-  /// Notes: Reuses the latest record's weight, or 0 when none exists.
+  /// Notes: Reuses the latest record's weight, or 0 when none exists. A load
+  /// or save failure restores the persisted display values and disables the
+  /// fields so partial in-memory state never appears saved.
   Future<void> _commitWeightRecord() async {
     if (!_weightCommitPending) return;
     _weightCommitPending = false;
-    final data = await WeightStorage.load() ?? WeightData(records: []);
-    final latest = _latestRecord(data.records);
-    final record = WeightRecord(
-      weight: latest?.weight ?? 0,
-      bustCm: _bust,
-      waistCm: _waist,
-      hipCm: _hip,
-    );
-    final next = WeightData(
-      height: data.height,
-      records: [...data.records, record],
-      reminderMode: data.reminderMode,
-      morningHour: data.morningHour,
-      morningMinute: data.morningMinute,
-      eveningHour: data.eveningHour,
-      eveningMinute: data.eveningMinute,
-      reminderGraceMinutes: data.reminderGraceMinutes,
-      settingsModifiedAt: data.settingsModifiedAt,
-    );
-    await WeightStorage.save(next);
+    try {
+      final data = await WeightStorage.load() ?? WeightData(records: []);
+      final latest = _latestRecord(data.records);
+      final record = WeightRecord(
+        weight: latest?.weight ?? 0,
+        bustCm: _bust,
+        waistCm: _waist,
+        hipCm: _hip,
+      );
+      final next = WeightData(
+        height: data.height,
+        records: [...data.records, record],
+        reminderMode: data.reminderMode,
+        morningHour: data.morningHour,
+        morningMinute: data.morningMinute,
+        eveningHour: data.eveningHour,
+        eveningMinute: data.eveningMinute,
+        reminderGraceMinutes: data.reminderGraceMinutes,
+        settingsModifiedAt: data.settingsModifiedAt,
+      );
+      await WeightStorage.save(next);
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _bust = _persistedBust;
+          _waist = _persistedWaist;
+          _hip = _persistedHip;
+          _weightLoadFailed = true;
+        });
+      } else {
+        _bust = _persistedBust;
+        _waist = _persistedWaist;
+        _hip = _persistedHip;
+        _weightLoadFailed = true;
+      }
+      return;
+    }
+    _persistedBust = _bust;
+    _persistedWaist = _waist;
+    _persistedHip = _hip;
     AutoSyncService.instance.notifySaved();
   }
 
@@ -401,8 +442,8 @@ class _BodySectionViewState extends ConsumerState<BodySectionView> {
   /// Inputs: `context`.
   /// Returns: `Widget`.
   /// Side effects: None.
-  /// Notes: The waist-to-hip ratio is read-only and appears only when both
-  /// displayed waist and hip values are positive.
+  /// Notes: An unreadable Weight file disables user measurement edits; the
+  /// waist-to-hip ratio appears only when both displayed values are positive.
   Widget _buildMeasurementsCard(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
@@ -429,6 +470,16 @@ class _BodySectionViewState extends ConsumerState<BodySectionView> {
                   ),
                 ),
               ),
+            if (isUser && _weightLoadFailed)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  l10n.weightDataUnreadableTitle,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.error,
+                  ),
+                ),
+              ),
             const SizedBox(height: 12),
             Row(
               children: [
@@ -436,9 +487,9 @@ class _BodySectionViewState extends ConsumerState<BodySectionView> {
                   child: _NumberField(
                     label: l10n.weightBust,
                     value: _bust,
+                    enabled: !_weightLoadFailed,
                     beforeEdit: isUser ? _confirmWeightSync : null,
-                    onCommitted: (v) =>
-                        _onMeasurementChanged(() => _bust = v),
+                    onCommitted: (v) => _onMeasurementChanged(() => _bust = v),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -446,9 +497,9 @@ class _BodySectionViewState extends ConsumerState<BodySectionView> {
                   child: _NumberField(
                     label: l10n.weightWaist,
                     value: _waist,
+                    enabled: !_weightLoadFailed,
                     beforeEdit: isUser ? _confirmWeightSync : null,
-                    onCommitted: (v) =>
-                        _onMeasurementChanged(() => _waist = v),
+                    onCommitted: (v) => _onMeasurementChanged(() => _waist = v),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -456,6 +507,7 @@ class _BodySectionViewState extends ConsumerState<BodySectionView> {
                   child: _NumberField(
                     label: l10n.weightHip,
                     value: _hip,
+                    enabled: !_weightLoadFailed,
                     beforeEdit: isUser ? _confirmWeightSync : null,
                     onCommitted: (v) => _onMeasurementChanged(() => _hip = v),
                   ),
@@ -506,7 +558,10 @@ class _BodySectionViewState extends ConsumerState<BodySectionView> {
           )
         : null;
     final outOfRange =
-        bust != null && underbust != null && bust > 0 && underbust > 0 &&
+        bust != null &&
+        underbust != null &&
+        bust > 0 &&
+        underbust > 0 &&
         estimate == null;
 
     String standardLabel(BraStandard s) => switch (s) {
@@ -791,9 +846,8 @@ class _BodySectionViewState extends ConsumerState<BodySectionView> {
               ),
               SwitchListTile(
                 value: _profile.showCycleOnCalendar,
-                onChanged: (v) => _updateProfile(
-                  _profile.copyWith(showCycleOnCalendar: v),
-                ),
+                onChanged: (v) =>
+                    _updateProfile(_profile.copyWith(showCycleOnCalendar: v)),
                 title: Text(
                   widget.mode == BodySectionMode.user
                       ? l10n.intimacyCycleShowOnCalendarUser
@@ -971,9 +1025,10 @@ class _NumberField extends StatefulWidget {
 
   /// Optional gate invoked before the first edit (weight-sync warning).
   final Future<bool> Function()? beforeEdit;
+  final bool enabled;
 
   /// Purpose: Create a number field instance.
-  /// Inputs: `label`, `value`, `onCommitted`, optional `beforeEdit` gate.
+  /// Inputs: `label`, `value`, `onCommitted`, optional `beforeEdit` gate and `enabled` state.
   /// Returns: A new `_NumberField` instance.
   /// Side effects: None.
   /// Notes: Commits on focus loss or after a short typing pause; an empty
@@ -983,6 +1038,7 @@ class _NumberField extends StatefulWidget {
     required this.value,
     required this.onCommitted,
     this.beforeEdit,
+    this.enabled = true,
   });
 
   /// Purpose: Create the mutable state object for this widget.
@@ -1018,11 +1074,13 @@ class _NumberFieldState extends State<_NumberField> {
   /// Inputs: `oldWidget`.
   /// Returns: None.
   /// Side effects: Refreshes the visible text when the value changes outside.
-  /// Notes: Never overwrites text while the user is editing the field.
+  /// Notes: Never overwrites active edits unless the field has been disabled
+  /// after a failed persistence attempt.
   @override
   void didUpdateWidget(covariant _NumberField oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.value != _lastCommitted && !_focusNode.hasFocus) {
+    if (widget.value != _lastCommitted &&
+        (!_focusNode.hasFocus || !widget.enabled)) {
       _lastCommitted = widget.value;
       _controller.text = _format(widget.value);
     }
@@ -1106,14 +1164,14 @@ class _NumberFieldState extends State<_NumberField> {
   /// Inputs: `context`.
   /// Returns: The widget tree for the current state.
   /// Side effects: Creates UI widgets from the current state.
-  /// Notes: Keep this method cheap because Flutter may call it often.
+  /// Notes: Disabled fields bypass the edit gate and cannot schedule commits.
   @override
   Widget build(BuildContext context) {
     final gated = widget.beforeEdit != null && !_gatePassed;
     final field = TextField(
       controller: _controller,
       focusNode: _focusNode,
-      enabled: true,
+      enabled: widget.enabled,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       inputFormatters: [
         TextInputFormatter.withFunction((oldValue, newValue) {
@@ -1135,7 +1193,7 @@ class _NumberFieldState extends State<_NumberField> {
         _debounce = Timer(const Duration(milliseconds: 1500), _commit);
       },
     );
-    if (!gated) return field;
+    if (!gated || !widget.enabled) return field;
     return GestureDetector(
       onTap: _handleTap,
       child: AbsorbPointer(child: field),

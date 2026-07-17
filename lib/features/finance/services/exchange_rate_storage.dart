@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:uuid/uuid.dart';
 
+import '../../../shared/services/data_file_safety.dart';
 import '../../../shared/utils/json_preservation.dart';
 import '../../todo/services/todo_storage.dart';
 
@@ -115,6 +117,7 @@ class ExchangeRateData {
 /// Persists exchange rate snapshots with history.
 class ExchangeRateStorage {
   static const _fileName = 'exchange_rates.json';
+  static Future<void> _writeQueue = Future<void>.value();
 
   /// Purpose: Provide the internal get file helper for this file.
   /// Inputs: None.
@@ -155,9 +158,23 @@ class ExchangeRateStorage {
   /// Purpose: Implement the save behavior for this file.
   /// Inputs: `data`.
   /// Returns: `Future<void>`.
-  /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: None.
+  /// Side effects: Serializes exchange-rate writes, validates generated JSON, and atomically replaces the data file.
+  /// Notes: Prevents overlapping writers from interleaving and corrupting JSON.
   static Future<void> save(ExchangeRateData data) async {
+    final next = _writeQueue.then(
+      (_) => _saveNow(data),
+      onError: (_) => _saveNow(data),
+    );
+    _writeQueue = next.catchError((_) {});
+    return next;
+  }
+
+  /// Purpose: Persist exchange-rate data after the caller has entered the write queue.
+  /// Inputs: `data`.
+  /// Returns: `Future<void>`.
+  /// Side effects: Writes `exchange_rates.json` through a validated temporary file.
+  /// Notes: Internal helper used within this file only.
+  static Future<void> _saveNow(ExchangeRateData data) async {
     final file = await _getFile();
     var preserveUnknown = true;
     try {
@@ -168,7 +185,10 @@ class ExchangeRateStorage {
       }
     } catch (_) {}
     if (!preserveUnknown) {
-      await file.writeAsString(jsonEncode(data.toJson()));
+      await DataFileSafety.writeValidatedDataJson(
+        file,
+        jsonEncode(data.toJson()),
+      );
       return;
     }
     final jsonStr = await JsonPreservation.encodeForFile(
@@ -176,7 +196,7 @@ class ExchangeRateStorage {
       next: data.toJson(),
       schema: dataFilePreservationSchemas[_fileName]!,
     );
-    await file.writeAsString(jsonStr);
+    await DataFileSafety.writeValidatedDataJson(file, jsonStr);
   }
 
   /// Update rates. Creates a new snapshot only if rates differ from current.

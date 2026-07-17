@@ -8,6 +8,7 @@ import 'package:shelf/shelf.dart';
 import 'package:my_day/features/finance/models/finance.dart';
 import 'package:my_day/features/finance/services/exchange_rate_storage.dart';
 import 'package:my_day/features/finance/services/finance_storage.dart';
+import 'package:my_day/features/todo/services/todo_storage.dart';
 import 'package:my_day/features/weight/models/weight_record.dart';
 import 'package:my_day/features/weight/services/weight_storage.dart';
 import 'package:my_day/shared/services/local_api_server.dart';
@@ -222,6 +223,49 @@ void main() {
       expect(stats['bodyFat'], 21.5);
     },
   );
+
+  test('corrupt data returns 500 and write endpoints preserve files', () async {
+    final appDir = await TodoStorage.getAppDir();
+    final todoFile = File('${appDir.path}/todo_data.json');
+    final weightFile = File('${appDir.path}/weight_data.json');
+    const corruptTodo = '{"dailyTemplates": [';
+    const corruptWeight = '{"records": [';
+    await todoFile.writeAsString(corruptTodo);
+    await weightFile.writeAsString(corruptWeight);
+
+    final todoList = await handler(_request('GET', '/todo/list'));
+    expect(todoList.statusCode, 500);
+    expect(await _decodeObject(todoList, statusCode: 500), {
+      'error': 'data_unreadable',
+    });
+
+    final todoAdd = await handler(
+      _jsonRequest('POST', '/todo/add', {
+        'title': 'Must not write',
+        'type': 'daily',
+      }),
+    );
+    expect(todoAdd.statusCode, 500);
+    expect(await _decodeObject(todoAdd, statusCode: 500), {
+      'error': 'data_unreadable',
+    });
+    expect(await todoFile.readAsString(), corruptTodo);
+
+    final weightList = await handler(_request('GET', '/weight/list'));
+    expect(weightList.statusCode, 500);
+    expect(await _decodeObject(weightList, statusCode: 500), {
+      'error': 'data_unreadable',
+    });
+
+    final weightAdd = await handler(
+      _jsonRequest('POST', '/weight/add', {'weight': 65}),
+    );
+    expect(weightAdd.statusCode, 500);
+    expect(await _decodeObject(weightAdd, statusCode: 500), {
+      'error': 'data_unreadable',
+    });
+    expect(await weightFile.readAsString(), corruptWeight);
+  });
 }
 
 /// Purpose: Build a plain Shelf request.
@@ -247,12 +291,15 @@ Request _jsonRequest(String method, String path, Object body) {
 }
 
 /// Purpose: Decode a response body as a JSON object.
-/// Inputs: `response`.
+/// Inputs: `response`, optional expected `statusCode`.
 /// Returns: `Future<Map<String, dynamic>>`.
 /// Side effects: Reads the response body stream.
 /// Notes: Test helper for object responses.
-Future<Map<String, dynamic>> _decodeObject(Response response) async {
-  expect(response.statusCode, 200);
+Future<Map<String, dynamic>> _decodeObject(
+  Response response, {
+  int statusCode = 200,
+}) async {
+  expect(response.statusCode, statusCode);
   return jsonDecode(await response.readAsString()) as Map<String, dynamic>;
 }
 

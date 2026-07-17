@@ -1147,6 +1147,45 @@ class AppLocalizationsZh extends AppLocalizations {
   String get financeDataWriteBlocked => '财务数据无法读取，已阻止保存以保护现有文件。';
 
   @override
+  String get intimacyDataUnreadableTitle => '亲密数据无法读取';
+
+  @override
+  String get intimacyDataUnreadableMessage =>
+      '亲密文件存在，但不是有效数据。已禁用编辑，避免覆盖原文件。请还原备份或替换损坏文件后重试。';
+
+  @override
+  String get intimacyDataRetry => '重试';
+
+  @override
+  String get intimacyDataWriteBlocked => '亲密数据无法读取，已阻止保存以保护现有文件。';
+
+  @override
+  String get weightDataUnreadableTitle => '体重数据无法读取';
+
+  @override
+  String get weightDataUnreadableMessage =>
+      '体重文件存在，但不是有效数据。已禁用编辑，避免覆盖原文件。请还原备份或替换损坏文件后重试。';
+
+  @override
+  String get weightDataRetry => '重试';
+
+  @override
+  String get weightDataWriteBlocked => '体重数据无法读取，已阻止保存以保护现有文件。';
+
+  @override
+  String get todoDataUnreadableTitle => '待办数据无法读取';
+
+  @override
+  String get todoDataUnreadableMessage =>
+      '待办文件存在，但不是有效数据。已禁用编辑，避免覆盖原文件。请还原备份或替换损坏文件后重试。';
+
+  @override
+  String get todoDataRetry => '重试';
+
+  @override
+  String get todoDataWriteBlocked => '待办数据无法读取，已阻止保存以保护现有文件。';
+
+  @override
   String get financeSubscriptions => '订阅';
 
   @override
@@ -3205,6 +3244,45 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get financeDataWriteBlocked => '財務資料無法讀取，已阻止儲存以保護現有檔案。';
+
+  @override
+  String get intimacyDataUnreadableTitle => '親密資料無法讀取';
+
+  @override
+  String get intimacyDataUnreadableMessage =>
+      '親密檔案存在，但不是有效資料。已停用編輯，避免覆蓋原檔案。請還原備份或替換損壞檔案後重試。';
+
+  @override
+  String get intimacyDataRetry => '重試';
+
+  @override
+  String get intimacyDataWriteBlocked => '親密資料無法讀取，已阻止儲存以保護現有檔案。';
+
+  @override
+  String get weightDataUnreadableTitle => '體重資料無法讀取';
+
+  @override
+  String get weightDataUnreadableMessage =>
+      '體重檔案存在，但不是有效資料。已停用編輯，避免覆蓋原檔案。請還原備份或替換損壞檔案後重試。';
+
+  @override
+  String get weightDataRetry => '重試';
+
+  @override
+  String get weightDataWriteBlocked => '體重資料無法讀取，已阻止儲存以保護現有檔案。';
+
+  @override
+  String get todoDataUnreadableTitle => '待辦資料無法讀取';
+
+  @override
+  String get todoDataUnreadableMessage =>
+      '待辦檔案存在，但不是有效資料。已停用編輯，避免覆蓋原檔案。請還原備份或替換損壞檔案後重試。';
+
+  @override
+  String get todoDataRetry => '重試';
+
+  @override
+  String get todoDataWriteBlocked => '待辦資料無法讀取，已阻止儲存以保護現有檔案。';
 
   @override
   String get financeSubscriptions => '訂閱';

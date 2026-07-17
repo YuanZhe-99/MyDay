@@ -133,6 +133,7 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
   Map<String, List<String>> _toyCustomOrders = {};
   DateTime _settingsModifiedAt = DateTime.fromMillisecondsSinceEpoch(0);
   bool _loaded = false;
+  String? _loadError;
 
   _SortMode _sortMode = _SortMode.dateDesc;
   _FilterMode _filterMode = _FilterMode.all;
@@ -166,10 +167,24 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
   /// Inputs: None.
   /// Returns: `Future<void>`.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Existing but unreadable intimacy data is shown as an error and is
+  /// never treated as an empty dataset. Reloads disable writes until complete.
   Future<void> _loadData() async {
-    final data = await IntimacyStorage.load();
+    if (_loaded && mounted) setState(() => _loaded = false);
+    IntimacyData? data;
+    try {
+      data = await IntimacyStorage.load();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loadError = e.toString();
+        _loaded = true;
+      });
+      return;
+    }
+    if (!mounted) return;
     setState(() {
+      _loadError = null;
       if (data != null) {
         _partners = data.partners;
         _toys = data.toys;
@@ -200,8 +215,22 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
   /// Inputs: None.
   /// Returns: `Future<void>`.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Refuses to save while loading or while the intimacy file is
+  /// unreadable so incomplete in-memory state cannot overwrite it.
   Future<void> _saveData() async {
+    if (!_loaded) return;
+    if (_loadError != null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.intimacyDataWriteBlocked,
+            ),
+          ),
+        );
+      }
+      return;
+    }
     await IntimacyStorage.save(
       IntimacyData(
         partners: _partners,
@@ -297,7 +326,10 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
         PersonCycleOverlay(
           personKey: 'user',
           displayName: l10n.intimacyCycleMe,
-          color: cyclePersonColor(personId: null, allPartnerIdsSorted: const []),
+          color: cyclePersonColor(
+            personId: null,
+            allPartnerIdsSorted: const [],
+          ),
           prediction: predictionFor(null),
         ),
       );
@@ -328,7 +360,10 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
   /// Side effects: None.
   /// Notes: The selected-day strip names each person so it is always clear
   /// whose cycle information is shown; all derived values read as estimates.
-  List<Widget> _buildCycleCalendarExtras(ThemeData theme, AppLocalizations l10n) {
+  List<Widget> _buildCycleCalendarExtras(
+    ThemeData theme,
+    AppLocalizations l10n,
+  ) {
     final overlays = _buildCycleOverlays(l10n);
     if (overlays.isEmpty) return const [];
     final widgets = <Widget>[
@@ -487,7 +522,7 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
   /// Inputs: `context`.
   /// Returns: The widget tree for the current state.
   /// Side effects: Creates UI widgets from the current state.
-  /// Notes: Keep this method cheap because Flutter may call it often.
+  /// Notes: Shows a blocking recovery view while intimacy data is unreadable.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -505,60 +540,70 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
           IconButton(
             icon: const Icon(Icons.timer_outlined),
             tooltip: l10n.intimacyTimer,
-            onPressed: () async {
-              final result = await Navigator.push<TimerPageResult>(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => TimerPage(
-                    partners: _partners
-                        .where((p) => p.endDate == null)
-                        .toList(),
-                    toys: _toys.where((t) => t.retiredDate == null).toList(),
-                    positions: _positions,
-                    timerHistory: _timerHistory,
-                    timerSession: _timerSession,
-                    timerHistoryRetentionDays: _timerHistoryRetentionDays,
-                    onStateChanged: _saveTimerState,
-                  ),
-                ),
-              );
-              if (result != null) {
-                bool needSave = false;
-                if (result.record != null) {
-                  setState(() => _records.insert(0, result.record!));
-                  needSave = true;
-                }
-                if (result.updatedHistory != null && result.historyChanged) {
-                  setState(() => _timerHistory = result.updatedHistory!);
-                  needSave = true;
-                }
-                if (result.timerSessionChanged) {
-                  setState(() {
-                    _timerSession = result.updatedTimerSession;
-                    _timerSessionModifiedAt = DateTime.now().toUtc();
-                  });
-                  needSave = true;
-                }
-                if (result.retentionChanged) {
-                  setState(() {
-                    _timerHistoryRetentionDays = result.updatedRetentionDays;
-                    _settingsModifiedAt = DateTime.now().toUtc();
-                  });
-                  needSave = true;
-                }
-                if (needSave) await _saveData();
-              }
-            },
+            onPressed: _loaded && _loadError == null
+                ? () async {
+                    final result = await Navigator.push<TimerPageResult>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => TimerPage(
+                          partners: _partners
+                              .where((p) => p.endDate == null)
+                              .toList(),
+                          toys: _toys
+                              .where((t) => t.retiredDate == null)
+                              .toList(),
+                          positions: _positions,
+                          timerHistory: _timerHistory,
+                          timerSession: _timerSession,
+                          timerHistoryRetentionDays: _timerHistoryRetentionDays,
+                          onStateChanged: _saveTimerState,
+                        ),
+                      ),
+                    );
+                    if (result != null) {
+                      bool needSave = false;
+                      if (result.record != null) {
+                        setState(() => _records.insert(0, result.record!));
+                        needSave = true;
+                      }
+                      if (result.updatedHistory != null &&
+                          result.historyChanged) {
+                        setState(() => _timerHistory = result.updatedHistory!);
+                        needSave = true;
+                      }
+                      if (result.timerSessionChanged) {
+                        setState(() {
+                          _timerSession = result.updatedTimerSession;
+                          _timerSessionModifiedAt = DateTime.now().toUtc();
+                        });
+                        needSave = true;
+                      }
+                      if (result.retentionChanged) {
+                        setState(() {
+                          _timerHistoryRetentionDays =
+                              result.updatedRetentionDays;
+                          _settingsModifiedAt = DateTime.now().toUtc();
+                        });
+                        needSave = true;
+                      }
+                      if (needSave) await _saveData();
+                    }
+                  }
+                : null,
           ),
           IconButton(
             icon: const Icon(Icons.settings_outlined),
             tooltip: l10n.intimacyManage,
-            onPressed: () => _showManageMenu(context),
+            onPressed: _loaded && _loadError == null
+                ? () => _showManageMenu(context)
+                : null,
           ),
         ],
       ),
       body: !_loaded
           ? const Center(child: CircularProgressIndicator())
+          : _loadError != null
+          ? _IntimacyDataError(message: _loadError!, onRetry: _loadData)
           : ListView(
               children: [
                 // Calendar
@@ -664,7 +709,7 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
               ],
             ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _addRecord,
+        onPressed: _loaded && _loadError == null ? _addRecord : null,
         child: const Icon(Icons.add),
       ),
     );
@@ -1882,6 +1927,70 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
   }
 }
 
+class _IntimacyDataError extends StatelessWidget {
+  final String message;
+  final Future<void> Function() onRetry;
+
+  /// Purpose: Show a blocking intimacy data read error.
+  /// Inputs: `message`, `onRetry`.
+  /// Returns: A new `_IntimacyDataError` instance.
+  /// Side effects: None.
+  /// Notes: Keeps write actions unavailable while the intimacy JSON is unreadable.
+  const _IntimacyDataError({required this.message, required this.onRetry});
+
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.warning_amber_rounded,
+              color: theme.colorScheme.error,
+              size: 48,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              l10n.intimacyDataUnreadableTitle,
+              style: theme.textTheme.titleLarge,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              l10n.intimacyDataUnreadableMessage,
+              style: theme.textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            SelectableText(
+              message,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.error,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: Text(l10n.intimacyDataRetry),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // Simple calendar grid widget
 class _CalendarWidget extends StatelessWidget {
   final DateTime focusedMonth;
@@ -2669,11 +2778,17 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
   /// Inputs: `p`.
   /// Returns: None.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Also removes the deleted partner's cycle records so their
+  /// `personId` does not dangle; activity records intentionally keep their
+  /// stored partner id and render with a blank partner label.
   void _deletePartner(Partner p) {
-    setState(() => _partners.removeWhere((x) => x.id == p.id));
+    setState(() {
+      _partners.removeWhere((x) => x.id == p.id);
+      _cycleRecords.removeWhere((c) => c.personId == p.id);
+    });
     _removePartnerFromCustomOrders(p.id);
     widget.onChanged(_partners);
+    widget.onCycleRecordsChanged(_cycleRecords);
     _notifySort();
   }
 
@@ -5416,8 +5531,7 @@ class _FilteredRecordsPageState extends ConsumerState<_FilteredRecordsPage> {
     return ListView(
       children: [
         _buildSummaryCard(theme, records, toy: selectedToy),
-        if (records.length >= 2)
-          _FilteredRecordsTrendSection(records: records),
+        if (records.length >= 2) _FilteredRecordsTrendSection(records: records),
         const Divider(height: 1),
         if (records.isEmpty)
           Padding(

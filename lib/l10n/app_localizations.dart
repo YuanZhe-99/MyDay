@@ -2267,6 +2267,78 @@ abstract class AppLocalizations {
   /// **'Finance data is unreadable. Save is blocked to protect the existing file.'**
   String get financeDataWriteBlocked;
 
+  /// No description provided for @intimacyDataUnreadableTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Intimacy data cannot be read'**
+  String get intimacyDataUnreadableTitle;
+
+  /// No description provided for @intimacyDataUnreadableMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The intimacy file exists but is not valid data. Editing is disabled so the file cannot be overwritten. Restore a backup or replace the damaged file, then retry.'**
+  String get intimacyDataUnreadableMessage;
+
+  /// No description provided for @intimacyDataRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get intimacyDataRetry;
+
+  /// No description provided for @intimacyDataWriteBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Intimacy data is unreadable. Save is blocked to protect the existing file.'**
+  String get intimacyDataWriteBlocked;
+
+  /// No description provided for @weightDataUnreadableTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Weight data cannot be read'**
+  String get weightDataUnreadableTitle;
+
+  /// No description provided for @weightDataUnreadableMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The weight file exists but is not valid data. Editing is disabled so the file cannot be overwritten. Restore a backup or replace the damaged file, then retry.'**
+  String get weightDataUnreadableMessage;
+
+  /// No description provided for @weightDataRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get weightDataRetry;
+
+  /// No description provided for @weightDataWriteBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Weight data is unreadable. Save is blocked to protect the existing file.'**
+  String get weightDataWriteBlocked;
+
+  /// No description provided for @todoDataUnreadableTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Todo data cannot be read'**
+  String get todoDataUnreadableTitle;
+
+  /// No description provided for @todoDataUnreadableMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The todo file exists but is not valid data. Editing is disabled so the file cannot be overwritten. Restore a backup or replace the damaged file, then retry.'**
+  String get todoDataUnreadableMessage;
+
+  /// No description provided for @todoDataRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get todoDataRetry;
+
+  /// No description provided for @todoDataWriteBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Todo data is unreadable. Save is blocked to protect the existing file.'**
+  String get todoDataWriteBlocked;
+
   /// No description provided for @financeSubscriptions.
   ///
   /// In en, this message translates to:

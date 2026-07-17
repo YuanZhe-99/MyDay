@@ -1172,6 +1172,48 @@ class AppLocalizationsEn extends AppLocalizations {
       'Finance data is unreadable. Save is blocked to protect the existing file.';
 
   @override
+  String get intimacyDataUnreadableTitle => 'Intimacy data cannot be read';
+
+  @override
+  String get intimacyDataUnreadableMessage =>
+      'The intimacy file exists but is not valid data. Editing is disabled so the file cannot be overwritten. Restore a backup or replace the damaged file, then retry.';
+
+  @override
+  String get intimacyDataRetry => 'Retry';
+
+  @override
+  String get intimacyDataWriteBlocked =>
+      'Intimacy data is unreadable. Save is blocked to protect the existing file.';
+
+  @override
+  String get weightDataUnreadableTitle => 'Weight data cannot be read';
+
+  @override
+  String get weightDataUnreadableMessage =>
+      'The weight file exists but is not valid data. Editing is disabled so the file cannot be overwritten. Restore a backup or replace the damaged file, then retry.';
+
+  @override
+  String get weightDataRetry => 'Retry';
+
+  @override
+  String get weightDataWriteBlocked =>
+      'Weight data is unreadable. Save is blocked to protect the existing file.';
+
+  @override
+  String get todoDataUnreadableTitle => 'Todo data cannot be read';
+
+  @override
+  String get todoDataUnreadableMessage =>
+      'The todo file exists but is not valid data. Editing is disabled so the file cannot be overwritten. Restore a backup or replace the damaged file, then retry.';
+
+  @override
+  String get todoDataRetry => 'Retry';
+
+  @override
+  String get todoDataWriteBlocked =>
+      'Todo data is unreadable. Save is blocked to protect the existing file.';
+
+  @override
   String get financeSubscriptions => 'Subscriptions';
 
   @override

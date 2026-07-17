@@ -59,6 +59,7 @@ class _WeightPageState extends ConsumerState<WeightPage> {
   double? _height; // cm
   List<WeightRecord> _records = [];
   bool _loaded = false;
+  String? _loadError;
   _ChartRange _chartRange = _ChartRange.oneMonth;
 
   // Reminder settings
@@ -94,10 +95,25 @@ class _WeightPageState extends ConsumerState<WeightPage> {
   /// Inputs: None.
   /// Returns: `Future<void>`.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Existing but unreadable weight data is shown as an error and is
+  /// never treated as an empty dataset. Reloads disable writes until complete.
   Future<void> _loadData() async {
-    final data = await WeightStorage.load();
+    if (_loaded && mounted) setState(() => _loaded = false);
+    WeightData? data;
+    try {
+      data = await WeightStorage.load();
+    } catch (e) {
+      ReminderService.instance.updateWeightData(records: const []);
+      if (!mounted) return;
+      setState(() {
+        _loadError = e.toString();
+        _loaded = true;
+      });
+      return;
+    }
+    if (!mounted) return;
     setState(() {
+      _loadError = null;
       if (data != null) {
         _height = data.height;
         _records = data.records;
@@ -128,8 +144,20 @@ class _WeightPageState extends ConsumerState<WeightPage> {
   /// Inputs: None.
   /// Returns: `Future<void>`.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Refuses to save while loading or while the weight file is
+  /// unreadable so incomplete in-memory state cannot overwrite it.
   Future<void> _saveData() async {
+    if (!_loaded) return;
+    if (_loadError != null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.weightDataWriteBlocked),
+          ),
+        );
+      }
+      return;
+    }
     await WeightStorage.save(
       WeightData(
         height: _height,
@@ -220,7 +248,7 @@ class _WeightPageState extends ConsumerState<WeightPage> {
   /// Inputs: `context`.
   /// Returns: The widget tree for the current state.
   /// Side effects: Creates UI widgets from the current state.
-  /// Notes: Keep this method cheap because Flutter may call it often.
+  /// Notes: Shows a blocking recovery view while weight data is unreadable.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -238,22 +266,26 @@ class _WeightPageState extends ConsumerState<WeightPage> {
                   : Icons.notifications_none,
             ),
             tooltip: l10n.weightReminder,
-            onPressed: _showReminderSettings,
+            onPressed: _loaded && _loadError == null
+                ? _showReminderSettings
+                : null,
           ),
           IconButton(
             icon: const Icon(Icons.height),
             tooltip: l10n.weightSetHeight,
-            onPressed: _setHeight,
+            onPressed: _loaded && _loadError == null ? _setHeight : null,
           ),
         ],
       ),
       body: !_loaded
           ? const Center(child: CircularProgressIndicator())
+          : _loadError != null
+          ? _WeightDataError(message: _loadError!, onRetry: _loadData)
           : _records.isEmpty
           ? _buildEmptyState(theme, l10n)
           : _buildContent(theme, l10n, settings.weekStartDay),
       floatingActionButton: FloatingActionButton(
-        onPressed: _addRecord,
+        onPressed: _loaded && _loadError == null ? _addRecord : null,
         child: const Icon(Icons.add),
       ),
     );
@@ -2180,5 +2212,69 @@ class _WeightRecordDialogState extends State<_WeightRecordDialog> {
           notes: notes,
         );
     guard.pop(record);
+  }
+}
+
+class _WeightDataError extends StatelessWidget {
+  final String message;
+  final Future<void> Function() onRetry;
+
+  /// Purpose: Show a blocking weight data read error.
+  /// Inputs: `message`, `onRetry`.
+  /// Returns: A new `_WeightDataError` instance.
+  /// Side effects: None.
+  /// Notes: Keeps write actions unavailable while the weight JSON is unreadable.
+  const _WeightDataError({required this.message, required this.onRetry});
+
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.warning_amber_rounded,
+              color: theme.colorScheme.error,
+              size: 48,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              l10n.weightDataUnreadableTitle,
+              style: theme.textTheme.titleLarge,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              l10n.weightDataUnreadableMessage,
+              style: theme.textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            SelectableText(
+              message,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.error,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: Text(l10n.weightDataRetry),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

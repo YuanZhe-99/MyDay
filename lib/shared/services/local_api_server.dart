@@ -1636,11 +1636,19 @@ class LocalApiServer {
   /// Returns: `Middleware`.
   /// Side effects: None.
   /// Notes: Keeps the local API from returning plain-text stack traces.
+  /// A corrupted data file surfaces as 500 `data_unreadable` instead of
+  /// being treated as an empty dataset; POST handlers throw before writing.
   static Middleware _errorMiddleware() {
     return (Handler innerHandler) {
       return (Request request) async {
         try {
           return await innerHandler(request);
+        } on TodoStorageException {
+          return _error(500, 'data_unreadable');
+        } on WeightStorageException {
+          return _error(500, 'data_unreadable');
+        } on FinanceStorageException {
+          return _error(500, 'data_unreadable');
         } catch (e) {
           return _error(500, 'internal error: $e');
         }

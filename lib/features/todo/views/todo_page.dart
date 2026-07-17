@@ -34,6 +34,7 @@ class TodoPage extends ConsumerStatefulWidget {
 class _TodoPageState extends ConsumerState<TodoPage> {
   DateTime _selectedDate = DateTime.now();
   bool _loaded = false;
+  String? _loadError;
 
   // Daily tasks are templates — shown every day, completion tracked per-date
   List<Task> _dailyTemplates = [];
@@ -86,10 +87,29 @@ class _TodoPageState extends ConsumerState<TodoPage> {
   /// Inputs: None.
   /// Returns: `Future<void>`.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Existing but unreadable todo data is shown as an error and is
+  /// never treated as an empty dataset. Reloads disable writes until complete.
   Future<void> _loadData() async {
-    final data = await TodoStorage.load();
+    if (_loaded && mounted) setState(() => _loaded = false);
+    TodoData? data;
+    try {
+      data = await TodoStorage.load();
+    } catch (e) {
+      ReminderService.instance.updateData(
+        dailyTemplates: const [],
+        oneTimeTasks: const [],
+        dailyLog: DailyCompletionLog(),
+      );
+      if (!mounted) return;
+      setState(() {
+        _loadError = e.toString();
+        _loaded = true;
+      });
+      return;
+    }
+    if (!mounted) return;
     setState(() {
+      _loadError = null;
       if (data != null) {
         _dailyTemplates = data.dailyTemplates;
         _oneTimeTasks = data.oneTimeTasks;
@@ -100,20 +120,22 @@ class _TodoPageState extends ConsumerState<TodoPage> {
           (key, value) => MapEntry(key, List<String>.of(value)),
         );
         _settingsModifiedAt = data.settingsModifiedAt;
-        if (data.morningReminderHour != null &&
-            data.morningReminderMinute != null) {
-          _morningReminderTime = TimeOfDay(
-            hour: data.morningReminderHour!,
-            minute: data.morningReminderMinute!,
-          );
-        }
-        if (data.completionReminderHour != null &&
-            data.completionReminderMinute != null) {
-          _completionReminderTime = TimeOfDay(
-            hour: data.completionReminderHour!,
-            minute: data.completionReminderMinute!,
-          );
-        }
+        _morningReminderTime =
+            data.morningReminderHour != null &&
+                data.morningReminderMinute != null
+            ? TimeOfDay(
+                hour: data.morningReminderHour!,
+                minute: data.morningReminderMinute!,
+              )
+            : null;
+        _completionReminderTime =
+            data.completionReminderHour != null &&
+                data.completionReminderMinute != null
+            ? TimeOfDay(
+                hour: data.completionReminderHour!,
+                minute: data.completionReminderMinute!,
+              )
+            : null;
       }
       _loaded = true;
     });
@@ -124,8 +146,20 @@ class _TodoPageState extends ConsumerState<TodoPage> {
   /// Inputs: None.
   /// Returns: `Future<void>`.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Refuses to save while loading or while the todo file is unreadable
+  /// so incomplete in-memory state cannot overwrite it.
   Future<void> _saveData() async {
+    if (!_loaded) return;
+    if (_loadError != null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.todoDataWriteBlocked),
+          ),
+        );
+      }
+      return;
+    }
     await TodoStorage.save(
       TodoData(
         dailyTemplates: _dailyTemplates,
@@ -1308,7 +1342,7 @@ class _TodoPageState extends ConsumerState<TodoPage> {
   /// Inputs: `context`.
   /// Returns: The widget tree for the current state.
   /// Side effects: Creates UI widgets from the current state.
-  /// Notes: Keep this method cheap because Flutter may call it often.
+  /// Notes: Shows a blocking recovery view while todo data is unreadable.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -1329,12 +1363,16 @@ class _TodoPageState extends ConsumerState<TodoPage> {
                   : null,
             ),
             tooltip: l10n.todoDailyReminders,
-            onPressed: _showDailyReminderSettings,
+            onPressed: _loaded && _loadError == null
+                ? _showDailyReminderSettings
+                : null,
           ),
         ],
       ),
       body: !_loaded
           ? const Center(child: CircularProgressIndicator())
+          : _loadError != null
+          ? _TodoDataError(message: _loadError!, onRetry: _loadData)
           : Column(
               children: [
                 _buildWeekCalendar(theme, l10n, settings.weekStartDay),
@@ -1417,8 +1455,72 @@ class _TodoPageState extends ConsumerState<TodoPage> {
               ],
             ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _addTask,
+        onPressed: _loaded && _loadError == null ? _addTask : null,
         child: const Icon(Icons.add),
+      ),
+    );
+  }
+}
+
+class _TodoDataError extends StatelessWidget {
+  final String message;
+  final Future<void> Function() onRetry;
+
+  /// Purpose: Show a blocking todo data read error.
+  /// Inputs: `message`, `onRetry`.
+  /// Returns: A new `_TodoDataError` instance.
+  /// Side effects: None.
+  /// Notes: Keeps write actions unavailable while the todo JSON is unreadable.
+  const _TodoDataError({required this.message, required this.onRetry});
+
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Keep this method cheap because Flutter may call it often.
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.warning_amber_rounded,
+              color: theme.colorScheme.error,
+              size: 48,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              l10n.todoDataUnreadableTitle,
+              style: theme.textTheme.titleLarge,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              l10n.todoDataUnreadableMessage,
+              style: theme.textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            SelectableText(
+              message,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.error,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: Text(l10n.todoDataRetry),
+            ),
+          ],
+        ),
       ),
     );
   }

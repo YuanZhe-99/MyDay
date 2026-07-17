@@ -1154,6 +1154,48 @@ class AppLocalizationsJa extends AppLocalizations {
       '財務データを読み取れないため、既存ファイルを保護するため保存をブロックしました。';
 
   @override
+  String get intimacyDataUnreadableTitle => 'プライベート記録データを読み取れません';
+
+  @override
+  String get intimacyDataUnreadableMessage =>
+      'プライベート記録ファイルは存在しますが、有効なデータではありません。元のファイルを上書きしないよう編集を無効にしました。バックアップを復元するか破損したファイルを置き換えてから再試行してください。';
+
+  @override
+  String get intimacyDataRetry => '再試行';
+
+  @override
+  String get intimacyDataWriteBlocked =>
+      'プライベート記録データを読み取れないため、既存ファイルを保護するため保存をブロックしました。';
+
+  @override
+  String get weightDataUnreadableTitle => '体重データを読み取れません';
+
+  @override
+  String get weightDataUnreadableMessage =>
+      '体重ファイルは存在しますが、有効なデータではありません。元のファイルを上書きしないよう編集を無効にしました。バックアップを復元するか破損したファイルを置き換えてから再試行してください。';
+
+  @override
+  String get weightDataRetry => '再試行';
+
+  @override
+  String get weightDataWriteBlocked =>
+      '体重データを読み取れないため、既存ファイルを保護するため保存をブロックしました。';
+
+  @override
+  String get todoDataUnreadableTitle => 'ToDoデータを読み取れません';
+
+  @override
+  String get todoDataUnreadableMessage =>
+      'ToDoファイルは存在しますが、有効なデータではありません。元のファイルを上書きしないよう編集を無効にしました。バックアップを復元するか破損したファイルを置き換えてから再試行してください。';
+
+  @override
+  String get todoDataRetry => '再試行';
+
+  @override
+  String get todoDataWriteBlocked =>
+      'ToDoデータを読み取れないため、既存ファイルを保護するため保存をブロックしました。';
+
+  @override
   String get financeSubscriptions => 'サブスクリプション';
 
   @override

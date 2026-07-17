@@ -135,7 +135,8 @@ class _AddRecordDialogState extends State<AddRecordDialog> {
   /// Inputs: `context`.
   /// Returns: The widget tree for the current state.
   /// Side effects: Creates UI widgets from the current state.
-  /// Notes: Keep this method cheap because Flutter may call it often.
+  /// Notes: A deleted selected partner yields no dropdown initial value while
+  /// the untouched record keeps its stored partner id.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -182,7 +183,10 @@ class _AddRecordDialogState extends State<AddRecordDialog> {
                   )
                 else
                   DropdownButtonFormField<String>(
-                    initialValue: _selectedPartnerId,
+                    initialValue:
+                        widget.partners.any((p) => p.id == _selectedPartnerId)
+                        ? _selectedPartnerId
+                        : null,
                     decoration: InputDecoration(
                       labelText: l10n.intimacyPartner,
                     ),

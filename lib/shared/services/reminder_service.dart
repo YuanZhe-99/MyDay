@@ -596,7 +596,8 @@ class ReminderService {
   /// (subscription renewals, auto-backup) runs on every platform; user-facing
   /// reminder notifications are desktop-only here because mobile delivers them
   /// through OS-level scheduled notifications and would otherwise be notified
-  /// twice. A reminder fires when now >= its time and it has not fired today,
+  /// twice. Unreadable Todo data skips that read-only reminder pass. A reminder
+  /// fires when now >= its time and it has not fired today,
   /// so a busy or suspended process cannot skip its minute; fired keys persist
   /// across restarts via storage config.
   Future<void> _check() async {
@@ -610,28 +611,40 @@ class ReminderService {
     // duplicate them while the app is in the foreground.
     if (MobileNotificationService.isMobile) return;
 
-    // If we have no cached data yet, try loading from storage
-    if (_dailyTemplates.isEmpty && _oneTimeTasks.isEmpty) {
-      final data = await TodoStorage.load();
-      if (data != null) {
-        _dailyTemplates = data.dailyTemplates;
-        _oneTimeTasks = data.oneTimeTasks;
-        _dailyLog = data.dailyLog;
-        if (data.morningReminderHour != null &&
-            data.morningReminderMinute != null) {
-          _morningReminderTime = TimeOfDay(
-            hour: data.morningReminderHour!,
-            minute: data.morningReminderMinute!,
-          );
-        }
-        if (data.completionReminderHour != null &&
-            data.completionReminderMinute != null) {
-          _completionReminderTime = TimeOfDay(
-            hour: data.completionReminderHour!,
-            minute: data.completionReminderMinute!,
-          );
-        }
-      }
+    var todoDataReadable = true;
+    TodoData? todoData;
+    try {
+      todoData = await TodoStorage.load();
+    } catch (_) {
+      todoDataReadable = false;
+    }
+    if (todoData == null) {
+      todoDataReadable = false;
+      _dailyTemplates = [];
+      _oneTimeTasks = [];
+      _dailyLog = DailyCompletionLog();
+      _morningReminderTime = null;
+      _completionReminderTime = null;
+    } else {
+      _dailyTemplates = todoData.dailyTemplates;
+      _oneTimeTasks = todoData.oneTimeTasks;
+      _dailyLog = todoData.dailyLog;
+      _morningReminderTime =
+          todoData.morningReminderHour != null &&
+              todoData.morningReminderMinute != null
+          ? TimeOfDay(
+              hour: todoData.morningReminderHour!,
+              minute: todoData.morningReminderMinute!,
+            )
+          : null;
+      _completionReminderTime =
+          todoData.completionReminderHour != null &&
+              todoData.completionReminderMinute != null
+          ? TimeOfDay(
+              hour: todoData.completionReminderHour!,
+              minute: todoData.completionReminderMinute!,
+            )
+          : null;
     }
 
     final current = DateTime.now();
@@ -649,80 +662,89 @@ class ReminderService {
       return true;
     }
 
-    // Per-task reminders. Soft-deleted templates and templates already
-    // completed today must not remind.
-    for (final task in _dailyTemplates) {
-      if (task.reminderTime == null ||
-          task.isCompleted ||
-          task.deletedDate != null ||
-          _dailyLog.isCompleted(current, task.id)) {
-        continue;
+    if (todoDataReadable) {
+      // Per-task reminders. Soft-deleted templates and templates already
+      // completed today must not remind.
+      for (final task in _dailyTemplates) {
+        if (task.reminderTime == null ||
+            task.isCompleted ||
+            task.deletedDate != null ||
+            _dailyLog.isCompleted(current, task.id)) {
+          continue;
+        }
+        final rt = TimeOfDay.fromDateTime(task.reminderTime!);
+        if (shouldFire('${task.id}_$todayKey', _todayAt(rt))) {
+          _notify(
+            task.emoji != null ? '${task.emoji} ${task.title}' : task.title,
+          );
+        }
       }
-      final rt = TimeOfDay.fromDateTime(task.reminderTime!);
-      if (shouldFire('${task.id}_$todayKey', _todayAt(rt))) {
-        _notify(
-          task.emoji != null ? '${task.emoji} ${task.title}' : task.title,
-        );
+      for (final task in _oneTimeTasks) {
+        if (!shouldNotifyOneTimeTask(task, current)) continue;
+        if (shouldFire('${task.id}_$todayKey', current)) {
+          _notify(
+            task.emoji != null ? '${task.emoji} ${task.title}' : task.title,
+          );
+        }
       }
-    }
-    for (final task in _oneTimeTasks) {
-      if (!shouldNotifyOneTimeTask(task, current)) continue;
-      if (shouldFire('${task.id}_$todayKey', current)) {
-        _notify(
-          task.emoji != null ? '${task.emoji} ${task.title}' : task.title,
-        );
+
+      // Morning reminder
+      if (_morningReminderTime != null &&
+          shouldFire('morning_$todayKey', _todayAt(_morningReminderTime!))) {
+        _notify(_l10n.notifTodoMorning);
+      }
+
+      // Completion reminder
+      if (_completionReminderTime != null &&
+          shouldFire(
+            'completion_$todayKey',
+            _todayAt(_completionReminderTime!),
+          )) {
+        final uncompleted =
+            _dailyTemplates
+                .where(
+                  (t) =>
+                      t.deletedDate == null &&
+                      !_dailyLog.isCompleted(current, t.id),
+                )
+                .length +
+            _oneTimeTasks.where((t) => _isActiveOneTimeTask(t, current)).length;
+        if (uncompleted > 0) {
+          _notify(_l10n.notifTodoUncompleted(uncompleted));
+        }
       }
     }
 
-    // Morning reminder
-    if (_morningReminderTime != null &&
-        shouldFire('morning_$todayKey', _todayAt(_morningReminderTime!))) {
-      _notify(_l10n.notifTodoMorning);
-    }
-
-    // Completion reminder
-    if (_completionReminderTime != null &&
-        shouldFire(
-          'completion_$todayKey',
-          _todayAt(_completionReminderTime!),
-        )) {
-      final uncompleted =
-          _dailyTemplates
-              .where(
-                (t) =>
-                    t.deletedDate == null &&
-                    !_dailyLog.isCompleted(current, t.id),
-              )
-              .length +
-          _oneTimeTasks.where((t) => _isActiveOneTimeTask(t, current)).length;
-      if (uncompleted > 0) {
-        _notify(_l10n.notifTodoUncompleted(uncompleted));
-      }
-    }
-
+    var weightDataReadable = true;
     if (!_weightDataLoaded) {
-      await _refreshWeightDataFromStorage();
+      weightDataReadable = await _refreshWeightDataFromStorage();
     }
 
     // Weight morning reminder. The grace check is anchored on the actual
     // fire moment (`current`), not the scheduled minute, so a record logged
     // between the scheduled time and a late check still suppresses it.
-    if (_weightMorningReminder != null) {
+    if (_weightMorningReminder != null && weightDataReadable) {
       final reminderAt = _todayAt(_weightMorningReminder!);
-      if (shouldFire('weight_morning_$todayKey', reminderAt)) {
-        await _refreshWeightDataFromStorage();
-        if (!_shouldSkipWeightReminder(current)) {
+      final key = 'weight_morning_$todayKey';
+      if (!current.isBefore(reminderAt) && !_notifiedIds.contains(key)) {
+        weightDataReadable = await _refreshWeightDataFromStorage();
+        if (weightDataReadable &&
+            shouldFire(key, reminderAt) &&
+            !_shouldSkipWeightReminder(current)) {
           _notify(_l10n.notifWeightReminder);
         }
       }
     }
 
     // Weight evening reminder
-    if (_weightEveningReminder != null) {
+    if (_weightEveningReminder != null && weightDataReadable) {
       final reminderAt = _todayAt(_weightEveningReminder!);
-      if (shouldFire('weight_evening_$todayKey', reminderAt)) {
-        await _refreshWeightDataFromStorage();
-        if (!_shouldSkipWeightReminder(current)) {
+      final key = 'weight_evening_$todayKey';
+      if (!current.isBefore(reminderAt) && !_notifiedIds.contains(key)) {
+        weightDataReadable = await _refreshWeightDataFromStorage();
+        if (weightDataReadable &&
+            shouldFire(key, reminderAt) &&
+            !_shouldSkipWeightReminder(current)) {
           _notify(_l10n.notifWeightReminder);
         }
       }
@@ -804,7 +826,7 @@ class ReminderService {
   /// Inputs: `todayKey` — yyyy-MM-dd of the current day.
   /// Returns: `Future<void>`.
   /// Side effects: Writes the device-local storage config.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Config write failures are ignored so reminder delivery can continue.
   Future<void> _persistNotifiedKeys(String todayKey) async {
     try {
       final config = await TodoStorage.readConfig();
@@ -868,14 +890,23 @@ class ReminderService {
 
   /// Purpose: Provide the internal refresh weight data from storage helper for this file.
   /// Inputs: None.
-  /// Returns: `Future<void>`.
+  /// Returns: `Future<bool>` indicating whether valid data was loaded.
   /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: Internal helper used within this file only.
-  Future<void> _refreshWeightDataFromStorage() async {
-    final data = await WeightStorage.load();
+  /// Notes: An unreadable file leaves the cache retryable and skips reminders.
+  Future<bool> _refreshWeightDataFromStorage() async {
+    final WeightData? data;
+    try {
+      data = await WeightStorage.load();
+    } catch (_) {
+      _weightDataLoaded = false;
+      return false;
+    }
     if (data == null) {
+      _weightRecords = [];
+      _weightMorningReminder = null;
+      _weightEveningReminder = null;
       _weightDataLoaded = true;
-      return;
+      return false;
     }
 
     _weightRecords = data.records;
@@ -893,6 +924,7 @@ class ReminderService {
         ? TimeOfDay(hour: data.eveningHour!, minute: data.eveningMinute!)
         : null;
     _weightDataLoaded = true;
+    return true;
   }
 
   /// Process subscription renewals: generate transactions for overdue billing

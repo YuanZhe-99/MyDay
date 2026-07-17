@@ -1,13 +1,35 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import '../../../shared/services/data_file_safety.dart';
 import '../../../shared/utils/json_preservation.dart';
 import '../../todo/services/todo_storage.dart';
 import '../models/intimacy_record.dart';
 
+class IntimacyStorageException implements Exception {
+  final String message;
+
+  /// Purpose: Create an intimacy storage exception with a user-visible message.
+  /// Inputs: `message`.
+  /// Returns: A new `IntimacyStorageException` instance.
+  /// Side effects: None.
+  /// Notes: Thrown when intimacy data exists but cannot be safely read or written.
+  const IntimacyStorageException(this.message);
+
+  /// Purpose: Return a readable exception message.
+  /// Inputs: None.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Used by UI and sync/import error reporting.
+  @override
+  String toString() => message;
+}
+
 class IntimacyStorage {
   static const _fileName = 'intimacy_data.json';
   static const _legacyTimerFileName = 'timer_history.json';
+  static Future<void> _writeQueue = Future<void>.value();
 
   /// Purpose: Provide the internal get file helper for this file.
   /// Inputs: None.
@@ -23,11 +45,13 @@ class IntimacyStorage {
   /// Inputs: None.
   /// Returns: `Future<IntimacyData?>`.
   /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: None.
+  /// Notes: A missing file returns null, but an unreadable existing file throws
+  /// so callers never treat corrupted intimacy data as an empty dataset.
   static Future<IntimacyData?> load() async {
+    final file = await _getFile();
+    if (!await file.exists()) return null;
+
     try {
-      final file = await _getFile();
-      if (!await file.exists()) return null;
       final raw = await file.readAsString();
 
       final json = jsonDecode(raw) as Map<String, dynamic>;
@@ -37,24 +61,40 @@ class IntimacyStorage {
       data = await _migrateLegacyTimerHistory(data);
 
       return data;
-    } catch (_) {
-      return null;
+    } on FormatException catch (e) {
+      throw IntimacyStorageException('$_fileName is not valid JSON: $e');
+    } catch (e) {
+      throw IntimacyStorageException('Failed to load $_fileName: $e');
     }
   }
 
   /// Purpose: Implement the save behavior for this file.
   /// Inputs: `data`.
   /// Returns: `Future<void>`.
-  /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: None.
+  /// Side effects: Serializes intimacy writes, validates generated JSON, and atomically replaces the data file.
+  /// Notes: Prevents overlapping writers from interleaving and corrupting JSON.
   static Future<void> save(IntimacyData data) async {
+    final next = _writeQueue.then(
+      (_) => _saveNow(data),
+      onError: (_) => _saveNow(data),
+    );
+    _writeQueue = next.catchError((_) {});
+    return next;
+  }
+
+  /// Purpose: Persist intimacy data after the caller has entered the write queue.
+  /// Inputs: `data`.
+  /// Returns: `Future<void>`.
+  /// Side effects: Writes `intimacy_data.json` through a validated temporary file.
+  /// Notes: Internal helper used within this file only.
+  static Future<void> _saveNow(IntimacyData data) async {
     final file = await _getFile();
     final jsonStr = await JsonPreservation.encodeForFile(
       file: file,
       next: data.toJson(),
       schema: dataFilePreservationSchemas[_fileName]!,
     );
-    await file.writeAsString(jsonStr);
+    await DataFileSafety.writeValidatedDataJson(file, jsonStr);
   }
 
   /// Migrate old timer_history.json entries into IntimacyData, then delete old file.
