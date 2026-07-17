@@ -1157,6 +1157,324 @@ abstract class AppLocalizations {
   /// **'Retire'**
   String get intimacyRetire;
 
+  /// No description provided for @intimacyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Body'**
+  String get intimacyBody;
+
+  /// No description provided for @intimacyTabRecords.
+  ///
+  /// In en, this message translates to:
+  /// **'Records'**
+  String get intimacyTabRecords;
+
+  /// No description provided for @intimacyBodyMeasurements.
+  ///
+  /// In en, this message translates to:
+  /// **'Body Measurements'**
+  String get intimacyBodyMeasurements;
+
+  /// No description provided for @intimacyBodyMeasurementsFromWeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Shows the latest Weight module record'**
+  String get intimacyBodyMeasurementsFromWeight;
+
+  /// No description provided for @intimacyBodyWeightSyncWarningTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync with Weight module'**
+  String get intimacyBodyWeightSyncWarningTitle;
+
+  /// No description provided for @intimacyBodyWeightSyncWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Changes made here will be synchronized with the Weight module and will create a new weight record.'**
+  String get intimacyBodyWeightSyncWarning;
+
+  /// No description provided for @intimacyBodyDontRemindAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Do not remind me again'**
+  String get intimacyBodyDontRemindAgain;
+
+  /// No description provided for @intimacyBodyDontRemindAgainDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip the warning when measurement changes create a new weight record'**
+  String get intimacyBodyDontRemindAgainDesc;
+
+  /// No description provided for @intimacyBodyUnderbust.
+  ///
+  /// In en, this message translates to:
+  /// **'Underbust'**
+  String get intimacyBodyUnderbust;
+
+  /// No description provided for @intimacyBraSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Bra Size'**
+  String get intimacyBraSize;
+
+  /// No description provided for @intimacyBraStandard.
+  ///
+  /// In en, this message translates to:
+  /// **'Sizing standard'**
+  String get intimacyBraStandard;
+
+  /// No description provided for @intimacyBraStandardEu.
+  ///
+  /// In en, this message translates to:
+  /// **'EU / EN 13402'**
+  String get intimacyBraStandardEu;
+
+  /// No description provided for @intimacyBraStandardFrEs.
+  ///
+  /// In en, this message translates to:
+  /// **'France / Spain'**
+  String get intimacyBraStandardFrEs;
+
+  /// No description provided for @intimacyBraStandardJp.
+  ///
+  /// In en, this message translates to:
+  /// **'Japan / JIS'**
+  String get intimacyBraStandardJp;
+
+  /// No description provided for @intimacyBraStandardUk.
+  ///
+  /// In en, this message translates to:
+  /// **'UK'**
+  String get intimacyBraStandardUk;
+
+  /// No description provided for @intimacyBraStandardUs.
+  ///
+  /// In en, this message translates to:
+  /// **'US'**
+  String get intimacyBraStandardUs;
+
+  /// No description provided for @intimacyBraStandardAuNz.
+  ///
+  /// In en, this message translates to:
+  /// **'Australia / New Zealand'**
+  String get intimacyBraStandardAuNz;
+
+  /// No description provided for @intimacyBraEstimatedSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Estimated size'**
+  String get intimacyBraEstimatedSize;
+
+  /// No description provided for @intimacyBraOutOfRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Outside the supported size range'**
+  String get intimacyBraOutOfRange;
+
+  /// No description provided for @intimacyBraEstimateDisclaimer.
+  ///
+  /// In en, this message translates to:
+  /// **'The calculated result is only an estimated size. The actual fit may vary by brand, garment design, and measurement method.'**
+  String get intimacyBraEstimateDisclaimer;
+
+  /// No description provided for @intimacyBraUsVariance.
+  ///
+  /// In en, this message translates to:
+  /// **'US cup naming varies considerably between brands; treat the result as a rough estimate.'**
+  String get intimacyBraUsVariance;
+
+  /// No description provided for @intimacyBraHelpTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Bra size calculation'**
+  String get intimacyBraHelpTitle;
+
+  /// No description provided for @intimacyBraHelpEu.
+  ///
+  /// In en, this message translates to:
+  /// **'EN 13402 rounds the underbust measurement to the nearest 5 cm band (58–62 → 60, 63–67 → 65, and so on). The cup letter comes from the difference between full bust and underbust: 10–12 cm → AA, then one letter per 2 cm up to 26–28 cm → H.'**
+  String get intimacyBraHelpEu;
+
+  /// No description provided for @intimacyBraHelpFrEs.
+  ///
+  /// In en, this message translates to:
+  /// **'France / Spain uses the EU cup letters, and the band number is the EU band plus 15 (EU 70 → 85, EU 75 → 90, EU 80 → 95).'**
+  String get intimacyBraHelpFrEs;
+
+  /// No description provided for @intimacyBraHelpJp.
+  ///
+  /// In en, this message translates to:
+  /// **'Japan / JIS rounds the underbust to the nearest 5 cm band and uses about 2.5 cm per cup step (10.0 cm → A, 12.5 cm → B, 15.0 cm → C, and so on), each step covering about ±1.25 cm. Sizes are written cup-first, for example C75.'**
+  String get intimacyBraHelpJp;
+
+  /// No description provided for @intimacyBraHelpUk.
+  ///
+  /// In en, this message translates to:
+  /// **'UK bands convert from the EU band (EU 60 → 28, 65 → 30, 70 → 32, 75 → 34, 80 → 36). The cup increases one level for roughly every additional inch of difference: 1 in → A, 2 → B, 3 → C, 4 → D, 5 → DD, 6 → E, 7 → F, 8 → FF, 9 → G, 10 → GG, 11 → H.'**
+  String get intimacyBraHelpUk;
+
+  /// No description provided for @intimacyBraHelpUs.
+  ///
+  /// In en, this message translates to:
+  /// **'US uses the same band numbers as the UK with the cup sequence A, B, C, D, DD/E, DDD/F, G, H, I, J, K, one level per additional inch of difference. US naming varies considerably between brands.'**
+  String get intimacyBraHelpUs;
+
+  /// No description provided for @intimacyBraHelpAuNz.
+  ///
+  /// In en, this message translates to:
+  /// **'Australia / New Zealand uses UK cup letters with dress-size band numbers (UK 30 → 8, 32 → 10, 34 → 12, 36 → 14).'**
+  String get intimacyBraHelpAuNz;
+
+  /// No description provided for @intimacyCycleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Menstrual Cycle'**
+  String get intimacyCycleTitle;
+
+  /// No description provided for @intimacyCycleEnable.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable menstrual-cycle tracking'**
+  String get intimacyCycleEnable;
+
+  /// No description provided for @intimacyCycleAddStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Add period start date'**
+  String get intimacyCycleAddStart;
+
+  /// No description provided for @intimacyCycleStartHint.
+  ///
+  /// In en, this message translates to:
+  /// **'A period start date is the first day of continuous menstrual bleeding. Do not record isolated spotting as a start.'**
+  String get intimacyCycleStartHint;
+
+  /// No description provided for @intimacyCycleStartDates.
+  ///
+  /// In en, this message translates to:
+  /// **'Period start dates'**
+  String get intimacyCycleStartDates;
+
+  /// No description provided for @intimacyCycleActualStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Actual start'**
+  String get intimacyCycleActualStart;
+
+  /// No description provided for @intimacyCyclePredictedStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Predicted start'**
+  String get intimacyCyclePredictedStart;
+
+  /// No description provided for @intimacyCyclePhaseMenstrual.
+  ///
+  /// In en, this message translates to:
+  /// **'Menstrual'**
+  String get intimacyCyclePhaseMenstrual;
+
+  /// No description provided for @intimacyCyclePhaseFollicular.
+  ///
+  /// In en, this message translates to:
+  /// **'Follicular'**
+  String get intimacyCyclePhaseFollicular;
+
+  /// No description provided for @intimacyCyclePhaseLuteal.
+  ///
+  /// In en, this message translates to:
+  /// **'Luteal'**
+  String get intimacyCyclePhaseLuteal;
+
+  /// No description provided for @intimacyCycleFertileWindow.
+  ///
+  /// In en, this message translates to:
+  /// **'Fertile window'**
+  String get intimacyCycleFertileWindow;
+
+  /// No description provided for @intimacyCycleOvulation.
+  ///
+  /// In en, this message translates to:
+  /// **'Ovulation'**
+  String get intimacyCycleOvulation;
+
+  /// No description provided for @intimacyCycleEstimatedSuffix.
+  ///
+  /// In en, this message translates to:
+  /// **'(estimated)'**
+  String get intimacyCycleEstimatedSuffix;
+
+  /// No description provided for @intimacyCycleLength.
+  ///
+  /// In en, this message translates to:
+  /// **'Estimated cycle length: {days} days'**
+  String intimacyCycleLength(int days);
+
+  /// No description provided for @intimacyCycleDisclaimer.
+  ///
+  /// In en, this message translates to:
+  /// **'Cycle and ovulation dates are estimates generated from recorded data. They must not be used as a method of contraception or as medical guidance.'**
+  String get intimacyCycleDisclaimer;
+
+  /// No description provided for @intimacyCycleShowOnCalendarUser.
+  ///
+  /// In en, this message translates to:
+  /// **'Show my cycle on the home-page calendar'**
+  String get intimacyCycleShowOnCalendarUser;
+
+  /// No description provided for @intimacyCycleShowOnCalendarPartner.
+  ///
+  /// In en, this message translates to:
+  /// **'Show this partner\'s cycle on the home-page calendar'**
+  String get intimacyCycleShowOnCalendarPartner;
+
+  /// No description provided for @intimacyCycleMe.
+  ///
+  /// In en, this message translates to:
+  /// **'Me'**
+  String get intimacyCycleMe;
+
+  /// No description provided for @intimacyPsiSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Penis Measurements'**
+  String get intimacyPsiSection;
+
+  /// No description provided for @intimacyPsiErectLength.
+  ///
+  /// In en, this message translates to:
+  /// **'Erect length'**
+  String get intimacyPsiErectLength;
+
+  /// No description provided for @intimacyPsiBaseCircumference.
+  ///
+  /// In en, this message translates to:
+  /// **'Base circumference'**
+  String get intimacyPsiBaseCircumference;
+
+  /// No description provided for @intimacyPsiFrontCircumference.
+  ///
+  /// In en, this message translates to:
+  /// **'Front circumference'**
+  String get intimacyPsiFrontCircumference;
+
+  /// No description provided for @intimacyPsiValue.
+  ///
+  /// In en, this message translates to:
+  /// **'PSI'**
+  String get intimacyPsiValue;
+
+  /// No description provided for @intimacyPsiExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'PSI is a size-reference index calculated by approximating the shape as a truncated cone. It is intended only for personal recording and comparison and does not represent health, function, attractiveness, or sexual performance.'**
+  String get intimacyPsiExplanation;
+
+  /// No description provided for @intimacyPsiReference.
+  ///
+  /// In en, this message translates to:
+  /// **'Statistical reference for adult penile length and circumference: Wang Cuntong et al., \"A Systematic Analysis and Comparative Study of Adult Penile Length and Circumference in China and Other Countries\", Chinese Journal of Human Sexuality, 2020, Vol. 29, No. 9, pp. 143–148. The PSI formula itself does not originate from this publication.'**
+  String get intimacyPsiReference;
+
   /// No description provided for @settingsTitle.
   ///
   /// In en, this message translates to:

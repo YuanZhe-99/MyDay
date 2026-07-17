@@ -169,6 +169,7 @@ class PendingSync {
     ...?intimacyMerge?.toyConflicts,
     ...?intimacyMerge?.positionConflicts,
     ...?intimacyMerge?.recordConflicts,
+    ...?intimacyMerge?.cycleRecordConflicts,
     ...?weightMerge?.recordConflicts,
   ];
 }

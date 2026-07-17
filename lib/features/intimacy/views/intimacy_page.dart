@@ -15,9 +15,13 @@ import '../../../shared/widgets/app_date_picker.dart';
 import '../../../shared/widgets/delete_confirm.dart';
 import '../../../shared/widgets/unsaved_changes_guard.dart';
 import '../models/intimacy_record.dart';
+import '../services/cycle_predictor.dart';
 import '../services/intimacy_storage.dart';
 import '../widgets/add_record_dialog.dart';
+import '../widgets/body_section.dart';
+import '../widgets/cycle_calendar.dart';
 import '../widgets/timer_page.dart';
+import 'body_page.dart';
 
 enum _SortMode { dateDesc, dateAsc, pleasureDesc, durationDesc }
 
@@ -116,6 +120,12 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
     0,
     isUtc: true,
   );
+  BodyProfile? _userBody;
+  DateTime _userBodyModifiedAt = DateTime.fromMillisecondsSinceEpoch(
+    0,
+    isUtc: true,
+  );
+  List<CycleRecord> _cycleRecords = [];
   int? _timerHistoryRetentionDays;
   Map<String, String> _partnerSortModes = {};
   Map<String, List<String>> _partnerCustomOrders = {};
@@ -168,6 +178,9 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
         _timerHistory = data.timerHistory;
         _timerSession = data.timerSession;
         _timerSessionModifiedAt = data.timerSessionModifiedAt;
+        _userBody = data.userBody;
+        _userBodyModifiedAt = data.userBodyModifiedAt;
+        _cycleRecords = List<CycleRecord>.of(data.cycleRecords);
         _timerHistoryRetentionDays = data.timerHistoryRetentionDays;
         _partnerSortModes = Map.of(data.partnerSortModes);
         _partnerCustomOrders = data.partnerCustomOrders.map(
@@ -198,6 +211,9 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
         timerHistory: _timerHistory,
         timerSession: _timerSession,
         timerSessionModifiedAt: _timerSessionModifiedAt,
+        userBody: _userBody,
+        userBodyModifiedAt: _userBodyModifiedAt,
+        cycleRecords: _cycleRecords,
         timerHistoryRetentionDays: _timerHistoryRetentionDays,
         partnerSortModes: _partnerSortModes,
         partnerCustomOrders: _partnerCustomOrders,
@@ -247,6 +263,119 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
     return _records
         .map((r) => DateTime(r.datetime.year, r.datetime.month, r.datetime.day))
         .toSet();
+  }
+
+  /// Purpose: Build cycle overlays for everyone shown on the home calendar.
+  /// Inputs: `l10n` for the user's display label.
+  /// Returns: `List<PersonCycleOverlay>`.
+  /// Side effects: None.
+  /// Notes: Only people with both cycle tracking and the show-on-calendar
+  /// option enabled appear; colors stay stable per person.
+  List<PersonCycleOverlay> _buildCycleOverlays(AppLocalizations l10n) {
+    final overlays = <PersonCycleOverlay>[];
+    final allPartnerIds = _partners.map((p) => p.id).toList()..sort();
+    final windowStart = DateTime(
+      _focusedMonth.year,
+      _focusedMonth.month - 1,
+      1,
+    );
+    final windowEnd = DateTime(_focusedMonth.year, _focusedMonth.month + 2, 0);
+
+    CyclePrediction predictionFor(String? personId) => predictCycle(
+      actualStarts: _cycleRecords
+          .where((c) => c.personId == personId)
+          .map((c) => c.day),
+      windowStart: windowStart,
+      windowEnd: windowEnd,
+    );
+
+    final userBody = _userBody;
+    if (userBody != null &&
+        userBody.cycleEnabled &&
+        userBody.showCycleOnCalendar) {
+      overlays.add(
+        PersonCycleOverlay(
+          personKey: 'user',
+          displayName: l10n.intimacyCycleMe,
+          color: cyclePersonColor(personId: null, allPartnerIdsSorted: const []),
+          prediction: predictionFor(null),
+        ),
+      );
+    }
+    for (final partner in _partners) {
+      final body = partner.body;
+      if (body == null || !body.cycleEnabled || !body.showCycleOnCalendar) {
+        continue;
+      }
+      overlays.add(
+        PersonCycleOverlay(
+          personKey: partner.id,
+          displayName: partner.name,
+          color: cyclePersonColor(
+            personId: partner.id,
+            allPartnerIdsSorted: allPartnerIds,
+          ),
+          prediction: predictionFor(partner.id),
+        ),
+      );
+    }
+    return overlays;
+  }
+
+  /// Purpose: Build the legend and selected-day cycle strip for the home calendar.
+  /// Inputs: `theme`, `l10n`.
+  /// Returns: `List<Widget>` empty when no overlays are visible.
+  /// Side effects: None.
+  /// Notes: The selected-day strip names each person so it is always clear
+  /// whose cycle information is shown; all derived values read as estimates.
+  List<Widget> _buildCycleCalendarExtras(ThemeData theme, AppLocalizations l10n) {
+    final overlays = _buildCycleOverlays(l10n);
+    if (overlays.isEmpty) return const [];
+    final widgets = <Widget>[
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+        child: CycleLegend(people: overlays),
+      ),
+    ];
+    final selected = _selectedDate;
+    if (selected != null) {
+      final lines = <String>[];
+      for (final overlay in overlays) {
+        final info = overlay.prediction.days[selected];
+        if (info == null) continue;
+        final parts = <String>[];
+        if (info.isActualStart) {
+          parts.add(l10n.intimacyCycleActualStart);
+        } else if (info.isPredictedStart) {
+          parts.add(l10n.intimacyCyclePredictedStart);
+        }
+        parts.add(switch (info.phase) {
+          CyclePhase.menstrual => l10n.intimacyCyclePhaseMenstrual,
+          CyclePhase.follicular => l10n.intimacyCyclePhaseFollicular,
+          CyclePhase.luteal => l10n.intimacyCyclePhaseLuteal,
+        });
+        if (info.isOvulationDay) parts.add(l10n.intimacyCycleOvulation);
+        if (info.inFertileWindow) parts.add(l10n.intimacyCycleFertileWindow);
+        final suffix = info.isEstimated
+            ? ' ${l10n.intimacyCycleEstimatedSuffix}'
+            : '';
+        lines.add('${overlay.displayName}: ${parts.join(' · ')}$suffix');
+      }
+      if (lines.isNotEmpty) {
+        widgets.add(
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Text(
+              lines.join('\n'),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        );
+      }
+    }
+    return widgets;
   }
 
   /// Purpose: Return filtered records.
@@ -448,7 +577,9 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
                           : date; // toggle
                     });
                   },
+                  cycleOverlays: _buildCycleOverlays(l10n),
                 ),
+                ..._buildCycleCalendarExtras(theme, l10n),
                 const Divider(height: 1),
 
                 // Trend chart section
@@ -1602,10 +1733,48 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
                 _openPositionManagement();
               },
             ),
+            ListTile(
+              leading: const Icon(Icons.self_improvement),
+              title: Text(AppLocalizations.of(context)!.intimacyBody),
+              onTap: () {
+                Navigator.pop(context);
+                _openBodySettings();
+              },
+            ),
           ],
         ),
       ),
     );
+  }
+
+  /// Purpose: Provide the internal open body settings helper for this file.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: User body edits bump the dedicated `userBodyModifiedAt` LWW
+  /// timestamp instead of the general settings timestamp.
+  Future<void> _openBodySettings() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BodySettingsPage(
+          userBody: _userBody,
+          cycleRecords: _cycleRecords,
+          onUserBodyChanged: (profile) {
+            setState(() {
+              _userBody = profile;
+              _userBodyModifiedAt = DateTime.now().toUtc();
+            });
+            _saveData();
+          },
+          onCycleRecordsChanged: (records) {
+            setState(() => _cycleRecords = List<CycleRecord>.of(records));
+            _saveData();
+          },
+        ),
+      ),
+    );
+    if (mounted) setState(() {});
   }
 
   /// Purpose: Provide the internal open partner management helper for this file.
@@ -1630,6 +1799,11 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
           },
           onRecordsChanged: (updated) {
             setState(() => _records = updated);
+            _saveData();
+          },
+          cycleRecords: _cycleRecords,
+          onCycleRecordsChanged: (updated) {
+            setState(() => _cycleRecords = List<CycleRecord>.of(updated));
             _saveData();
           },
           onSortChanged: (modes, orders) {
@@ -1717,6 +1891,12 @@ class _CalendarWidget extends StatelessWidget {
   final void Function(DateTime) onMonthChanged;
   final void Function(DateTime) onDateSelected;
 
+  /// Cycle overlays for people whose show-on-calendar option is enabled.
+  final List<PersonCycleOverlay> cycleOverlays;
+
+  /// At most this many per-person indicator rows render inside a day cell.
+  static const int _maxOverlayRows = 3;
+
   /// Purpose: Create a calendar widget instance.
   /// Inputs: Focused month, selected date, marked dates, week start, and callbacks.
   /// Returns: A new `_CalendarWidget` instance.
@@ -1729,6 +1909,7 @@ class _CalendarWidget extends StatelessWidget {
     required this.weekStartDay,
     required this.onMonthChanged,
     required this.onDateSelected,
+    this.cycleOverlays = const [],
   });
 
   /// Purpose: Build the current widget subtree for the active UI state.
@@ -1829,12 +2010,18 @@ class _CalendarWidget extends StatelessWidget {
     final today = DateTime.now();
     final rows = <Widget>[];
     var day = 1 - leadingBlanks;
+    final overlayRowCount = cycleOverlays.length > _maxOverlayRows
+        ? _maxOverlayRows
+        : cycleOverlays.length;
+    // Each overlay row is a 5 px indicator plus 1 px top padding.
+    final overlayExtra = overlayRowCount * 6.0;
+    final cellHeight = 36.0 + overlayExtra;
 
     while (day <= daysInMonth) {
       final cells = <Widget>[];
       for (var i = 0; i < 7; i++) {
         if (day < 1 || day > daysInMonth) {
-          cells.add(const Expanded(child: SizedBox(height: 36)));
+          cells.add(Expanded(child: SizedBox(height: cellHeight)));
         } else {
           final date = DateTime(year, month, day);
           final isMarked = markedDates.contains(date);
@@ -1849,37 +2036,56 @@ class _CalendarWidget extends StatelessWidget {
             Expanded(
               child: GestureDetector(
                 onTap: () => onDateSelected(date),
-                child: Container(
-                  height: 36,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isSelected
-                        ? theme.colorScheme.primary
-                        : isMarked
-                        ? theme.colorScheme.primaryContainer
-                        : null,
-                    border: isToday && !isSelected
-                        ? Border.all(
-                            color: theme.colorScheme.primary,
-                            width: 1.5,
-                          )
-                        : null,
-                  ),
-                  child: Center(
-                    child: Text(
-                      day.toString(),
-                      style: theme.textTheme.bodySmall?.copyWith(
+                child: Column(
+                  children: [
+                    Container(
+                      height: 36,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
                         color: isSelected
-                            ? theme.colorScheme.onPrimary
+                            ? theme.colorScheme.primary
                             : isMarked
-                            ? theme.colorScheme.onPrimaryContainer
+                            ? theme.colorScheme.primaryContainer
                             : null,
-                        fontWeight: isMarked || isToday
-                            ? FontWeight.w600
+                        border: isToday && !isSelected
+                            ? Border.all(
+                                color: theme.colorScheme.primary,
+                                width: 1.5,
+                              )
                             : null,
                       ),
+                      child: Center(
+                        child: Text(
+                          day.toString(),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: isSelected
+                                ? theme.colorScheme.onPrimary
+                                : isMarked
+                                ? theme.colorScheme.onPrimaryContainer
+                                : null,
+                            fontWeight: isMarked || isToday
+                                ? FontWeight.w600
+                                : null,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                    // One thin indicator row per visible person so cycles
+                    // never overwrite each other or the record marker.
+                    for (var o = 0; o < overlayRowCount; o++)
+                      Padding(
+                        padding: const EdgeInsets.only(
+                          left: 3,
+                          right: 3,
+                          top: 1,
+                        ),
+                        child: buildCycleDayIndicator(
+                          cycleOverlays[o].color,
+                          cycleOverlays[o].prediction.days[date],
+                          height: 3,
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),
@@ -2169,6 +2375,8 @@ class _PartnerManagementPage extends StatefulWidget {
   final Map<String, List<String>> customOrders;
   final ValueChanged<List<Partner>> onChanged;
   final ValueChanged<List<IntimacyRecord>> onRecordsChanged;
+  final List<CycleRecord> cycleRecords;
+  final ValueChanged<List<CycleRecord>> onCycleRecordsChanged;
   final void Function(
     Map<String, String> sortModes,
     Map<String, List<String>> customOrders,
@@ -2179,7 +2387,7 @@ class _PartnerManagementPage extends StatefulWidget {
   /// Inputs: None.
   /// Returns: A new `_PartnerManagementPage` instance.
   /// Side effects: None.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Cycle records flow through to the partner detail Body tab.
   const _PartnerManagementPage({
     required this.partners,
     required this.records,
@@ -2189,6 +2397,8 @@ class _PartnerManagementPage extends StatefulWidget {
     required this.customOrders,
     required this.onChanged,
     required this.onRecordsChanged,
+    required this.cycleRecords,
+    required this.onCycleRecordsChanged,
     required this.onSortChanged,
   });
 
@@ -2204,6 +2414,7 @@ class _PartnerManagementPage extends StatefulWidget {
 class _PartnerManagementPageState extends State<_PartnerManagementPage> {
   late List<Partner> _partners;
   late List<IntimacyRecord> _records;
+  late List<CycleRecord> _cycleRecords;
   late Map<String, String> _sortModes;
   late Map<String, List<String>> _customOrders;
   final Map<String, bool> _reordering = {};
@@ -2244,6 +2455,7 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
     super.initState();
     _partners = List.of(widget.partners);
     _records = List.of(widget.records);
+    _cycleRecords = List.of(widget.cycleRecords);
     _sortModes = Map.of(widget.sortModes);
     _customOrders = widget.customOrders.map(
       (key, value) => MapEntry(key, List<String>.of(value)),
@@ -2483,6 +2695,7 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
           imagePath: p.imagePath,
           startDate: p.startDate,
           endDate: now,
+          body: p.body,
         ),
       );
     });
@@ -2513,6 +2726,18 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
           onRecordsChanged: (updated) {
             setState(() => _records = updated);
             widget.onRecordsChanged(_records);
+          },
+          onPartnerChanged: (updated) {
+            setState(() {
+              final idx = _partners.indexWhere((x) => x.id == updated.id);
+              if (idx != -1) _partners[idx] = updated;
+            });
+            widget.onChanged(_partners);
+          },
+          cycleRecords: _cycleRecords,
+          onCycleRecordsChanged: (updated) {
+            setState(() => _cycleRecords = List.of(updated));
+            widget.onCycleRecordsChanged(_cycleRecords);
           },
         ),
       ),
@@ -2690,6 +2915,7 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
               imagePath: imagePath,
               startDate: startDate,
               endDate: endDate,
+              body: existing.body,
             );
             _partners[idx] = savedPartner!;
           }
@@ -4662,11 +4888,17 @@ class _FilteredRecordsPage extends ConsumerStatefulWidget {
   final List<Position> positions;
   final ValueChanged<List<IntimacyRecord>> onRecordsChanged;
 
+  /// Partner-mode extras: body tab data and callbacks. All null for toys.
+  final ValueChanged<Partner>? onPartnerChanged;
+  final List<CycleRecord>? cycleRecords;
+  final ValueChanged<List<CycleRecord>>? onCycleRecordsChanged;
+
   /// Purpose: Create a filtered records page instance.
   /// Inputs: The title, records, optional partner/toy filter, and update callback.
   /// Returns: A new `_FilteredRecordsPage` instance.
   /// Side effects: None.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Partner detail pages render Records/Body tabs when the body
+  /// callbacks are provided; toy detail pages keep the single-scroll layout.
   const _FilteredRecordsPage({
     required this.title,
     required this.records,
@@ -4676,6 +4908,9 @@ class _FilteredRecordsPage extends ConsumerStatefulWidget {
     required this.toys,
     required this.positions,
     required this.onRecordsChanged,
+    this.onPartnerChanged,
+    this.cycleRecords,
+    this.onCycleRecordsChanged,
   });
 
   /// Purpose: Create the mutable state object for this widget.
@@ -4690,6 +4925,8 @@ class _FilteredRecordsPage extends ConsumerStatefulWidget {
 
 class _FilteredRecordsPageState extends ConsumerState<_FilteredRecordsPage> {
   late List<IntimacyRecord> _records;
+  Partner? _partner;
+  List<CycleRecord> _cycleRecords = [];
 
   /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
   /// Inputs: None.
@@ -4700,6 +4937,10 @@ class _FilteredRecordsPageState extends ConsumerState<_FilteredRecordsPage> {
   void initState() {
     super.initState();
     _records = List.of(widget.records);
+    _partner = widget.partners
+        .where((p) => p.id == widget.partnerId)
+        .firstOrNull;
+    _cycleRecords = List.of(widget.cycleRecords ?? const []);
   }
 
   /// Purpose: React to parent widget changes after this state has been created.
@@ -4713,7 +4954,21 @@ class _FilteredRecordsPageState extends ConsumerState<_FilteredRecordsPage> {
     if (!identical(widget.records, oldWidget.records)) {
       _records = List.of(widget.records);
     }
+    if (!identical(widget.cycleRecords, oldWidget.cycleRecords)) {
+      _cycleRecords = List.of(widget.cycleRecords ?? const []);
+    }
   }
+
+  /// Purpose: Report whether this page shows the partner Records/Body tabs.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: Toy detail pages never get a body tab.
+  bool get _hasBodyTab =>
+      widget.partnerId != null &&
+      _partner != null &&
+      widget.onPartnerChanged != null &&
+      widget.onCycleRecordsChanged != null;
 
   /// Purpose: Return records matching this detail page's partner or toy filter.
   /// Inputs: None.
@@ -5093,40 +5348,132 @@ class _FilteredRecordsPageState extends ConsumerState<_FilteredRecordsPage> {
   /// Notes: Keep this method cheap because Flutter may call it often.
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    if (!_hasBodyTab) {
+      return Scaffold(
+        appBar: AppBar(title: Text(widget.title), centerTitle: true),
+        body: _buildRecordsListView(context),
+        floatingActionButton: FloatingActionButton(
+          onPressed: _addRecord,
+          child: const Icon(Icons.add),
+        ),
+      );
+    }
+    return DefaultTabController(
+      length: 2,
+      child: Builder(
+        builder: (context) {
+          final tabController = DefaultTabController.of(context);
+          return Scaffold(
+            appBar: AppBar(
+              title: Text(widget.title),
+              centerTitle: true,
+              bottom: TabBar(
+                tabs: [
+                  Tab(text: l10n.intimacyTabRecords),
+                  Tab(text: l10n.intimacyBody),
+                ],
+              ),
+            ),
+            body: TabBarView(
+              children: [
+                _buildRecordsListView(context),
+                _buildBodyTab(context),
+              ],
+            ),
+            floatingActionButton: AnimatedBuilder(
+              animation: tabController,
+              builder: (context, _) => tabController.index == 0
+                  ? FloatingActionButton(
+                      onPressed: _addRecord,
+                      child: const Icon(Icons.add),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// Purpose: Build the existing summary/trend/record-list scroll view.
+  /// Inputs: `context`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Shared by the plain toy layout and the partner Records tab.
+  Widget _buildRecordsListView(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final settings = ref.watch(appSettingsProvider);
     final records = _filteredRecords;
     final selectedToy = _selectedToy;
-    return Scaffold(
-      appBar: AppBar(title: Text(widget.title), centerTitle: true),
-      body: ListView(
-        children: [
-          _buildSummaryCard(theme, records, toy: selectedToy),
-          if (records.length >= 2)
-            _FilteredRecordsTrendSection(records: records),
-          const Divider(height: 1),
-          if (records.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 48),
-              child: Center(
-                child: Text(
-                  l10n.intimacyNoRecords,
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+    return ListView(
+      children: [
+        _buildSummaryCard(theme, records, toy: selectedToy),
+        if (records.length >= 2)
+          _FilteredRecordsTrendSection(records: records),
+        const Divider(height: 1),
+        if (records.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 48),
+            child: Center(
+              child: Text(
+                l10n.intimacyNoRecords,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
-            )
-          else
-            ..._buildRecordListWidgets(theme, records, settings.weekStartDay),
-          const SizedBox(height: 80),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _addRecord,
-        child: const Icon(Icons.add),
-      ),
+            ),
+          )
+        else
+          ..._buildRecordListWidgets(theme, records, settings.weekStartDay),
+        const SizedBox(height: 80),
+      ],
+    );
+  }
+
+  /// Purpose: Build the partner Body tab hosting the shared body section.
+  /// Inputs: `context`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Partner body data stays on the partner and is never synced to
+  /// the Weight module; edits bump the partner record for LWW sync.
+  Widget _buildBodyTab(BuildContext context) {
+    final partner = _partner!;
+    final allPartnerIds = widget.partners.map((p) => p.id).toList()..sort();
+    return ListView(
+      children: [
+        BodySectionView(
+          mode: BodySectionMode.partner,
+          profile: partner.body,
+          personId: partner.id,
+          personColor: cyclePersonColor(
+            personId: partner.id,
+            allPartnerIdsSorted: allPartnerIds,
+          ),
+          cycleRecords: _cycleRecords,
+          onProfileChanged: (profile) {
+            final updated = partner.copyWith(
+              body: profile.isEmpty ? null : profile,
+              clearBody: profile.isEmpty,
+            );
+            if (mounted) {
+              setState(() => _partner = updated);
+            } else {
+              _partner = updated;
+            }
+            widget.onPartnerChanged!(updated);
+          },
+          onCycleRecordsChanged: (records) {
+            if (mounted) {
+              setState(() => _cycleRecords = List.of(records));
+            } else {
+              _cycleRecords = List.of(records);
+            }
+            widget.onCycleRecordsChanged!(records);
+          },
+        ),
+      ],
     );
   }
 }

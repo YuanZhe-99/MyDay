@@ -562,6 +562,184 @@ class AppLocalizationsEn extends AppLocalizations {
   String get intimacyRetire => 'Retire';
 
   @override
+  String get intimacyBody => 'Body';
+
+  @override
+  String get intimacyTabRecords => 'Records';
+
+  @override
+  String get intimacyBodyMeasurements => 'Body Measurements';
+
+  @override
+  String get intimacyBodyMeasurementsFromWeight =>
+      'Shows the latest Weight module record';
+
+  @override
+  String get intimacyBodyWeightSyncWarningTitle => 'Sync with Weight module';
+
+  @override
+  String get intimacyBodyWeightSyncWarning =>
+      'Changes made here will be synchronized with the Weight module and will create a new weight record.';
+
+  @override
+  String get intimacyBodyDontRemindAgain => 'Do not remind me again';
+
+  @override
+  String get intimacyBodyDontRemindAgainDesc =>
+      'Skip the warning when measurement changes create a new weight record';
+
+  @override
+  String get intimacyBodyUnderbust => 'Underbust';
+
+  @override
+  String get intimacyBraSize => 'Bra Size';
+
+  @override
+  String get intimacyBraStandard => 'Sizing standard';
+
+  @override
+  String get intimacyBraStandardEu => 'EU / EN 13402';
+
+  @override
+  String get intimacyBraStandardFrEs => 'France / Spain';
+
+  @override
+  String get intimacyBraStandardJp => 'Japan / JIS';
+
+  @override
+  String get intimacyBraStandardUk => 'UK';
+
+  @override
+  String get intimacyBraStandardUs => 'US';
+
+  @override
+  String get intimacyBraStandardAuNz => 'Australia / New Zealand';
+
+  @override
+  String get intimacyBraEstimatedSize => 'Estimated size';
+
+  @override
+  String get intimacyBraOutOfRange => 'Outside the supported size range';
+
+  @override
+  String get intimacyBraEstimateDisclaimer =>
+      'The calculated result is only an estimated size. The actual fit may vary by brand, garment design, and measurement method.';
+
+  @override
+  String get intimacyBraUsVariance =>
+      'US cup naming varies considerably between brands; treat the result as a rough estimate.';
+
+  @override
+  String get intimacyBraHelpTitle => 'Bra size calculation';
+
+  @override
+  String get intimacyBraHelpEu =>
+      'EN 13402 rounds the underbust measurement to the nearest 5 cm band (58–62 → 60, 63–67 → 65, and so on). The cup letter comes from the difference between full bust and underbust: 10–12 cm → AA, then one letter per 2 cm up to 26–28 cm → H.';
+
+  @override
+  String get intimacyBraHelpFrEs =>
+      'France / Spain uses the EU cup letters, and the band number is the EU band plus 15 (EU 70 → 85, EU 75 → 90, EU 80 → 95).';
+
+  @override
+  String get intimacyBraHelpJp =>
+      'Japan / JIS rounds the underbust to the nearest 5 cm band and uses about 2.5 cm per cup step (10.0 cm → A, 12.5 cm → B, 15.0 cm → C, and so on), each step covering about ±1.25 cm. Sizes are written cup-first, for example C75.';
+
+  @override
+  String get intimacyBraHelpUk =>
+      'UK bands convert from the EU band (EU 60 → 28, 65 → 30, 70 → 32, 75 → 34, 80 → 36). The cup increases one level for roughly every additional inch of difference: 1 in → A, 2 → B, 3 → C, 4 → D, 5 → DD, 6 → E, 7 → F, 8 → FF, 9 → G, 10 → GG, 11 → H.';
+
+  @override
+  String get intimacyBraHelpUs =>
+      'US uses the same band numbers as the UK with the cup sequence A, B, C, D, DD/E, DDD/F, G, H, I, J, K, one level per additional inch of difference. US naming varies considerably between brands.';
+
+  @override
+  String get intimacyBraHelpAuNz =>
+      'Australia / New Zealand uses UK cup letters with dress-size band numbers (UK 30 → 8, 32 → 10, 34 → 12, 36 → 14).';
+
+  @override
+  String get intimacyCycleTitle => 'Menstrual Cycle';
+
+  @override
+  String get intimacyCycleEnable => 'Enable menstrual-cycle tracking';
+
+  @override
+  String get intimacyCycleAddStart => 'Add period start date';
+
+  @override
+  String get intimacyCycleStartHint =>
+      'A period start date is the first day of continuous menstrual bleeding. Do not record isolated spotting as a start.';
+
+  @override
+  String get intimacyCycleStartDates => 'Period start dates';
+
+  @override
+  String get intimacyCycleActualStart => 'Actual start';
+
+  @override
+  String get intimacyCyclePredictedStart => 'Predicted start';
+
+  @override
+  String get intimacyCyclePhaseMenstrual => 'Menstrual';
+
+  @override
+  String get intimacyCyclePhaseFollicular => 'Follicular';
+
+  @override
+  String get intimacyCyclePhaseLuteal => 'Luteal';
+
+  @override
+  String get intimacyCycleFertileWindow => 'Fertile window';
+
+  @override
+  String get intimacyCycleOvulation => 'Ovulation';
+
+  @override
+  String get intimacyCycleEstimatedSuffix => '(estimated)';
+
+  @override
+  String intimacyCycleLength(int days) {
+    return 'Estimated cycle length: $days days';
+  }
+
+  @override
+  String get intimacyCycleDisclaimer =>
+      'Cycle and ovulation dates are estimates generated from recorded data. They must not be used as a method of contraception or as medical guidance.';
+
+  @override
+  String get intimacyCycleShowOnCalendarUser =>
+      'Show my cycle on the home-page calendar';
+
+  @override
+  String get intimacyCycleShowOnCalendarPartner =>
+      'Show this partner\'s cycle on the home-page calendar';
+
+  @override
+  String get intimacyCycleMe => 'Me';
+
+  @override
+  String get intimacyPsiSection => 'Penis Measurements';
+
+  @override
+  String get intimacyPsiErectLength => 'Erect length';
+
+  @override
+  String get intimacyPsiBaseCircumference => 'Base circumference';
+
+  @override
+  String get intimacyPsiFrontCircumference => 'Front circumference';
+
+  @override
+  String get intimacyPsiValue => 'PSI';
+
+  @override
+  String get intimacyPsiExplanation =>
+      'PSI is a size-reference index calculated by approximating the shape as a truncated cone. It is intended only for personal recording and comparison and does not represent health, function, attractiveness, or sexual performance.';
+
+  @override
+  String get intimacyPsiReference =>
+      'Statistical reference for adult penile length and circumference: Wang Cuntong et al., \"A Systematic Analysis and Comparative Study of Adult Penile Length and Circumference in China and Other Countries\", Chinese Journal of Human Sexuality, 2020, Vol. 29, No. 9, pp. 143–148. The PSI formula itself does not originate from this publication.';
+
+  @override
   String get settingsTitle => 'Settings';
 
   @override

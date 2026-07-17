@@ -440,6 +440,25 @@ const _exchangeRateDataSchema = JsonPreservationSchema(
   keyedObjectFields: {'snapshots': _rateSnapshotSchema},
 );
 
+const _bodyProfileSchema = JsonPreservationSchema(
+  knownKeys: {
+    'bustCm',
+    'waistCm',
+    'hipCm',
+    'underbustCm',
+    'braStandard',
+    'cycleEnabled',
+    'showCycleOnCalendar',
+    'erectLengthCm',
+    'baseCircumferenceCm',
+    'frontCircumferenceCm',
+  },
+);
+
+const _cycleRecordSchema = JsonPreservationSchema(
+  knownKeys: {'id', 'personId', 'date', 'modifiedAt'},
+);
+
 const _partnerSchema = JsonPreservationSchema(
   knownKeys: {
     'id',
@@ -448,8 +467,10 @@ const _partnerSchema = JsonPreservationSchema(
     'imagePath',
     'startDate',
     'endDate',
+    'body',
     'modifiedAt',
   },
+  objectFields: {'body': _bodyProfileSchema},
 );
 
 const _toySchema = JsonPreservationSchema(
@@ -516,6 +537,9 @@ const _intimacyDataSchema = JsonPreservationSchema(
     'timerHistory',
     'timerSession',
     'timerSessionModifiedAt',
+    'userBody',
+    'userBodyModifiedAt',
+    'cycleRecords',
     'timerHistoryRetentionDays',
     'partnerSortModes',
     'partnerCustomOrders',
@@ -523,7 +547,10 @@ const _intimacyDataSchema = JsonPreservationSchema(
     'toyCustomOrders',
     'settingsModifiedAt',
   },
-  objectFields: {'timerSession': _timerSessionSchema},
+  objectFields: {
+    'timerSession': _timerSessionSchema,
+    'userBody': _bodyProfileSchema,
+  },
   listFields: {
     'partners': JsonListPreservation(
       keyField: 'id',
@@ -541,6 +568,10 @@ const _intimacyDataSchema = JsonPreservationSchema(
     'timerHistory': JsonListPreservation(
       keyField: 'start',
       itemSchema: _timerHistorySchema,
+    ),
+    'cycleRecords': JsonListPreservation(
+      keyField: 'id',
+      itemSchema: _cycleRecordSchema,
     ),
   },
 );

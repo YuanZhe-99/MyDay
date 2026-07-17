@@ -559,6 +559,176 @@ class AppLocalizationsZh extends AppLocalizations {
   String get intimacyRetire => '退役';
 
   @override
+  String get intimacyBody => '身体';
+
+  @override
+  String get intimacyTabRecords => '记录';
+
+  @override
+  String get intimacyBodyMeasurements => '身体围度';
+
+  @override
+  String get intimacyBodyMeasurementsFromWeight => '显示体重模块的最新记录';
+
+  @override
+  String get intimacyBodyWeightSyncWarningTitle => '与体重模块同步';
+
+  @override
+  String get intimacyBodyWeightSyncWarning => '在此处所做的修改将同步到体重模块，并创建一条新的体重记录。';
+
+  @override
+  String get intimacyBodyDontRemindAgain => '不再提醒';
+
+  @override
+  String get intimacyBodyDontRemindAgainDesc => '围度修改创建新体重记录时不再显示提醒';
+
+  @override
+  String get intimacyBodyUnderbust => '下胸围';
+
+  @override
+  String get intimacyBraSize => '文胸尺码';
+
+  @override
+  String get intimacyBraStandard => '尺码标准';
+
+  @override
+  String get intimacyBraStandardEu => '欧洲 / EN 13402';
+
+  @override
+  String get intimacyBraStandardFrEs => '法国 / 西班牙';
+
+  @override
+  String get intimacyBraStandardJp => '日本 / JIS';
+
+  @override
+  String get intimacyBraStandardUk => '英国';
+
+  @override
+  String get intimacyBraStandardUs => '美国';
+
+  @override
+  String get intimacyBraStandardAuNz => '澳大利亚 / 新西兰';
+
+  @override
+  String get intimacyBraEstimatedSize => '估算尺码';
+
+  @override
+  String get intimacyBraOutOfRange => '超出支持的尺码范围';
+
+  @override
+  String get intimacyBraEstimateDisclaimer =>
+      '计算结果仅为估算尺码，实际合身程度可能因品牌、款式设计和测量方式而异。';
+
+  @override
+  String get intimacyBraUsVariance => '美国罩杯命名在不同品牌间差异较大，结果仅供参考。';
+
+  @override
+  String get intimacyBraHelpTitle => '文胸尺码计算方法';
+
+  @override
+  String get intimacyBraHelpEu =>
+      'EN 13402 将下胸围就近取整到 5 厘米一档的底围（58–62 → 60，63–67 → 65，依此类推）。罩杯由上胸围与下胸围的差值决定：10–12 厘米 → AA，此后每 2 厘米升一级，26–28 厘米 → H。';
+
+  @override
+  String get intimacyBraHelpFrEs =>
+      '法国 / 西班牙使用欧洲罩杯，底围数字为欧洲底围加 15（EU 70 → 85，EU 75 → 90，EU 80 → 95）。';
+
+  @override
+  String get intimacyBraHelpJp =>
+      '日本 / JIS 将下胸围就近取整到 5 厘米一档，罩杯约每 2.5 厘米升一级（10.0 厘米 → A，12.5 厘米 → B，15.0 厘米 → C 等，每级约 ±1.25 厘米）。日本尺码通常将罩杯写在前面，如 C75。';
+
+  @override
+  String get intimacyBraHelpUk =>
+      '英国底围由欧洲底围换算（EU 60 → 28，65 → 30，70 → 32，75 → 34，80 → 36）。差值约每增加 1 英寸罩杯升一级：1 英寸 → A，2 → B，3 → C，4 → D，5 → DD，6 → E，7 → F，8 → FF，9 → G，10 → GG，11 → H。';
+
+  @override
+  String get intimacyBraHelpUs =>
+      '美国使用与英国相同的底围数字，罩杯顺序为 A、B、C、D、DD/E、DDD/F、G、H、I、J、K，差值每增加约 1 英寸升一级。不同品牌的命名差异较大。';
+
+  @override
+  String get intimacyBraHelpAuNz =>
+      '澳大利亚 / 新西兰使用英国罩杯，底围为服装尺码（UK 30 → 8，32 → 10，34 → 12，36 → 14）。';
+
+  @override
+  String get intimacyCycleTitle => '月经周期';
+
+  @override
+  String get intimacyCycleEnable => '启用月经周期记录';
+
+  @override
+  String get intimacyCycleAddStart => '添加经期开始日期';
+
+  @override
+  String get intimacyCycleStartHint => '经期开始日期指持续性经血出血的第一天。请勿将偶发点滴出血记录为开始日期。';
+
+  @override
+  String get intimacyCycleStartDates => '经期开始日期';
+
+  @override
+  String get intimacyCycleActualStart => '实际开始日期';
+
+  @override
+  String get intimacyCyclePredictedStart => '预测开始日期';
+
+  @override
+  String get intimacyCyclePhaseMenstrual => '月经期';
+
+  @override
+  String get intimacyCyclePhaseFollicular => '卵泡期';
+
+  @override
+  String get intimacyCyclePhaseLuteal => '黄体期';
+
+  @override
+  String get intimacyCycleFertileWindow => '易孕期';
+
+  @override
+  String get intimacyCycleOvulation => '排卵日';
+
+  @override
+  String get intimacyCycleEstimatedSuffix => '（估算）';
+
+  @override
+  String intimacyCycleLength(int days) {
+    return '估算周期长度：$days 天';
+  }
+
+  @override
+  String get intimacyCycleDisclaimer => '周期与排卵日期为根据记录数据生成的估算结果，不得用作避孕方法或医疗指导。';
+
+  @override
+  String get intimacyCycleShowOnCalendarUser => '在主页日历上显示我的周期';
+
+  @override
+  String get intimacyCycleShowOnCalendarPartner => '在主页日历上显示该伴侣的周期';
+
+  @override
+  String get intimacyCycleMe => '我';
+
+  @override
+  String get intimacyPsiSection => '阴茎测量';
+
+  @override
+  String get intimacyPsiErectLength => '勃起长度';
+
+  @override
+  String get intimacyPsiBaseCircumference => '根部周长';
+
+  @override
+  String get intimacyPsiFrontCircumference => '前端周长';
+
+  @override
+  String get intimacyPsiValue => 'PSI';
+
+  @override
+  String get intimacyPsiExplanation =>
+      'PSI 是将形状近似为圆台计算得到的尺寸参考指数，仅用于个人记录和比较，不代表健康、功能、吸引力或性能力。';
+
+  @override
+  String get intimacyPsiReference =>
+      '成人阴茎长度与周长的统计参考文献：王存同等《中国与其他国家成人阴茎长度和周长的系统分析与比较研究》，《中国性科学》2020 年第 29 卷第 9 期，第 143–148 页。PSI 计算公式并非出自该文献。';
+
+  @override
   String get settingsTitle => '设置';
 
   @override
@@ -2447,6 +2617,176 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get intimacyRetire => '退役';
+
+  @override
+  String get intimacyBody => '身體';
+
+  @override
+  String get intimacyTabRecords => '記錄';
+
+  @override
+  String get intimacyBodyMeasurements => '身體圍度';
+
+  @override
+  String get intimacyBodyMeasurementsFromWeight => '顯示體重模組的最新記錄';
+
+  @override
+  String get intimacyBodyWeightSyncWarningTitle => '與體重模組同步';
+
+  @override
+  String get intimacyBodyWeightSyncWarning => '在此處所做的修改將同步到體重模組，並建立一筆新的體重記錄。';
+
+  @override
+  String get intimacyBodyDontRemindAgain => '不再提醒';
+
+  @override
+  String get intimacyBodyDontRemindAgainDesc => '圍度修改建立新體重記錄時不再顯示提醒';
+
+  @override
+  String get intimacyBodyUnderbust => '下胸圍';
+
+  @override
+  String get intimacyBraSize => '胸罩尺碼';
+
+  @override
+  String get intimacyBraStandard => '尺碼標準';
+
+  @override
+  String get intimacyBraStandardEu => '歐洲 / EN 13402';
+
+  @override
+  String get intimacyBraStandardFrEs => '法國 / 西班牙';
+
+  @override
+  String get intimacyBraStandardJp => '日本 / JIS';
+
+  @override
+  String get intimacyBraStandardUk => '英國';
+
+  @override
+  String get intimacyBraStandardUs => '美國';
+
+  @override
+  String get intimacyBraStandardAuNz => '澳洲 / 紐西蘭';
+
+  @override
+  String get intimacyBraEstimatedSize => '估算尺碼';
+
+  @override
+  String get intimacyBraOutOfRange => '超出支援的尺碼範圍';
+
+  @override
+  String get intimacyBraEstimateDisclaimer =>
+      '計算結果僅為估算尺碼，實際合身程度可能因品牌、款式設計與測量方式而異。';
+
+  @override
+  String get intimacyBraUsVariance => '美國罩杯命名在不同品牌間差異較大，結果僅供參考。';
+
+  @override
+  String get intimacyBraHelpTitle => '胸罩尺碼計算方式';
+
+  @override
+  String get intimacyBraHelpEu =>
+      'EN 13402 將下胸圍就近取整到 5 公分一級的底圍（58–62 → 60，63–67 → 65，依此類推）。罩杯由上胸圍與下胸圍的差值決定：10–12 公分 → AA，之後每 2 公分升一級，26–28 公分 → H。';
+
+  @override
+  String get intimacyBraHelpFrEs =>
+      '法國 / 西班牙使用歐洲罩杯，底圍數字為歐洲底圍加 15（EU 70 → 85，EU 75 → 90，EU 80 → 95）。';
+
+  @override
+  String get intimacyBraHelpJp =>
+      '日本 / JIS 將下胸圍就近取整到 5 公分一級，罩杯約每 2.5 公分升一級（10.0 公分 → A，12.5 公分 → B，15.0 公分 → C 等，每級約 ±1.25 公分）。日本尺碼通常將罩杯寫在前面，如 C75。';
+
+  @override
+  String get intimacyBraHelpUk =>
+      '英國底圍由歐洲底圍換算（EU 60 → 28，65 → 30，70 → 32，75 → 34，80 → 36）。差值約每增加 1 英寸罩杯升一級：1 英寸 → A，2 → B，3 → C，4 → D，5 → DD，6 → E，7 → F，8 → FF，9 → G，10 → GG，11 → H。';
+
+  @override
+  String get intimacyBraHelpUs =>
+      '美國使用與英國相同的底圍數字，罩杯順序為 A、B、C、D、DD/E、DDD/F、G、H、I、J、K，差值每增加約 1 英寸升一級。不同品牌的命名差異較大。';
+
+  @override
+  String get intimacyBraHelpAuNz =>
+      '澳洲 / 紐西蘭使用英國罩杯，底圍為服裝尺碼（UK 30 → 8，32 → 10，34 → 12，36 → 14）。';
+
+  @override
+  String get intimacyCycleTitle => '月經週期';
+
+  @override
+  String get intimacyCycleEnable => '啟用月經週期記錄';
+
+  @override
+  String get intimacyCycleAddStart => '新增經期開始日期';
+
+  @override
+  String get intimacyCycleStartHint => '經期開始日期指持續性經血出血的第一天。請勿將偶發點狀出血記錄為開始日期。';
+
+  @override
+  String get intimacyCycleStartDates => '經期開始日期';
+
+  @override
+  String get intimacyCycleActualStart => '實際開始日期';
+
+  @override
+  String get intimacyCyclePredictedStart => '預測開始日期';
+
+  @override
+  String get intimacyCyclePhaseMenstrual => '月經期';
+
+  @override
+  String get intimacyCyclePhaseFollicular => '濾泡期';
+
+  @override
+  String get intimacyCyclePhaseLuteal => '黃體期';
+
+  @override
+  String get intimacyCycleFertileWindow => '易孕期';
+
+  @override
+  String get intimacyCycleOvulation => '排卵日';
+
+  @override
+  String get intimacyCycleEstimatedSuffix => '（估算）';
+
+  @override
+  String intimacyCycleLength(int days) {
+    return '估算週期長度：$days 天';
+  }
+
+  @override
+  String get intimacyCycleDisclaimer => '週期與排卵日期為根據記錄資料產生的估算結果，不得作為避孕方法或醫療指導。';
+
+  @override
+  String get intimacyCycleShowOnCalendarUser => '在主頁日曆上顯示我的週期';
+
+  @override
+  String get intimacyCycleShowOnCalendarPartner => '在主頁日曆上顯示該伴侶的週期';
+
+  @override
+  String get intimacyCycleMe => '我';
+
+  @override
+  String get intimacyPsiSection => '陰莖測量';
+
+  @override
+  String get intimacyPsiErectLength => '勃起長度';
+
+  @override
+  String get intimacyPsiBaseCircumference => '根部周長';
+
+  @override
+  String get intimacyPsiFrontCircumference => '前端周長';
+
+  @override
+  String get intimacyPsiValue => 'PSI';
+
+  @override
+  String get intimacyPsiExplanation =>
+      'PSI 是將形狀近似為圓台計算所得的尺寸參考指數，僅用於個人記錄與比較，不代表健康、功能、吸引力或性能力。';
+
+  @override
+  String get intimacyPsiReference =>
+      '成人陰莖長度與周長的統計參考文獻：王存同等《中國與其他國家成人陰莖長度和周長的系統分析與比較研究》，《中國性科學》2020 年第 29 卷第 9 期，第 143–148 頁。PSI 計算公式並非出自該文獻。';
 
   @override
   String get settingsTitle => '設定';

@@ -597,6 +597,17 @@ IntimacyMergeResult mergeIntimacyData(
     serialize: (x) => jsonEncode(x.toJson()),
   );
 
+  final cycleResult = mergeRecords<CycleRecord>(
+    local: local.cycleRecords,
+    remote: remote.cycleRecords,
+    base: base?.cycleRecords,
+    getId: (c) => c.id,
+    getModifiedAt: (c) => c.modifiedAt,
+    getDisplayName: (c) => c.date,
+    autoResolve: autoResolve,
+    serialize: (x) => jsonEncode(x.toJson()),
+  );
+
   // Timer history: union by start time (simple dedup, no conflicts)
   final localStarts = local.timerHistory
       .map((e) => e.start.toIso8601String())
@@ -613,6 +624,11 @@ IntimacyMergeResult mergeIntimacyData(
       local.timerSessionModifiedAt.isAfter(remote.timerSessionModifiedAt) ||
       local.timerSessionModifiedAt == remote.timerSessionModifiedAt;
 
+  // User body profile: use the side with the newer body timestamp.
+  final useLocalUserBody =
+      local.userBodyModifiedAt.isAfter(remote.userBodyModifiedAt) ||
+      local.userBodyModifiedAt == remote.userBodyModifiedAt;
+
   // Settings: use the side with newer settingsModifiedAt
   final useLocalSettings =
       local.settingsModifiedAt.isAfter(remote.settingsModifiedAt) ||
@@ -624,6 +640,11 @@ IntimacyMergeResult mergeIntimacyData(
     positionsMerged: positionResult.merged,
     recordsMerged: recordResult.merged,
     timerHistoryMerged: mergedTimerHistory,
+    cycleRecordsMerged: cycleResult.merged,
+    userBody: useLocalUserBody ? local.userBody : remote.userBody,
+    userBodyModifiedAt: useLocalUserBody
+        ? local.userBodyModifiedAt
+        : remote.userBodyModifiedAt,
     timerHistoryRetentionDays: useLocalSettings
         ? local.timerHistoryRetentionDays
         : remote.timerHistoryRetentionDays,
@@ -644,6 +665,7 @@ IntimacyMergeResult mergeIntimacyData(
     toyConflicts: toyResult.conflicts,
     positionConflicts: positionResult.conflicts,
     recordConflicts: recordResult.conflicts,
+    cycleRecordConflicts: cycleResult.conflicts,
     timerSession: useLocalTimerSession
         ? local.timerSession
         : remote.timerSession,
@@ -659,8 +681,11 @@ class IntimacyMergeResult {
   final List<Position> positionsMerged;
   final List<IntimacyRecord> recordsMerged;
   final List<TimerHistoryEntry> timerHistoryMerged;
+  final List<CycleRecord> cycleRecordsMerged;
   final IntimacyTimerSession? timerSession;
   final DateTime timerSessionModifiedAt;
+  final BodyProfile? userBody;
+  final DateTime userBodyModifiedAt;
   final int? timerHistoryRetentionDays;
   final Map<String, String> partnerSortModes;
   final Map<String, List<String>> partnerCustomOrders;
@@ -671,6 +696,7 @@ class IntimacyMergeResult {
   final List<RecordConflict<Toy>> toyConflicts;
   final List<RecordConflict<Position>> positionConflicts;
   final List<RecordConflict<IntimacyRecord>> recordConflicts;
+  final List<RecordConflict<CycleRecord>> cycleRecordConflicts;
 
   /// Purpose: Create a intimacy merge result instance.
   /// Inputs: None.
@@ -683,8 +709,11 @@ class IntimacyMergeResult {
     required this.positionsMerged,
     required this.recordsMerged,
     required this.timerHistoryMerged,
+    required this.cycleRecordsMerged,
     required this.timerSession,
     required this.timerSessionModifiedAt,
+    required this.userBody,
+    required this.userBodyModifiedAt,
     required this.timerHistoryRetentionDays,
     required this.partnerSortModes,
     required this.partnerCustomOrders,
@@ -695,6 +724,7 @@ class IntimacyMergeResult {
     required this.toyConflicts,
     required this.positionConflicts,
     required this.recordConflicts,
+    required this.cycleRecordConflicts,
   });
 
   /// Purpose: Return whether conflicts is available.
@@ -706,7 +736,8 @@ class IntimacyMergeResult {
       partnerConflicts.isNotEmpty ||
       toyConflicts.isNotEmpty ||
       positionConflicts.isNotEmpty ||
-      recordConflicts.isNotEmpty;
+      recordConflicts.isNotEmpty ||
+      cycleRecordConflicts.isNotEmpty;
 
   /// Purpose: Implement the build resolved behavior for this file.
   /// Inputs: `resolutions`.
@@ -722,6 +753,13 @@ class IntimacyMergeResult {
       timerHistory: timerHistoryMerged,
       timerSession: timerSession,
       timerSessionModifiedAt: timerSessionModifiedAt,
+      userBody: userBody,
+      userBodyModifiedAt: userBodyModifiedAt,
+      cycleRecords: _resolveList(
+        cycleRecordsMerged,
+        cycleRecordConflicts,
+        resolutions,
+      ),
       timerHistoryRetentionDays: timerHistoryRetentionDays,
       partnerSortModes: partnerSortModes,
       partnerCustomOrders: partnerCustomOrders,

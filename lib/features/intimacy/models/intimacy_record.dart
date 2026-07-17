@@ -1,5 +1,210 @@
 import 'package:uuid/uuid.dart';
 
+/// Optional gender-neutral body measurements and preferences for one person.
+class BodyProfile {
+  final double? bustCm;
+  final double? waistCm;
+  final double? hipCm;
+  final double? underbustCm;
+
+  /// 'eu' | 'fr_es' | 'jp' | 'uk' | 'us' | 'au_nz'; null means the display default.
+  final String? braStandard;
+  final bool cycleEnabled;
+  final bool showCycleOnCalendar;
+  final double? erectLengthCm;
+  final double? baseCircumferenceCm;
+  final double? frontCircumferenceCm;
+
+  /// Purpose: Create a body profile instance.
+  /// Inputs: Optional measurement values and cycle display preferences.
+  /// Returns: A new `BodyProfile` instance.
+  /// Side effects: None.
+  /// Notes: Every field is optional; the user's bust/waist/hip live in the
+  /// Weight module instead, so those stay null on the user profile.
+  const BodyProfile({
+    this.bustCm,
+    this.waistCm,
+    this.hipCm,
+    this.underbustCm,
+    this.braStandard,
+    this.cycleEnabled = false,
+    this.showCycleOnCalendar = false,
+    this.erectLengthCm,
+    this.baseCircumferenceCm,
+    this.frontCircumferenceCm,
+  });
+
+  /// Purpose: Report whether this profile carries no data at all.
+  /// Inputs: None.
+  /// Returns: `bool`.
+  /// Side effects: None.
+  /// Notes: Empty profiles are stored as null so untouched data stays unchanged.
+  bool get isEmpty =>
+      bustCm == null &&
+      waistCm == null &&
+      hipCm == null &&
+      underbustCm == null &&
+      braStandard == null &&
+      !cycleEnabled &&
+      !showCycleOnCalendar &&
+      erectLengthCm == null &&
+      baseCircumferenceCm == null &&
+      frontCircumferenceCm == null;
+
+  /// Purpose: Serialize this value into a JSON-compatible map.
+  /// Inputs: None.
+  /// Returns: A JSON-compatible map.
+  /// Side effects: None.
+  /// Notes: Keep the output aligned with the persisted file and sync format.
+  Map<String, dynamic> toJson() => {
+    if (bustCm != null) 'bustCm': bustCm,
+    if (waistCm != null) 'waistCm': waistCm,
+    if (hipCm != null) 'hipCm': hipCm,
+    if (underbustCm != null) 'underbustCm': underbustCm,
+    if (braStandard != null) 'braStandard': braStandard,
+    if (cycleEnabled) 'cycleEnabled': cycleEnabled,
+    if (showCycleOnCalendar) 'showCycleOnCalendar': showCycleOnCalendar,
+    if (erectLengthCm != null) 'erectLengthCm': erectLengthCm,
+    if (baseCircumferenceCm != null)
+      'baseCircumferenceCm': baseCircumferenceCm,
+    if (frontCircumferenceCm != null)
+      'frontCircumferenceCm': frontCircumferenceCm,
+  };
+
+  /// Purpose: Create an instance from a JSON-compatible map.
+  /// Inputs: `json`.
+  /// Returns: A new `BodyProfile.fromJson` instance.
+  /// Side effects: None.
+  /// Notes: Use this path when reading the persisted or transferred data format for this type.
+  factory BodyProfile.fromJson(Map<String, dynamic> json) => BodyProfile(
+    bustCm: (json['bustCm'] as num?)?.toDouble(),
+    waistCm: (json['waistCm'] as num?)?.toDouble(),
+    hipCm: (json['hipCm'] as num?)?.toDouble(),
+    underbustCm: (json['underbustCm'] as num?)?.toDouble(),
+    braStandard: json['braStandard'] as String?,
+    cycleEnabled: json['cycleEnabled'] == true,
+    showCycleOnCalendar: json['showCycleOnCalendar'] == true,
+    erectLengthCm: (json['erectLengthCm'] as num?)?.toDouble(),
+    baseCircumferenceCm: (json['baseCircumferenceCm'] as num?)?.toDouble(),
+    frontCircumferenceCm: (json['frontCircumferenceCm'] as num?)?.toDouble(),
+  );
+
+  /// Purpose: Create a copy of this value with selected fields replaced.
+  /// Inputs: Optional replacement and clear flags for nullable fields.
+  /// Returns: `BodyProfile`.
+  /// Side effects: None.
+  /// Notes: Use clear flags when a nullable field must be removed.
+  BodyProfile copyWith({
+    double? bustCm,
+    bool clearBustCm = false,
+    double? waistCm,
+    bool clearWaistCm = false,
+    double? hipCm,
+    bool clearHipCm = false,
+    double? underbustCm,
+    bool clearUnderbustCm = false,
+    String? braStandard,
+    bool clearBraStandard = false,
+    bool? cycleEnabled,
+    bool? showCycleOnCalendar,
+    double? erectLengthCm,
+    bool clearErectLengthCm = false,
+    double? baseCircumferenceCm,
+    bool clearBaseCircumferenceCm = false,
+    double? frontCircumferenceCm,
+    bool clearFrontCircumferenceCm = false,
+  }) => BodyProfile(
+    bustCm: clearBustCm ? null : (bustCm ?? this.bustCm),
+    waistCm: clearWaistCm ? null : (waistCm ?? this.waistCm),
+    hipCm: clearHipCm ? null : (hipCm ?? this.hipCm),
+    underbustCm: clearUnderbustCm ? null : (underbustCm ?? this.underbustCm),
+    braStandard: clearBraStandard ? null : (braStandard ?? this.braStandard),
+    cycleEnabled: cycleEnabled ?? this.cycleEnabled,
+    showCycleOnCalendar: showCycleOnCalendar ?? this.showCycleOnCalendar,
+    erectLengthCm: clearErectLengthCm
+        ? null
+        : (erectLengthCm ?? this.erectLengthCm),
+    baseCircumferenceCm: clearBaseCircumferenceCm
+        ? null
+        : (baseCircumferenceCm ?? this.baseCircumferenceCm),
+    frontCircumferenceCm: clearFrontCircumferenceCm
+        ? null
+        : (frontCircumferenceCm ?? this.frontCircumferenceCm),
+  );
+}
+
+/// One recorded menstrual period start date for the user or a partner.
+class CycleRecord {
+  final String id;
+
+  /// null means this record belongs to the user; otherwise a `Partner.id`.
+  final String? personId;
+
+  /// Local calendar date in `yyyy-MM-dd`; no time component is stored.
+  final String date;
+  final DateTime modifiedAt;
+
+  /// Purpose: Create a cycle record instance.
+  /// Inputs: `date` as a `yyyy-MM-dd` local calendar date, optional `personId`.
+  /// Returns: A new `CycleRecord` instance.
+  /// Side effects: None.
+  /// Notes: Records are add/delete only; there is no edit flow.
+  CycleRecord({
+    String? id,
+    this.personId,
+    required this.date,
+    DateTime? modifiedAt,
+  }) : id = id ?? const Uuid().v4(),
+       modifiedAt = modifiedAt ?? DateTime.now().toUtc();
+
+  /// Purpose: Return the record's calendar day as a date-only local DateTime.
+  /// Inputs: None.
+  /// Returns: `DateTime`.
+  /// Side effects: None.
+  /// Notes: The time component is always midnight local time.
+  DateTime get day {
+    final parsed = DateTime.parse(date);
+    return DateTime(parsed.year, parsed.month, parsed.day);
+  }
+
+  /// Purpose: Format a calendar date as the stored `yyyy-MM-dd` string.
+  /// Inputs: `day`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Ignores any time component on the input.
+  static String formatDate(DateTime day) {
+    final month = day.month.toString().padLeft(2, '0');
+    final dayOfMonth = day.day.toString().padLeft(2, '0');
+    return '${day.year}-$month-$dayOfMonth';
+  }
+
+  /// Purpose: Serialize this value into a JSON-compatible map.
+  /// Inputs: None.
+  /// Returns: A JSON-compatible map.
+  /// Side effects: None.
+  /// Notes: Keep the output aligned with the persisted file and sync format.
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    if (personId != null) 'personId': personId,
+    'date': date,
+    'modifiedAt': modifiedAt.toIso8601String(),
+  };
+
+  /// Purpose: Create an instance from a JSON-compatible map.
+  /// Inputs: `json`.
+  /// Returns: A new `CycleRecord.fromJson` instance.
+  /// Side effects: None.
+  /// Notes: Use this path when reading the persisted or transferred data format for this type.
+  factory CycleRecord.fromJson(Map<String, dynamic> json) => CycleRecord(
+    id: json['id'] as String,
+    personId: json['personId'] as String?,
+    date: json['date'] as String,
+    modifiedAt: json['modifiedAt'] != null
+        ? DateTime.parse(json['modifiedAt'] as String)
+        : DateTime.fromMillisecondsSinceEpoch(0),
+  );
+}
+
 class Partner {
   final String id;
   final String name;
@@ -7,6 +212,7 @@ class Partner {
   final String? imagePath;
   final DateTime? startDate;
   final DateTime? endDate;
+  final BodyProfile? body;
   final DateTime modifiedAt;
 
   /// Purpose: Create a partner instance.
@@ -21,6 +227,7 @@ class Partner {
     this.imagePath,
     this.startDate,
     this.endDate,
+    this.body,
     DateTime? modifiedAt,
   }) : id = id ?? const Uuid().v4(),
        modifiedAt = modifiedAt ?? DateTime.now().toUtc();
@@ -37,6 +244,7 @@ class Partner {
     if (imagePath != null) 'imagePath': imagePath,
     if (startDate != null) 'startDate': startDate!.toIso8601String(),
     if (endDate != null) 'endDate': endDate!.toIso8601String(),
+    if (body != null && !body!.isEmpty) 'body': body!.toJson(),
     'modifiedAt': modifiedAt.toIso8601String(),
   };
 
@@ -56,9 +264,40 @@ class Partner {
     endDate: json['endDate'] != null
         ? DateTime.parse(json['endDate'] as String)
         : null,
+    body: json['body'] is Map<String, dynamic>
+        ? BodyProfile.fromJson(json['body'] as Map<String, dynamic>)
+        : null,
     modifiedAt: json['modifiedAt'] != null
         ? DateTime.parse(json['modifiedAt'] as String)
         : DateTime.fromMillisecondsSinceEpoch(0),
+  );
+
+  /// Purpose: Create a copy of this value with selected fields replaced.
+  /// Inputs: Optional replacement and clear flags for nullable fields.
+  /// Returns: `Partner`.
+  /// Side effects: None.
+  /// Notes: Always stamps a fresh UTC `modifiedAt` so edits win LWW merges.
+  Partner copyWith({
+    String? name,
+    String? emoji,
+    bool clearEmoji = false,
+    String? imagePath,
+    bool clearImagePath = false,
+    DateTime? startDate,
+    bool clearStartDate = false,
+    DateTime? endDate,
+    bool clearEndDate = false,
+    BodyProfile? body,
+    bool clearBody = false,
+  }) => Partner(
+    id: id,
+    name: name ?? this.name,
+    emoji: clearEmoji ? null : (emoji ?? this.emoji),
+    imagePath: clearImagePath ? null : (imagePath ?? this.imagePath),
+    startDate: clearStartDate ? null : (startDate ?? this.startDate),
+    endDate: clearEndDate ? null : (endDate ?? this.endDate),
+    body: clearBody ? null : (body ?? this.body),
+    modifiedAt: DateTime.now().toUtc(),
   );
 }
 
@@ -468,6 +707,15 @@ class IntimacyData {
   final IntimacyTimerSession? timerSession;
   final DateTime timerSessionModifiedAt;
 
+  /// The user's own body profile; null until the user records something.
+  final BodyProfile? userBody;
+
+  /// LWW timestamp for `userBody` only, independent of `settingsModifiedAt`.
+  final DateTime userBodyModifiedAt;
+
+  /// Period start dates for the user and partners, merged per record id.
+  final List<CycleRecord> cycleRecords;
+
   /// null = permanent, otherwise days (3, 7, 14)
   final int? timerHistoryRetentionDays;
   final Map<String, String> partnerSortModes;
@@ -489,6 +737,9 @@ class IntimacyData {
     this.timerHistory = const [],
     this.timerSession,
     DateTime? timerSessionModifiedAt,
+    this.userBody,
+    DateTime? userBodyModifiedAt,
+    this.cycleRecords = const [],
     this.timerHistoryRetentionDays,
     this.partnerSortModes = const {},
     this.partnerCustomOrders = const {},
@@ -497,6 +748,9 @@ class IntimacyData {
     DateTime? settingsModifiedAt,
   }) : timerSessionModifiedAt =
            timerSessionModifiedAt ??
+           DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+       userBodyModifiedAt =
+           userBodyModifiedAt ??
            DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
        settingsModifiedAt = settingsModifiedAt ?? DateTime.now().toUtc();
 
@@ -513,6 +767,11 @@ class IntimacyData {
     'timerHistory': timerHistory.map((e) => e.toJson()).toList(),
     if (timerSession != null) 'timerSession': timerSession!.toJson(),
     'timerSessionModifiedAt': timerSessionModifiedAt.toIso8601String(),
+    if (userBody != null && !userBody!.isEmpty) 'userBody': userBody!.toJson(),
+    if (userBodyModifiedAt.millisecondsSinceEpoch != 0)
+      'userBodyModifiedAt': userBodyModifiedAt.toIso8601String(),
+    if (cycleRecords.isNotEmpty)
+      'cycleRecords': cycleRecords.map((c) => c.toJson()).toList(),
     if (timerHistoryRetentionDays != null)
       'timerHistoryRetentionDays': timerHistoryRetentionDays,
     if (partnerSortModes.isNotEmpty) 'partnerSortModes': partnerSortModes,
@@ -562,6 +821,17 @@ class IntimacyData {
     timerSessionModifiedAt: json['timerSessionModifiedAt'] != null
         ? DateTime.parse(json['timerSessionModifiedAt'] as String)
         : DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+    userBody: json['userBody'] is Map<String, dynamic>
+        ? BodyProfile.fromJson(json['userBody'] as Map<String, dynamic>)
+        : null,
+    userBodyModifiedAt: json['userBodyModifiedAt'] != null
+        ? DateTime.parse(json['userBodyModifiedAt'] as String)
+        : DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+    cycleRecords:
+        (json['cycleRecords'] as List<dynamic>?)
+            ?.map((c) => CycleRecord.fromJson(c as Map<String, dynamic>))
+            .toList() ??
+        [],
     timerHistoryRetentionDays: json['timerHistoryRetentionDays'] as int?,
     partnerSortModes:
         (json['partnerSortModes'] as Map<String, dynamic>?)?.map(
