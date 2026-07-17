@@ -2681,7 +2681,8 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
   /// Inputs: `p`.
   /// Returns: None.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Separation automatically stops showing this partner's cycle on
+  /// the home-page calendar; the user may re-enable it manually later.
   void _breakUpPartner(Partner p) {
     final now = DateTime.now();
     // Remove from list, re-add at end with endDate set
@@ -2695,7 +2696,7 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
           imagePath: p.imagePath,
           startDate: p.startDate,
           endDate: now,
-          body: p.body,
+          body: p.body?.copyWith(showCycleOnCalendar: false),
         ),
       );
     });
@@ -2908,6 +2909,9 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
         if (existing != null) {
           final idx = _partners.indexWhere((p) => p.id == existing.id);
           if (idx != -1) {
+            // Newly marking the partner as separated stops showing their
+            // cycle on the home-page calendar (re-enable is manual).
+            final newlySeparated = existing.endDate == null && endDate != null;
             savedPartner = Partner(
               id: existing.id,
               name: nameCtrl.text.trim(),
@@ -2915,7 +2919,9 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
               imagePath: imagePath,
               startDate: startDate,
               endDate: endDate,
-              body: existing.body,
+              body: newlySeparated
+                  ? existing.body?.copyWith(showCycleOnCalendar: false)
+                  : existing.body,
             );
             _partners[idx] = savedPartner!;
           }

@@ -568,7 +568,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get intimacyBodyMeasurements => '身体サイズ';
 
   @override
-  String get intimacyBodyMeasurementsFromWeight => '体重モジュールの最新記録を表示します';
+  String get intimacyBodyMeasurementsFromWeight =>
+      '各項目について体重モジュールの最新の測定値を表示します';
 
   @override
   String get intimacyBodyWeightSyncWarningTitle => '体重モジュールと同期';

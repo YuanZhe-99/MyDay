@@ -1178,7 +1178,7 @@ abstract class AppLocalizations {
   /// No description provided for @intimacyBodyMeasurementsFromWeight.
   ///
   /// In en, this message translates to:
-  /// **'Shows the latest Weight module record'**
+  /// **'Shows each measurement\'s latest available value from the Weight module'**
   String get intimacyBodyMeasurementsFromWeight;
 
   /// No description provided for @intimacyBodyWeightSyncWarningTitle.

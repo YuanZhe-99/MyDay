@@ -572,7 +572,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get intimacyBodyMeasurementsFromWeight =>
-      'Shows the latest Weight module record';
+      'Shows each measurement\'s latest available value from the Weight module';
 
   @override
   String get intimacyBodyWeightSyncWarningTitle => 'Sync with Weight module';

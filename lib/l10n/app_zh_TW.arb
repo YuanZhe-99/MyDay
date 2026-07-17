@@ -204,7 +204,7 @@
   "intimacyBody": "身體",
   "intimacyTabRecords": "記錄",
   "intimacyBodyMeasurements": "身體圍度",
-  "intimacyBodyMeasurementsFromWeight": "顯示體重模組的最新記錄",
+  "intimacyBodyMeasurementsFromWeight": "顯示體重模組中各項圍度的最新可用數值",
   "intimacyBodyWeightSyncWarningTitle": "與體重模組同步",
   "intimacyBodyWeightSyncWarning": "在此處所做的修改將同步到體重模組，並建立一筆新的體重記錄。",
   "intimacyBodyDontRemindAgain": "不再提醒",

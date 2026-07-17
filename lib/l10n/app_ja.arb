@@ -205,7 +205,7 @@
   "intimacyBody": "ボディ",
   "intimacyTabRecords": "記録",
   "intimacyBodyMeasurements": "身体サイズ",
-  "intimacyBodyMeasurementsFromWeight": "体重モジュールの最新記録を表示します",
+  "intimacyBodyMeasurementsFromWeight": "各項目について体重モジュールの最新の測定値を表示します",
   "intimacyBodyWeightSyncWarningTitle": "体重モジュールと同期",
   "intimacyBodyWeightSyncWarning": "ここでの変更は体重モジュールと同期され、新しい体重記録が作成されます。",
   "intimacyBodyDontRemindAgain": "今後表示しない",

@@ -218,7 +218,7 @@
   "intimacyBody": "Body",
   "intimacyTabRecords": "Records",
   "intimacyBodyMeasurements": "Body Measurements",
-  "intimacyBodyMeasurementsFromWeight": "Shows the latest Weight module record",
+  "intimacyBodyMeasurementsFromWeight": "Shows each measurement's latest available value from the Weight module",
   "intimacyBodyWeightSyncWarningTitle": "Sync with Weight module",
   "intimacyBodyWeightSyncWarning": "Changes made here will be synchronized with the Weight module and will create a new weight record.",
   "intimacyBodyDontRemindAgain": "Do not remind me again",

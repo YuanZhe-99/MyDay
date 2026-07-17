@@ -205,7 +205,7 @@
   "intimacyBody": "身体",
   "intimacyTabRecords": "记录",
   "intimacyBodyMeasurements": "身体围度",
-  "intimacyBodyMeasurementsFromWeight": "显示体重模块的最新记录",
+  "intimacyBodyMeasurementsFromWeight": "显示体重模块中各项围度的最新可用数值",
   "intimacyBodyWeightSyncWarningTitle": "与体重模块同步",
   "intimacyBodyWeightSyncWarning": "在此处所做的修改将同步到体重模块，并创建一条新的体重记录。",
   "intimacyBodyDontRemindAgain": "不再提醒",

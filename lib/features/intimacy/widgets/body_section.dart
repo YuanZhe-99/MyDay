@@ -130,20 +130,26 @@ class _BodySectionViewState extends ConsumerState<BodySectionView> {
     super.dispose();
   }
 
-  /// Purpose: Load the latest weight record values and the warning flag.
+  /// Purpose: Load the latest weight measurement values and the warning flag.
   /// Inputs: None.
   /// Returns: `Future<void>`.
   /// Side effects: Reads weight data and storage config, updates state.
-  /// Notes: User mode only; bust/waist/hip display the latest record as-is.
+  /// Notes: User mode only. Each of bust/waist/hip independently shows its
+  /// most recent positive value, so a newer record missing a field falls
+  /// back to the last earlier record that contains it.
   Future<void> _loadUserMeasurements() async {
     final data = await WeightStorage.load();
     final config = await TodoStorage.readConfig();
     if (!mounted) return;
     setState(() {
-      final latest = _latestRecord(data?.records ?? const []);
-      _bust = latest?.bustCm;
-      _waist = latest?.waistCm;
-      _hip = latest?.hipCm;
+      final records = data?.records ?? const <WeightRecord>[];
+      final latest = _latestRecord(records);
+      final effective = latest != null
+          ? WeightData.effectiveMeasurementsUpTo(records, latest.datetime)
+          : null;
+      _bust = effective?.bustCm;
+      _waist = effective?.waistCm;
+      _hip = effective?.hipCm;
       _syncWarningDisabled = config[bodyWeightSyncWarningDisabledKey] == true;
       _weightLoaded = true;
     });

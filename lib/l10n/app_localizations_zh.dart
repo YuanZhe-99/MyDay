@@ -568,7 +568,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get intimacyBodyMeasurements => '身体围度';
 
   @override
-  String get intimacyBodyMeasurementsFromWeight => '显示体重模块的最新记录';
+  String get intimacyBodyMeasurementsFromWeight => '显示体重模块中各项围度的最新可用数值';
 
   @override
   String get intimacyBodyWeightSyncWarningTitle => '与体重模块同步';
@@ -2628,7 +2628,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get intimacyBodyMeasurements => '身體圍度';
 
   @override
-  String get intimacyBodyMeasurementsFromWeight => '顯示體重模組的最新記錄';
+  String get intimacyBodyMeasurementsFromWeight => '顯示體重模組中各項圍度的最新可用數值';
 
   @override
   String get intimacyBodyWeightSyncWarningTitle => '與體重模組同步';
