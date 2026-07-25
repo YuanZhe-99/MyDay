@@ -1,33 +1,25 @@
-import 'dart:convert';
+/// Purpose: Validate-then-write helpers for MyDay's known data files.
+/// Inputs: Data file paths and JSON payloads from import/restore paths.
+/// Returns: Nothing; throws `DataFileValidationException` on invalid payloads.
+/// Side effects: Atomically replaces files on disk.
+/// Notes: PLAN.md P3.2.3 split this file in two, as Appendix C called for. The
+/// generic atomic tmp-then-rename writers moved to the `myapps_data` package
+/// and are re-exported here; the validation dispatch now reads the module
+/// registry instead of a sixth hardcoded file list. Every public member kept
+/// its name and signature (I7).
+library;
+
 import 'dart:io';
 
+import 'package:myapps_data/myapps_data.dart' as shared;
 import 'package:path/path.dart' as p;
 
-import '../../features/finance/services/exchange_rate_storage.dart';
-import '../../features/finance/services/finance_storage.dart';
-import '../../features/intimacy/models/intimacy_record.dart';
-import '../../features/todo/services/todo_storage.dart';
-import '../../features/weight/models/weight_record.dart';
+import '../../app/data_modules.dart';
 
-class DataFileValidationException implements Exception {
-  final String fileName;
-  final String message;
-
-  /// Purpose: Create a data file validation exception.
-  /// Inputs: `fileName`, `message`.
-  /// Returns: A new `DataFileValidationException` instance.
-  /// Side effects: None.
-  /// Notes: Used to report import/restore failures without overwriting data.
-  const DataFileValidationException(this.fileName, this.message);
-
-  /// Purpose: Return a readable validation message.
-  /// Inputs: None.
-  /// Returns: `String`.
-  /// Side effects: None.
-  /// Notes: Includes the file name so UI can point at the failing module.
-  @override
-  String toString() => '$fileName: $message';
-}
+// The exception type moved to the package (feature-matrix K8) with the same
+// shape — `fileName`, `message`, and the `'$fileName: $message'` toString — so
+// existing catch sites and messages are unchanged (I8).
+export 'package:myapps_data/myapps_data.dart' show DataFileValidationException;
 
 class DataFileSafety {
   /// Purpose: Prevent direct instantiation of the data file safety utility.
@@ -37,41 +29,34 @@ class DataFileSafety {
   /// Notes: Use static helpers instead.
   const DataFileSafety._();
 
-  static const dataFileNames = {
-    'todo_data.json',
-    'finance_data.json',
-    'exchange_rates.json',
-    'intimacy_data.json',
-    'weight_data.json',
+  /// Known app data file names.
+  ///
+  /// Derived from the module registry — this used to be one of five separate
+  /// hardcoded copies of the same list.
+  static final Set<String> dataFileNames = {
+    for (final module in todoModuleRegistry.modules) module.fileName,
   };
 
   /// Purpose: Validate a known app data JSON string against its model parser.
   /// Inputs: `fileName`, `jsonContent`.
   /// Returns: None.
   /// Side effects: None.
-  /// Notes: Throws before import/restore writes any invalid or incompatible data file.
+  /// Notes: Throws before import/restore writes any invalid or incompatible
+  /// data file. The parser comes from the registry entry for `fileName`.
   static void validateDataJson(String fileName, String jsonContent) {
-    if (!dataFileNames.contains(fileName)) {
-      throw DataFileValidationException(fileName, 'unsupported data file');
+    final module = todoModuleRegistry.byFileName[fileName];
+    if (module == null) {
+      throw shared.DataFileValidationException(
+        fileName,
+        'unsupported data file',
+      );
     }
 
     try {
-      final json = jsonDecode(jsonContent) as Map<String, dynamic>;
-      switch (fileName) {
-        case 'todo_data.json':
-          TodoData.fromJson(json);
-        case 'finance_data.json':
-          FinanceData.fromJson(json);
-        case 'exchange_rates.json':
-          ExchangeRateData.fromJson(json);
-        case 'intimacy_data.json':
-          IntimacyData.fromJson(json);
-        case 'weight_data.json':
-          WeightData.fromJson(json);
-      }
+      module.validate(jsonContent);
     } catch (e) {
-      if (e is DataFileValidationException) rethrow;
-      throw DataFileValidationException(fileName, e.toString());
+      if (e is shared.DataFileValidationException) rethrow;
+      throw shared.DataFileValidationException(fileName, e.toString());
     }
   }
 
@@ -93,46 +78,14 @@ class DataFileSafety {
   /// Returns: `Future<void>`.
   /// Side effects: Creates parent directories as needed and replaces the target.
   /// Notes: Used by import and restore paths to avoid partial writes.
-  static Future<void> atomicWriteString(File file, String content) async {
-    final parent = file.parent;
-    if (!await parent.exists()) {
-      await parent.create(recursive: true);
-    }
-    final tmp = File(
-      '${file.path}.tmp-${DateTime.now().microsecondsSinceEpoch}',
-    );
-    await tmp.writeAsString(content, flush: true);
-    try {
-      await tmp.rename(file.path);
-    } catch (e) {
-      try {
-        if (await tmp.exists()) await tmp.delete();
-      } catch (_) {}
-      throw FileSystemException('Failed to replace file safely: $e', file.path);
-    }
-  }
+  static Future<void> atomicWriteString(File file, String content) =>
+      shared.atomicWriteString(file, content);
 
   /// Purpose: Atomically write bytes to a file through a same-directory temp file.
   /// Inputs: `file`, `bytes`.
   /// Returns: `Future<void>`.
   /// Side effects: Creates parent directories as needed and replaces the target.
-  /// Notes: Used for ZIP image restore after data JSON validation succeeds.
-  static Future<void> atomicWriteBytes(File file, List<int> bytes) async {
-    final parent = file.parent;
-    if (!await parent.exists()) {
-      await parent.create(recursive: true);
-    }
-    final tmp = File(
-      '${file.path}.tmp-${DateTime.now().microsecondsSinceEpoch}',
-    );
-    await tmp.writeAsBytes(bytes, flush: true);
-    try {
-      await tmp.rename(file.path);
-    } catch (e) {
-      try {
-        if (await tmp.exists()) await tmp.delete();
-      } catch (_) {}
-      throw FileSystemException('Failed to replace file safely: $e', file.path);
-    }
-  }
+  /// Notes: Used for images restored from backups and ZIP imports.
+  static Future<void> atomicWriteBytes(File file, List<int> bytes) =>
+      shared.atomicWriteBytes(file, bytes);
 }

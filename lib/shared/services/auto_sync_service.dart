@@ -1,117 +1,131 @@
-import 'dart:async';
+/// Purpose: MyDay's auto-sync trigger service, now a facade over the shared
+/// `AutoSyncScheduler` from the `myapps_data` package.
+/// Inputs: Lifecycle events, storage saves, and manual sync results.
+/// Returns: Sync status for the settings UI.
+/// Side effects: Schedules and runs background syncs.
+/// Notes: PLAN.md P3.2.3. The scheduler owns only the trigger topology —
+/// launch, resume, the 15-minute timer, and the 30-second save debounce.
+/// **MyDay's daily backup is deliberately NOT wired here**: it stays driven by
+/// `ReminderService`'s 30-second loop, which is why `onPeriodicTick` is null
+/// (feature-matrix H5). Resume refreshes mobile reminder schedules (H6). Every
+/// public member kept its name and signature (I7).
+library;
 
 import 'package:flutter/widgets.dart';
+import 'package:myapps_data/myapps_data.dart' as shared;
 
 import 'reminder_service.dart';
 import 'webdav_service.dart';
 
 /// Singleton service that triggers WebDAV sync automatically when enabled.
-///
-/// Four triggers (aligned with MyAnime/MyDevice):
-///   1. App started → immediate sync
-///   2. App resumed from background → immediate sync
-///   3. Data saved locally → debounced sync (30 s after last save)
-///   4. Periodic timer → sync every 15 minutes while the process is alive
-class AutoSyncService with WidgetsBindingObserver {
-  /// Purpose: Prevent direct instantiation of the auto-sync singleton.
+class AutoSyncService {
+  /// Purpose: Prevent direct instantiation and expose only the singleton.
   /// Inputs: None.
-  /// Returns: A new `AutoSyncService` instance.
-  /// Side effects: None.
-  /// Notes: Use `AutoSyncService.instance` instead.
+  /// Returns: A new `AutoSyncService._` instance.
+  /// Side effects: Builds the shared scheduler with MyDay's hooks.
+  /// Notes: Implementations should preserve this contract.
   AutoSyncService._();
   static final instance = AutoSyncService._();
 
-  Timer? _debounce;
-  Timer? _periodic;
-  bool _syncing = false;
-  bool _started = false;
-  DateTime? _lastSuccessAt;
-  DateTime? _lastFailureAt;
-  String? _lastError;
-  bool _hasPendingConflicts = false;
+  /// Shared scheduler wired to MyDay's trigger topology.
+  late final shared.AutoSyncScheduler _scheduler = shared.AutoSyncScheduler(
+    isAutoSyncActive: () async {
+      final config = await WebDAVService.loadConfig();
+      return config != null && config.isConfigured && config.autoSync;
+    },
+    runSync: () async {
+      final config = await WebDAVService.loadConfig();
+      // The gate above already ran; a config that vanished in between simply
+      // reports failure rather than throwing.
+      if (config == null) {
+        return const shared.AutoSyncResult(success: false);
+      }
+      final result = await WebDAVService.sync(config);
+      return shared.AutoSyncResult(
+        success: result.success,
+        hasConflicts: result.hasConflicts,
+        error: result.error,
+      );
+    },
+    consumeLocalDataChanged: WebDAVService.consumeLocalDataChanged,
+    // Intentionally null: ReminderService's 30-second loop owns the daily
+    // backup in MyDay. Do not move it here without changing that loop.
+    onPeriodicTick: null,
+    // On resume, recompute per-day mobile notification bodies from current data.
+    onResume: () => ReminderService.instance.refreshMobileSchedules(),
+  );
 
-  static const _debounceDuration = Duration(seconds: 30);
-  static const _periodicInterval = Duration(minutes: 15);
-
-  /// Callbacks invoked when sync writes merged data to local files.
-  /// UI pages should register to reload their data.
-  final List<void Function()> _onLocalDataChanged = [];
-  final List<VoidCallback> _onStatusChanged = [];
-
-  /// Purpose: Return the last successful auto/manual sync time recorded by this service.
+  /// Purpose: Return the last successful sync time recorded by this service.
   /// Inputs: None.
   /// Returns: `DateTime?`.
   /// Side effects: None.
   /// Notes: Used by settings UI to surface sync health.
-  DateTime? get lastSuccessAt => _lastSuccessAt;
+  DateTime? get lastSuccessAt => _scheduler.lastSuccessAt;
 
-  /// Purpose: Return the last failed auto/manual sync time recorded by this service.
+  /// Purpose: Return the last failed sync time recorded by this service.
   /// Inputs: None.
   /// Returns: `DateTime?`.
   /// Side effects: None.
   /// Notes: Used by settings UI to surface sync health.
-  DateTime? get lastFailureAt => _lastFailureAt;
+  DateTime? get lastFailureAt => _scheduler.lastFailureAt;
 
   /// Purpose: Return the most recent sync failure message.
   /// Inputs: None.
   /// Returns: `String?`.
   /// Side effects: None.
   /// Notes: Null after a successful sync.
-  String? get lastError => _lastError;
+  String? get lastError => _scheduler.lastError;
 
   /// Purpose: Return whether auto-sync found conflicts needing manual resolution.
   /// Inputs: None.
   /// Returns: `bool`.
   /// Side effects: None.
   /// Notes: Conflicts are not auto-resolved during background sync.
-  bool get hasPendingConflicts => _hasPendingConflicts;
+  bool get hasPendingConflicts => _scheduler.hasPendingConflicts;
 
-  /// Purpose: Add on local data changed through the current flow.
+  /// Purpose: Register a callback invoked when auto-sync updates local data.
   /// Inputs: `cb`.
   /// Returns: None.
-  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Side effects: None.
   /// Notes: None.
-  void addOnLocalDataChanged(void Function() cb) => _onLocalDataChanged.add(cb);
+  void addOnLocalDataChanged(void Function() cb) =>
+      _scheduler.addOnLocalDataChanged(cb);
 
-  /// Purpose: Remove on local data changed through the current flow.
+  /// Purpose: Remove a previously registered callback.
   /// Inputs: `cb`.
   /// Returns: None.
-  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Side effects: None.
   /// Notes: None.
   void removeOnLocalDataChanged(void Function() cb) =>
-      _onLocalDataChanged.remove(cb);
+      _scheduler.removeOnLocalDataChanged(cb);
 
-  /// Purpose: Add a listener for auto-sync status changes.
+  /// Purpose: Register a callback invoked when sync status changes.
   /// Inputs: `cb`.
   /// Returns: None.
   /// Side effects: None.
   /// Notes: UI pages use this to refresh visible sync warnings.
-  void addOnStatusChanged(VoidCallback cb) => _onStatusChanged.add(cb);
+  void addOnStatusChanged(VoidCallback cb) => _scheduler.addOnStatusChanged(cb);
 
-  /// Purpose: Remove a listener for auto-sync status changes.
+  /// Purpose: Remove a previously registered sync-status callback.
   /// Inputs: `cb`.
   /// Returns: None.
   /// Side effects: None.
   /// Notes: Must be paired with `addOnStatusChanged` in widget dispose.
-  void removeOnStatusChanged(VoidCallback cb) => _onStatusChanged.remove(cb);
+  void removeOnStatusChanged(VoidCallback cb) =>
+      _scheduler.removeOnStatusChanged(cb);
 
   /// Purpose: Record a sync result triggered outside the auto-sync loop.
   /// Inputs: `result`.
   /// Returns: None.
-  /// Side effects: Updates in-memory sync status and notifies listeners.
+  /// Side effects: Updates sync status and notifies listeners.
   /// Notes: Manual sync pages call this so status banners clear after success.
-  void recordSyncResult(SyncResult result) {
-    if (result.hasConflicts) {
-      _recordFailure(
-        'Sync conflicts require manual resolution${result.error != null ? ': ${result.error}' : ''}',
-        conflicts: true,
-      );
-    } else if (!result.success) {
-      _recordFailure(result.error ?? 'Unknown sync failure');
-    } else {
-      _recordSuccess();
-    }
-  }
+  void recordSyncResult(SyncResult result) => _scheduler.recordSyncResult(
+    shared.AutoSyncResult(
+      success: result.success,
+      hasConflicts: result.hasConflicts,
+      error: result.error,
+    ),
+  );
 
   /// Purpose: Notify UI reload listeners after a manual sync or force
   /// operation wrote local data files.
@@ -119,15 +133,9 @@ class AutoSyncService with WidgetsBindingObserver {
   /// Returns: None.
   /// Side effects: Consumes the WebDAV local-data-changed flag and invokes
   /// registered reload callbacks.
-  /// Notes: Manual sync pages call this so open pages reload without waiting
-  /// for the next background sync.
-  void notifyLocalDataChangedIfNeeded() {
-    if (WebDAVService.consumeLocalDataChanged()) {
-      for (final cb in List.of(_onLocalDataChanged)) {
-        cb();
-      }
-    }
-  }
+  /// Notes: None.
+  void notifyLocalDataChangedIfNeeded() =>
+      _scheduler.notifyLocalDataChangedIfNeeded();
 
   /// Purpose: Notify UI reload listeners unconditionally after local data
   /// files were replaced outside of sync (backup restore, ZIP import).
@@ -136,164 +144,41 @@ class AutoSyncService with WidgetsBindingObserver {
   /// Side effects: Invokes registered reload callbacks.
   /// Notes: Unlike [notifyLocalDataChangedIfNeeded] this does not depend on
   /// the WebDAV local-data-changed flag.
-  void notifyLocalDataChangedNow() {
-    for (final cb in List.of(_onLocalDataChanged)) {
-      cb();
-    }
-  }
+  void notifyLocalDataChangedNow() => _scheduler.notifyLocalDataChangedNow();
 
-  /// Purpose: Record a finalize-pending-sync result.
+  /// Purpose: Record a conflict-finalization result.
   /// Inputs: `ok`.
   /// Returns: None.
-  /// Side effects: Updates in-memory sync status and notifies listeners.
+  /// Side effects: Updates sync status and notifies listeners.
   /// Notes: Used after users resolve conflicts manually.
-  void recordFinalizeResult(bool ok) {
-    if (ok) {
-      _recordSuccess();
-    } else {
-      _recordFailure('Failed to upload resolved sync conflicts');
-    }
-  }
+  void recordFinalizeResult(bool ok) => _scheduler.recordFinalizeResult(ok);
 
-  /// Call once at app startup.
-  /// Purpose: Start the current workflow and register any long-lived listeners.
+  /// Purpose: Begin observing the app lifecycle and start the sync timers.
   /// Inputs: None.
   /// Returns: None.
-  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Side effects: Registers a lifecycle observer, syncs once, and starts the
+  /// 15-minute periodic timer.
+  /// Notes: Idempotent — a second call while started is ignored.
+  void start() => _scheduler.start();
+
+  /// Purpose: Stop the timers and stop observing the app lifecycle.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Cancels the debounce and periodic timers.
   /// Notes: None.
-  void start() {
-    if (_started) return;
-    _started = true;
-    WidgetsBinding.instance.addObserver(this);
-    // Periodic background sync while the app process is alive. Mobile OS
-    // suspension may delay ticks until resume (resume also syncs).
-    _periodic?.cancel();
-    _periodic = Timer.periodic(_periodicInterval, (_) => _trySync());
-    // Sync immediately on app open
-    _trySync();
-  }
+  void stop() => _scheduler.stop();
 
-  /// Purpose: Stop the current workflow and clean up any related activity.
+  /// Purpose: Called by storage save methods to schedule a debounced sync.
   /// Inputs: None.
   /// Returns: None.
-  /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: None.
-  void stop() {
-    _debounce?.cancel();
-    _debounce = null;
-    _periodic?.cancel();
-    _periodic = null;
-    WidgetsBinding.instance.removeObserver(this);
-    _started = false;
-  }
+  /// Side effects: Restarts the 30-second debounce timer.
+  /// Notes: Ignored before `start()`.
+  void notifySaved() => _scheduler.notifySaved();
 
-  /// Called by storage save methods to schedule a debounced sync.
-  /// Purpose: Notify dependent code that data was saved locally.
+  /// Purpose: Trigger a sync as soon as possible without waiting for the debounce timer.
   /// Inputs: None.
   /// Returns: None.
-  /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: Ignored before `start()` so early storage writes cannot schedule
-  /// a sync while the service is not yet observing the app lifecycle.
-  void notifySaved() {
-    if (!_started) return;
-    _debounce?.cancel();
-    _debounce = Timer(_debounceDuration, _trySync);
-  }
-
-  /// Purpose: Trigger a sync as soon as possible, skipping the debounce timer.
-  /// Inputs: None.
-  /// Returns: None.
-  /// Side effects: Cancels any pending debounce and starts a sync attempt.
-  /// Notes: Used right after enabling/saving WebDAV auto-sync configuration.
-  void requestSyncNow() {
-    _debounce?.cancel();
-    _debounce = null;
-    unawaited(_trySync());
-  }
-
-  /// Purpose: Implement the did change app lifecycle state behavior for this file.
-  /// Inputs: `state`.
-  /// Returns: None.
-  /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: On resume also refreshes mobile reminder schedules so per-day
-  /// notification bodies are recomputed from current data after suspension.
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _trySync();
-      ReminderService.instance.refreshMobileSchedules();
-    }
-  }
-
-  /// Purpose: Provide the internal try sync helper for this file.
-  /// Inputs: None.
-  /// Returns: `Future<void>`.
-  /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: Internal helper used within this file only. The `_syncing` guard
-  /// silently skips overlapping triggers (timer/resume/debounce) so they do
-  /// not surface a spurious "Sync already in progress" failure banner.
-  Future<void> _trySync() async {
-    if (_syncing) return;
-    final config = await WebDAVService.loadConfig();
-    if (config == null || !config.isConfigured || !config.autoSync) return;
-    _syncing = true;
-    try {
-      final result = await WebDAVService.sync(config);
-      if (result.hasConflicts) {
-        _recordFailure(
-          'Sync conflicts require manual resolution${result.error != null ? ': ${result.error}' : ''}',
-          conflicts: true,
-        );
-      } else if (!result.success) {
-        _recordFailure(result.error ?? 'Unknown sync failure');
-      } else {
-        _recordSuccess();
-      }
-      // Notify UI pages if sync wrote merged data to local files
-      if (WebDAVService.consumeLocalDataChanged()) {
-        for (final cb in List.of(_onLocalDataChanged)) {
-          cb();
-        }
-      }
-    } catch (e) {
-      _recordFailure(e.toString());
-    } finally {
-      _syncing = false;
-    }
-  }
-
-  /// Purpose: Record a successful sync status.
-  /// Inputs: None.
-  /// Returns: None.
-  /// Side effects: Clears failure state and notifies status listeners.
-  /// Notes: Internal helper used within this file only.
-  void _recordSuccess() {
-    _lastSuccessAt = DateTime.now();
-    _lastError = null;
-    _hasPendingConflicts = false;
-    _notifyStatusChanged();
-  }
-
-  /// Purpose: Record a failed sync status.
-  /// Inputs: `error`, optional `conflicts`.
-  /// Returns: None.
-  /// Side effects: Updates failure state and notifies status listeners.
-  /// Notes: Internal helper used within this file only.
-  void _recordFailure(String error, {bool conflicts = false}) {
-    _lastFailureAt = DateTime.now();
-    _lastError = error;
-    _hasPendingConflicts = conflicts;
-    _notifyStatusChanged();
-  }
-
-  /// Purpose: Notify all registered sync status listeners.
-  /// Inputs: None.
-  /// Returns: None.
-  /// Side effects: Invokes UI callbacks.
-  /// Notes: Internal helper used within this file only.
-  void _notifyStatusChanged() {
-    for (final cb in List.of(_onStatusChanged)) {
-      cb();
-    }
-  }
+  /// Side effects: Cancels any pending debounce and starts a sync.
+  /// Notes: Overlapping triggers are silently skipped by the in-flight guard.
+  void requestSyncNow() => _scheduler.requestSyncNow();
 }

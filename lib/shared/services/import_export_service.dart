@@ -1,129 +1,48 @@
-import 'dart:convert';
-import 'dart:io';
+/// Purpose: MyDay's ZIP export/import API, now a facade over the shared
+/// `ZipTransfer` engine from the `myapps_data` package.
+/// Inputs: Destination directories and ZIP file paths from the settings pages.
+/// Returns: Written file paths, or import success flags.
+/// Side effects: Reads and writes the app data directory.
+/// Notes: PLAN.md P3.2.3. `exportZIP`/`importZIP` keep their names, signatures,
+/// and archive naming (`myday_backup_<stamp>.zip`) (I7). MyDay has no Markdown
+/// export. MyDay was already the strictest of the three apps on import, and the
+/// shared engine's defaults are exactly its behavior: reject unknown entries,
+/// strict UTF-8 decoding, validate every payload before writing any, and write
+/// atomically. The engine's fixed traversal rejection is also MyDay's existing
+/// rule — the other two apps moved to it.
+library;
 
-import 'package:archive/archive.dart';
-import 'package:intl/intl.dart';
-import 'package:path/path.dart' as p;
+import 'package:myapps_data/myapps_data.dart' as shared;
 
-import '../../features/todo/services/todo_storage.dart';
-import 'data_file_safety.dart';
+import '../../app/data_modules.dart';
 
 class ImportExportService {
-  static const _dataFileNames = [
-    'todo_data.json',
-    'finance_data.json',
-    'exchange_rates.json',
-    'intimacy_data.json',
-    'weight_data.json',
-  ];
+  /// Shared ZIP engine configured with MyDay's strict semantics.
+  ///
+  /// The validator is each module's own parser, taken from the registry, so an
+  /// archive carrying a payload that a model cannot parse is refused before a
+  /// single file is replaced — the behavior `DataFileSafety` used to provide.
+  static final shared.ZipTransfer _zip = shared.ZipTransfer(
+    storage: const TodoStorageAdapter(),
+    modules: todoModuleRegistry,
+    archiveNamePrefix: todoArchiveNamePrefix,
+  );
 
   /// Purpose: Export all app data as a ZIP file.
   /// Inputs: `destDir`.
   /// Returns: Exported file path, or null on failure.
   /// Side effects: Reads app data files/images and writes a ZIP file.
-  /// Notes: Settings import/export supports ZIP only.
-  static Future<String?> exportZIP(String destDir) async {
-    try {
-      final appDir = await TodoStorage.getAppDir();
-      final archive = Archive();
-
-      for (final name in _dataFileNames) {
-        final file = File(p.join(appDir.path, name));
-        if (await file.exists()) {
-          final bytes = await file.readAsBytes();
-          archive.addFile(ArchiveFile(name, bytes.length, bytes));
-        }
-      }
-
-      final imgDir = Directory(p.join(appDir.path, 'images'));
-      if (await imgDir.exists()) {
-        await for (final entity in imgDir.list()) {
-          if (entity is File) {
-            final bytes = await entity.readAsBytes();
-            final name = 'images/${p.basename(entity.path)}';
-            archive.addFile(ArchiveFile(name, bytes.length, bytes));
-          }
-        }
-      }
-
-      final zipData = ZipEncoder().encode(archive);
-      final stamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-      final outFile = File(p.join(destDir, 'myday_backup_$stamp.zip'));
-      await outFile.writeAsBytes(zipData, flush: true);
-      return outFile.path;
-    } catch (_) {
-      return null;
-    }
-  }
+  /// Notes: Bundles the registry's data files in registry order plus flat
+  /// `images/<name>` entries. Config, `.sync_base/`, and `backups/` are never
+  /// included. Settings import/export supports ZIP only.
+  static Future<String?> exportZIP(String destDir) => _zip.exportZip(destDir);
 
   /// Purpose: Import app data from a ZIP file.
   /// Inputs: `filePath`.
   /// Returns: `true` when the ZIP was validated and imported.
   /// Side effects: Replaces allowlisted app data files and images.
-  /// Notes: Rejects path traversal and validates data JSON before writing anything.
-  static Future<bool> importZIP(String filePath) async {
-    try {
-      final zipFile = File(filePath);
-      if (!await zipFile.exists()) return false;
-
-      final archive = ZipDecoder().decodeBytes(await zipFile.readAsBytes());
-      final appDir = await TodoStorage.getAppDir();
-      final appRoot = p.normalize(appDir.absolute.path);
-      final dataWrites = <String, String>{};
-      final imageWrites = <String, List<int>>{};
-
-      for (final entry in archive.files) {
-        if (!entry.isFile) continue;
-        final normalized = p.url.normalize(entry.name).replaceAll('\\', '/');
-        if (normalized.startsWith('../') || normalized.contains('/../')) {
-          return false;
-        }
-
-        if (_dataFileNames.contains(normalized)) {
-          final content = utf8.decode(entry.content as List<int>);
-          DataFileSafety.validateDataJson(normalized, content);
-          dataWrites[normalized] = content;
-          continue;
-        }
-
-        if (normalized.startsWith('images/')) {
-          final basename = p.basename(normalized);
-          if (basename.isEmpty || normalized != 'images/$basename') {
-            return false;
-          }
-          imageWrites[basename] = List<int>.from(entry.content as List<int>);
-          continue;
-        }
-
-        return false;
-      }
-
-      for (final item in dataWrites.entries) {
-        final target = File(p.join(appDir.path, item.key));
-        if (!_isInside(appRoot, target.absolute.path)) return false;
-        await DataFileSafety.writeValidatedDataJson(target, item.value);
-      }
-
-      for (final item in imageWrites.entries) {
-        final target = File(p.join(appDir.path, 'images', item.key));
-        if (!_isInside(appRoot, target.absolute.path)) return false;
-        await DataFileSafety.atomicWriteBytes(target, item.value);
-      }
-
-      return true;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  /// Purpose: Return whether [childPath] stays inside [rootPath].
-  /// Inputs: `rootPath`, `childPath`.
-  /// Returns: `bool`.
-  /// Side effects: None.
-  /// Notes: Protects ZIP import from path traversal writes.
-  static bool _isInside(String rootPath, String childPath) {
-    final root = p.normalize(rootPath);
-    final child = p.normalize(childPath);
-    return child == root || child.startsWith('$root${p.separator}');
-  }
+  /// Notes: Rejects path traversal and validates data JSON before writing
+  /// anything, so a rejected archive leaves app data untouched rather than
+  /// half-imported.
+  static Future<bool> importZIP(String filePath) => _zip.importZip(filePath);
 }
