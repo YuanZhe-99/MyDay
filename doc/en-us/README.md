@@ -17,6 +17,15 @@ its data formats and algorithms look like, and how its features behave. It is se
 per-source-file function index under [`functions/`](functions/) (declaration-by-declaration
 reference) and from any future `doc/zh-cn/` translation.
 
+**These docs are the authoritative description of the code.** The repository's `AGENTS.md` is
+deliberately limited to instructions for agents — workflow, authoring rules, the behavior contract,
+and the release process — and points here for everything else. When code changes, these pages are
+updated first; when docs and code disagree, verify against the code and then fix the page.
+
+The shared WebDAV sync, backup, and ZIP engines are not in this repository. They live in the
+`myapps_data` package embedded at `packages/myapps_data`, documented at
+`packages/myapps_data/doc/en-us/`.
+
 ## Contents
 
 ### Core concepts
@@ -31,6 +40,10 @@ reference) and from any future `doc/zh-cn/` translation.
   validation and safety, and ZIP-only import/export.
 - [Platform Notes](platform-notes.md) — Android/iOS/macOS/Windows caveats, the local HTTP API,
   tray behavior, and startup launch.
+- [CI/CD](ci-cd.md) — CI jobs and workflow caveats, the build/verify command set, and fresh-clone
+  (submodule) steps.
+- [Version History](version-history.md) — release-by-release summary. Worth checking before changing
+  a behavior that looks odd; several entries record deliberate safety fixes.
 
 ### Features
 
