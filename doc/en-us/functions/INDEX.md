@@ -33,6 +33,7 @@ on its own file page; nothing is silently forced to hit a round number.
 |---|---|---|---|
 | `lib/app/app.dart` | [app/app.md](app/app.md) | 2 | 0 |
 | `lib/app/router.dart` | [app/router.md](app/router.md) | 1 | 1 |
+| `lib/app/data_modules.dart` | [app/data_modules.md](app/data_modules.md) | 12 | 12 |
 | `lib/app/theme.dart` | [app/theme.md](app/theme.md) | 3 | 2 |
 
 ## features/finance/
@@ -114,20 +115,20 @@ the 1436/1435 hand-documented declarations above).
 |---|---|---|---|
 | `lib/shared/providers/app_settings.dart` | [shared/providers/app_settings.md](shared/providers/app_settings.md) | 8 | 7 |
 | `lib/shared/providers/intimacy_visibility.dart` | [shared/providers/intimacy_visibility.md](shared/providers/intimacy_visibility.md) | 6 | 5 |
-| `lib/shared/services/auto_sync_service.dart` | [shared/services/auto_sync_service.md](shared/services/auto_sync_service.md) | 22 | 13 |
-| `lib/shared/services/backup_service.dart` | [shared/services/backup_service.md](shared/services/backup_service.md) | 18 | 17 |
-| `lib/shared/services/data_file_safety.dart` | [shared/services/data_file_safety.md](shared/services/data_file_safety.md) | 7 | 5 |
+| `lib/shared/services/auto_sync_service.dart` | [shared/services/auto_sync_service.md](shared/services/auto_sync_service.md) | 15 | 15 |
+| `lib/shared/services/backup_service.dart` | [shared/services/backup_service.md](shared/services/backup_service.md) | 12 | 12 |
+| `lib/shared/services/data_file_safety.dart` | [shared/services/data_file_safety.md](shared/services/data_file_safety.md) | 6 | 6 |
 | `lib/shared/services/image_service.dart` | [shared/services/image_service.md](shared/services/image_service.md) | 5 | 5 |
-| `lib/shared/services/import_export_service.dart` | [shared/services/import_export_service.md](shared/services/import_export_service.md) | 3 | 3 |
+| `lib/shared/services/import_export_service.dart` | [shared/services/import_export_service.md](shared/services/import_export_service.md) | 2 | 2 |
 | `lib/shared/services/local_api_server.dart` | [shared/services/local_api_server.md](shared/services/local_api_server.md) | 63 | 58 |
 | `lib/shared/services/mobile_notification_service.dart` | [shared/services/mobile_notification_service.md](shared/services/mobile_notification_service.md) | 9 | 7 |
 | `lib/shared/services/reminder_service.dart` | [shared/services/reminder_service.md](shared/services/reminder_service.md) | 33 | 30 |
-| `lib/shared/services/sync_merge.dart` | [shared/services/sync_merge.md](shared/services/sync_merge.md) | 26 | 25 |
-| `lib/shared/services/sync_progress.dart` | [shared/services/sync_progress.md](shared/services/sync_progress.md) | 4 | 3 |
-| `lib/shared/services/sync_wake_lock.dart` | [shared/services/sync_wake_lock.md](shared/services/sync_wake_lock.md) | 4 | 3 |
+| `lib/shared/services/sync_merge.dart` | [shared/services/sync_merge.md](shared/services/sync_merge.md) | 12 | 12 |
+| `lib/shared/services/sync_progress.dart` | [shared/services/sync_progress.md](shared/services/sync_progress.md) | 0 | 0 |
+| `lib/shared/services/sync_wake_lock.dart` | [shared/services/sync_wake_lock.md](shared/services/sync_wake_lock.md) | 0 | 0 |
 | `lib/shared/services/tray_service.dart` | [shared/services/tray_service.md](shared/services/tray_service.md) | 16 | 13 |
-| `lib/shared/services/webdav_service.dart` | [shared/services/webdav_service.md](shared/services/webdav_service.md) | 73 | 65 |
-| `lib/shared/utils/json_preservation.dart` | [shared/utils/json_preservation.md](shared/utils/json_preservation.md) | 12 | 11 |
+| `lib/shared/services/webdav_service.dart` | [shared/services/webdav_service.md](shared/services/webdav_service.md) | 12 | 12 |
+| `lib/shared/utils/json_preservation.dart` | [shared/utils/json_preservation.md](shared/utils/json_preservation.md) | 6 | 6 |
 | `lib/shared/utils/week_grouping.dart` | [shared/utils/week_grouping.md](shared/utils/week_grouping.md) | 16 | 16 |
 | `lib/shared/views/backup_page.dart` | [shared/views/backup_page.md](shared/views/backup_page.md) | 17 | 2 |
 | `lib/shared/views/webdav_config_page.dart` | [shared/views/webdav_config_page.md](shared/views/webdav_config_page.md) | 20 | 6 |

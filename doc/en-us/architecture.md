@@ -132,6 +132,33 @@ Each feature module (`todo`, `finance`, `intimacy`, `weight`) follows the same
 modules' storage rather than owning a data file). `shared/` holds everything cross-cutting: sync,
 backup, notifications/reminders, the local API server, tray/startup glue, and small pure utilities.
 
+## Shared package (`myapps_data`)
+
+The WebDAV sync engine, backup engine, ZIP transfer engine, atomic writers, and auto-sync scheduler
+are **not in this repo**. They live in the shared `myapps_data` package, embedded at
+`packages/myapps_data` as a git submodule and consumed as a pub path dependency. MyAnime, MyDay, and
+MyDevice all use it, which is what keeps their wire format, backup format, and lock semantics
+interoperable.
+
+- **What stays here:** all models, the per-feature storage hubs, the per-module merge wrappers, and
+  the unknown-field preservation **schemas** (which name MyDay's own fields).
+- **What moved:** the transport, lock lifecycle, merge pipeline, `.sync_base` snapshots, image sync,
+  backup bundle and blob store, ZIP allowlist, atomic writers, and sync scheduling.
+- **The seam:** [`functions/app/data_modules.md`](functions/app/data_modules.md) declares the
+  `StorageAdapter` over `TodoStorage` plus one `DataModule` per data file. It replaced four of the
+  five hardcoded copies of the data-file list this app used to carry, and it is where MyDay's three
+  special cases now live: the finance forced-balance migration (`postMergeTransform`), the whole-file
+  exchange-rate merge, and schema-driven preservation (`preUploadTransform`).
+- **The facades:** `WebDAVService`, `BackupService`, `ImportExportService`, `AutoSyncService`, and
+  `DataFileSafety` keep their previous public APIs and delegate to the package. Their shapes are
+  deliberately frozen so call sites and tests keep working; behavior changes belong in the package.
+- **Not unified:** MyDay's daily backup stays driven by `ReminderService`'s 30-second loop, which is
+  why `AutoSyncService` passes `onPeriodicTick: null`.
+
+`.gitmodules` uses the relative URL `../MyApps-DATA.git`, so it resolves against whichever remote a
+clone tracks — Gitea clones fetch from Gitea, GitHub clones from GitHub, and no host name is ever
+committed. Fresh clones need `git clone --recurse-submodules` or `git submodule update --init`.
+
 ## Core architecture rules
 
 - **File I/O goes through `TodoStorage`.** `TodoStorage.getAppDir()` resolves the actual storage
