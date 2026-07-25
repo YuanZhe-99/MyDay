@@ -169,7 +169,13 @@ lib/
     views/
     widgets/
   l10n/
+packages/
+  myapps_data/            # git submodule: shared sync/backup/ZIP engines
 ```
+
+`lib/app/data_modules.dart` holds the `StorageAdapter` and `DataModule` registry that connect this
+app to `packages/myapps_data`. The services under `shared/services/` are facades over that package —
+see "Shared Package (`myapps_data`)".
 
 Primary tests currently include:
 
@@ -289,6 +295,76 @@ The Weight page includes add/edit records, optional bust/waist/hip measurement e
 - General: language, global week start day for app calendars and weekly grouping, and theme.
 - Privacy: Intimacy module toggle with hide confirmation.
 - Desktop: minimize-to-tray, close-to-tray, launch at startup, local API enable/status/settings, custom storage location, open data folder.
+## Shared Package (`myapps_data`)
+
+The WebDAV sync engine, backup engine, ZIP transfer engine, and auto-sync scheduler are **not in
+this repo**. They live in the shared `myapps_data` package, embedded at `packages/myapps_data` as a
+git submodule and consumed as a pub path dependency. MyAnime, MyDay, and MyDevice all use it.
+
+What stays here: all models, the per-feature storage hubs, the per-module merge wrappers
+(`mergeTodoData`, `mergeFinanceData`, `mergeExchangeRateJson`, `mergeIntimacyData`,
+`mergeWeightData`), and the preservation field schemas. What moved: the transport, lock lifecycle,
+merge pipeline, base snapshots, image sync, backup bundle/blob store, ZIP allowlist, atomic writers,
+and sync scheduling.
+
+`lib/app/data_modules.dart` is the seam and **the single source of truth** for MyDay's five data
+files. It replaced four of the five separate hardcoded file lists this app used to carry. It also
+holds MyDay's three special cases, as declarative hooks:
+
+- **finance** uses `postMergeTransform` for the forced-balance migration, because that migration runs
+  after the merge *and* after conflict resolution, on both the sync and finalize paths.
+- **exchange rates** use a whole-file union merge that can never produce a record conflict, and are
+  the only module reporting indexed upload progress.
+- **unknown-field preservation** is a `preUploadTransform` fed the base/local/remote snapshots,
+  because MyDay's merge output is not self-preserving — unknown fields are re-applied at write time
+  from the schemas in `utils/json_preservation.dart`.
+
+Never hardcode a data-file name or backup module key anywhere else; read it from the registry.
+
+`shared/services/` still holds `WebDAVService`, `BackupService`, `ImportExportService`,
+`AutoSyncService`, and `DataFileSafety`, but they are now thin facades. Their public APIs are
+deliberately unchanged. **If a change seems to require editing a facade's public shape, stop** — the
+facade exists so call sites and tests keep working. Behavior changes belong in the package.
+
+`sync_progress.dart`, `sync_wake_lock.dart`, the generic half of `sync_merge.dart`, and the engine
+half of `utils/json_preservation.dart` are re-export shims. Do not reintroduce implementations there.
+
+**MyDay's daily backup is deliberately not driven by the auto-sync scheduler.** It stays on
+`ReminderService`'s 30-second loop, which is why `AutoSyncService` passes `onPeriodicTick: null`.
+Do not "unify" that.
+
+### Working with the submodule
+
+Fresh clone:
+
+```bash
+git clone --recurse-submodules <app-url>
+```
+
+After a plain clone, or when the pointer moves:
+
+```bash
+git submodule update --init
+```
+
+`.gitmodules` uses the **relative** URL `../MyApps-DATA.git`, so it resolves against whichever remote
+this clone tracks: a Gitea clone fetches from Gitea, a GitHub clone from GitHub. Never write a host
+name into `.gitmodules` — the real Gitea address must not appear in any committed file.
+
+Consuming a newer shared version:
+
+```bash
+cd packages/myapps_data
+git fetch origin --tags && git checkout vX.Y.Z
+cd ../..
+flutter analyze && flutter test
+git add packages/myapps_data && git commit -m "Bump myapps_data to vX.Y.Z"
+```
+
+Changing shared code: the submodule checks out detached, so `git switch main` inside it first, then
+commit and **push to both remotes before** committing the pointer bump here. A pointer to an
+unpushed commit breaks every other clone and CI.
+
 - Data: WebDAV sync, import/export, backup.
 - About: app title, version from `package_info_plus`, GPL license, open source licenses, privacy policy.
 - Debug: subscription processor date override in debug builds.
@@ -480,6 +556,10 @@ Default app data directory is `Documents/MyDay/` on desktop or the platform app 
 ## CI/CD
 
 `.github/workflows/build.yml` runs on `v*` tag pushes and `workflow_dispatch`.
+
+Every checkout step passes `submodules: recursive`. Without it `flutter pub get` fails on the
+missing `packages/myapps_data` path dependency. The relative submodule URL resolves to the public
+GitHub copy in CI, so the default `GITHUB_TOKEN` is sufficient.
 
 | Job | Runner | Output | Notes |
 | --- | --- | --- | --- |
