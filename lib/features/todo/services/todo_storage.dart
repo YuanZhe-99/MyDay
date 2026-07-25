@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:myapps_data/myapps_data.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../../shared/services/data_file_safety.dart';
@@ -514,25 +515,23 @@ class TodoStorage {
     return appDir.path;
   }
 
-  /// Known data file names managed by the app.
-  static const _dataFileNames = [
-    _fileName,
-    'finance_data.json',
-    'exchange_rates.json',
-    'intimacy_data.json',
-    'weight_data.json',
-    'webdav_config.json',
-  ];
-
-  /// Set a custom storage directory path.
-  /// Pass null to reset to default.
-  /// If the new path already has data files, uses those;
-  /// otherwise moves existing data files to the new location.
-  /// Purpose: Implement the set storage path behavior for this file.
-  /// Inputs: `newPath`.
-  /// Returns: `Future<bool>`.
-  /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: None.
+  /// Purpose: Update the custom storage directory and migrate the app's data to it.
+  /// Inputs: `newPath`; pass `null` to reset to the default location.
+  /// Returns: `Future<bool>` — false only when the path could not be recorded.
+  /// Side effects: Rewrites `storage_config.json` and moves the old storage
+  /// folder's contents to the new location.
+  /// Notes: Migrates **everything** in the folder — all five data files,
+  /// `images/`, `.sync_base/`, `backups/` (blobs included), and
+  /// `webdav_config.json` — not an enumerated list, so a data file added later
+  /// moves automatically. `storage_config.json` deliberately stays put: it lives
+  /// in the platform default directory and holds the custom path itself.
+  ///
+  /// Leaving `.sync_base/` behind used to be the dangerous case: without a base
+  /// snapshot the next sync treats records other devices deleted as new local
+  /// records and re-uploads them, silently resurrecting deletions everywhere.
+  ///
+  /// Existing destination files win and their source copies are left in place,
+  /// so nothing is discarded on a guess about which copy is newer.
   static Future<bool> setStoragePath(String? newPath) async {
     try {
       final oldDir = await getAppDir();
@@ -543,18 +542,10 @@ class TodoStorage {
       final newDir = await getAppDir();
       if (oldDir.path == newDir.path) return true;
 
-      for (final name in _dataFileNames) {
-        final oldFile = File('${oldDir.path}/$name');
-        final newFile = File('${newDir.path}/$name');
-        if (await newFile.exists()) {
-          // New location already has this file — use it as-is
-          continue;
-        }
-        if (await oldFile.exists()) {
-          await oldFile.copy(newFile.path);
-          await oldFile.delete();
-        }
-      }
+      // Per-entry failures are reported rather than thrown; the path change
+      // itself has already been persisted, so the move is best-effort and any
+      // unmoved file remains readable at the old location.
+      await migrateStorageContents(from: oldDir, to: newDir);
       return true;
     } catch (_) {
       return false;
