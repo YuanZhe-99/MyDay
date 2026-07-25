@@ -1,0 +1,172 @@
+=== [0] MKCOL /dav/files/u/MyDay/ -> 201
+  authorization: <basic-auth>
+=== [1] GET /dav/files/u/MyDay/.lock -> 404
+  authorization: <basic-auth>
+=== [2] PUT /dav/files/u/MyDay/.lock -> 201
+  authorization: <basic-auth>
+  content-type: application/octet-stream
+  if-none-match: *
+  body:
+    {
+      "clientId": "<uuid>",
+      "token": "<uuid>",
+      "startedAt": "<timestamp>",
+      "updatedAt": "<timestamp>",
+      "ttlSeconds": 60
+    }
+=== [3] GET /dav/files/u/MyDay/.lock -> 200
+  authorization: <basic-auth>
+=== [4] PUT /dav/files/u/MyDay/.lock -> 204
+  authorization: <basic-auth>
+  content-type: application/octet-stream
+  if-match: "<etag>"
+  body:
+    {
+      "clientId": "<uuid>",
+      "token": "<uuid>",
+      "startedAt": "<timestamp>",
+      "updatedAt": "<timestamp>",
+      "ttlSeconds": 60
+    }
+=== [5] PUT /dav/files/u/MyDay/todo_data.json -> 204
+  authorization: <basic-auth>
+  content-type: application/octet-stream
+  body:
+    {
+      "dailyTemplates": [],
+      "oneTimeTasks": [
+        {
+          "id": "task-1",
+          "title": "Task One",
+          "type": "routineOnce",
+          "createdDate": "<timestamp>",
+          "modifiedAt": "<timestamp>"
+        }
+      ],
+      "settingsModifiedAt": "<timestamp>"
+    }
+=== [6] GET /dav/files/u/MyDay/.lock -> 200
+  authorization: <basic-auth>
+=== [7] PUT /dav/files/u/MyDay/.lock -> 204
+  authorization: <basic-auth>
+  content-type: application/octet-stream
+  if-match: "<etag>"
+  body:
+    {
+      "clientId": "<uuid>",
+      "token": "<uuid>",
+      "startedAt": "<timestamp>",
+      "updatedAt": "<timestamp>",
+      "ttlSeconds": 60
+    }
+=== [8] PUT /dav/files/u/MyDay/finance_data.json -> 204
+  authorization: <basic-auth>
+  content-type: application/octet-stream
+  body:
+    {
+      "accounts": [
+        {
+          "id": "acct-1",
+          "type": "fund",
+          "bankOrApp": "Bank",
+          "name": "Checking",
+          "currency": "CNY",
+          "modifiedAt": "<timestamp>"
+        }
+      ],
+      "categories": [],
+      "transactions": [],
+      "subscriptions": [],
+      "defaultCurrency": "CNY",
+      "settingsModifiedAt": "<timestamp>"
+    }
+=== [9] GET /dav/files/u/MyDay/.lock -> 200
+  authorization: <basic-auth>
+=== [10] PUT /dav/files/u/MyDay/.lock -> 204
+  authorization: <basic-auth>
+  content-type: application/octet-stream
+  if-match: "<etag>"
+  body:
+    {
+      "clientId": "<uuid>",
+      "token": "<uuid>",
+      "startedAt": "<timestamp>",
+      "updatedAt": "<timestamp>",
+      "ttlSeconds": 60
+    }
+=== [11] PUT /dav/files/u/MyDay/exchange_rates.json -> 204
+  authorization: <basic-auth>
+  content-type: application/octet-stream
+  body:
+    {
+      "currentSnapshotId": "",
+      "snapshots": {},
+      "lastFetchedAt": "<timestamp>"
+    }
+=== [12] GET /dav/files/u/MyDay/.lock -> 200
+  authorization: <basic-auth>
+=== [13] PUT /dav/files/u/MyDay/.lock -> 204
+  authorization: <basic-auth>
+  content-type: application/octet-stream
+  if-match: "<etag>"
+  body:
+    {
+      "clientId": "<uuid>",
+      "token": "<uuid>",
+      "startedAt": "<timestamp>",
+      "updatedAt": "<timestamp>",
+      "ttlSeconds": 60
+    }
+=== [14] PUT /dav/files/u/MyDay/intimacy_data.json -> 204
+  authorization: <basic-auth>
+  content-type: application/octet-stream
+  body:
+    {
+      "partners": [
+        {
+          "id": "partner-1",
+          "name": "Partner",
+          "modifiedAt": "<timestamp>"
+        }
+      ],
+      "toys": [],
+      "positions": [],
+      "records": [],
+      "timerHistory": [],
+      "settingsModifiedAt": "<timestamp>"
+    }
+=== [15] GET /dav/files/u/MyDay/.lock -> 200
+  authorization: <basic-auth>
+=== [16] PUT /dav/files/u/MyDay/.lock -> 204
+  authorization: <basic-auth>
+  content-type: application/octet-stream
+  if-match: "<etag>"
+  body:
+    {
+      "clientId": "<uuid>",
+      "token": "<uuid>",
+      "startedAt": "<timestamp>",
+      "updatedAt": "<timestamp>",
+      "ttlSeconds": 60
+    }
+=== [17] PUT /dav/files/u/MyDay/weight_data.json -> 204
+  authorization: <basic-auth>
+  content-type: application/octet-stream
+  body:
+    {
+      "records": [
+        {
+          "id": "w-1",
+          "weight": 70.5,
+          "datetime": "<timestamp>",
+          "modifiedAt": "<timestamp>"
+        }
+      ],
+      "reminderMode": "none",
+      "settingsModifiedAt": "<timestamp>"
+    }
+=== [18] GET /dav/files/u/MyDay/.lock -> 200
+  authorization: <basic-auth>
+=== [19] DELETE /dav/files/u/MyDay/.lock -> 204
+  authorization: <basic-auth>
+  if-match: "<etag>"
