@@ -3,7 +3,7 @@
 /// Inputs: Lifecycle events, storage saves, and manual sync results.
 /// Returns: Sync status for the settings UI.
 /// Side effects: Schedules and runs background syncs.
-/// Notes: PLAN.md P3.2.3. The scheduler owns only the trigger topology —
+/// Notes: The scheduler owns only the trigger topology —
 /// launch, resume, the 15-minute timer, and the 30-second save debounce.
 /// **MyDay's daily backup is deliberately NOT wired here**: it stays driven by
 /// `ReminderService`'s 30-second loop, which is why `onPeriodicTick` is null

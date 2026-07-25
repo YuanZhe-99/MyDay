@@ -3,8 +3,8 @@
 /// Returns: N/A.
 /// Side effects: None.
 /// Notes: The generic engine — `JsonPreservation`, `JsonPreservationSchema`,
-/// and `JsonListPreservation` — moved to the `myapps_data` package (PLAN.md
-/// P2.2) and is re-exported here so every existing import keeps working (I7).
+/// and `JsonListPreservation` — moved to the `myapps_data` package and is
+/// re-exported here so every existing import keeps working (I7).
 /// The field schemas below stay app-side by design: they name MyDay's own data
 /// fields, which the shared package must never know about. They are handed to
 /// the sync engine through `lib/app/data_modules.dart`.

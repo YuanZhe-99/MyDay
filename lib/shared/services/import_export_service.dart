@@ -3,7 +3,7 @@
 /// Inputs: Destination directories and ZIP file paths from the settings pages.
 /// Returns: Written file paths, or import success flags.
 /// Side effects: Reads and writes the app data directory.
-/// Notes: PLAN.md P3.2.3. `exportZIP`/`importZIP` keep their names, signatures,
+/// Notes: `exportZIP`/`importZIP` keep their names, signatures,
 /// and archive naming (`myday_backup_<stamp>.zip`) (I7). MyDay has no Markdown
 /// export. MyDay was already the strictest of the three apps on import, and the
 /// shared engine's defaults are exactly its behavior: reject unknown entries,

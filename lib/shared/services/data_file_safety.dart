@@ -2,7 +2,7 @@
 /// Inputs: Data file paths and JSON payloads from import/restore paths.
 /// Returns: Nothing; throws `DataFileValidationException` on invalid payloads.
 /// Side effects: Atomically replaces files on disk.
-/// Notes: PLAN.md P3.2.3 split this file in two, as Appendix C called for. The
+/// Notes: This file was split in two by the shared-package extraction. The
 /// generic atomic tmp-then-rename writers moved to the `myapps_data` package
 /// and are re-exported here; the validation dispatch now reads the module
 /// registry instead of a sixth hardcoded file list. Every public member kept

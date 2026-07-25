@@ -5,7 +5,7 @@
 /// `utils/json_preservation.dart`, and the finance forced-balance migration.
 /// Returns: A `StorageAdapter` implementation and the app's `ModuleRegistry`.
 /// Side effects: None at import time; callbacks parse, migrate, and read files.
-/// Notes: PLAN.md P3.2.2. This replaces the five separate hardcoded file lists
+/// Notes: This replaces the five separate hardcoded file lists
 /// the app used to carry (`webdav_service`, `data_file_safety`,
 /// `import_export_service`, `backup_service`, `todo_storage`). Registry order is
 /// the sync/backup/progress order. File names and module IDs are persisted
@@ -139,7 +139,7 @@ Set<String> _imageNamesFromSections(String json, List<String> sections) {
 /// Returns: The migrated data, or [data] unchanged when nothing needed fixing.
 /// Side effects: Reads exchange-rate data needed to convert legacy transactions.
 /// Notes: Moved verbatim from `WebDAVService._migrateFinanceForcedBalances`
-/// (PLAN.md P3.2.2). It runs after merge and after conflict resolution on both
+///. It runs after merge and after conflict resolution on both
 /// the normal-sync and finalize paths, which is exactly where the shared
 /// engine invokes `postMergeTransform`.
 Future<FinanceData> migrateFinanceForcedBalances(FinanceData data) async {
