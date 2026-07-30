@@ -35,6 +35,13 @@ here would double-drive it.
 | `notifySaved()` | method | A | Storage hook: restart the 30-second debounce. |
 | `requestSyncNow()` | method | A | Cancel any pending debounce and sync immediately. |
 
+**Reconciliation:** this is a **grouped** page — 11 rows above cover the file's 18 `/// Purpose:`
+declarations, because the four status getters share one row and each
+`add…`/`remove…` callback pair and the `start()`/`stop()` pair share a row.
+[INDEX.md](../../INDEX.md) counts rows, not underlying declarations, so it lists 11. This page has
+no `## Documentation` section by design: the facade's behavior is documented at the scheduler it
+wraps (see below).
+
 ## Notes
 
 - Status is in-memory only and is never persisted.

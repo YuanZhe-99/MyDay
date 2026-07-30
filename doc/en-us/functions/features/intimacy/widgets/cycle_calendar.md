@@ -39,6 +39,8 @@ consistent with how plain data constants are handled elsewhere in this doc set. 
 declaration (method, getter, setter) exists in the file. Tier split: 1 Tier A, 8 Tier B (counting
 `cyclePersonPalette`).
 
+**Reconciliation:** `grep -c 'Purpose:' lib/features/intimacy/widgets/cycle_calendar.dart` reports 8, matching 8 of the 9 rows above exactly. The extra row is `cyclePersonPalette`, a top-level constant colour list with no `Purpose:` block that is nonetheless a real declaration used by `cyclePersonColor`.
+
 ## Documentation
 
 ### `Widget buildCycleDayIndicator(Color color, CycleDayInfo? info, {double height = 4})` <a id="buildcycledayindicator"></a>

@@ -24,6 +24,12 @@ sync loop.
 | [`buildWeightModule()`](#structured) | function | A | The weight `DataModule`. |
 | [`todoModuleRegistry`](#registry) | field | A | The app's ordered `ModuleRegistry`. |
 
+**Reconciliation:** this is a **grouped** page — 11 rows above cover the file's 16 `/// Purpose:`
+declarations, because the five data-file-name constants share one row and the private helpers
+(`_preserveUnknownJson`, `_imageNamesFromSections`, `_structuredModule`) are described inside the
+[Structured modules](#structured) entry rather than getting rows of their own. [INDEX.md](../INDEX.md)
+counts rows, not underlying declarations, so it lists 11.
+
 ## Documentation
 
 ### `class TodoStorageAdapter` <a id="todostorageadapter"></a>

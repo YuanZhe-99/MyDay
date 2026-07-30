@@ -17,6 +17,11 @@ pre-upload transform.
 | [`dataFilePreservationSchemas`](#schemas) | constant | A | File name to schema, for all five data files. |
 | `_todoDataSchema`, `_financeDataSchema`, `_exchangeRateDataSchema`, `_intimacyDataSchema`, `_weightDataSchema` and their nested item schemas (including `_accountPickerSettingsSchema` and `_intimacyChartSettingsSchema`) | constants | B | Per-model known-key declarations. |
 
+**Reconciliation:** this is a **grouped** page — the file has only 1 `/// Purpose:` block, but 3
+rows above, because the re-exported engine types and the private `const` schemas are real
+declarations that carry no `Purpose:` block and are grouped one row each.
+[INDEX.md](../../INDEX.md) counts rows, not `Purpose:` blocks, so it lists 3 (2 Tier A).
+
 ## Documentation
 
 ### `dataFilePreservationSchemas` <a id="schemas"></a>

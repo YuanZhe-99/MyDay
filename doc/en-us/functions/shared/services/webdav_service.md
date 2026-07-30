@@ -29,6 +29,8 @@ The five data files — and MyDay's three special cases — are described once i
 Re-exported from the package under their original names: `WebDAVConfig`, `WebDAVUploadLock`,
 `RemoteFile`, `RemoteFileStatus`.
 
+**Reconciliation:** `grep -c 'Purpose:' lib/shared/services/webdav_service.dart` reports 15 against 12 rows. One is the **file-level** library comment on line 1. Of the remaining 14, the `SyncResult` and `PendingSync` rows each cover their own constructor plus one getter, and the private `_toSyncResult` converter is described inside the [`sync`](#sync) entry rather than getting its own row.
+
 ## Documentation
 
 ### `class SyncResult` <a id="syncresult"></a>

@@ -16,6 +16,8 @@ finalize, force upload/download), not by the sync engine — background auto-syn
 
 None of its own.
 
+**Reconciliation:** `grep -c 'Purpose:' lib/shared/services/sync_wake_lock.dart` reports 1 and the table is empty — correct. That single block is the **file-level** library comment describing the re-export; the file declares nothing of its own, which is the entire point of a shim.
+
 ## Where the real documentation lives
 
 `packages/myapps_data/doc/en-us/functions/src/sync/sync_wake_lock.md`.

@@ -32,6 +32,8 @@ the auto-sync scheduler. See [`auto_sync_service.md`](auto_sync_service.md).
 Re-exported with unchanged shapes: `BackupInfo{file, date, sizeBytes, corrupt}` and
 `RestoreResult{ok, wroteAnything, missingImages}`.
 
+**Reconciliation:** `grep -c 'Purpose:' lib/shared/services/backup_service.dart` reports 11. One of those is the **file-level** library comment on line 1, not a declaration, leaving 10 documented declarations; the table has 12 rows because `autoBackupEnabled` and `retentionDays` are listed as getter/setter pairs. Net: 12 rows over 10 `Purpose:`-carrying declarations plus the two paired accessors.
+
 ## Documentation
 
 ### `appDirProvider` <a id="appdirprovider"></a>

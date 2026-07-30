@@ -15,6 +15,8 @@ export 'package:myapps_data/myapps_data.dart'
 
 None of its own.
 
+**Reconciliation:** `grep -c 'Purpose:' lib/shared/services/sync_progress.dart` reports 1 and the table is empty — correct. That single block is the **file-level** library comment describing the re-export; the file declares nothing of its own, which is the entire point of a shim.
+
 ## Where the real documentation lives
 
 `packages/myapps_data/doc/en-us/functions/src/webdav/sync_progress.md`.

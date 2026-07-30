@@ -24,6 +24,8 @@ one-line `StateNotifierProvider<IntimacyVisibilityNotifier, IntimacyVisibility>(
 IntimacyVisibilityNotifier())` factory, trivial enough to classify Tier B despite being
 undocumented.
 
+**Reconciliation:** `grep -c 'Purpose:' lib/shared/providers/intimacy_visibility.dart` reports 5, matching 5 of the 6 rows above exactly. The extra row is `intimacyVisibilityProvider`, the `StateNotifierProvider` top-level variable: no `Purpose:` block, but it is the file's public entry point.
+
 ## Documentation
 
 ### `const IntimacyVisibility({this.visible = false})` <a id="intimacyvisibility-new"></a>

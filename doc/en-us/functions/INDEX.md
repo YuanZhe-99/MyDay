@@ -4,25 +4,35 @@ This is the top-level index of the hand-written Function Explanation Layer docum
 `lib/` in the MyDay repo. Each row links to a per-source-file page under `doc/en-us/functions/`
 mirroring the `lib/` tree (with `.dart` replaced by `.md`).
 
-**Totals:** `grep -r '/// Purpose:' lib --include=*.dart` reports **1367** (per the Function
-Explanation Layer convention in `AGENTS.md`; generated `lib/l10n/` code carries no such comments —
-see [l10n/INDEX.md](l10n/INDEX.md)). The per-file rows below sum to **1348** documented
-declarations across 72 pages.
+**Totals.** Two different numbers are worth keeping straight, and this page reports both.
 
-Individual per-file discrepancies are called out with a reconciliation note on each file page:
-some files have real declarations with no `/// Purpose:` comment at all (added as extra rows),
-while at least one file (`sync_merge.dart`) has a single declaration whose doc comment is
-legitimately referenced by two Declarations-table entries. **The remaining ~19-declaration gap
-between the grep and the row sum is known drift that predates v1.3.2** and has not been audited
-page by page; the per-file tables, not these headline totals, are the reliable figures. (Earlier
-revisions of this page quoted 1436/1435, which appears to have come from a grep that also swept
-`test/`.) Nothing here is forced to hit a round number.
-
-| Tier | Count |
+| Measure | Count |
 |---|---|
-| Tier A (full entry) | 766 |
-| Tier B (index row only) | 582 |
-| **Total** | **1348** |
+| `grep -r '/// Purpose:' lib --include=*.dart` | **1367** |
+| Declarations-table rows across all 73 pages | **1358** |
+| — of those rows, Tier A (full entry) | 765 |
+| — of those rows, Tier B (index row only) | 593 |
+
+The **Declarations** and **Tier A** columns below count **rows in each page's Declarations
+table**, which is the mechanically checkable figure. A row is not always one `/// Purpose:` block,
+and the 9-declaration gap between the two totals is fully itemized — every page whose row count
+differs from its own `grep` carries a `**Reconciliation:**` note saying exactly why. There are
+three recurring reasons:
+
+- **File-level library comments** (`backup_service.dart`, `webdav_service.dart`,
+  `import_export_service.dart`, `json_preservation.dart`, `sync_progress.dart`,
+  `sync_wake_lock.dart`): a `/// Purpose:` block above the `import` block documents the file, not a
+  declaration, so it is counted by `grep` but gets no row.
+- **Real declarations with no `Purpose:` block** (enums, top-level `const`s, Riverpod providers,
+  `appRouter`): no `grep` hit, but a row, because they are part of the file's surface.
+- **Deliberately grouped rows** on the thin facade pages over `myapps_data` (`sync_merge.md`,
+  `auto_sync_service.md`, `data_modules.md`): one row covers a class and its members, or a family
+  of related constants. Those pages say so at the top of their tables.
+
+Nothing here is forced to hit a round number. Audited end to end in v1.3.2, which also added the
+missing `app_date_picker.dart` page — the file had never had one. (Revisions before v1.3.2 quoted
+1436/1435; that figure came from a `grep` that also swept `test/`, and its per-area breakdown had
+drifted from the per-file rows.)
 
 ## Root (`lib/`)
 
@@ -36,7 +46,7 @@ revisions of this page quoted 1436/1435, which appears to have come from a grep 
 |---|---|---|---|
 | `lib/app/app.dart` | [app/app.md](app/app.md) | 2 | 0 |
 | `lib/app/router.dart` | [app/router.md](app/router.md) | 1 | 1 |
-| `lib/app/data_modules.dart` | [app/data_modules.md](app/data_modules.md) | 12 | 12 |
+| `lib/app/data_modules.dart` | [app/data_modules.md](app/data_modules.md) | 11 | 11 |
 | `lib/app/theme.dart` | [app/theme.md](app/theme.md) | 3 | 2 |
 
 ## features/finance/
@@ -119,7 +129,7 @@ the 1436/1435 hand-documented declarations above).
 |---|---|---|---|
 | `lib/shared/providers/app_settings.dart` | [shared/providers/app_settings.md](shared/providers/app_settings.md) | 8 | 7 |
 | `lib/shared/providers/intimacy_visibility.dart` | [shared/providers/intimacy_visibility.md](shared/providers/intimacy_visibility.md) | 6 | 5 |
-| `lib/shared/services/auto_sync_service.dart` | [shared/services/auto_sync_service.md](shared/services/auto_sync_service.md) | 15 | 15 |
+| `lib/shared/services/auto_sync_service.dart` | [shared/services/auto_sync_service.md](shared/services/auto_sync_service.md) | 11 | 11 |
 | `lib/shared/services/backup_service.dart` | [shared/services/backup_service.md](shared/services/backup_service.md) | 12 | 12 |
 | `lib/shared/services/data_file_safety.dart` | [shared/services/data_file_safety.md](shared/services/data_file_safety.md) | 6 | 6 |
 | `lib/shared/services/image_service.dart` | [shared/services/image_service.md](shared/services/image_service.md) | 5 | 5 |
@@ -127,15 +137,16 @@ the 1436/1435 hand-documented declarations above).
 | `lib/shared/services/local_api_server.dart` | [shared/services/local_api_server.md](shared/services/local_api_server.md) | 63 | 58 |
 | `lib/shared/services/mobile_notification_service.dart` | [shared/services/mobile_notification_service.md](shared/services/mobile_notification_service.md) | 9 | 7 |
 | `lib/shared/services/reminder_service.dart` | [shared/services/reminder_service.md](shared/services/reminder_service.md) | 33 | 30 |
-| `lib/shared/services/sync_merge.dart` | [shared/services/sync_merge.md](shared/services/sync_merge.md) | 12 | 12 |
+| `lib/shared/services/sync_merge.dart` | [shared/services/sync_merge.md](shared/services/sync_merge.md) | 7 | 7 |
 | `lib/shared/services/sync_progress.dart` | [shared/services/sync_progress.md](shared/services/sync_progress.md) | 0 | 0 |
 | `lib/shared/services/sync_wake_lock.dart` | [shared/services/sync_wake_lock.md](shared/services/sync_wake_lock.md) | 0 | 0 |
 | `lib/shared/services/tray_service.dart` | [shared/services/tray_service.md](shared/services/tray_service.md) | 16 | 13 |
 | `lib/shared/services/webdav_service.dart` | [shared/services/webdav_service.md](shared/services/webdav_service.md) | 12 | 12 |
-| `lib/shared/utils/json_preservation.dart` | [shared/utils/json_preservation.md](shared/utils/json_preservation.md) | 6 | 6 |
+| `lib/shared/utils/json_preservation.dart` | [shared/utils/json_preservation.md](shared/utils/json_preservation.md) | 3 | 2 |
 | `lib/shared/utils/week_grouping.dart` | [shared/utils/week_grouping.md](shared/utils/week_grouping.md) | 16 | 16 |
 | `lib/shared/views/backup_page.dart` | [shared/views/backup_page.md](shared/views/backup_page.md) | 17 | 2 |
 | `lib/shared/views/webdav_config_page.dart` | [shared/views/webdav_config_page.md](shared/views/webdav_config_page.md) | 20 | 6 |
+| `lib/shared/widgets/app_date_picker.dart` | [shared/widgets/app_date_picker.md](shared/widgets/app_date_picker.md) | 23 | 13 |
 | `lib/shared/widgets/delete_confirm.dart` | [shared/widgets/delete_confirm.md](shared/widgets/delete_confirm.md) | 1 | 1 |
 | `lib/shared/widgets/shell_scaffold.dart` | [shared/widgets/shell_scaffold.md](shared/widgets/shell_scaffold.md) | 8 | 2 |
 | `lib/shared/widgets/sync_conflict_dialog.dart` | [shared/widgets/sync_conflict_dialog.md](shared/widgets/sync_conflict_dialog.md) | 6 | 0 |
@@ -146,16 +157,15 @@ the 1436/1435 hand-documented declarations above).
 | Area | Files | Declarations | Tier A | Tier B |
 |---|---|---|---|---|
 | Root (`lib/`) | 1 | 1 | 1 | 0 |
-| `app/` | 3 | 6 | 3 | 3 |
+| `app/` | 4 | 17 | 14 | 3 |
 | `features/finance/` | 20 | 385 | 190 | 195 |
 | `features/intimacy/` | 11 | 363 | 175 | 188 |
 | `features/settings/` | 3 | 28 | 4 | 24 |
 | `features/todo/` | 7 | 186 | 110 | 76 |
 | `features/weight/` | 3 | 84 | 49 | 35 |
-| `shared/` | 23 | 387 | 302 | 85 |
-| **Total** | **71** | **1440** | **834** | **606** |
+| `shared/` | 24 | 294 | 222 | 72 |
+| **Total** | **73** | **1358** | **765** | **593** |
 
-The `features/intimacy/` row is verified against the per-file rows above as of v1.3.2 (11 files,
-363 declarations, 175 Tier A). The other rows, and therefore this Total, carry the same
-pre-v1.3.2 drift described under [Totals](#totals) — they do not reconcile with the per-file row
-sums (1348 / 766 / 582) and have not been re-audited area by area.
+Every row here is the arithmetic sum of the per-file rows above, re-derived in v1.3.2. The file
+counts also match `find lib -name '*.dart' -not -path 'lib/l10n/*'` exactly — 73 source files, 73
+pages, no file without a page and no page without a file.

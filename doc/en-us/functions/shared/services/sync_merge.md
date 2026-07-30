@@ -21,6 +21,12 @@ the extraction.
 | `WeightMergeResult` / `mergeWeightData(...)` | class + function | A | Weight records. |
 | `RecordConflict<T>` / `RecordMergeResult<T>` / `mergeRecords<T>` | re-export | A | The generic engine, from the package. |
 
+**Reconciliation:** this is a **grouped** page — 7 rows above cover the file's 23 `/// Purpose:`
+declarations, because each module's `…MergeResult` class (its constructor, `hasConflicts`,
+`buildResolved`, and the shared `_resolveList`) is documented on one row together with its
+`merge…Data` function. [INDEX.md](../../INDEX.md) counts rows, not underlying declarations, so it
+lists 7.
+
 ## Documentation
 
 ### `mergeExchangeRateJson(localJson, remoteJson)` <a id="exchangerates"></a>

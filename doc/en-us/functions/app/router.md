@@ -16,6 +16,8 @@ configuration object. This is an undocumented-but-real declaration per the verif
 a misattachment; it is listed here as Tier A because it encodes the app's actual routing structure
 (five real routes plus the shell wrapper), not a trivial one-line forwarder.
 
+**Reconciliation:** `grep -c 'Purpose:' lib/app/router.dart` reports 0, while the table has 1 row. `appRouter` is a top-level `GoRouter` variable initialized from a collection literal and carries no `/// Purpose:` block, but it is a real declaration and the file's entire public surface, so it is listed.
+
 ## Documentation
 
 ### `final appRouter = GoRouter(...)` <a id="approuter"></a>

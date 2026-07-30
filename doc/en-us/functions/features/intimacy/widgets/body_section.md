@@ -60,6 +60,8 @@ misattached blocks found), plus one undocumented real declaration — `_profile`
 getter (`BodyProfile get _profile => widget.profile ?? const BodyProfile();`) with no doc comment at
 all. Tier split: 18 Tier A, 17 Tier B.
 
+**Reconciliation:** `grep -c 'Purpose:' lib/features/intimacy/widgets/body_section.dart` reports 34, matching 34 of the 35 rows above exactly. The extra row is `bodyWeightSyncWarningDisabledKey`, a top-level `const String` holding the local-only `storage_config.json` key: no `Purpose:` block, but a real declaration read from two places, so it is listed.
+
 ## Documentation
 
 ### `Color cyclePersonColor({required String? personId, required List<String> allPartnerIdsSorted})` <a id="cyclepersoncolor"></a>

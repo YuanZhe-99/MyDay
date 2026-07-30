@@ -25,6 +25,8 @@ top-level declaration with no doc block at all (undocumented, not misattached) â
 `StateNotifierProvider<AppSettingsNotifier, AppSettings>((ref) => AppSettingsNotifier())` factory,
 trivial enough for Tier B.
 
+**Reconciliation:** `grep -c 'Purpose:' lib/shared/providers/app_settings.dart` reports 7, matching 7 of the 8 rows above exactly. The extra row is `appSettingsProvider`, the `StateNotifierProvider` top-level variable: no `Purpose:` block, but it is the file's public entry point.
+
 ## Documentation
 
 ### `AppSettingsNotifier() : super(const AppSettings())` <a id="appsettingsnotifier-new"></a>

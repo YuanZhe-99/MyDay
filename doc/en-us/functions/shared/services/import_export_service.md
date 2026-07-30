@@ -15,6 +15,8 @@ fixed traversal rejection; MyDay already had it.
 | [`exportZIP(destDir)`](#exportzip) | static method | A | Write `myday_backup_<stamp>.zip`. |
 | [`importZIP(filePath)`](#importzip) | static method | A | Restore data and images from an export. |
 
+**Reconciliation:** `grep -c 'Purpose:' lib/shared/services/import_export_service.dart` reports 3, one more than the 2 rows above. The third is the **file-level** library comment on line 1 describing the facade as a whole; it sits above the `import` block, not above a declaration, so it gets no row.
+
 ## Documentation
 
 ### `exportZIP(destDir)` <a id="exportzip"></a>
