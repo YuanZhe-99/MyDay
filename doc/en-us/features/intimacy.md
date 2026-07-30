@@ -50,10 +50,49 @@ show-all sheet, partner/toy/position management, default position import, partne
 toy retirement state, toy-management active-cost summaries, an aggregate toy-cost overview for
 all/active/retired toys, active/all daily-cost trend charts, finalized retired-toy costs, single-toy
 total/daily cost summaries, per-toy daily-cost subtitles, exclusion of inactive partners/toys from
-new-record pickers, EWMA/raw trend charts for pleasure/frequency and duration/thrust-count with dual
-axes, weekly grouping that follows the global week-start-day setting, condom tracking, and a
-stopwatch timer with a non-negative thrust counter whose history and interrupted active/paused
-session are stored in `intimacy_data.json`.
+new-record pickers, the consolidated trend chart described below, weekly grouping that follows the
+global week-start-day setting, condom tracking, and a stopwatch timer with a non-negative thrust
+counter whose history and interrupted active/paused session are stored in `intimacy_data.json`.
+
+Partner and toy detail pages show a summary card with average pleasure, average duration, and
+average thrust rate; toy pages add total and daily cost.
+
+## The consolidated trend chart (v1.3.2)
+
+`IntimacyTrendChart` (`lib/features/intimacy/widgets/intimacy_trend_chart.dart`) is the module's
+single record-metric chart. It replaced four separate charts — pleasure+frequency and
+duration+thrust-count on the home page, plus near-verbatim copies of both on the partner/toy detail
+pages — and the same widget now serves every surface. The toy daily-cost trend on the toy-cost
+overview page is deliberately *not* part of it: it plots money over a projected date timeline on a
+log scale with its own all/active/retired scope selector.
+
+Five selectable metrics:
+
+| Metric | Id | Unit | Notes |
+|---|---|---|---|
+| Pleasure | `pleasure` | 1-5 | Themed primary color |
+| Frequency | `frequency` | records/week | Derived from the gaps between records, not from any one record |
+| Duration | `duration` | minutes | |
+| Thrust count | `thrustCount` | repetitions | `thrustCount * thrustCountUnit` |
+| **Thrust rate** | `thrustRate` | thrusts/minute | The average rate within each entry; only entries with **both** a duration and a thrust count contribute |
+
+Each metric draws twice: a thin solid line for the raw per-record values and a dashed line for an
+EWMA-smoothed curve whose smoothing factor adapts to the real gap between records
+(`alpha = 1 - exp(-dt/tau)`). Smoothing warms up over *all* records but only emits points inside the
+selected range, so changing the range never changes a curve's shape.
+
+Because the metrics have incompatible scales, the plot area is a unitless 0-1 space: every selected
+metric is normalized against its own snapped ceiling. The first two selected metrics (in the order
+of the table above) own the labelled left and right axes, drawn in real units in the series' own
+color; any further metrics are drawn without an axis and read from the tooltip. Selected metric
+chips double as the legend, so there is no separate legend row. The chart refuses to clear the last
+selected metric, so it never renders empty.
+
+The metric selection and the time range are persisted and synced as `chartSettings` in
+`intimacy_data.json` — see [Data Formats](../data-formats.md#intimacy--intimacy_datajson). One
+selection is shared by every surface: the home page owns the write (it bumps `settingsModifiedAt`
+in UTC and saves), and the detail pages report changes back up through the same callback chain the
+record and sort callbacks already use.
 
 ## Timer/stopwatch session persistence
 

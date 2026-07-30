@@ -15,7 +15,7 @@ pre-upload transform.
 |---|---|---|---|
 | `JsonPreservation` / `JsonPreservationSchema` / `JsonListPreservation` | re-export | A | The generic engine, from the package. |
 | [`dataFilePreservationSchemas`](#schemas) | constant | A | File name to schema, for all five data files. |
-| `_todoDataSchema`, `_financeDataSchema`, `_exchangeRateDataSchema`, `_intimacyDataSchema`, `_weightDataSchema` and their nested item schemas | constants | B | Per-model known-key declarations. |
+| `_todoDataSchema`, `_financeDataSchema`, `_exchangeRateDataSchema`, `_intimacyDataSchema`, `_weightDataSchema` and their nested item schemas (including `_accountPickerSettingsSchema` and `_intimacyChartSettingsSchema`) | constants | B | Per-model known-key declarations. |
 
 ## Documentation
 

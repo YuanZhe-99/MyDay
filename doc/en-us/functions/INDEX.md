@@ -4,22 +4,25 @@ This is the top-level index of the hand-written Function Explanation Layer docum
 `lib/` in the MyDay repo. Each row links to a per-source-file page under `doc/en-us/functions/`
 mirroring the `lib/` tree (with `.dart` replaced by `.md`).
 
-**Totals:** the repo's `/// Purpose:` comment count is **1436** (per the Function Explanation
-Layer convention in `AGENTS.md`, excluding generated `lib/l10n/` code — see
-[l10n/INDEX.md](l10n/INDEX.md)). This index documents **1435** declarations — 1 fewer than 1436,
-the net result of many small per-file reconciliations in both directions: some files have real
-declarations with no `/// Purpose:` comment at all (added as extra rows), while at least one file
-(`sync_merge.dart`) has a single declaration whose doc comment is legitimately referenced by two
-Declarations-table entries, and `service_analysis`-style misattached comments (a doc block sitting
-above a call-site statement rather than a real declaration) were found and excluded elsewhere in
-this repo family. Every individual discrepancy is called out explicitly with a reconciliation note
-on its own file page; nothing is silently forced to hit a round number.
+**Totals:** `grep -r '/// Purpose:' lib --include=*.dart` reports **1367** (per the Function
+Explanation Layer convention in `AGENTS.md`; generated `lib/l10n/` code carries no such comments —
+see [l10n/INDEX.md](l10n/INDEX.md)). The per-file rows below sum to **1348** documented
+declarations across 72 pages.
+
+Individual per-file discrepancies are called out with a reconciliation note on each file page:
+some files have real declarations with no `/// Purpose:` comment at all (added as extra rows),
+while at least one file (`sync_merge.dart`) has a single declaration whose doc comment is
+legitimately referenced by two Declarations-table entries. **The remaining ~19-declaration gap
+between the grep and the row sum is known drift that predates v1.3.2** and has not been audited
+page by page; the per-file tables, not these headline totals, are the reliable figures. (Earlier
+revisions of this page quoted 1436/1435, which appears to have come from a grep that also swept
+`test/`.) Nothing here is forced to hit a round number.
 
 | Tier | Count |
 |---|---|
-| Tier A (full entry) | 828 |
-| Tier B (index row only) | 607 |
-| **Total** | **1435** |
+| Tier A (full entry) | 766 |
+| Tier B (index row only) | 582 |
+| **Total** | **1348** |
 
 ## Root (`lib/`)
 
@@ -65,15 +68,16 @@ on its own file page; nothing is silently forced to hit a round number.
 
 | Source file | Page | Declarations | Tier A |
 |---|---|---|---|
-| `lib/features/intimacy/models/intimacy_record.dart` | [features/intimacy/models/intimacy_record.md](features/intimacy/models/intimacy_record.md) | 37 | 37 |
+| `lib/features/intimacy/models/intimacy_record.dart` | [features/intimacy/models/intimacy_record.md](features/intimacy/models/intimacy_record.md) | 43 | 43 |
 | `lib/features/intimacy/services/body_metrics.dart` | [features/intimacy/services/body_metrics.md](features/intimacy/services/body_metrics.md) | 8 | 7 |
 | `lib/features/intimacy/services/cycle_predictor.dart` | [features/intimacy/services/cycle_predictor.md](features/intimacy/services/cycle_predictor.md) | 16 | 7 |
 | `lib/features/intimacy/services/intimacy_storage.dart` | [features/intimacy/services/intimacy_storage.md](features/intimacy/services/intimacy_storage.md) | 7 | 6 |
 | `lib/features/intimacy/views/body_page.dart` | [features/intimacy/views/body_page.md](features/intimacy/views/body_page.md) | 4 | 0 |
-| `lib/features/intimacy/views/intimacy_page.dart` | [features/intimacy/views/intimacy_page.md](features/intimacy/views/intimacy_page.md) | 201 | 69 |
+| `lib/features/intimacy/views/intimacy_page.dart` | [features/intimacy/views/intimacy_page.md](features/intimacy/views/intimacy_page.md) | 175 | 53 |
 | `lib/features/intimacy/widgets/add_record_dialog.dart` | [features/intimacy/widgets/add_record_dialog.md](features/intimacy/widgets/add_record_dialog.md) | 9 | 2 |
 | `lib/features/intimacy/widgets/body_section.dart` | [features/intimacy/widgets/body_section.md](features/intimacy/widgets/body_section.md) | 35 | 18 |
 | `lib/features/intimacy/widgets/cycle_calendar.dart` | [features/intimacy/widgets/cycle_calendar.md](features/intimacy/widgets/cycle_calendar.md) | 9 | 1 |
+| `lib/features/intimacy/widgets/intimacy_trend_chart.dart` | [features/intimacy/widgets/intimacy_trend_chart.md](features/intimacy/widgets/intimacy_trend_chart.md) | 25 | 16 |
 | `lib/features/intimacy/widgets/timer_page.dart` | [features/intimacy/widgets/timer_page.md](features/intimacy/widgets/timer_page.md) | 32 | 22 |
 
 ## features/settings/
@@ -144,9 +148,14 @@ the 1436/1435 hand-documented declarations above).
 | Root (`lib/`) | 1 | 1 | 1 | 0 |
 | `app/` | 3 | 6 | 3 | 3 |
 | `features/finance/` | 20 | 385 | 190 | 195 |
-| `features/intimacy/` | 10 | 358 | 169 | 189 |
+| `features/intimacy/` | 11 | 363 | 175 | 188 |
 | `features/settings/` | 3 | 28 | 4 | 24 |
 | `features/todo/` | 7 | 186 | 110 | 76 |
 | `features/weight/` | 3 | 84 | 49 | 35 |
 | `shared/` | 23 | 387 | 302 | 85 |
-| **Total** | **70** | **1435** | **828** | **607** |
+| **Total** | **71** | **1440** | **834** | **606** |
+
+The `features/intimacy/` row is verified against the per-file rows above as of v1.3.2 (11 files,
+363 declarations, 175 Tier A). The other rows, and therefore this Total, carry the same
+pre-v1.3.2 drift described under [Totals](#totals) — they do not reconcile with the per-file row
+sums (1348 / 766 / 582) and have not been re-audited area by area.

@@ -845,6 +845,18 @@ abstract class AppLocalizations {
   /// **'Avg duration'**
   String get intimacyAvgDuration;
 
+  /// No description provided for @intimacyThrustRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Thrust rate'**
+  String get intimacyThrustRate;
+
+  /// No description provided for @intimacyAvgThrustRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Avg thrust rate'**
+  String get intimacyAvgThrustRate;
+
   /// No description provided for @intimacyLocation.
   ///
   /// In en, this message translates to:

@@ -150,6 +150,8 @@
   "intimacyThrustCountHint": "任意。概算は x100、正確な記録は x1 を選択。",
   "intimacyAvgPleasure": "平均満足度",
   "intimacyAvgDuration": "平均時間",
+  "intimacyThrustRate": "挿入ペース",
+  "intimacyAvgThrustRate": "平均挿入ペース",
   "intimacyLocation": "場所（任意）",
   "intimacyNotes": "メモ（任意）",
   "intimacyOrgasm": "オーガズムあり？",

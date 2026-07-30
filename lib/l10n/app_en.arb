@@ -163,6 +163,8 @@
   "intimacyThrustCountHint": "Optional. Choose x100 for estimates or x1 for exact counts.",
   "intimacyAvgPleasure": "Avg pleasure",
   "intimacyAvgDuration": "Avg duration",
+  "intimacyThrustRate": "Thrust rate",
+  "intimacyAvgThrustRate": "Avg thrust rate",
   "intimacyLocation": "Location (optional)",
   "intimacyNotes": "Notes (optional)",
   "intimacyOrgasm": "Had Orgasm?",

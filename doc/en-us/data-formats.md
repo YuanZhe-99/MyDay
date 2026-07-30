@@ -118,7 +118,11 @@ Source: `lib/features/intimacy/models/intimacy_record.dart`.
   `thrustCountUnit` (normalized to exactly `1` or `100`; any non-`1` value is coerced to `100`),
   `datetime`, optional `notes`, `hadOrgasm`/`watchedPorn`/`usedCondom` (default `false`),
   `modifiedAt`. `thrustCount`/`thrustCountUnit` are omitted from JSON entirely when `thrustCount`
-  is null.
+  is null. Two derived values are computed at read time and **never persisted**:
+  `resolvedThrustCount` (`thrustCount * thrustCountUnit`, null when no positive count was
+  recorded) and `thrustsPerMinute` (the record's average thrusting rate,
+  `resolvedThrustCount / duration-in-minutes`, null unless both inputs are present and the
+  duration is non-zero).
 - **`TimerHistoryEntry`**: `start`, `duration` (serialized as `durationMs`), `thrustCount` (clamped
   `>= 0`), `thrustCountUnit` (normalized to `1` or `100`). Reads legacy entries that stored an `end`
   timestamp instead of `durationMs` and derives `duration = end - start`.
@@ -134,7 +138,17 @@ Source: `lib/features/intimacy/models/intimacy_record.dart`.
   independent of `settingsModifiedAt`), `cycleRecords` (`List<CycleRecord>` for the user and
   partners), `timerHistoryRetentionDays` (`null` = permanent, otherwise `3`/`7`/`14`),
   `partnerSortModes`/`partnerCustomOrders`/`toySortModes`/`toyCustomOrders` (per-list sort
-  settings), `settingsModifiedAt`.
+  settings), optional `chartSettings` (`IntimacyChartSettings?`), `settingsModifiedAt`.
+- **`IntimacyChartSettings`** (v1.3.2): the consolidated trend chart's view preferences, shared by
+  the intimacy home page and every partner/toy detail page. Two keys: `metrics` (`List<String>`,
+  default `['pleasure', 'duration', 'thrustRate']`; recognized ids are `pleasure`, `frequency`,
+  `duration`, `thrustCount`, `thrustRate`) and `range` (`String`, default `'3m'`; recognized ids
+  are `1w`, `1m`, `3m`, `6m`, `1y`, `all`). Identifiers are **strings, never enum indices**, and
+  are round-tripped verbatim — a build that does not recognize an id keeps it in the list instead
+  of dropping it, so syncing through an older device is lossless. Unrecognized ids are simply not
+  drawn; if nothing recognizable remains, the chart renders the defaults. The whole object is
+  omitted from JSON until the user first changes the selection, which is why adding it in v1.3.2
+  left the WebDAV golden transcripts byte-identical.
 
 ## Weight — `weight_data.json`
 
@@ -176,7 +190,7 @@ platform app documents directory on mobile; desktop users can choose a custom st
 | Todo | `todo_data.json` | Yes | Tasks, daily templates, completion log, daily score log, reminders, task sort/custom order |
 | Finance | `finance_data.json` | Yes | Accounts including optional fee waiver criteria, categories, transactions, subscriptions, finance settings, transaction account picker settings |
 | Exchange rates | `exchange_rates.json` | Yes | Rate snapshots and `lastFetchedAt` |
-| Intimacy | `intimacy_data.json` | Yes | Partners including optional body profiles, toys, positions, records, timer history/session including thrust counts, user body profile (`userBody` + `userBodyModifiedAt`), cycle records, sort settings |
+| Intimacy | `intimacy_data.json` | Yes | Partners including optional body profiles, toys, positions, records, timer history/session including thrust counts, user body profile (`userBody` + `userBodyModifiedAt`), cycle records, sort settings, trend-chart view settings (`chartSettings`) |
 | Weight | `weight_data.json` | Yes | Height, records including optional bust/waist/hip cm fields, reminders, grace window |
 | WebDAV config | `webdav_config.json` | No | User server config and credentials; moved with custom storage path |
 | Sync base | `.sync_base/*.json` | No | Last-synced snapshots for three-way merge |

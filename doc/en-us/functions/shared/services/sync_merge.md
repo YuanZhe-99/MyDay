@@ -17,7 +17,7 @@ the extraction.
 | `TodoMergeResult` / `mergeTodoData(...)` | class + function | A | Daily and once tasks (two conflict containers). |
 | `FinanceMergeResult` / `mergeFinanceData(...)` | class + function | A | Accounts, categories, transactions, subscriptions. |
 | [`mergeExchangeRateJson(local, remote)`](#exchangerates) | function | A | Whole-file union merge; never conflicts. |
-| `IntimacyMergeResult` / `mergeIntimacyData(...)` | class + function | A | Partners, toys, positions, records, cycle records. |
+| `IntimacyMergeResult` / `mergeIntimacyData(...)` | class + function | A | Partners, toys, positions, records, cycle records; three independent LWW clocks, with sort settings and `chartSettings` on the `settingsModifiedAt` one. |
 | `WeightMergeResult` / `mergeWeightData(...)` | class + function | A | Weight records. |
 | `RecordConflict<T>` / `RecordMergeResult<T>` / `mergeRecords<T>` | re-export | A | The generic engine, from the package. |
 

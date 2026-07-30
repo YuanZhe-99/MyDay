@@ -81,7 +81,7 @@ Reproduced from `AGENTS.md`:
 | `todo_data.json` | `mergeTodoData()` | Daily/one-time records by id + `modifiedAt`; daily log union; daily score LWW per date; settings LWW |
 | `finance_data.json` | `mergeFinanceData()` | Accounts/categories/transactions/subscriptions by id + `modifiedAt`; settings LWW |
 | `exchange_rates.json` | `mergeExchangeRateJson()` | Snapshot union; newer valid current snapshot wins (a current id that does not resolve to a snapshot is ignored); newer `lastFetchedAt` wins |
-| `intimacy_data.json` | `mergeIntimacyData()` | Partners/toys/positions/records/cycleRecords by id + `modifiedAt` (partner `body` rides its partner record); timer history union by start; timer session LWW by `timerSessionModifiedAt`; `userBody` LWW by `userBodyModifiedAt`; settings LWW |
+| `intimacy_data.json` | `mergeIntimacyData()` | Partners/toys/positions/records/cycleRecords by id + `modifiedAt` (partner `body` rides its partner record); timer history union by start; timer session LWW by `timerSessionModifiedAt`; `userBody` LWW by `userBodyModifiedAt`; settings LWW (sort settings and `chartSettings`) |
 | `weight_data.json` | `mergeWeightData()` | Records by id + `modifiedAt`; height follows settings LWW (saving weight data bumps `settingsModifiedAt`, so clearing height syncs); reminder/settings LWW |
 | `images/*` | `_syncImages()` | Additive bidirectional, but only for referenced images |
 

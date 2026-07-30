@@ -402,6 +402,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get intimacyAvgDuration => '平均时长';
 
   @override
+  String get intimacyThrustRate => '抽插速率';
+
+  @override
+  String get intimacyAvgThrustRate => '平均抽插速率';
+
+  @override
   String get intimacyLocation => '地点（可选）';
 
   @override
@@ -2499,6 +2505,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get intimacyAvgDuration => '平均時長';
+
+  @override
+  String get intimacyThrustRate => '抽插速率';
+
+  @override
+  String get intimacyAvgThrustRate => '平均抽插速率';
 
   @override
   String get intimacyLocation => '地點（可選）';

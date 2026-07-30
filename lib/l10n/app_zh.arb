@@ -150,6 +150,8 @@
   "intimacyThrustCountHint": "可选。估算选 x100，精确记录选 x1。",
   "intimacyAvgPleasure": "平均愉悦度",
   "intimacyAvgDuration": "平均时长",
+  "intimacyThrustRate": "抽插速率",
+  "intimacyAvgThrustRate": "平均抽插速率",
   "intimacyLocation": "地点（可选）",
   "intimacyNotes": "备注（可选）",
   "intimacyOrgasm": "是否高潮？",

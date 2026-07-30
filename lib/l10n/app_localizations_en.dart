@@ -404,6 +404,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get intimacyAvgDuration => 'Avg duration';
 
   @override
+  String get intimacyThrustRate => 'Thrust rate';
+
+  @override
+  String get intimacyAvgThrustRate => 'Avg thrust rate';
+
+  @override
   String get intimacyLocation => 'Location (optional)';
 
   @override

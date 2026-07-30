@@ -6,15 +6,18 @@ import 'package:my_day/shared/services/sync_merge.dart';
 import 'package:my_day/shared/utils/json_preservation.dart';
 
 /// Purpose: Build an intimacy data JSON string for merge tests.
-/// Inputs: Optional partners, cycle records, user body, and timestamps.
+/// Inputs: Optional partners, cycle records, user body, chart settings, and timestamps.
 /// Returns: `String`.
 /// Side effects: None.
-/// Notes: Keeps the settings timestamp fixed so settings LWW stays neutral.
+/// Notes: The settings timestamp defaults to a fixed value so settings LWW
+/// stays neutral; the chart-settings cases override it deliberately.
 String _intimacyJson({
   List<Partner> partners = const [],
   List<CycleRecord> cycleRecords = const [],
   BodyProfile? userBody,
   DateTime? userBodyModifiedAt,
+  IntimacyChartSettings? chartSettings,
+  DateTime? settingsModifiedAt,
 }) => jsonEncode(
   IntimacyData(
     partners: partners,
@@ -23,7 +26,8 @@ String _intimacyJson({
     cycleRecords: cycleRecords,
     userBody: userBody,
     userBodyModifiedAt: userBodyModifiedAt,
-    settingsModifiedAt: DateTime.utc(2026, 1, 1),
+    chartSettings: chartSettings,
+    settingsModifiedAt: settingsModifiedAt ?? DateTime.utc(2026, 1, 1),
   ).toJson(),
 );
 
@@ -299,6 +303,69 @@ void main() {
           (preserved['cycleRecords'] as List).single as Map<String, dynamic>;
       expect(cycle['modifiedAt'], '2026-06-02T00:00:00.000Z');
       expect(cycle['futureCycleField'], 'keep');
+    });
+  });
+
+  group('chartSettings merge', () {
+    const localSettings = IntimacyChartSettings(
+      metrics: ['pleasure'],
+      range: '1w',
+    );
+    const remoteSettings = IntimacyChartSettings(
+      metrics: ['duration', 'thrustRate'],
+      range: '1y',
+    );
+
+    test('takes chart settings from the newer settings side', () {
+      final result = mergeIntimacyData(
+        _intimacyJson(
+          chartSettings: localSettings,
+          settingsModifiedAt: DateTime.utc(2026, 7, 1),
+        ),
+        _intimacyJson(
+          chartSettings: remoteSettings,
+          settingsModifiedAt: DateTime.utc(2026, 7, 2),
+        ),
+        _intimacyJson(),
+      );
+
+      expect(result.hasConflicts, isFalse);
+      expect(result.chartSettings?.metrics, ['duration', 'thrustRate']);
+      expect(result.chartSettings?.range, '1y');
+      expect(result.buildResolved({}).chartSettings?.range, '1y');
+    });
+
+    test('keeps local chart settings when the settings timestamps tie', () {
+      final result = mergeIntimacyData(
+        _intimacyJson(
+          chartSettings: localSettings,
+          settingsModifiedAt: DateTime.utc(2026, 7, 1),
+        ),
+        _intimacyJson(
+          chartSettings: remoteSettings,
+          settingsModifiedAt: DateTime.utc(2026, 7, 1),
+        ),
+        _intimacyJson(),
+      );
+
+      expect(result.chartSettings?.metrics, ['pleasure']);
+      expect(result.chartSettings?.range, '1w');
+    });
+
+    test('stays null when neither side has ever set a selection', () {
+      final result = mergeIntimacyData(
+        _intimacyJson(),
+        _intimacyJson(),
+        _intimacyJson(),
+      );
+
+      expect(result.chartSettings, isNull);
+      expect(
+        jsonDecode(
+          jsonEncode(result.buildResolved({}).toJson()),
+        ).containsKey('chartSettings'),
+        isFalse,
+      );
     });
   });
 }

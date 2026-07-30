@@ -164,4 +164,165 @@ void main() {
     expect(restored.timerSession?.running, isFalse);
     expect(restored.timerSessionModifiedAt, modifiedAt);
   });
+
+  group('thrust rate', () {
+    /// Purpose: Build a record with the given duration and thrust inputs.
+    /// Inputs: `duration`, `thrustCount`, `thrustCountUnit`.
+    /// Returns: `IntimacyRecord`.
+    /// Side effects: None.
+    /// Notes: Keeps the rate cases readable by hiding unrelated fields.
+    IntimacyRecord record({
+      required Duration duration,
+      int? thrustCount,
+      int? thrustCountUnit,
+    }) => IntimacyRecord(
+      type: 'Regular',
+      pleasureLevel: 4,
+      duration: duration,
+      thrustCount: thrustCount,
+      thrustCountUnit: thrustCountUnit,
+      datetime: DateTime(2026, 5, 23, 20),
+    );
+
+    test('resolves the thrust count through the selected unit', () {
+      expect(
+        record(
+          duration: const Duration(minutes: 15),
+          thrustCount: 5,
+          thrustCountUnit: 100,
+        ).resolvedThrustCount,
+        500,
+      );
+      expect(
+        record(
+          duration: const Duration(minutes: 15),
+          thrustCount: 480,
+          thrustCountUnit: 1,
+        ).resolvedThrustCount,
+        480,
+      );
+    });
+
+    test('has no resolved count without a positive thrust count', () {
+      expect(
+        record(duration: const Duration(minutes: 15)).resolvedThrustCount,
+        isNull,
+      );
+      expect(
+        record(
+          duration: const Duration(minutes: 15),
+          thrustCount: 0,
+          thrustCountUnit: 1,
+        ).resolvedThrustCount,
+        isNull,
+      );
+    });
+
+    test('computes thrusts per minute from duration and thrust count', () {
+      expect(
+        record(
+          duration: const Duration(minutes: 15),
+          thrustCount: 480,
+          thrustCountUnit: 1,
+        ).thrustsPerMinute,
+        480 / 15,
+      );
+      expect(
+        record(
+          duration: const Duration(minutes: 20),
+          thrustCount: 5,
+          thrustCountUnit: 100,
+        ).thrustsPerMinute,
+        25,
+      );
+      expect(
+        record(
+          duration: const Duration(seconds: 30),
+          thrustCount: 60,
+          thrustCountUnit: 1,
+        ).thrustsPerMinute,
+        120,
+      );
+    });
+
+    test('has no thrust rate when either input is missing', () {
+      expect(
+        record(duration: const Duration(minutes: 15)).thrustsPerMinute,
+        isNull,
+      );
+      expect(
+        record(
+          duration: Duration.zero,
+          thrustCount: 480,
+          thrustCountUnit: 1,
+        ).thrustsPerMinute,
+        isNull,
+      );
+    });
+  });
+
+  group('chart settings', () {
+    test('omits chart settings until the user changes them', () {
+      final json = IntimacyData(
+        partners: const [],
+        toys: const [],
+        records: const [],
+      ).toJson();
+
+      expect(json.containsKey('chartSettings'), isFalse);
+      expect(IntimacyData.fromJson(json).chartSettings, isNull);
+    });
+
+    test('round-trips the metric selection and range', () {
+      final data = IntimacyData(
+        partners: const [],
+        toys: const [],
+        records: const [],
+        chartSettings: const IntimacyChartSettings(
+          metrics: ['pleasure', 'frequency'],
+          range: '1y',
+        ),
+      );
+
+      final restored = IntimacyData.fromJson(data.toJson());
+
+      expect(restored.chartSettings?.metrics, ['pleasure', 'frequency']);
+      expect(restored.chartSettings?.range, '1y');
+    });
+
+    test('preserves metric ids it does not recognize', () {
+      final data = IntimacyData(
+        partners: const [],
+        toys: const [],
+        records: const [],
+        chartSettings: const IntimacyChartSettings(
+          metrics: ['pleasure', 'somethingFromANewerBuild'],
+          range: 'someFutureRange',
+        ),
+      );
+
+      final restored = IntimacyData.fromJson(data.toJson());
+
+      expect(restored.chartSettings?.metrics, [
+        'pleasure',
+        'somethingFromANewerBuild',
+      ]);
+      expect(restored.chartSettings?.range, 'someFutureRange');
+    });
+
+    test('falls back to the defaults for missing or empty values', () {
+      expect(
+        IntimacyChartSettings.fromJson(null).metrics,
+        IntimacyChartSettings.defaultMetrics,
+      );
+      expect(
+        IntimacyChartSettings.fromJson(const {'metrics': <String>[]}).metrics,
+        IntimacyChartSettings.defaultMetrics,
+      );
+      expect(
+        IntimacyChartSettings.fromJson(const {}).range,
+        IntimacyChartSettings.defaultRange,
+      );
+    });
+  });
 }

@@ -1,7 +1,7 @@
 # lib/features/intimacy/views/intimacy_page.dart
 
-The Intimacy feature's main view file — by far the largest source file in the whole app (7178
-lines / 262KB). It hosts the home `IntimacyPage` (calendar, record list, trend charts, manage
+The Intimacy feature's main view file — by far the largest source file in the whole app (5642
+lines). It hosts the home `IntimacyPage` (calendar, record list, trend chart, manage
 menu) and every management/detail sub-page reached from it: partner management, toy management,
 position management, the filtered per-partner/per-toy detail page (with its Records/Body tabs),
 the aggregate toy-cost overview, and the small shared widgets (`_CalendarWidget`, `_RecordTile`,
@@ -12,21 +12,26 @@ is `../services/intimacy_storage.dart`; cycle math is `../services/cycle_predict
 shape, and [Body Metrics](../../../../algorithms/body-metrics.md) for cycle prediction details
 consumed here via `_buildCycleOverlays`.
 
-Structurally the file is one home page (`IntimacyPage` / `_IntimacyPageState`) plus eleven
+Structurally the file is one home page (`IntimacyPage` / `_IntimacyPageState`) plus ten
 supporting classes, in source order: `_IntimacyDataError`, `_CalendarWidget`, `_RecordTile`,
 `_PartnerManagementPage` (+ state), `_ToyManagementPage` (+ state), `_PositionManagementPage` (+
 state), `_FilteredRecordsPage` (+ state), `_ToyCostOverviewPage` (+ state), `_ToyCostTrendData`,
-`_FilteredRecordsTrendSection` (+ state), and `_DatePickerTile`. The partner and toy management
-states are near-mirror implementations (custom sort/reorder, active/inactive or active/retired
-grouping) and the main page's trend-chart code is mirrored a second time, in a filtered form, by
-`_FilteredRecordsTrendSectionState` for per-partner/per-toy detail pages.
+and `_DatePickerTile`. The partner and toy management states are near-mirror implementations
+(custom sort/reorder, active/inactive or active/retired grouping).
+
+As of v1.3.2 the record-metric trend charts no longer live here. The home page's two charts and
+`_FilteredRecordsTrendSection`'s two near-verbatim copies were replaced by the single
+[`IntimacyTrendChart`](../widgets/intimacy_trend_chart.md) widget, which both surfaces now embed;
+27 declarations (the spot builders, ceiling helpers, legend items, date-interval helpers, and the
+whole `_FilteredRecordsTrendSection` pair) were deleted, and `_saveChartSettings` was added to
+persist the chart's shared selection. The toy daily-cost trend chart on `_ToyCostOverviewPage`
+stays here — it plots money over a projected date timeline on a log scale — and it now shares the
+public `IntimacyChartRange` enum exported by the chart widget instead of a private duplicate.
 
 ## Declarations
 
 | Declaration | Kind | Tier | Purpose |
 |---|---|---|---|
-| [`_recordThrustCount`](#recordthrustcount) | top-level function | A | Return a record's estimated thrust count in actual repetitions, normalizing the x1/x100 unit. |
-| [`_buildEwmaThrustCountSpots`](#buildewmathrustcountspots) | top-level function | A | Build EWMA-smoothed thrust-count chart spots. |
 | `IntimacyPage.new` | constructor | B | Trivial forwarding constructor. |
 | `IntimacyPage.createState` | method (`IntimacyPage`) | B | Create `_IntimacyPageState`. |
 | `_IntimacyPageState.initState` | method (lifecycle) | B | Load data and register the auto-sync listener. |
@@ -34,6 +39,7 @@ grouping) and the main page's trend-chart code is mirrored a second time, in a f
 | [`_loadData`](#loaddata) | method (`_IntimacyPageState`) | A | Load `intimacy_data.json` into state, or surface a blocking read error. |
 | [`_saveData`](#savedata) | method (`_IntimacyPageState`) | A | Persist current state to storage and notify auto-sync, unless loading or unreadable. |
 | [`_saveTimerState`](#savetimerstate) | method (`_IntimacyPageState`) | A | Persist timer history/session changes streamed back from the open `TimerPage`. |
+| [`_saveChartSettings`](#savechartsettings) | method (`_IntimacyPageState`) | A | Persist a new trend-chart metric and range selection reported by any `IntimacyTrendChart`. |
 | `_markedDates` | getter (`_IntimacyPageState`) | B | Set of calendar days that have at least one record. |
 | [`_buildCycleOverlays`](#buildcycleoverlays) | method (`_IntimacyPageState`) | A | Build the per-person cycle overlay list shown on the home calendar. |
 | `_buildCycleCalendarExtras` | method (widget helper) | B | Render the cycle legend and selected-day cycle strip below the calendar. |
@@ -48,19 +54,6 @@ grouping) and the main page's trend-chart code is mirrored a second time, in a f
 | `_buildRecordDismissible` | method (widget helper) | B | Build a swipe-to-delete record row (main page). |
 | `_buildSortChip` | method (widget helper) | B | Build the sort-mode chip/menu. |
 | `_buildFilterChip` | method (widget helper) | B | Build the filter-mode chip/menu. |
-| [`_chartRecords`](#chartrecords-main) | getter (`_IntimacyPageState`) | A | Records within the selected chart range, sorted ascending. |
-| [`_buildEwmaDurationSpots`](#buildewmadurationspots-main) | method (`_IntimacyPageState`) | A | Build EWMA-smoothed duration (minutes) chart spots. |
-| [`_buildRawFrequencySpots`](#buildrawfrequencyspots) | method (`_IntimacyPageState`) | A | Build raw records-per-week spots using a 7-day rolling window. |
-| [`_buildEwmaPleasureSpots`](#buildewmapleasurespots-main) | method (`_IntimacyPageState`) | A | Build EWMA-smoothed pleasure-level chart spots. |
-| [`_buildEwmaFrequencySpots`](#buildewmafrequencyspots) | method (`_IntimacyPageState`) | A | Build EWMA-smoothed frequency (records/week) chart spots. |
-| `_buildChartSection` | method (widget helper) | B | Build the pleasure/frequency trend card and range selector. |
-| `_buildChart` | method (widget helper) | B | Build the dual-axis pleasure/frequency line chart. |
-| [`freqCeil`](#freqceil) | local function (in `_buildChart`) | A | Round a frequency value up to the next label-friendly step. |
-| `_buildDurationChart` | method (widget helper) | B | Build the dual-axis duration/thrust-count line chart. |
-| [`minCeil`](#minceil) | local function (in `_buildDurationChart`) | A | Round a duration-minutes value up to the next label-friendly step. |
-| [`thrustCeil`](#thrustceil-main) | local function (in `_buildDurationChart`) | A | Round a thrust-count value up to the next label-friendly step. |
-| `_legendItem` | method (widget helper) | B | Build a colored dot + label chart legend item (main page). |
-| [`_chartDateInterval`](#chartdateinterval-main) | method (`_IntimacyPageState`) | A | Return the bottom-axis date-label interval for the main trend charts. |
 | `_showManageMenu` | method (widget helper) | B | Show the bottom-sheet manage menu (Body/Partners/Toys/Positions). |
 | `_openBodySettings` | method (widget helper) | B | Push `BodySettingsPage` and persist any user-body change on return. |
 | `_openPartnerManagement` | method (widget helper) | B | Push `_PartnerManagementPage` and persist changes on return. |
@@ -212,74 +205,18 @@ grouping) and the main page's trend-chart code is mirrored a second time, in a f
 | [`_totalDailyCost`](#totaldailycost) | method (`_ToyCostOverviewPageState`) | A | Sum `Toy.averageDailyCost()` across a toy list, or null if none costable. |
 | `_scopeLabel` | method (`_ToyCostOverviewPageState`) | B | Return the localized label for an all/active/retired scope. |
 | `_ToyCostTrendData.new` | constructor | B | Trivial forwarding constructor. |
-| `_FilteredRecordsTrendSection.new` | constructor | B | Trivial forwarding constructor. |
-| `_FilteredRecordsTrendSection.createState` | method (`_FilteredRecordsTrendSection`) | B | Create `_FilteredRecordsTrendSectionState`. |
-| [`_chartRecords`](#chartrecords-trend) | getter (`_FilteredRecordsTrendSectionState`) | A | Records within the selected chart range, sorted ascending (filtered page). |
-| [`_buildEwmaPleasureSpots`](#buildewmapleasurespots-trend) | method (`_FilteredRecordsTrendSectionState`) | A | Build EWMA-smoothed pleasure-level chart spots (filtered page). |
-| [`_buildEwmaDurationSpots`](#buildewmadurationspots-trend) | method (`_FilteredRecordsTrendSectionState`) | A | Build EWMA-smoothed duration (minutes) chart spots (filtered page). |
-| `_FilteredRecordsTrendSectionState.build` | method (widget) | B | Build the range selector and pleasure/duration trend charts. |
-| `_buildPleasureChart` | method (widget helper) | B | Build the filtered pleasure trend chart. |
-| `_buildDurationChart` (Filtered trend) | method (widget helper) | B | Build the filtered duration/thrust-count trend chart. |
-| [`minuteCeil`](#minuteceil) | local function (in `_buildDurationChart`) | A | Round a duration-minutes value up to the next label-friendly step. |
-| [`thrustCeil`](#thrustceil-trend) | local function (in `_buildDurationChart`) | A | Round a thrust-count value up to the next label-friendly step. |
-| `_legendItem` (Filtered trend) | method (widget helper) | B | Build a colored dot + label chart legend item (filtered page). |
-| [`_chartDateInterval`](#chartdateinterval-trend) | method (`_FilteredRecordsTrendSectionState`) | A | Return the bottom-axis date-label interval for the filtered trend charts. |
 | `_DatePickerTile.new` | constructor | B | Trivial forwarding constructor. |
 | `_DatePickerTile.build` | method (widget) | B | Render a labeled tappable date field. |
 
-**Row count reconciliation:** 201 rows above, matching `grep -c '/// Purpose:'` = 201 exactly (69
-Tier A, 132 Tier B). See the note at the end of this page for how duplicate-named declarations
+**Row count reconciliation:** 175 rows above, matching `grep -c '/// Purpose:'` = 175 exactly (53
+Tier A, 122 Tier B). v1.3.2 removed 27 rows (17 Tier A, 10 Tier B) when the record-metric charts
+moved to [`intimacy_trend_chart.dart`](../widgets/intimacy_trend_chart.md), and added one
+(`_saveChartSettings`, Tier A). See the note at the end of this page for how duplicate-named
+declarations
 (the same helper name reimplemented in more than one class, e.g. `_filteredRecords` in both
 `_IntimacyPageState` and `_FilteredRecordsPageState`) are disambiguated in anchors.
 
 ## Documentation
-
-### `double? _recordThrustCount(IntimacyRecord record)` <a id="recordthrustcount"></a>
-- **Kind:** top-level function
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 50)
-- **Purpose:** Return a record's estimated thrust count in actual repetitions, or `null` if the
-  record has no usable count.
-- **Inputs:** `record` — any `IntimacyRecord`.
-- **Returns:** `double?` — `record.thrustCount * record.thrustCountUnit`, or `null`.
-- **Side effects:** None.
-- **Algorithm:**
-  1. If `thrustCount` is null or `<= 0`, return `null`.
-  2. Otherwise multiply the stored count by `thrustCountUnit` (always normalized to `1` or `100`)
-     and return the actual-repetitions value as a `double`.
-- **Usage:**
-  ```dart
-  final validData = allData
-      .where((record) => _recordThrustCount(record) != null)
-      .toList();
-  double ewma = _recordThrustCount(validData.first)!;
-  ```
-- **Notes:** Shared by every thrust-count EWMA builder in this file (main page and the filtered
-  trend section) so the x1/x100 unit is normalized identically everywhere.
-
-### `List<FlSpot> _buildEwmaThrustCountSpots(List<IntimacyRecord> allData, DateTime visibleFrom, {double halfLifeDays = 7})` <a id="buildewmathrustcountspots"></a>
-- **Kind:** top-level function
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 61)
-- **Purpose:** Build an EWMA-smoothed thrust-count trend line for the chart.
-- **Inputs:** `allData` (all candidate records, ascending by time), `visibleFrom` (the visible
-  chart window start), `halfLifeDays` (smoothing half-life, default 7).
-- **Returns:** `List<FlSpot>` — one spot per visible-range record with a valid thrust count.
-- **Side effects:** None.
-- **Algorithm:**
-  1. Filter to records with a non-null `_recordThrustCount`; if none, return `[]`.
-  2. Convert `halfLifeDays` to a time constant `tau` in milliseconds.
-  3. Seed `ewma` with the first valid record's count.
-  4. For each valid record in order, compute `alpha = 1 - exp(-Δt / tau)` from the gap to the
-     previous record, then `ewma = alpha * count + (1 - alpha) * ewma` (time-adaptive
-     exponential smoothing — larger gaps count more toward the new value).
-  5. Only emit a spot once the record's time is at/after `visibleFrom`, but keep smoothing through
-     earlier ("warm-up") records so the visible curve isn't cold-started.
-- **Usage:**
-  ```dart
-  final thrustSpots = _buildEwmaThrustCountSpots(allSorted, cutoff);
-  ```
-- **Notes:** Reimplemented three more times in this file for duration, pleasure, and frequency
-  (main page and filtered page) with the same time-adaptive-alpha shape; only the per-record value
-  and warm-up seed differ.
 
 ### `Future<void> _loadData()` <a id="loaddata"></a>
 - **Kind:** method of `_IntimacyPageState`
@@ -363,6 +300,25 @@ Tier A, 132 Tier B). See the note at the end of this page for how duplicate-name
 - **Notes:** Keeping the timer session's own modified-timestamp separate from
   `_settingsModifiedAt` matters for the three-way merge — see
   [Timer/stopwatch session persistence](../../../../features/intimacy.md#timerstopwatch-session-persistence).
+
+### `Future<void> _saveChartSettings(IntimacyChartSettings settings)` <a id="savechartsettings"></a>
+- **Kind:** method of `_IntimacyPageState`
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 257)
+- **Purpose:** Persist a new trend-chart metric and range selection.
+- **Inputs:** `settings` — the complete new selection reported by an `IntimacyTrendChart`.
+- **Returns:** `Future<void>`.
+- **Side effects:** Updates `_chartSettings` and `_settingsModifiedAt` via `setState`, then calls
+  `_saveData()`, which writes `intimacy_data.json` and notifies auto-sync.
+- **Algorithm:**
+  1. `setState` the new settings and stamp `_settingsModifiedAt` with `DateTime.now().toUtc()`.
+  2. `await _saveData()`.
+- **Usage:** Passed as `onSettingsChanged` to the home page's `IntimacyTrendChart`, and threaded
+  down as `onChartSettingsChanged` through `_PartnerManagementPage`/`_ToyManagementPage` to
+  `_FilteredRecordsPage`, so every copy of the chart writes through this one method.
+- **Notes:** The selection joins the module's `settingsModifiedAt` last-write-wins group, which is
+  why the timestamp is bumped here rather than inside `_saveData()`. Routing every surface's
+  writes through the home page's state avoids a second writer for `intimacy_data.json` — see
+  [The consolidated trend chart](../../../../features/intimacy.md#the-consolidated-trend-chart-v132).
 
 ### `List<PersonCycleOverlay> _buildCycleOverlays(AppLocalizations l10n)` <a id="buildcycleoverlays"></a>
 - **Kind:** method of `_IntimacyPageState`
@@ -477,161 +433,6 @@ Tier A, 132 Tier B). See the note at the end of this page for how duplicate-name
   not itself special-case a dangling id, but simply leaves whatever id was already stored — it
   never reassigns or clears it, per the deleted-partner tolerance policy described in
   [Intimacy § Deleted-partner handling](../../../../features/intimacy.md#deleted-partner-handling).
-
-### `List<IntimacyRecord> get _chartRecords` (in `_IntimacyPageState`) <a id="chartrecords-main"></a>
-- **Kind:** getter of `_IntimacyPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 909)
-- **Purpose:** Return records within the selected trend-chart range, sorted ascending by time.
-- **Inputs:** None (reads `_records`, `_chartRange`).
-- **Returns:** `List<IntimacyRecord>`.
-- **Side effects:** None.
-- **Algorithm:**
-  1. Map `_chartRange` to a `cutoff` date via `switch`: `oneWeek` → 7 days back, `oneMonth`/
-     `threeMonths`/`sixMonths` → calendar month arithmetic (`DateTime(year, month - N, day)`,
-     which Dart normalizes across year boundaries), `oneYear` → one calendar year back, `all` →
-     a fixed epoch of `DateTime(2000)`.
-  2. Filter `_records` to `datetime.isAfter(cutoff)`.
-  3. Sort ascending by `datetime` (required so the EWMA builders can walk forward in time).
-- **Usage:**
-  ```dart
-  final data = _chartRecords;
-  ```
-  (in `_buildChartSection`, feeding every spot-builder call).
-- **Notes:** The identical range-to-cutoff `switch` is repeated in `_historyStart` (toy cost
-  overview) and in the filtered-page's own `_chartRecords` — see
-  [`_chartRecords` (trend)](#chartrecords-trend).
-
-### `List<FlSpot> _buildEwmaDurationSpots(...)` (in `_IntimacyPageState`) <a id="buildewmadurationspots-main"></a>
-- **Kind:** method of `_IntimacyPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 942)
-- **Purpose:** Build an EWMA-smoothed duration (in minutes) trend line.
-- **Inputs:** `allData`, `visibleFrom`, `halfLifeDays` (default 7).
-- **Returns:** `List<FlSpot>`.
-- **Side effects:** None.
-- **Algorithm:** Same time-adaptive-alpha shape as
-  [`_buildEwmaThrustCountSpots`](#buildewmathrustcountspots): filter to `duration.inSeconds > 0`,
-  seed `ewma` with the first valid record's duration in minutes, then for each record compute
-  `alpha` from the elapsed-time gap and blend `ewma = alpha * durationMin + (1 - alpha) * ewma`,
-  emitting a spot only once `visibleFrom` is reached.
-- **Usage:** Called from `_buildDurationChart` alongside `_buildEwmaThrustCountSpots`.
-- **Notes:** Reimplemented identically for the filtered detail page — see
-  [`_buildEwmaDurationSpots` (trend)](#buildewmadurationspots-trend).
-
-### `List<FlSpot> _buildRawFrequencySpots(List<IntimacyRecord> allData, DateTime visibleFrom)` <a id="buildrawfrequencyspots"></a>
-- **Kind:** method of `_IntimacyPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 978)
-- **Purpose:** Build raw (non-EWMA) records-per-week frequency spots using a 7-day trailing
-  window.
-- **Inputs:** `allData` (ascending), `visibleFrom`.
-- **Returns:** `List<FlSpot>` — one spot per visible record, y = count of records in the preceding
-  7 days inclusive.
-- **Side effects:** None.
-- **Algorithm:**
-  1. For each record at index `i`, walk backward (`j` from `i` down to `0`) counting how many
-     records fall within `windowMs` (7 days) of it, stopping at the first one that doesn't.
-  2. Emit a spot `(time, count)` only for records at/after `visibleFrom`.
-  3. This is an O(n²) worst case (nested backward walk per record) — acceptable because `allData`
-     is already range-limited by `_chartRecords`.
-- **Usage:** Called from `_buildChartSection` as the "raw frequency" series plotted dashed next to
-  the EWMA frequency line.
-- **Notes:** Unlike the EWMA builders, this has no exponential smoothing — it's a literal rolling
-  count, shown as the "actual" series behind the smoothed one.
-
-### `List<FlSpot> _buildEwmaPleasureSpots(...)` (in `_IntimacyPageState`) <a id="buildewmapleasurespots-main"></a>
-- **Kind:** method of `_IntimacyPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 1011)
-- **Purpose:** Build an EWMA-smoothed pleasure-level trend line.
-- **Inputs:** `allData`, `visibleFrom`, `halfLifeDays` (default 7).
-- **Returns:** `List<FlSpot>`.
-- **Side effects:** None.
-- **Algorithm:** Same shape as the duration/thrust builders: filter to `pleasureLevel > 0`, seed
-  with the first valid value, blend with a time-adaptive alpha, emit spots at/after
-  `visibleFrom`.
-- **Usage:** Called from `_buildChartSection`/`_buildChart` as the pleasure trend series.
-- **Notes:** Reimplemented identically for the filtered detail page — see
-  [`_buildEwmaPleasureSpots` (trend)](#buildewmapleasurespots-trend).
-
-### `List<FlSpot> _buildEwmaFrequencySpots(List<IntimacyRecord> allData, DateTime visibleFrom, {double halfLifeDays = 14})` <a id="buildewmafrequencyspots"></a>
-- **Kind:** method of `_IntimacyPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 1044)
-- **Purpose:** Build an EWMA-smoothed frequency (records-per-week) trend line.
-- **Inputs:** `allData`, `visibleFrom`, `halfLifeDays` (default **14**, longer than the other
-  series since frequency is inherently noisier).
-- **Returns:** `List<FlSpot>`.
-- **Side effects:** None.
-- **Algorithm:**
-  1. Seed `ewma = 1.0` (an assumed baseline of one record per week) rather than deriving from the
-     first record, since frequency isn't a per-record field.
-  2. For each record after the first, if there's a positive time gap since the previous one,
-     compute an instantaneous rate `rate = (7 days) / gap` (records-per-week implied by that single
-     gap) and blend it in with the same time-adaptive alpha as the other series.
-  3. Emit spots at/after `visibleFrom`.
-- **Usage:** Called from `_buildChartSection` as the EWMA frequency series (paired with the raw
-  series from `_buildRawFrequencySpots`).
-- **Notes:** Because the instantaneous rate is `7 days / gap`, a very short gap between two
-  records produces a very large instantaneous "rate" spike that then gets smoothed down over
-  subsequent gaps — the half-life of 14 days (double the others) tempers this.
-
-### `double freqCeil(double v)` (local to `_buildChart`) <a id="freqceil"></a>
-- **Kind:** local function inside `_buildChart` (method of `_IntimacyPageState`)
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 1272)
-- **Purpose:** Round a frequency (records/week) axis maximum up to the next label-friendly step.
-- **Inputs:** `v` — the raw maximum value to accommodate.
-- **Returns:** `double` — the smallest step in `[1, 2, 3, 5, 7, 10, 14, 20]` that is `>= v`.
-- **Side effects:** None.
-- **Algorithm:** Linear scan of a fixed ascending steps array, returning the first entry `>= v`
-  (falls through to the last/largest step if `v` exceeds all of them, implied by the surrounding
-  code using this as an axis ceiling).
-- **Usage:** Called inline while computing the chart's `maxY` for the frequency axis in
-  `_buildChart`.
-- **Notes:** The same "round up to a fixed step table" pattern recurs three more times in this
-  file for duration-minutes and thrust-count axes (`minCeil`, `thrustCeil`, `minuteCeil`) — only
-  the step table differs.
-
-### `double minCeil(double v)` (local to `_buildDurationChart`, main page) <a id="minceil"></a>
-- **Kind:** local function inside `_buildDurationChart` (method of `_IntimacyPageState`)
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 1492)
-- **Purpose:** Round a duration-minutes axis maximum up to the next label-friendly step.
-- **Inputs:** `v`.
-- **Returns:** `double` — the smallest step in `[5, 10, 15, 20, 30, 45, 60, 90, 120]` that is `>=
-  v`.
-- **Side effects:** None.
-- **Algorithm:** Same linear-scan-over-fixed-steps pattern as [`freqCeil`](#freqceil).
-- **Usage:** Computes the duration axis ceiling inside `_buildDurationChart`.
-- **Notes:** Identical step table reused (as `minuteCeil`) in the filtered trend section — see
-  [`minuteCeil`](#minuteceil).
-
-### `double thrustCeil(double v)` (local to `_buildDurationChart`, main page) <a id="thrustceil-main"></a>
-- **Kind:** local function inside `_buildDurationChart` (method of `_IntimacyPageState`)
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 1505)
-- **Purpose:** Round a thrust-count axis maximum up to the next label-friendly step.
-- **Inputs:** `v`.
-- **Returns:** `double` — the smallest step in `[100, 200, 300, 500, 800, 1000, 1500]` that is `>=
-  v`.
-- **Side effects:** None.
-- **Algorithm:** Same linear-scan-over-fixed-steps pattern as [`freqCeil`](#freqceil).
-- **Usage:** Computes the thrust-count axis ceiling inside `_buildDurationChart`.
-- **Notes:** Duplicated verbatim in the filtered trend section's `_buildDurationChart` — see
-  [`thrustCeil` (trend)](#thrustceil-trend).
-
-### `double _chartDateInterval(List<IntimacyRecord> data)` (in `_IntimacyPageState`) <a id="chartdateinterval-main"></a>
-- **Kind:** method of `_IntimacyPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 1725)
-- **Purpose:** Return the bottom-axis date-label interval (in milliseconds) for the main trend
-  charts, scaled to how much time the visible data spans.
-- **Inputs:** `data` — the records currently plotted.
-- **Returns:** `double` milliseconds; `1` if fewer than two records (degenerate span).
-- **Side effects:** None.
-- **Algorithm:** Compute `spanMs` from first to last record, then pick a broader interval as the
-  span grows (mirrors the day-based [`_dateInterval`](#dateinterval) used for cost charts, but
-  keyed directly off millisecond span rather than day count).
-- **Usage:**
-  ```dart
-  interval: _chartDateInterval(data),
-  ```
-  (both the pleasure/frequency chart and the duration/thrust chart in this class).
-- **Notes:** Reimplemented identically in the filtered trend section — see
-  [`_chartDateInterval` (trend)](#chartdateinterval-trend).
 
 ### `int _compareNullableDates(DateTime? a, DateTime? b)` (in `_PartnerManagementPageState`) <a id="comparenullabledates-partner"></a>
 - **Kind:** method of `_PartnerManagementPageState`
@@ -1272,7 +1073,8 @@ Tier A, 132 Tier B). See the note at the end of this page for how duplicate-name
 - **Inputs:** `today`, `toys`.
 - **Returns:** `DateTime`.
 - **Side effects:** None.
-- **Algorithm:** Same range-to-cutoff `switch` as [`_chartRecords`](#chartrecords-main) (one
+- **Algorithm:** Same range-to-cutoff `switch` as
+  [`IntimacyChartRange.cutoffFrom`](../widgets/intimacy_trend_chart.md#cutofffrom) (one
   week/month/3mo/6mo/year back from `today`), except the `all` case resolves to
   [`_earliestPurchaseDate`](#earliestpurchasedate) (falling back to one year back if no toy has a
   purchase date); finally clamps the result so it never lands after `today`.
@@ -1424,8 +1226,8 @@ Tier A, 132 Tier B). See the note at the end of this page for how duplicate-name
   180-day, else yearly).
 - **Usage:** Passed as the chart's bottom-axis `interval` in `_buildCostChart`.
 - **Notes:** Same broad-thresholds design intent as
-  [`_chartDateInterval`](#chartdateinterval-main), but expressed in day-count thresholds rather
-  than a millisecond-span formula.
+  [`IntimacyTrendChart._dateInterval`](../widgets/intimacy_trend_chart.md#dateinterval), but
+  expressed in day-count thresholds rather than a millisecond-span formula.
 
 ### `String _dateLabel(DateTime date, double minX, double maxX, String localeName)` <a id="datelabel"></a>
 - **Kind:** method of `_ToyCostOverviewPageState`
@@ -1494,104 +1296,3 @@ Tier A, 132 Tier B). See the note at the end of this page for how duplicate-name
   ```
   (in `_buildSummaryCard` for the cost overview page).
 - **Notes:** None beyond the cross-reference above.
-
-### `List<IntimacyRecord> get _chartRecords` (in `_FilteredRecordsTrendSectionState`) <a id="chartrecords-trend"></a>
-- **Kind:** getter of `_FilteredRecordsTrendSectionState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 6446)
-- **Purpose:** Return records within the selected chart range for the filtered detail page's trend
-  charts.
-- **Inputs:** None (reads `widget.records`, `_chartRange`).
-- **Returns:** `List<IntimacyRecord>`, ascending by time.
-- **Side effects:** None.
-- **Algorithm:** Identical range-to-cutoff `switch` as
-  [`_chartRecords`](#chartrecords-main), applied to `widget.records` (already scoped to the
-  partner/toy by the parent) instead of the page-wide `_records`.
-- **Usage:**
-  ```dart
-  final data = _chartRecords;
-  ```
-  (in `build()`, feeding both trend-chart builders).
-- **Notes:** The parent detail page hands this widget an already-filtered `records` list, so this
-  getter only applies the *time-range* cut, not the partner/toy filter itself.
-
-### `List<FlSpot> _buildEwmaPleasureSpots(...)` (in `_FilteredRecordsTrendSectionState`) <a id="buildewmapleasurespots-trend"></a>
-- **Kind:** method of `_FilteredRecordsTrendSectionState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 6477)
-- **Purpose:** Build an EWMA-smoothed pleasure-level trend line for the filtered detail page.
-- **Inputs:** `allData`, `visibleFrom`, `halfLifeDays` (default 7).
-- **Returns:** `List<FlSpot>`.
-- **Side effects:** None.
-- **Algorithm:** Byte-for-byte identical to
-  [`_buildEwmaPleasureSpots` (main)](#buildewmapleasurespots-main).
-- **Usage:** Called from `_buildPleasureChart` in this class.
-- **Notes:** None beyond the cross-reference above.
-
-### `List<FlSpot> _buildEwmaDurationSpots(...)` (in `_FilteredRecordsTrendSectionState`) <a id="buildewmadurationspots-trend"></a>
-- **Kind:** method of `_FilteredRecordsTrendSectionState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 6513)
-- **Purpose:** Build an EWMA-smoothed duration trend line for the filtered detail page.
-- **Inputs:** `allData`, `visibleFrom`, `halfLifeDays` (default 7).
-- **Returns:** `List<FlSpot>`.
-- **Side effects:** None.
-- **Algorithm:** Byte-for-byte identical to
-  [`_buildEwmaDurationSpots` (main)](#buildewmadurationspots-main).
-- **Usage:** Called from `_buildDurationChart` in this class.
-- **Notes:** None beyond the cross-reference above.
-
-### `double minuteCeil(double value)` (local to `_buildDurationChart`, filtered trend) <a id="minuteceil"></a>
-- **Kind:** local function inside `_buildDurationChart` (method of
-  `_FilteredRecordsTrendSectionState`)
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 6876)
-- **Purpose:** Round a duration-minutes axis maximum up to the next label-friendly step.
-- **Inputs:** `value`.
-- **Returns:** `double` — smallest of `[5, 10, 15, 20, 30, 45, 60, 90, 120]` that is `>= value`.
-- **Side effects:** None.
-- **Algorithm:** Same linear-scan-over-fixed-steps pattern as [`minCeil`](#minceil), under a
-  different local name.
-- **Usage:** Computes the duration axis ceiling inside this class's `_buildDurationChart`.
-- **Notes:** Same step table as `minCeil` — this is effectively that function copy-pasted into the
-  filtered-page variant with a renamed identifier.
-
-### `double thrustCeil(double value)` (local to `_buildDurationChart`, filtered trend) <a id="thrustceil-trend"></a>
-- **Kind:** local function inside `_buildDurationChart` (method of
-  `_FilteredRecordsTrendSectionState`)
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 6889)
-- **Purpose:** Round a thrust-count axis maximum up to the next label-friendly step.
-- **Inputs:** `value`.
-- **Returns:** `double` — smallest of `[100, 200, 300, 500, 800, 1000, 1500]` that is `>= value`.
-- **Side effects:** None.
-- **Algorithm:** Same linear-scan-over-fixed-steps pattern as
-  [`thrustCeil` (main)](#thrustceil-main).
-- **Usage:** Computes the thrust-count axis ceiling inside this class's `_buildDurationChart`.
-- **Notes:** Verbatim duplicate of the main page's `thrustCeil`.
-
-### `double _chartDateInterval(List<IntimacyRecord> data)` (in `_FilteredRecordsTrendSectionState`) <a id="chartdateinterval-trend"></a>
-- **Kind:** method of `_FilteredRecordsTrendSectionState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 7108)
-- **Purpose:** Return the bottom-axis date-label interval for the filtered detail page's trend
-  charts.
-- **Inputs:** `data`.
-- **Returns:** `double` milliseconds; `1` if fewer than two records.
-- **Side effects:** None.
-- **Algorithm:** Byte-for-byte identical to
-  [`_chartDateInterval` (main)](#chartdateinterval-main).
-- **Usage:**
-  ```dart
-  interval: _chartDateInterval(data),
-  ```
-  (both the pleasure chart and duration chart in this class).
-- **Notes:** None beyond the cross-reference above.
-
----
-
-**On duplicate declaration names:** several helper names are implemented twice in this file —
-once for the main `IntimacyPage`/`_IntimacyPageState` and once for a sibling class covering the
-same concept for the filtered per-partner/per-toy detail page (`_filteredRecords`,
-`_chartRecords`, `_buildEwmaDurationSpots`, `_buildEwmaPleasureSpots`, `_chartDateInterval`, both
-`thrustCeil` locals), or once each for `_PartnerManagementPageState` and `_ToyManagementPageState`
-(`_compareNullableDates`, `_normalizedOrder`, `_setSortMode`), or once each for `_IntimacyPageState`
-and `_FilteredRecordsPageState` (`_addRecord`/`_editRecord`/`_deleteRecord`). Since anchors must be
-unique within this page, every such pair is disambiguated with a `-main`/`-trend`,
-`-partner`/`-toy`, or `-filtered` suffix in this page's anchors only (e.g. `#filteredrecords-main`
-vs. `#filteredrecords-filtered`); the bare declaration name in the Declarations table's link text
-is unchanged.

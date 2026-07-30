@@ -55,4 +55,40 @@ void main() {
     expect(record.containsKey('waistCm'), isFalse);
     expect(record.containsKey('hipCm'), isFalse);
   });
+
+  test('preserves unknown keys nested inside intimacy chart settings', () {
+    final schema = dataFilePreservationSchemas['intimacy_data.json']!;
+    final existing = {
+      'partners': <dynamic>[],
+      'toys': <dynamic>[],
+      'records': <dynamic>[],
+      'chartSettings': {
+        'metrics': ['pleasure'],
+        'range': '1w',
+        'futureChartField': {'smoothing': 'ewma'},
+      },
+      'settingsModifiedAt': '2026-07-01T00:00:00.000Z',
+    };
+    final next = {
+      'partners': <dynamic>[],
+      'toys': <dynamic>[],
+      'records': <dynamic>[],
+      'chartSettings': {
+        'metrics': ['duration', 'thrustRate'],
+        'range': '1y',
+      },
+      'settingsModifiedAt': '2026-07-02T00:00:00.000Z',
+    };
+
+    final preserved = JsonPreservation.preserve(
+      next: next,
+      sources: [existing],
+      schema: schema,
+    );
+    final chartSettings = preserved['chartSettings'] as Map<String, dynamic>;
+
+    expect(chartSettings['metrics'], ['duration', 'thrustRate']);
+    expect(chartSettings['range'], '1y');
+    expect(chartSettings['futureChartField'], {'smoothing': 'ewma'});
+  });
 }

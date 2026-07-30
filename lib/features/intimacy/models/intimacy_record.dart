@@ -502,6 +502,31 @@ class IntimacyRecord {
        datetime = datetime ?? DateTime.now(),
        modifiedAt = modifiedAt ?? DateTime.now().toUtc();
 
+  /// Purpose: Return this record's thrust count in actual repetitions.
+  /// Inputs: None.
+  /// Returns: `double?` — null when no usable thrust count was recorded.
+  /// Side effects: None.
+  /// Notes: The stored value is multiplied by the user-selected x1 or x100 unit.
+  double? get resolvedThrustCount {
+    final count = thrustCount;
+    if (count == null || count <= 0) return null;
+    return count * thrustCountUnit.toDouble();
+  }
+
+  /// Purpose: Return this record's average thrusting rate in thrusts per minute.
+  /// Inputs: None.
+  /// Returns: `double?` — null unless the record has both a positive duration
+  /// and a usable thrust count.
+  /// Side effects: None.
+  /// Notes: Derived at read time and never persisted. Durations are stored in
+  /// seconds, so a short session with a large count yields a large rate.
+  double? get thrustsPerMinute {
+    final count = resolvedThrustCount;
+    final seconds = duration.inSeconds;
+    if (count == null || seconds <= 0) return null;
+    return count / (seconds / 60.0);
+  }
+
   /// Purpose: Serialize this value into a JSON-compatible map.
   /// Inputs: None.
   /// Returns: A JSON-compatible map.
@@ -698,6 +723,73 @@ class IntimacyTimerSession {
   }
 }
 
+/// Persisted view preferences for the consolidated intimacy trend chart.
+///
+/// Metric and range identifiers are stored as plain strings, never as enum
+/// indices, and are round-tripped verbatim: a build that does not recognize an
+/// identifier keeps it instead of dropping it, so syncing through an older
+/// device is lossless.
+class IntimacyChartSettings {
+  /// Metrics shown when the user has never changed the selection.
+  static const List<String> defaultMetrics = [
+    'pleasure',
+    'duration',
+    'thrustRate',
+  ];
+
+  /// Time range shown when the user has never changed the selection.
+  static const String defaultRange = '3m';
+
+  final List<String> metrics;
+  final String range;
+
+  /// Purpose: Create an intimacy chart settings instance.
+  /// Inputs: `metrics` and `range`, both defaulting to the built-in selection.
+  /// Returns: A new `IntimacyChartSettings` instance.
+  /// Side effects: None.
+  /// Notes: Identifiers are not validated here so unknown values survive a
+  /// round trip; the chart widget filters them at render time.
+  const IntimacyChartSettings({
+    this.metrics = defaultMetrics,
+    this.range = defaultRange,
+  });
+
+  /// Purpose: Serialize this value into a JSON-compatible map.
+  /// Inputs: None.
+  /// Returns: A JSON-compatible map.
+  /// Side effects: None.
+  /// Notes: Keep the output aligned with the persisted file and sync format.
+  Map<String, dynamic> toJson() => {'metrics': metrics, 'range': range};
+
+  /// Purpose: Create an instance from a JSON-compatible map.
+  /// Inputs: `json`, which may be null.
+  /// Returns: A new `IntimacyChartSettings` instance.
+  /// Side effects: None.
+  /// Notes: A null or malformed map yields the default selection rather than
+  /// an error, matching `AccountPickerSettings.fromJson`.
+  factory IntimacyChartSettings.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return const IntimacyChartSettings();
+    final metrics = (json['metrics'] as List<dynamic>?)
+        ?.whereType<String>()
+        .toList();
+    return IntimacyChartSettings(
+      metrics: metrics == null || metrics.isEmpty ? defaultMetrics : metrics,
+      range: json['range'] as String? ?? defaultRange,
+    );
+  }
+
+  /// Purpose: Return a copy of these settings with selected fields replaced.
+  /// Inputs: `metrics`, `range`.
+  /// Returns: A new `IntimacyChartSettings` instance.
+  /// Side effects: None.
+  /// Notes: None.
+  IntimacyChartSettings copyWith({List<String>? metrics, String? range}) =>
+      IntimacyChartSettings(
+        metrics: metrics ?? this.metrics,
+        range: range ?? this.range,
+      );
+}
+
 class IntimacyData {
   final List<Partner> partners;
   final List<Toy> toys;
@@ -722,6 +814,9 @@ class IntimacyData {
   final Map<String, List<String>> partnerCustomOrders;
   final Map<String, String> toySortModes;
   final Map<String, List<String>> toyCustomOrders;
+
+  /// Trend-chart view preferences; null until the user changes the selection.
+  final IntimacyChartSettings? chartSettings;
   final DateTime settingsModifiedAt;
 
   /// Purpose: Create a intimacy data instance.
@@ -745,6 +840,7 @@ class IntimacyData {
     this.partnerCustomOrders = const {},
     this.toySortModes = const {},
     this.toyCustomOrders = const {},
+    this.chartSettings,
     DateTime? settingsModifiedAt,
   }) : timerSessionModifiedAt =
            timerSessionModifiedAt ??
@@ -779,6 +875,7 @@ class IntimacyData {
       'partnerCustomOrders': partnerCustomOrders,
     if (toySortModes.isNotEmpty) 'toySortModes': toySortModes,
     if (toyCustomOrders.isNotEmpty) 'toyCustomOrders': toyCustomOrders,
+    if (chartSettings != null) 'chartSettings': chartSettings!.toJson(),
     'settingsModifiedAt': settingsModifiedAt.toIso8601String(),
   };
 
@@ -859,6 +956,11 @@ class IntimacyData {
           ),
         ) ??
         const {},
+    chartSettings: json['chartSettings'] is Map<String, dynamic>
+        ? IntimacyChartSettings.fromJson(
+            json['chartSettings'] as Map<String, dynamic>,
+          )
+        : null,
     settingsModifiedAt: json['settingsModifiedAt'] != null
         ? DateTime.parse(json['settingsModifiedAt'] as String)
         : DateTime.fromMillisecondsSinceEpoch(0),

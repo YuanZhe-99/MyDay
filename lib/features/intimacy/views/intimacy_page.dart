@@ -20,6 +20,7 @@ import '../services/intimacy_storage.dart';
 import '../widgets/add_record_dialog.dart';
 import '../widgets/body_section.dart';
 import '../widgets/cycle_calendar.dart';
+import '../widgets/intimacy_trend_chart.dart';
 import '../widgets/timer_page.dart';
 import 'body_page.dart';
 
@@ -27,65 +28,7 @@ enum _SortMode { dateDesc, dateAsc, pleasureDesc, durationDesc }
 
 enum _FilterMode { all, solo, partnered, orgasm, noOrgasm }
 
-enum _IntimacyChartRange {
-  oneWeek,
-  oneMonth,
-  threeMonths,
-  sixMonths,
-  oneYear,
-  all,
-}
-
 enum _ToyCostScope { all, active, retired }
-
-const Color _intimacyFrequencyChartColor = Color(0xFF00796B);
-const Color _intimacyDurationChartColor = Color(0xFFF57C00);
-const Color _intimacyThrustChartColor = Color(0xFF8E24AA);
-
-/// Purpose: Return a record's estimated thrust count in actual repetitions.
-/// Inputs: `record`.
-/// Returns: `double?`.
-/// Side effects: None.
-/// Notes: The stored value is multiplied by the user-selected x1 or x100 unit.
-double? _recordThrustCount(IntimacyRecord record) {
-  final count = record.thrustCount;
-  if (count == null || count <= 0) return null;
-  return count * record.thrustCountUnit.toDouble();
-}
-
-/// Purpose: Build EWMA smoothed thrust-count spots for a trend chart.
-/// Inputs: `allData`, `visibleFrom`, `halfLifeDays`.
-/// Returns: `List<FlSpot>`.
-/// Side effects: None.
-/// Notes: Uses earlier records for warm-up but only emits visible-range spots.
-List<FlSpot> _buildEwmaThrustCountSpots(
-  List<IntimacyRecord> allData,
-  DateTime visibleFrom, {
-  double halfLifeDays = 7,
-}) {
-  final validData = allData
-      .where((record) => _recordThrustCount(record) != null)
-      .toList();
-  if (validData.isEmpty) return [];
-  final tau = halfLifeDays * 86400 * 1000;
-  final spots = <FlSpot>[];
-  double ewma = _recordThrustCount(validData.first)!;
-  DateTime prevTime = validData.first.datetime;
-
-  for (final record in validData) {
-    final dtMs = record.datetime.difference(prevTime).inMilliseconds.toDouble();
-    final alpha = 1.0 - math.exp(-dtMs / tau);
-    final count = _recordThrustCount(record)!;
-    ewma = alpha * count + (1 - alpha) * ewma;
-    if (!record.datetime.isBefore(visibleFrom)) {
-      spots.add(
-        FlSpot(record.datetime.millisecondsSinceEpoch.toDouble(), ewma),
-      );
-    }
-    prevTime = record.datetime;
-  }
-  return spots;
-}
 
 class IntimacyPage extends ConsumerStatefulWidget {
   /// Purpose: Create an intimacy page instance.
@@ -131,14 +74,13 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
   Map<String, List<String>> _partnerCustomOrders = {};
   Map<String, String> _toySortModes = {};
   Map<String, List<String>> _toyCustomOrders = {};
+  IntimacyChartSettings _chartSettings = const IntimacyChartSettings();
   DateTime _settingsModifiedAt = DateTime.fromMillisecondsSinceEpoch(0);
   bool _loaded = false;
   String? _loadError;
 
   _SortMode _sortMode = _SortMode.dateDesc;
   _FilterMode _filterMode = _FilterMode.all;
-  _IntimacyChartRange _chartRange = _IntimacyChartRange.threeMonths;
-  final bool _showChart = true;
 
   /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
   /// Inputs: None.
@@ -205,6 +147,7 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
         _toyCustomOrders = data.toyCustomOrders.map(
           (key, value) => MapEntry(key, List<String>.of(value)),
         );
+        _chartSettings = data.chartSettings ?? const IntimacyChartSettings();
         _settingsModifiedAt = data.settingsModifiedAt;
       }
       _loaded = true;
@@ -248,10 +191,25 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
         partnerCustomOrders: _partnerCustomOrders,
         toySortModes: _toySortModes,
         toyCustomOrders: _toyCustomOrders,
+        chartSettings: _chartSettings,
         settingsModifiedAt: _settingsModifiedAt,
       ),
     );
     AutoSyncService.instance.notifySaved();
+  }
+
+  /// Purpose: Persist a new trend-chart metric and range selection.
+  /// Inputs: `settings`.
+  /// Returns: `Future<void>`.
+  /// Side effects: Updates page state, writes intimacy data, and notifies auto-sync.
+  /// Notes: Bumps `settingsModifiedAt` in UTC so the selection wins settings LWW
+  /// on the next sync. Shared by the home chart and every detail-page chart.
+  Future<void> _saveChartSettings(IntimacyChartSettings settings) async {
+    setState(() {
+      _chartSettings = settings;
+      _settingsModifiedAt = DateTime.now().toUtc();
+    });
+    await _saveData();
   }
 
   /// Purpose: Persist timer page changes while the timer page is still open.
@@ -627,9 +585,13 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
                 ..._buildCycleCalendarExtras(theme, l10n),
                 const Divider(height: 1),
 
-                // Trend chart section
-                if (_records.length >= 2 && _showChart)
-                  _buildChartSection(theme),
+                // Consolidated trend chart
+                if (_records.length >= 2)
+                  IntimacyTrendChart(
+                    records: _records,
+                    settings: _chartSettings,
+                    onSettingsChanged: _saveChartSettings,
+                  ),
 
                 // Records header
                 Padding(
@@ -899,846 +861,6 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
     );
   }
 
-  // ── Trend chart ──
-
-  /// Purpose: Return chart records.
-  /// Inputs: None.
-  /// Returns: `List<IntimacyRecord>`.
-  /// Side effects: None.
-  /// Notes: Internal helper used within this file only.
-  List<IntimacyRecord> get _chartRecords {
-    final now = DateTime.now();
-    final cutoff = switch (_chartRange) {
-      _IntimacyChartRange.oneWeek => now.subtract(const Duration(days: 7)),
-      _IntimacyChartRange.oneMonth => DateTime(
-        now.year,
-        now.month - 1,
-        now.day,
-      ),
-      _IntimacyChartRange.threeMonths => DateTime(
-        now.year,
-        now.month - 3,
-        now.day,
-      ),
-      _IntimacyChartRange.sixMonths => DateTime(
-        now.year,
-        now.month - 6,
-        now.day,
-      ),
-      _IntimacyChartRange.oneYear => DateTime(now.year - 1, now.month, now.day),
-      _IntimacyChartRange.all => DateTime(2000),
-    };
-    return _records.where((r) => r.datetime.isAfter(cutoff)).toList()
-      ..sort((a, b) => a.datetime.compareTo(b.datetime));
-  }
-
-  /// Build EWMA smoothed curve for duration (in minutes).
-  /// Processes [allData] for warm-up but only emits spots at/after [visibleFrom].
-  /// Purpose: Provide the internal build ewma duration spots helper for this file.
-  /// Inputs: `allData`, `visibleFrom`, `halfLifeDays`.
-  /// Returns: `List<FlSpot>`.
-  /// Side effects: None.
-  /// Notes: Internal helper used within this file only.
-  List<FlSpot> _buildEwmaDurationSpots(
-    List<IntimacyRecord> allData,
-    DateTime visibleFrom, {
-    double halfLifeDays = 7,
-  }) {
-    final validData = allData
-        .where((record) => record.duration.inSeconds > 0)
-        .toList();
-    if (validData.isEmpty) return [];
-    final tau = halfLifeDays * 86400 * 1000;
-    final spots = <FlSpot>[];
-    final firstMin = validData.first.duration.inSeconds / 60.0;
-    double ewma = firstMin;
-    DateTime prevTime = validData.first.datetime;
-
-    for (final r in validData) {
-      final dtMs = r.datetime.difference(prevTime).inMilliseconds.toDouble();
-      final alpha = 1.0 - math.exp(-dtMs / tau);
-      final durationMin = r.duration.inSeconds / 60.0;
-      ewma = alpha * durationMin + (1 - alpha) * ewma;
-      if (!r.datetime.isBefore(visibleFrom)) {
-        spots.add(FlSpot(r.datetime.millisecondsSinceEpoch.toDouble(), ewma));
-      }
-      prevTime = r.datetime;
-    }
-    return spots;
-  }
-
-  /// Build raw frequency spots — records per week using a 7-day rolling window.
-  /// For each record, counts records within the preceding 7 days (inclusive).
-  /// Processes [allData] but only emits spots at/after [visibleFrom].
-  /// Purpose: Provide the internal build raw frequency spots helper for this file.
-  /// Inputs: `allData`, `visibleFrom`.
-  /// Returns: `List<FlSpot>`.
-  /// Side effects: None.
-  /// Notes: Internal helper used within this file only.
-  List<FlSpot> _buildRawFrequencySpots(
-    List<IntimacyRecord> allData,
-    DateTime visibleFrom,
-  ) {
-    if (allData.isEmpty) return [];
-    const windowMs = 7 * 86400 * 1000;
-    final spots = <FlSpot>[];
-    for (int i = 0; i < allData.length; i++) {
-      final r = allData[i];
-      final tMs = r.datetime.millisecondsSinceEpoch;
-      int count = 0;
-      for (int j = i; j >= 0; j--) {
-        if (tMs - allData[j].datetime.millisecondsSinceEpoch <= windowMs) {
-          count++;
-        } else {
-          break;
-        }
-      }
-      if (!r.datetime.isBefore(visibleFrom)) {
-        spots.add(FlSpot(tMs.toDouble(), count.toDouble()));
-      }
-    }
-    return spots;
-  }
-
-  /// Build EWMA smoothed curve for pleasure level.
-  /// Uses adaptive alpha based on time gap with half-life of [halfLifeDays].
-  /// Processes [allData] for warm-up but only emits spots at/after [visibleFrom].
-  /// Purpose: Provide the internal build ewma pleasure spots helper for this file.
-  /// Inputs: `allData`, `visibleFrom`, `halfLifeDays`.
-  /// Returns: `List<FlSpot>`.
-  /// Side effects: None.
-  /// Notes: Internal helper used within this file only.
-  List<FlSpot> _buildEwmaPleasureSpots(
-    List<IntimacyRecord> allData,
-    DateTime visibleFrom, {
-    double halfLifeDays = 7,
-  }) {
-    final validData = allData
-        .where((record) => record.pleasureLevel > 0)
-        .toList();
-    if (validData.isEmpty) return [];
-    final tau = halfLifeDays * 86400 * 1000; // half-life in ms
-    final spots = <FlSpot>[];
-    double ewma = validData.first.pleasureLevel.toDouble();
-    DateTime prevTime = validData.first.datetime;
-
-    for (final r in validData) {
-      final dtMs = r.datetime.difference(prevTime).inMilliseconds.toDouble();
-      final alpha = 1.0 - math.exp(-dtMs / tau);
-      ewma = alpha * r.pleasureLevel + (1 - alpha) * ewma;
-      if (!r.datetime.isBefore(visibleFrom)) {
-        spots.add(FlSpot(r.datetime.millisecondsSinceEpoch.toDouble(), ewma));
-      }
-      prevTime = r.datetime;
-    }
-    return spots;
-  }
-
-  /// Build EWMA smoothed curve for frequency (records per week).
-  /// Processes [allData] for warm-up but only emits spots at/after [visibleFrom].
-  /// Purpose: Provide the internal build ewma frequency spots helper for this file.
-  /// Inputs: `allData`, `visibleFrom`, `halfLifeDays`.
-  /// Returns: `List<FlSpot>`.
-  /// Side effects: None.
-  /// Notes: Internal helper used within this file only.
-  List<FlSpot> _buildEwmaFrequencySpots(
-    List<IntimacyRecord> allData,
-    DateTime visibleFrom, {
-    double halfLifeDays = 14,
-  }) {
-    if (allData.isEmpty) return [];
-    final tau = halfLifeDays * 86400 * 1000;
-    final spots = <FlSpot>[];
-    double ewma = 1.0; // initial estimate: 1 per week
-    DateTime prevTime = allData.first.datetime;
-
-    for (int i = 0; i < allData.length; i++) {
-      final r = allData[i];
-      final dtMs = r.datetime.difference(prevTime).inMilliseconds.toDouble();
-      if (dtMs > 0) {
-        // Instantaneous rate: 7 days / gap = records per week
-        final rate = 7.0 * 86400 * 1000 / dtMs;
-        final alpha = 1.0 - math.exp(-dtMs / tau);
-        ewma = alpha * rate + (1 - alpha) * ewma;
-      }
-      if (!r.datetime.isBefore(visibleFrom)) {
-        spots.add(FlSpot(r.datetime.millisecondsSinceEpoch.toDouble(), ewma));
-      }
-      prevTime = r.datetime;
-    }
-    return spots;
-  }
-
-  /// Purpose: Provide the internal build chart section helper for this file.
-  /// Inputs: `theme`.
-  /// Returns: `Widget`.
-  /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Uses high-contrast fixed colors for combined trend series.
-  Widget _buildChartSection(ThemeData theme) {
-    final l10n = AppLocalizations.of(context)!;
-    final labels = {
-      _IntimacyChartRange.oneWeek: '1W',
-      _IntimacyChartRange.oneMonth: '1M',
-      _IntimacyChartRange.threeMonths: '3M',
-      _IntimacyChartRange.sixMonths: '6M',
-      _IntimacyChartRange.oneYear: '1Y',
-      _IntimacyChartRange.all: l10n.weightAll,
-    };
-
-    final data = _chartRecords;
-    final allSorted = List<IntimacyRecord>.from(_records)
-      ..sort((a, b) => a.datetime.compareTo(b.datetime));
-    final pleasureData = data
-        .where((record) => record.pleasureLevel > 0)
-        .toList();
-    final durationData = data
-        .where((record) => record.duration.inSeconds > 0)
-        .toList();
-    final thrustData = data
-        .where((record) => _recordThrustCount(record) != null)
-        .toList();
-    final cutoff = data.isNotEmpty ? data.first.datetime : DateTime.now();
-    final pleasureSpots = _buildEwmaPleasureSpots(allSorted, cutoff);
-    final frequencySpots = _buildEwmaFrequencySpots(allSorted, cutoff);
-    final durationSpots = _buildEwmaDurationSpots(allSorted, cutoff);
-    final thrustSpots = _buildEwmaThrustCountSpots(allSorted, cutoff);
-    // Raw (actual) spots — no EWMA smoothing
-    final rawPleasureSpots = pleasureData
-        .map(
-          (r) => FlSpot(
-            r.datetime.millisecondsSinceEpoch.toDouble(),
-            r.pleasureLevel.toDouble(),
-          ),
-        )
-        .toList();
-    final rawFrequencySpots = _buildRawFrequencySpots(allSorted, cutoff);
-    final rawDurationSpots = durationData
-        .map(
-          (r) => FlSpot(
-            r.datetime.millisecondsSinceEpoch.toDouble(),
-            r.duration.inSeconds / 60.0,
-          ),
-        )
-        .toList();
-    final rawThrustSpots = thrustData
-        .map(
-          (r) => FlSpot(
-            r.datetime.millisecondsSinceEpoch.toDouble(),
-            _recordThrustCount(r)!,
-          ),
-        )
-        .toList();
-    final hasDurationOrThrustData =
-        rawDurationSpots.length >= 2 ||
-        durationSpots.length >= 2 ||
-        rawThrustSpots.length >= 2 ||
-        thrustSpots.length >= 2;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                l10n.intimacyTrend,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const Spacer(),
-              ...labels.entries.map(
-                (e) => Padding(
-                  padding: const EdgeInsets.only(left: 4),
-                  child: ChoiceChip(
-                    label: Text(e.value, style: const TextStyle(fontSize: 11)),
-                    selected: _chartRange == e.key,
-                    onSelected: (_) => setState(() => _chartRange = e.key),
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.zero,
-                    labelPadding: const EdgeInsets.symmetric(horizontal: 6),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          // Legend — pleasure & frequency
-          Row(
-            children: [
-              _legendItem(
-                theme.colorScheme.primary,
-                theme.textTheme.labelSmall,
-                l10n.intimacyPleasure,
-              ),
-              const SizedBox(width: 16),
-              _legendItem(
-                _intimacyFrequencyChartColor,
-                theme.textTheme.labelSmall,
-                l10n.intimacyFrequency,
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 180,
-            child: data.length < 2
-                ? Center(
-                    child: Text(
-                      l10n.intimacyChartNoData,
-                      style: TextStyle(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  )
-                : _buildChart(
-                    theme,
-                    rawPleasureSpots,
-                    pleasureSpots,
-                    rawFrequencySpots,
-                    frequencySpots,
-                    data,
-                  ),
-          ),
-          const SizedBox(height: 12),
-          // Legend — duration
-          Row(
-            children: [
-              _legendItem(
-                _intimacyDurationChartColor,
-                theme.textTheme.labelSmall,
-                l10n.intimacyDuration,
-              ),
-              const SizedBox(width: 16),
-              _legendItem(
-                _intimacyThrustChartColor,
-                theme.textTheme.labelSmall,
-                l10n.intimacyThrustCount,
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 150,
-            child: !hasDurationOrThrustData
-                ? Center(
-                    child: Text(
-                      l10n.intimacyChartNoData,
-                      style: TextStyle(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  )
-                : _buildDurationChart(
-                    theme,
-                    rawDurationSpots,
-                    durationSpots,
-                    rawThrustSpots,
-                    thrustSpots,
-                    data,
-                  ),
-          ),
-          const Divider(height: 16),
-        ],
-      ),
-    );
-  }
-
-  /// Purpose: Provide the internal build chart helper for this file.
-  /// Inputs: Key parameters such as `theme`, `rawPleasureSpots`, `pleasureSpots`, `rawFrequencySpots`.
-  /// Returns: `Widget`.
-  /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Pleasure uses the theme primary color; frequency uses fixed teal for contrast.
-  Widget _buildChart(
-    ThemeData theme,
-    List<FlSpot> rawPleasureSpots,
-    List<FlSpot> pleasureSpots,
-    List<FlSpot> rawFrequencySpots,
-    List<FlSpot> frequencySpots,
-    List<IntimacyRecord> data,
-  ) {
-    // Compute freqMax from both EWMA and raw spots
-    final allFreqSpots = [...frequencySpots, ...rawFrequencySpots];
-    final maxFreq = allFreqSpots.isEmpty
-        ? 5.0
-        : allFreqSpots.map((s) => s.y).reduce(math.max);
-    // Snap freqMax to a clean ceiling so right-axis labels land on round numbers
-    /// Purpose: Return a rounded-up frequency ceiling for chart labels.
-    /// Inputs: `v`.
-    /// Returns: `double`.
-    /// Side effects: None.
-    /// Notes: Internal helper used within this function only.
-    double freqCeil(double v) {
-      const steps = [1.0, 2.0, 3.0, 5.0, 7.0, 10.0, 14.0, 20.0];
-      for (final s in steps) {
-        if (s >= v) return s;
-      }
-      return (v / 5).ceil() * 5.0;
-    }
-
-    final freqMax = freqCeil(math.max(maxFreq * 1.1, 1.0));
-    final l10n = AppLocalizations.of(context)!;
-    final localeName = l10n.localeName;
-
-    return LineChart(
-      LineChartData(
-        gridData: FlGridData(
-          show: true,
-          horizontalInterval: 1,
-          getDrawingHorizontalLine: (value) => FlLine(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
-            strokeWidth: 0.5,
-          ),
-          getDrawingVerticalLine: (value) => FlLine(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
-            strokeWidth: 0.5,
-            dashArray: [4, 4],
-          ),
-        ),
-        titlesData: FlTitlesData(
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 28,
-              interval: _chartDateInterval(data),
-              minIncluded: false,
-              maxIncluded: false,
-              getTitlesWidget: (value, meta) {
-                final date = DateTime.fromMillisecondsSinceEpoch(value.toInt());
-                final spanDays = data.last.datetime
-                    .difference(data.first.datetime)
-                    .inDays;
-                final fmt = spanDays > 730
-                    ? DateFormat('yyyy', localeName)
-                    : spanDays > 365
-                    ? DateFormat('M/yy', localeName)
-                    : DateFormat('M/d', localeName);
-                return SideTitleWidget(
-                  meta: meta,
-                  child: Text(
-                    fmt.format(date),
-                    style: theme.textTheme.labelSmall?.copyWith(fontSize: 9),
-                  ),
-                );
-              },
-            ),
-          ),
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 24,
-              interval: 1,
-              getTitlesWidget: (value, meta) {
-                if (value != value.roundToDouble()) {
-                  return const SizedBox.shrink();
-                }
-                return SideTitleWidget(
-                  meta: meta,
-                  child: Text(
-                    '${value.toInt()}',
-                    style: theme.textTheme.labelSmall?.copyWith(fontSize: 10),
-                  ),
-                );
-              },
-            ),
-          ),
-          rightTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 28,
-              interval: 1,
-              getTitlesWidget: (value, meta) {
-                if (value != value.roundToDouble()) {
-                  return const SizedBox.shrink();
-                }
-                final actualFreq = value / 5 * freqMax;
-                final label = freqMax <= 3
-                    ? actualFreq.toStringAsFixed(1)
-                    : actualFreq.toStringAsFixed(0);
-                return SideTitleWidget(
-                  meta: meta,
-                  child: Text(
-                    label,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      fontSize: 9,
-                      color: _intimacyFrequencyChartColor,
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-          topTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-        ),
-        borderData: FlBorderData(
-          show: true,
-          border: Border.all(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
-          ),
-        ),
-        minY: 0,
-        maxY: 5.5,
-        lineBarsData: [
-          // Raw pleasure — thin solid primary
-          LineChartBarData(
-            spots: rawPleasureSpots,
-            isCurved: false,
-            color: theme.colorScheme.primary.withValues(alpha: 0.45),
-            barWidth: 1.5,
-            dotData: const FlDotData(show: false),
-          ),
-          // Pleasure EWMA — dashed primary
-          LineChartBarData(
-            spots: pleasureSpots,
-            isCurved: true,
-            curveSmoothness: 0.3,
-            color: theme.colorScheme.primary,
-            barWidth: 2.5,
-            dashArray: [6, 4],
-            dotData: const FlDotData(show: false),
-            belowBarData: BarAreaData(
-              show: true,
-              color: theme.colorScheme.primary.withValues(alpha: 0.08),
-            ),
-          ),
-          // Raw frequency — thin solid tertiary (scaled to 0-5)
-          LineChartBarData(
-            spots: rawFrequencySpots
-                .map((s) => FlSpot(s.x, (s.y.clamp(0, freqMax) / freqMax) * 5))
-                .toList(),
-            isCurved: false,
-            color: _intimacyFrequencyChartColor.withValues(alpha: 0.45),
-            barWidth: 1.5,
-            dotData: const FlDotData(show: false),
-          ),
-          // Frequency EWMA — dashed tertiary (scaled to 0-5)
-          LineChartBarData(
-            spots: frequencySpots
-                .map((s) => FlSpot(s.x, (s.y / freqMax) * 5))
-                .toList(),
-            isCurved: true,
-            curveSmoothness: 0.3,
-            color: _intimacyFrequencyChartColor,
-            barWidth: 2,
-            dashArray: [6, 4],
-            dotData: const FlDotData(show: false),
-          ),
-        ],
-        lineTouchData: LineTouchData(
-          touchTooltipData: LineTouchTooltipData(
-            getTooltipColor: (spot) => spot.barIndex == 3
-                ? _intimacyFrequencyChartColor
-                : theme.colorScheme.primary,
-            getTooltipItems: (spots) {
-              return spots.asMap().entries.map((entry) {
-                final s = entry.value;
-                final date = DateTime.fromMillisecondsSinceEpoch(s.x.toInt());
-                // Only show tooltip for EWMA series (indices 1 and 3); skip raw (0 and 2)
-                if (s.barIndex == 1) {
-                  return LineTooltipItem(
-                    '${l10n.intimacyPleasure}: ${s.y.toStringAsFixed(1)}\n${DateFormat('MMM d', localeName).format(date)}',
-                    TextStyle(
-                      color: theme.colorScheme.onPrimary,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  );
-                } else if (s.barIndex == 3) {
-                  final actualFreq = s.y / 5 * freqMax;
-                  return LineTooltipItem(
-                    '${AppLocalizations.of(context)!.intimacyFrequency}: ${actualFreq.toStringAsFixed(1)}/wk',
-                    const TextStyle(color: Colors.white, fontSize: 11),
-                  );
-                }
-                return null;
-              }).toList();
-            },
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Purpose: Provide the internal build duration chart helper for this file.
-  /// Inputs: `theme`, duration spots, thrust-count spots, and `data`.
-  /// Returns: `Widget`.
-  /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Duration and thrust-count series use fixed high-contrast colors.
-  Widget _buildDurationChart(
-    ThemeData theme,
-    List<FlSpot> rawDurationSpots,
-    List<FlSpot> durationSpots,
-    List<FlSpot> rawThrustSpots,
-    List<FlSpot> thrustSpots,
-    List<IntimacyRecord> data,
-  ) {
-    final allDurSpots = [...durationSpots, ...rawDurationSpots];
-    final maxMin = allDurSpots.isEmpty
-        ? 30.0
-        : allDurSpots.map((s) => s.y).reduce(math.max);
-    final allThrustSpots = [...thrustSpots, ...rawThrustSpots];
-    final maxThrust = allThrustSpots.isEmpty
-        ? 100.0
-        : allThrustSpots.map((s) => s.y).reduce(math.max);
-    // Snap to a clean ceiling (minutes)
-    /// Purpose: Return a rounded-up duration ceiling for chart labels.
-    /// Inputs: `v`.
-    /// Returns: `double`.
-    /// Side effects: None.
-    /// Notes: Internal helper used within this function only.
-    double minCeil(double v) {
-      const steps = [5.0, 10.0, 15.0, 20.0, 30.0, 45.0, 60.0, 90.0, 120.0];
-      for (final s in steps) {
-        if (s >= v) return s;
-      }
-      return (v / 30).ceil() * 30.0;
-    }
-
-    /// Purpose: Return a rounded-up thrust-count ceiling for chart labels.
-    /// Inputs: `v`.
-    /// Returns: `double`.
-    /// Side effects: None.
-    /// Notes: Internal helper used within this function only.
-    double thrustCeil(double v) {
-      const steps = [100.0, 200.0, 300.0, 500.0, 800.0, 1000.0, 1500.0];
-      for (final s in steps) {
-        if (s >= v) return s;
-      }
-      return (v / 500).ceil() * 500.0;
-    }
-
-    final yMax = minCeil(math.max(maxMin * 1.15, 5.0));
-    final thrustMax = thrustCeil(math.max(maxThrust * 1.1, 100.0));
-    final l10n = AppLocalizations.of(context)!;
-    final localeName = l10n.localeName;
-
-    return LineChart(
-      LineChartData(
-        gridData: FlGridData(
-          show: true,
-          getDrawingHorizontalLine: (value) => FlLine(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
-            strokeWidth: 0.5,
-          ),
-          getDrawingVerticalLine: (value) => FlLine(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
-            strokeWidth: 0.5,
-            dashArray: [4, 4],
-          ),
-        ),
-        titlesData: FlTitlesData(
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 28,
-              interval: _chartDateInterval(data),
-              minIncluded: false,
-              maxIncluded: false,
-              getTitlesWidget: (value, meta) {
-                final date = DateTime.fromMillisecondsSinceEpoch(value.toInt());
-                final spanDays = data.last.datetime
-                    .difference(data.first.datetime)
-                    .inDays;
-                final fmt = spanDays > 730
-                    ? DateFormat('yyyy', localeName)
-                    : spanDays > 365
-                    ? DateFormat('M/yy', localeName)
-                    : DateFormat('M/d', localeName);
-                return SideTitleWidget(
-                  meta: meta,
-                  child: Text(
-                    fmt.format(date),
-                    style: theme.textTheme.labelSmall?.copyWith(fontSize: 9),
-                  ),
-                );
-              },
-            ),
-          ),
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 32,
-              getTitlesWidget: (value, meta) {
-                if (value != value.roundToDouble()) {
-                  return const SizedBox.shrink();
-                }
-                return SideTitleWidget(
-                  meta: meta,
-                  child: Text(
-                    '${value.toInt()}m',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      fontSize: 9,
-                      color: _intimacyDurationChartColor,
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-          rightTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: allThrustSpots.isNotEmpty,
-              reservedSize: 38,
-              interval: math.max(yMax / 4, 1),
-              getTitlesWidget: (value, meta) {
-                final actual = value / yMax * thrustMax;
-                return SideTitleWidget(
-                  meta: meta,
-                  child: Text(
-                    actual.toStringAsFixed(0),
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      fontSize: 9,
-                      color: _intimacyThrustChartColor,
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-          topTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-        ),
-        borderData: FlBorderData(
-          show: true,
-          border: Border.all(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
-          ),
-        ),
-        minY: 0,
-        maxY: yMax,
-        lineBarsData: [
-          // Raw duration — thin solid secondary
-          LineChartBarData(
-            spots: rawDurationSpots,
-            isCurved: false,
-            color: _intimacyDurationChartColor.withValues(alpha: 0.45),
-            barWidth: 1.5,
-            dotData: const FlDotData(show: false),
-          ),
-          // Duration EWMA — dashed secondary
-          LineChartBarData(
-            spots: durationSpots,
-            isCurved: true,
-            curveSmoothness: 0.3,
-            color: _intimacyDurationChartColor,
-            barWidth: 2,
-            dashArray: [6, 4],
-            dotData: const FlDotData(show: false),
-            belowBarData: BarAreaData(
-              show: true,
-              color: _intimacyDurationChartColor.withValues(alpha: 0.08),
-            ),
-          ),
-          // Raw thrust count — thin solid tertiary (scaled to duration axis)
-          LineChartBarData(
-            spots: rawThrustSpots
-                .map(
-                  (s) =>
-                      FlSpot(s.x, (s.y.clamp(0, thrustMax) / thrustMax) * yMax),
-                )
-                .toList(),
-            isCurved: false,
-            color: _intimacyThrustChartColor.withValues(alpha: 0.45),
-            barWidth: 1.5,
-            dotData: const FlDotData(show: false),
-          ),
-          // Thrust count EWMA — dashed tertiary (scaled to duration axis)
-          LineChartBarData(
-            spots: thrustSpots
-                .map((s) => FlSpot(s.x, (s.y / thrustMax) * yMax))
-                .toList(),
-            isCurved: true,
-            curveSmoothness: 0.3,
-            color: _intimacyThrustChartColor,
-            barWidth: 2,
-            dashArray: [6, 4],
-            dotData: const FlDotData(show: false),
-          ),
-        ],
-        lineTouchData: LineTouchData(
-          touchTooltipData: LineTouchTooltipData(
-            getTooltipColor: (spot) => spot.barIndex == 3
-                ? _intimacyThrustChartColor
-                : _intimacyDurationChartColor,
-            getTooltipItems: (spots) {
-              return spots.asMap().entries.map((entry) {
-                final s = entry.value;
-                final date = DateTime.fromMillisecondsSinceEpoch(s.x.toInt());
-                if (s.barIndex == 1) {
-                  return LineTooltipItem(
-                    '${l10n.intimacyDuration}: ${s.y.toStringAsFixed(1)}min\n${DateFormat('MMM d', localeName).format(date)}',
-                    const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  );
-                } else if (s.barIndex == 3) {
-                  final actual = s.y / yMax * thrustMax;
-                  return LineTooltipItem(
-                    '${l10n.intimacyThrustCount}: ${actual.toStringAsFixed(0)}\n${DateFormat('MMM d', localeName).format(date)}',
-                    const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  );
-                }
-                return null;
-              }).toList();
-            },
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Legend item: solid line + dashed line + label for a given [color].
-  /// Purpose: Provide the internal legend item helper for this file.
-  /// Inputs: `color`, `labelStyle`, `label`.
-  /// Returns: `Widget`.
-  /// Side effects: None.
-  /// Notes: Internal helper used within this file only.
-  Widget _legendItem(Color color, TextStyle? labelStyle, String label) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(width: 10, height: 2, color: color),
-        const SizedBox(width: 2),
-        Container(width: 4, height: 2, color: color.withValues(alpha: 0)),
-        Container(width: 6, height: 2, color: color.withValues(alpha: 0.7)),
-        const SizedBox(width: 4),
-        Text(label, style: labelStyle),
-      ],
-    );
-  }
-
-  /// Purpose: Provide the internal chart date interval helper for this file.
-  /// Inputs: `data`.
-  /// Returns: `double`.
-  /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
-  double _chartDateInterval(List<IntimacyRecord> data) {
-    if (data.length < 2) return 1;
-    final spanMs = data.last.datetime
-        .difference(data.first.datetime)
-        .inMilliseconds
-        .toDouble();
-    final spanDays = spanMs / (86400 * 1000);
-    const day = 86400 * 1000.0;
-    if (spanDays <= 7) return 2 * day; // every-other-day labels
-    if (spanDays <= 30) return 7 * day; // weekly labels
-    if (spanDays <= 90) return 21 * day; // tri-weekly labels
-    if (spanDays <= 180) return 45 * day; // ~6-week labels
-    if (spanDays <= 365) return 90 * day; // quarterly labels
-    if (spanDays <= 730) return 180 * day; // semi-annual labels
-    return 365 * day; // annual labels
-  }
-
   /// Purpose: Provide the internal show manage menu helper for this file.
   /// Inputs: `context`.
   /// Returns: None.
@@ -1861,6 +983,8 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
             });
             _saveData();
           },
+          chartSettings: _chartSettings,
+          onChartSettingsChanged: _saveChartSettings,
         ),
       ),
     );
@@ -1900,6 +1024,8 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
             });
             _saveData();
           },
+          chartSettings: _chartSettings,
+          onChartSettingsChanged: _saveChartSettings,
         ),
       ),
     );
@@ -2492,6 +1618,10 @@ class _PartnerManagementPage extends StatefulWidget {
   )
   onSortChanged;
 
+  /// Trend-chart view preferences, passed through to the detail pages.
+  final IntimacyChartSettings chartSettings;
+  final ValueChanged<IntimacyChartSettings> onChartSettingsChanged;
+
   /// Purpose: Create a partner management page instance.
   /// Inputs: None.
   /// Returns: A new `_PartnerManagementPage` instance.
@@ -2509,6 +1639,8 @@ class _PartnerManagementPage extends StatefulWidget {
     required this.cycleRecords,
     required this.onCycleRecordsChanged,
     required this.onSortChanged,
+    required this.chartSettings,
+    required this.onChartSettingsChanged,
   });
 
   /// Purpose: Create the mutable state object for this widget.
@@ -2855,6 +1987,8 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
             setState(() => _cycleRecords = List.of(updated));
             widget.onCycleRecordsChanged(_cycleRecords);
           },
+          chartSettings: widget.chartSettings,
+          onChartSettingsChanged: widget.onChartSettingsChanged,
         ),
       ),
     );
@@ -3509,6 +2643,10 @@ class _ToyManagementPage extends StatefulWidget {
   )
   onSortChanged;
 
+  /// Trend-chart view preferences, passed through to the detail pages.
+  final IntimacyChartSettings chartSettings;
+  final ValueChanged<IntimacyChartSettings> onChartSettingsChanged;
+
   /// Purpose: Create a toy management page instance.
   /// Inputs: None.
   /// Returns: A new `_ToyManagementPage` instance.
@@ -3524,6 +2662,8 @@ class _ToyManagementPage extends StatefulWidget {
     required this.onChanged,
     required this.onRecordsChanged,
     required this.onSortChanged,
+    required this.chartSettings,
+    required this.onChartSettingsChanged,
   });
 
   /// Purpose: Create the mutable state object for this widget.
@@ -3877,6 +3017,8 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
             setState(() => _records = updated);
             widget.onRecordsChanged(_records);
           },
+          chartSettings: widget.chartSettings,
+          onChartSettingsChanged: widget.onChartSettingsChanged,
         ),
       ),
     );
@@ -5014,6 +4156,10 @@ class _FilteredRecordsPage extends ConsumerStatefulWidget {
   final List<CycleRecord>? cycleRecords;
   final ValueChanged<List<CycleRecord>>? onCycleRecordsChanged;
 
+  /// Trend-chart view preferences, shared with the intimacy home page.
+  final IntimacyChartSettings chartSettings;
+  final ValueChanged<IntimacyChartSettings> onChartSettingsChanged;
+
   /// Purpose: Create a filtered records page instance.
   /// Inputs: The title, records, optional partner/toy filter, and update callback.
   /// Returns: A new `_FilteredRecordsPage` instance.
@@ -5032,6 +4178,8 @@ class _FilteredRecordsPage extends ConsumerStatefulWidget {
     this.onPartnerChanged,
     this.cycleRecords,
     this.onCycleRecordsChanged,
+    required this.chartSettings,
+    required this.onChartSettingsChanged,
   });
 
   /// Purpose: Create the mutable state object for this widget.
@@ -5257,6 +4405,13 @@ class _FilteredRecordsPageState extends ConsumerState<_FilteredRecordsPage> {
                         records.length)
                     .round(),
           );
+    final thrustRates = records
+        .map((record) => record.thrustsPerMinute)
+        .whereType<double>()
+        .toList();
+    final avgThrustRate = thrustRates.isEmpty
+        ? null
+        : thrustRates.reduce((sum, rate) => sum + rate) / thrustRates.length;
     final metrics = [
       (
         label: l10n.intimacyAvgPleasure,
@@ -5267,6 +4422,12 @@ class _FilteredRecordsPageState extends ConsumerState<_FilteredRecordsPage> {
       (
         label: l10n.intimacyAvgDuration,
         value: avgDuration == null ? '-' : _formatDuration(avgDuration),
+      ),
+      (
+        label: l10n.intimacyAvgThrustRate,
+        value: avgThrustRate == null
+            ? '-'
+            : '${avgThrustRate.toStringAsFixed(0)}/min',
       ),
       if (toy != null)
         (
@@ -5531,7 +4692,12 @@ class _FilteredRecordsPageState extends ConsumerState<_FilteredRecordsPage> {
     return ListView(
       children: [
         _buildSummaryCard(theme, records, toy: selectedToy),
-        if (records.length >= 2) _FilteredRecordsTrendSection(records: records),
+        if (records.length >= 2)
+          IntimacyTrendChart(
+            records: records,
+            settings: widget.chartSettings,
+            onSettingsChanged: widget.onChartSettingsChanged,
+          ),
         const Divider(height: 1),
         if (records.isEmpty)
           Padding(
@@ -5619,7 +4785,7 @@ class _ToyCostOverviewPage extends StatefulWidget {
 
 class _ToyCostOverviewPageState extends State<_ToyCostOverviewPage> {
   _ToyCostScope _scope = _ToyCostScope.all;
-  _IntimacyChartRange _chartRange = _IntimacyChartRange.oneYear;
+  IntimacyChartRange _chartRange = IntimacyChartRange.oneYear;
 
   /// Purpose: Return toys included in the current cost scope.
   /// Inputs: None.
@@ -5793,12 +4959,12 @@ class _ToyCostOverviewPageState extends State<_ToyCostOverviewPage> {
     List<Toy> toys,
   ) {
     final labels = {
-      _IntimacyChartRange.oneWeek: '1W',
-      _IntimacyChartRange.oneMonth: '1M',
-      _IntimacyChartRange.threeMonths: '3M',
-      _IntimacyChartRange.sixMonths: '6M',
-      _IntimacyChartRange.oneYear: '1Y',
-      _IntimacyChartRange.all: l10n.weightAll,
+      IntimacyChartRange.oneWeek: '1W',
+      IntimacyChartRange.oneMonth: '1M',
+      IntimacyChartRange.threeMonths: '3M',
+      IntimacyChartRange.sixMonths: '6M',
+      IntimacyChartRange.oneYear: '1Y',
+      IntimacyChartRange.all: l10n.weightAll,
     };
     final today = _dateOnly(DateTime.now());
     final historyStart = _historyStart(today, toys);
@@ -6150,28 +5316,28 @@ class _ToyCostOverviewPageState extends State<_ToyCostOverviewPage> {
   /// Notes: The all range starts at the earliest purchase date when available.
   DateTime _historyStart(DateTime today, List<Toy> toys) {
     final start = switch (_chartRange) {
-      _IntimacyChartRange.oneWeek => today.subtract(const Duration(days: 7)),
-      _IntimacyChartRange.oneMonth => DateTime(
+      IntimacyChartRange.oneWeek => today.subtract(const Duration(days: 7)),
+      IntimacyChartRange.oneMonth => DateTime(
         today.year,
         today.month - 1,
         today.day,
       ),
-      _IntimacyChartRange.threeMonths => DateTime(
+      IntimacyChartRange.threeMonths => DateTime(
         today.year,
         today.month - 3,
         today.day,
       ),
-      _IntimacyChartRange.sixMonths => DateTime(
+      IntimacyChartRange.sixMonths => DateTime(
         today.year,
         today.month - 6,
         today.day,
       ),
-      _IntimacyChartRange.oneYear => DateTime(
+      IntimacyChartRange.oneYear => DateTime(
         today.year - 1,
         today.month,
         today.day,
       ),
-      _IntimacyChartRange.all =>
+      IntimacyChartRange.all =>
         _earliestPurchaseDate(toys) ??
             DateTime(today.year - 1, today.month, today.day),
     };
@@ -6412,715 +5578,6 @@ class _ToyCostTrendData {
     required this.minY,
     required this.maxY,
   });
-}
-
-class _FilteredRecordsTrendSection extends StatefulWidget {
-  final List<IntimacyRecord> records;
-
-  /// Purpose: Create a filtered record trend section instance.
-  /// Inputs: `records`.
-  /// Returns: A new `_FilteredRecordsTrendSection` instance.
-  /// Side effects: None.
-  /// Notes: Internal helper used within this file only.
-  const _FilteredRecordsTrendSection({required this.records});
-
-  /// Purpose: Create the mutable state object for this widget.
-  /// Inputs: None.
-  /// Returns: A new `State` instance.
-  /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: None.
-  @override
-  State<_FilteredRecordsTrendSection> createState() =>
-      _FilteredRecordsTrendSectionState();
-}
-
-class _FilteredRecordsTrendSectionState
-    extends State<_FilteredRecordsTrendSection> {
-  _IntimacyChartRange _chartRange = _IntimacyChartRange.threeMonths;
-
-  /// Purpose: Return chart records for the current selected range.
-  /// Inputs: None.
-  /// Returns: `List<IntimacyRecord>`.
-  /// Side effects: None.
-  /// Notes: The source records are already filtered to the current partner or toy.
-  List<IntimacyRecord> get _chartRecords {
-    final now = DateTime.now();
-    final cutoff = switch (_chartRange) {
-      _IntimacyChartRange.oneWeek => now.subtract(const Duration(days: 7)),
-      _IntimacyChartRange.oneMonth => DateTime(
-        now.year,
-        now.month - 1,
-        now.day,
-      ),
-      _IntimacyChartRange.threeMonths => DateTime(
-        now.year,
-        now.month - 3,
-        now.day,
-      ),
-      _IntimacyChartRange.sixMonths => DateTime(
-        now.year,
-        now.month - 6,
-        now.day,
-      ),
-      _IntimacyChartRange.oneYear => DateTime(now.year - 1, now.month, now.day),
-      _IntimacyChartRange.all => DateTime(2000),
-    };
-    return widget.records.where((r) => r.datetime.isAfter(cutoff)).toList()
-      ..sort((a, b) => a.datetime.compareTo(b.datetime));
-  }
-
-  /// Purpose: Build EWMA smoothed pleasure spots for a filtered chart.
-  /// Inputs: `allData`, `visibleFrom`, `halfLifeDays`.
-  /// Returns: `List<FlSpot>`.
-  /// Side effects: None.
-  /// Notes: Uses earlier records for warm-up but only emits visible-range spots.
-  List<FlSpot> _buildEwmaPleasureSpots(
-    List<IntimacyRecord> allData,
-    DateTime visibleFrom, {
-    double halfLifeDays = 7,
-  }) {
-    final validData = allData
-        .where((record) => record.pleasureLevel > 0)
-        .toList();
-    if (validData.isEmpty) return [];
-    final tau = halfLifeDays * 86400 * 1000;
-    final spots = <FlSpot>[];
-    double ewma = validData.first.pleasureLevel.toDouble();
-    DateTime prevTime = validData.first.datetime;
-
-    for (final record in validData) {
-      final dtMs = record.datetime
-          .difference(prevTime)
-          .inMilliseconds
-          .toDouble();
-      final alpha = 1.0 - math.exp(-dtMs / tau);
-      ewma = alpha * record.pleasureLevel + (1 - alpha) * ewma;
-      if (!record.datetime.isBefore(visibleFrom)) {
-        spots.add(
-          FlSpot(record.datetime.millisecondsSinceEpoch.toDouble(), ewma),
-        );
-      }
-      prevTime = record.datetime;
-    }
-    return spots;
-  }
-
-  /// Purpose: Build EWMA smoothed duration spots for a filtered chart.
-  /// Inputs: `allData`, `visibleFrom`, `halfLifeDays`.
-  /// Returns: `List<FlSpot>`.
-  /// Side effects: None.
-  /// Notes: Durations are charted in minutes.
-  List<FlSpot> _buildEwmaDurationSpots(
-    List<IntimacyRecord> allData,
-    DateTime visibleFrom, {
-    double halfLifeDays = 7,
-  }) {
-    final validData = allData
-        .where((record) => record.duration.inSeconds > 0)
-        .toList();
-    if (validData.isEmpty) return [];
-    final tau = halfLifeDays * 86400 * 1000;
-    final spots = <FlSpot>[];
-    double ewma = validData.first.duration.inSeconds / 60.0;
-    DateTime prevTime = validData.first.datetime;
-
-    for (final record in validData) {
-      final dtMs = record.datetime
-          .difference(prevTime)
-          .inMilliseconds
-          .toDouble();
-      final alpha = 1.0 - math.exp(-dtMs / tau);
-      final durationMin = record.duration.inSeconds / 60.0;
-      ewma = alpha * durationMin + (1 - alpha) * ewma;
-      if (!record.datetime.isBefore(visibleFrom)) {
-        spots.add(
-          FlSpot(record.datetime.millisecondsSinceEpoch.toDouble(), ewma),
-        );
-      }
-      prevTime = record.datetime;
-    }
-    return spots;
-  }
-
-  /// Purpose: Build the current widget subtree for the active UI state.
-  /// Inputs: `context`.
-  /// Returns: The widget tree for the current state.
-  /// Side effects: Creates UI widgets from the current state.
-  /// Notes: Uses high-contrast fixed colors for combined trend series.
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context)!;
-    final labels = {
-      _IntimacyChartRange.oneWeek: '1W',
-      _IntimacyChartRange.oneMonth: '1M',
-      _IntimacyChartRange.threeMonths: '3M',
-      _IntimacyChartRange.sixMonths: '6M',
-      _IntimacyChartRange.oneYear: '1Y',
-      _IntimacyChartRange.all: l10n.weightAll,
-    };
-    final data = _chartRecords;
-    final allSorted = List<IntimacyRecord>.from(widget.records)
-      ..sort((a, b) => a.datetime.compareTo(b.datetime));
-    final cutoff = data.isNotEmpty ? data.first.datetime : DateTime.now();
-    final pleasureData = data
-        .where((record) => record.pleasureLevel > 0)
-        .toList();
-    final durationData = data
-        .where((record) => record.duration.inSeconds > 0)
-        .toList();
-    final thrustData = data
-        .where((record) => _recordThrustCount(record) != null)
-        .toList();
-    final rawPleasureSpots = pleasureData
-        .map(
-          (record) => FlSpot(
-            record.datetime.millisecondsSinceEpoch.toDouble(),
-            record.pleasureLevel.toDouble(),
-          ),
-        )
-        .toList();
-    final pleasureSpots = _buildEwmaPleasureSpots(allSorted, cutoff);
-    final rawDurationSpots = durationData
-        .map(
-          (record) => FlSpot(
-            record.datetime.millisecondsSinceEpoch.toDouble(),
-            record.duration.inSeconds / 60.0,
-          ),
-        )
-        .toList();
-    final durationSpots = _buildEwmaDurationSpots(allSorted, cutoff);
-    final rawThrustSpots = thrustData
-        .map(
-          (record) => FlSpot(
-            record.datetime.millisecondsSinceEpoch.toDouble(),
-            _recordThrustCount(record)!,
-          ),
-        )
-        .toList();
-    final thrustSpots = _buildEwmaThrustCountSpots(allSorted, cutoff);
-    final hasDurationOrThrustData =
-        rawDurationSpots.length >= 2 ||
-        durationSpots.length >= 2 ||
-        rawThrustSpots.length >= 2 ||
-        thrustSpots.length >= 2;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                l10n.intimacyTrend,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const Spacer(),
-              ...labels.entries.map(
-                (entry) => Padding(
-                  padding: const EdgeInsets.only(left: 4),
-                  child: ChoiceChip(
-                    label: Text(
-                      entry.value,
-                      style: const TextStyle(fontSize: 11),
-                    ),
-                    selected: _chartRange == entry.key,
-                    onSelected: (_) => setState(() => _chartRange = entry.key),
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.zero,
-                    labelPadding: const EdgeInsets.symmetric(horizontal: 6),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              _legendItem(
-                theme.colorScheme.primary,
-                theme.textTheme.labelSmall,
-                l10n.intimacyPleasure,
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 180,
-            child: data.length < 2
-                ? Center(
-                    child: Text(
-                      l10n.intimacyChartNoData,
-                      style: TextStyle(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  )
-                : _buildPleasureChart(
-                    theme,
-                    rawPleasureSpots,
-                    pleasureSpots,
-                    data,
-                  ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              _legendItem(
-                _intimacyDurationChartColor,
-                theme.textTheme.labelSmall,
-                l10n.intimacyDuration,
-              ),
-              const SizedBox(width: 16),
-              _legendItem(
-                _intimacyThrustChartColor,
-                theme.textTheme.labelSmall,
-                l10n.intimacyThrustCount,
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 150,
-            child: !hasDurationOrThrustData
-                ? Center(
-                    child: Text(
-                      l10n.intimacyChartNoData,
-                      style: TextStyle(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  )
-                : _buildDurationChart(
-                    theme,
-                    rawDurationSpots,
-                    durationSpots,
-                    rawThrustSpots,
-                    thrustSpots,
-                    data,
-                  ),
-          ),
-          const Divider(height: 16),
-        ],
-      ),
-    );
-  }
-
-  /// Purpose: Build the filtered pleasure trend chart.
-  /// Inputs: `theme`, `rawPleasureSpots`, `pleasureSpots`, `data`.
-  /// Returns: `Widget`.
-  /// Side effects: Creates UI widgets from the current state.
-  /// Notes: Raw values are solid and EWMA values are dashed, matching the main chart style.
-  Widget _buildPleasureChart(
-    ThemeData theme,
-    List<FlSpot> rawPleasureSpots,
-    List<FlSpot> pleasureSpots,
-    List<IntimacyRecord> data,
-  ) {
-    final l10n = AppLocalizations.of(context)!;
-    final localeName = l10n.localeName;
-    return LineChart(
-      LineChartData(
-        gridData: FlGridData(
-          show: true,
-          horizontalInterval: 1,
-          getDrawingHorizontalLine: (value) => FlLine(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
-            strokeWidth: 0.5,
-          ),
-          getDrawingVerticalLine: (value) => FlLine(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
-            strokeWidth: 0.5,
-            dashArray: [4, 4],
-          ),
-        ),
-        titlesData: FlTitlesData(
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 28,
-              interval: _chartDateInterval(data),
-              minIncluded: false,
-              maxIncluded: false,
-              getTitlesWidget: (value, meta) {
-                final date = DateTime.fromMillisecondsSinceEpoch(value.toInt());
-                final spanDays = data.last.datetime
-                    .difference(data.first.datetime)
-                    .inDays;
-                final fmt = spanDays > 730
-                    ? DateFormat('yyyy', localeName)
-                    : spanDays > 365
-                    ? DateFormat('M/yy', localeName)
-                    : DateFormat('M/d', localeName);
-                return SideTitleWidget(
-                  meta: meta,
-                  child: Text(
-                    fmt.format(date),
-                    style: theme.textTheme.labelSmall?.copyWith(fontSize: 9),
-                  ),
-                );
-              },
-            ),
-          ),
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 24,
-              interval: 1,
-              getTitlesWidget: (value, meta) {
-                if (value != value.roundToDouble()) {
-                  return const SizedBox.shrink();
-                }
-                return SideTitleWidget(
-                  meta: meta,
-                  child: Text(
-                    '${value.toInt()}',
-                    style: theme.textTheme.labelSmall?.copyWith(fontSize: 10),
-                  ),
-                );
-              },
-            ),
-          ),
-          rightTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-          topTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-        ),
-        borderData: FlBorderData(
-          show: true,
-          border: Border.all(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
-          ),
-        ),
-        minY: 0,
-        maxY: 5.5,
-        lineBarsData: [
-          LineChartBarData(
-            spots: rawPleasureSpots,
-            isCurved: false,
-            color: theme.colorScheme.primary.withValues(alpha: 0.45),
-            barWidth: 1.5,
-            dotData: const FlDotData(show: false),
-          ),
-          LineChartBarData(
-            spots: pleasureSpots,
-            isCurved: true,
-            curveSmoothness: 0.3,
-            color: theme.colorScheme.primary,
-            barWidth: 2.5,
-            dashArray: [6, 4],
-            dotData: const FlDotData(show: false),
-            belowBarData: BarAreaData(
-              show: true,
-              color: theme.colorScheme.primary.withValues(alpha: 0.08),
-            ),
-          ),
-        ],
-        lineTouchData: LineTouchData(
-          touchTooltipData: LineTouchTooltipData(
-            getTooltipItems: (spots) {
-              return spots.asMap().entries.map((entry) {
-                if (entry.key == 0) return null;
-                final spot = entry.value;
-                final date = DateTime.fromMillisecondsSinceEpoch(
-                  spot.x.toInt(),
-                );
-                return LineTooltipItem(
-                  '${l10n.intimacyPleasure}: ${spot.y.toStringAsFixed(1)}\n${DateFormat('MMM d', localeName).format(date)}',
-                  TextStyle(
-                    color: theme.colorScheme.onPrimary,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                );
-              }).toList();
-            },
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Purpose: Build the filtered duration trend chart.
-  /// Inputs: `theme`, duration spots, thrust-count spots, and `data`.
-  /// Returns: `Widget`.
-  /// Side effects: Creates UI widgets from the current state.
-  /// Notes: Duration and thrust-count series use fixed high-contrast colors.
-  Widget _buildDurationChart(
-    ThemeData theme,
-    List<FlSpot> rawDurationSpots,
-    List<FlSpot> durationSpots,
-    List<FlSpot> rawThrustSpots,
-    List<FlSpot> thrustSpots,
-    List<IntimacyRecord> data,
-  ) {
-    final allDurationSpots = [...durationSpots, ...rawDurationSpots];
-    final maxMinutes = allDurationSpots.isEmpty
-        ? 30.0
-        : allDurationSpots.map((spot) => spot.y).reduce(math.max);
-    final allThrustSpots = [...thrustSpots, ...rawThrustSpots];
-    final maxThrust = allThrustSpots.isEmpty
-        ? 100.0
-        : allThrustSpots.map((spot) => spot.y).reduce(math.max);
-
-    /// Purpose: Return a rounded-up duration ceiling for chart labels.
-    /// Inputs: `value`.
-    /// Returns: `double`.
-    /// Side effects: None.
-    /// Notes: Internal helper used within this function only.
-    double minuteCeil(double value) {
-      const steps = [5.0, 10.0, 15.0, 20.0, 30.0, 45.0, 60.0, 90.0, 120.0];
-      for (final step in steps) {
-        if (step >= value) return step;
-      }
-      return (value / 30).ceil() * 30.0;
-    }
-
-    /// Purpose: Return a rounded-up thrust-count ceiling for chart labels.
-    /// Inputs: `value`.
-    /// Returns: `double`.
-    /// Side effects: None.
-    /// Notes: Internal helper used within this function only.
-    double thrustCeil(double value) {
-      const steps = [100.0, 200.0, 300.0, 500.0, 800.0, 1000.0, 1500.0];
-      for (final step in steps) {
-        if (step >= value) return step;
-      }
-      return (value / 500).ceil() * 500.0;
-    }
-
-    final yMax = minuteCeil(math.max(maxMinutes * 1.15, 5.0));
-    final thrustMax = thrustCeil(math.max(maxThrust * 1.1, 100.0));
-    final l10n = AppLocalizations.of(context)!;
-    final localeName = l10n.localeName;
-
-    return LineChart(
-      LineChartData(
-        gridData: FlGridData(
-          show: true,
-          getDrawingHorizontalLine: (value) => FlLine(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
-            strokeWidth: 0.5,
-          ),
-          getDrawingVerticalLine: (value) => FlLine(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
-            strokeWidth: 0.5,
-            dashArray: [4, 4],
-          ),
-        ),
-        titlesData: FlTitlesData(
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 28,
-              interval: _chartDateInterval(data),
-              minIncluded: false,
-              maxIncluded: false,
-              getTitlesWidget: (value, meta) {
-                final date = DateTime.fromMillisecondsSinceEpoch(value.toInt());
-                final spanDays = data.last.datetime
-                    .difference(data.first.datetime)
-                    .inDays;
-                final fmt = spanDays > 730
-                    ? DateFormat('yyyy', localeName)
-                    : spanDays > 365
-                    ? DateFormat('M/yy', localeName)
-                    : DateFormat('M/d', localeName);
-                return SideTitleWidget(
-                  meta: meta,
-                  child: Text(
-                    fmt.format(date),
-                    style: theme.textTheme.labelSmall?.copyWith(fontSize: 9),
-                  ),
-                );
-              },
-            ),
-          ),
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 32,
-              getTitlesWidget: (value, meta) {
-                if (value != value.roundToDouble()) {
-                  return const SizedBox.shrink();
-                }
-                return SideTitleWidget(
-                  meta: meta,
-                  child: Text(
-                    '${value.toInt()}m',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      fontSize: 9,
-                      color: _intimacyDurationChartColor,
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-          rightTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: allThrustSpots.isNotEmpty,
-              reservedSize: 38,
-              interval: math.max(yMax / 4, 1),
-              getTitlesWidget: (value, meta) {
-                final actual = value / yMax * thrustMax;
-                return SideTitleWidget(
-                  meta: meta,
-                  child: Text(
-                    actual.toStringAsFixed(0),
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      fontSize: 9,
-                      color: _intimacyThrustChartColor,
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-          topTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-        ),
-        borderData: FlBorderData(
-          show: true,
-          border: Border.all(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
-          ),
-        ),
-        minY: 0,
-        maxY: yMax,
-        lineBarsData: [
-          LineChartBarData(
-            spots: rawDurationSpots,
-            isCurved: false,
-            color: _intimacyDurationChartColor.withValues(alpha: 0.45),
-            barWidth: 1.5,
-            dotData: const FlDotData(show: false),
-          ),
-          LineChartBarData(
-            spots: durationSpots,
-            isCurved: true,
-            curveSmoothness: 0.3,
-            color: _intimacyDurationChartColor,
-            barWidth: 2,
-            dashArray: [6, 4],
-            dotData: const FlDotData(show: false),
-            belowBarData: BarAreaData(
-              show: true,
-              color: _intimacyDurationChartColor.withValues(alpha: 0.08),
-            ),
-          ),
-          LineChartBarData(
-            spots: rawThrustSpots
-                .map(
-                  (spot) => FlSpot(
-                    spot.x,
-                    (spot.y.clamp(0, thrustMax) / thrustMax) * yMax,
-                  ),
-                )
-                .toList(),
-            isCurved: false,
-            color: _intimacyThrustChartColor.withValues(alpha: 0.45),
-            barWidth: 1.5,
-            dotData: const FlDotData(show: false),
-          ),
-          LineChartBarData(
-            spots: thrustSpots
-                .map((spot) => FlSpot(spot.x, (spot.y / thrustMax) * yMax))
-                .toList(),
-            isCurved: true,
-            curveSmoothness: 0.3,
-            color: _intimacyThrustChartColor,
-            barWidth: 2,
-            dashArray: [6, 4],
-            dotData: const FlDotData(show: false),
-          ),
-        ],
-        lineTouchData: LineTouchData(
-          touchTooltipData: LineTouchTooltipData(
-            getTooltipColor: (spot) => spot.barIndex == 3
-                ? _intimacyThrustChartColor
-                : _intimacyDurationChartColor,
-            getTooltipItems: (spots) {
-              return spots.asMap().entries.map((entry) {
-                final spot = entry.value;
-                final date = DateTime.fromMillisecondsSinceEpoch(
-                  spot.x.toInt(),
-                );
-                if (spot.barIndex == 1) {
-                  return LineTooltipItem(
-                    '${l10n.intimacyDuration}: ${spot.y.toStringAsFixed(1)}min\n${DateFormat('MMM d', localeName).format(date)}',
-                    const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  );
-                } else if (spot.barIndex == 3) {
-                  final actual = spot.y / yMax * thrustMax;
-                  return LineTooltipItem(
-                    '${l10n.intimacyThrustCount}: ${actual.toStringAsFixed(0)}\n${DateFormat('MMM d', localeName).format(date)}',
-                    const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  );
-                }
-                return null;
-              }).toList();
-            },
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Purpose: Build a legend item for the filtered charts.
-  /// Inputs: `color`, `labelStyle`, `label`.
-  /// Returns: `Widget`.
-  /// Side effects: None.
-  /// Notes: Matches the main intimacy chart legend style.
-  Widget _legendItem(Color color, TextStyle? labelStyle, String label) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(width: 10, height: 2, color: color),
-        const SizedBox(width: 2),
-        Container(width: 4, height: 2, color: color.withValues(alpha: 0)),
-        Container(width: 6, height: 2, color: color.withValues(alpha: 0.7)),
-        const SizedBox(width: 4),
-        Text(label, style: labelStyle),
-      ],
-    );
-  }
-
-  /// Purpose: Return the chart date-axis interval for filtered charts.
-  /// Inputs: `data`.
-  /// Returns: `double`.
-  /// Side effects: None.
-  /// Notes: Uses the same interval thresholds as the main intimacy charts.
-  double _chartDateInterval(List<IntimacyRecord> data) {
-    if (data.length < 2) return 1;
-    final spanMs = data.last.datetime
-        .difference(data.first.datetime)
-        .inMilliseconds
-        .toDouble();
-    final spanDays = spanMs / (86400 * 1000);
-    const day = 86400 * 1000.0;
-    if (spanDays <= 7) return 2 * day;
-    if (spanDays <= 30) return 7 * day;
-    if (spanDays <= 90) return 21 * day;
-    if (spanDays <= 180) return 45 * day;
-    if (spanDays <= 365) return 90 * day;
-    if (spanDays <= 730) return 180 * day;
-    return 365 * day;
-  }
 }
 
 // ─── Shared date picker tile ────────────────────────────────────────

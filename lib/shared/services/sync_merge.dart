@@ -521,6 +521,9 @@ IntimacyMergeResult mergeIntimacyData(
     toyCustomOrders: useLocalSettings
         ? local.toyCustomOrders
         : remote.toyCustomOrders,
+    chartSettings: useLocalSettings
+        ? local.chartSettings
+        : remote.chartSettings,
     settingsModifiedAt: useLocalSettings
         ? local.settingsModifiedAt
         : remote.settingsModifiedAt,
@@ -554,6 +557,7 @@ class IntimacyMergeResult {
   final Map<String, List<String>> partnerCustomOrders;
   final Map<String, String> toySortModes;
   final Map<String, List<String>> toyCustomOrders;
+  final IntimacyChartSettings? chartSettings;
   final DateTime settingsModifiedAt;
   final List<RecordConflict<Partner>> partnerConflicts;
   final List<RecordConflict<Toy>> toyConflicts;
@@ -582,6 +586,7 @@ class IntimacyMergeResult {
     required this.partnerCustomOrders,
     required this.toySortModes,
     required this.toyCustomOrders,
+    required this.chartSettings,
     required this.settingsModifiedAt,
     required this.partnerConflicts,
     required this.toyConflicts,
@@ -628,6 +633,7 @@ class IntimacyMergeResult {
       partnerCustomOrders: partnerCustomOrders,
       toySortModes: toySortModes,
       toyCustomOrders: toyCustomOrders,
+      chartSettings: chartSettings,
       settingsModifiedAt: settingsModifiedAt,
     );
   }

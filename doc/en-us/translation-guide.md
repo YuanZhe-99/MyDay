@@ -112,6 +112,11 @@ New entries must be appended here and copied into all four repos' copies of this
 | garbage collection (GC) | 垃圾回收（GC） | 指备份 blob 的引用计数回收 |
 | debounce | 防抖 | |
 | wake lock | 唤醒锁 | screen wake lock, `wakelock_plus` |
+| thrust count | 抽插次数 | Intimacy record field; stored as a count times a x1/x100 unit |
+| thrust rate | 抽插速率 | thrusts per minute, derived per entry; 不用「频率」，那是 frequency（记录次数/周） |
+| EWMA (smoothed curve) | EWMA（平滑曲线） | 指数加权移动平均，趋势图的虚线 |
+| trend chart | 趋势图 | |
+| metric | 指标 | a selectable series on the trend chart |
 
 ## 6. Review checklist (run before committing a Chinese page)
 

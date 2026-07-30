@@ -402,6 +402,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get intimacyAvgDuration => '平均時間';
 
   @override
+  String get intimacyThrustRate => '挿入ペース';
+
+  @override
+  String get intimacyAvgThrustRate => '平均挿入ペース';
+
+  @override
   String get intimacyLocation => '場所（任意）';
 
   @override

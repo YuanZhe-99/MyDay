@@ -293,6 +293,10 @@ const _timerSessionSchema = JsonPreservationSchema(
   },
 );
 
+const _intimacyChartSettingsSchema = JsonPreservationSchema(
+  knownKeys: {'metrics', 'range'},
+);
+
 const _intimacyDataSchema = JsonPreservationSchema(
   knownKeys: {
     'partners',
@@ -310,11 +314,13 @@ const _intimacyDataSchema = JsonPreservationSchema(
     'partnerCustomOrders',
     'toySortModes',
     'toyCustomOrders',
+    'chartSettings',
     'settingsModifiedAt',
   },
   objectFields: {
     'timerSession': _timerSessionSchema,
     'userBody': _bodyProfileSchema,
+    'chartSettings': _intimacyChartSettingsSchema,
   },
   listFields: {
     'partners': JsonListPreservation(

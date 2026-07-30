@@ -142,6 +142,7 @@ class IntimacyStorage {
             partnerCustomOrders: data.partnerCustomOrders,
             toySortModes: data.toySortModes,
             toyCustomOrders: data.toyCustomOrders,
+            chartSettings: data.chartSettings,
             settingsModifiedAt: data.settingsModifiedAt,
           );
           await save(data);
