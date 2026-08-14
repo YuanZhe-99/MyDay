@@ -402,12 +402,12 @@
 - **用途：** 实现 `POST /weight/add`——记录带可选身体成分和周长测量的新体重条目。
 - **输入：** JSON 体：`weight`（必填正）、可选 `bodyFat`/`bustCm`/`waistCm`/`hipCm`（存在但不是正数时各自被 400 拒绝）、可选 `date`、可选 `notes`。
 - **返回：** `Future<Response>`。
-- **副作用：** 写体重存储。
+- **副作用：** 写体重存储并重建移动端提醒日程。
 - **算法：**
   1. 独立验证 `weight` 和每个提供的可选数字字段——键完全缺席时各为 `null`，但键存在且值非正或非数字时 400 错误。
   2. 给定时验证 `date`。
   3. 构建 `WeightRecord`；把它追加进（加载或空）`WeightData`，逐字保留每个其他设置字段。
-  4. 保存；返回 `{success: true, id, record: _weightRecordJson(record, next)}`。
+  4. 保存，然后 `ReminderService.instance.refreshMobileSchedules()`，使经 API 写入的记录像在应用内写入的记录一样抑制挂起的移动体重提醒；返回 `{success: true, id, record: _weightRecordJson(record, next)}`。
 - **用法：**
   ```dart
   await handler(_request('POST', '/weight/add', body: {'weight': 65.5}));

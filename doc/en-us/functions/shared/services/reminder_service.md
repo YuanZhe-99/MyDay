@@ -47,7 +47,7 @@ service via `updateData`/`updateWeightData`/`updateSubscriptionData` whenever it
 | [`_loadNotifiedKeys`](#_loadnotifiedkeys) | method (`ReminderService`) | A | Load today's already-fired reminder keys from storage config. |
 | [`_persistNotifiedKeys`](#_persistnotifiedkeys) | method (`ReminderService`) | A | Persist today's fired reminder keys into storage config. |
 | [`_todayAt`](#_todayat) | method (`ReminderService`) | A | Combine today's date with a `TimeOfDay` into a `DateTime`. |
-| [`_shouldSkipWeightReminder`](#_shouldskipweightreminder) | method (`ReminderService`) | A | Instance wrapper anchoring the grace-window check on a given fire moment. |
+| [`_shouldSkipWeightReminder`](#_shouldskipweightreminder) | method (`ReminderService`) | A | Instance wrapper running the grace-window check over a caller-supplied window. |
 | [`shouldSkipWeightReminderAt`](#shouldskipweightreminderat) | method (static, `ReminderService`) | A | Pure grace-window decision for weight reminder suppression. |
 | [`_refreshWeightDataFromStorage`](#_refreshweightdatafromstorage) | method (`ReminderService`) | A | Reload weight records and reminder settings from `WeightStorage`. |
 | [`_processRenewals`](#_processrenewals) | method (`ReminderService`) | A | Generate overdue subscription-renewal transactions, at most once per hour. |
@@ -560,7 +560,9 @@ fields as data rather than functions.
      session). For each of morning/evening weight reminders configured: if `current` is at or past
      the reminder time and its key hasn't fired, refresh weight data again (to catch a record logged
      moments ago), then `shouldFire` **and**
-     [`!_shouldSkipWeightReminder(current)`](#_shouldskipweightreminder) gate `_notify`.
+     [`!_shouldSkipWeightReminder(current, scheduledAt: reminderAt)`](#_shouldskipweightreminder)
+     gate `_notify` — passing both ends so the grace window spans from `graceMinutes` before the
+     scheduled minute through to the moment this check actually ran.
   8. Subscription reminder: `shouldFire('sub_reminder_$todayKey', ...)` then build
      `_upcomingRenewalLines(current)` and `_notify` if non-empty.
   9. If any key was newly marked fired, `await _persistNotifiedKeys(todayKey)`.
@@ -647,35 +649,40 @@ fields as data rather than functions.
   subscription reminder times to today, e.g. `_todayAt(_morningReminderTime!)` (line 693).
 - **Notes:** None.
 
-### `bool _shouldSkipWeightReminder(DateTime firesAt)` <a id="_shouldskipweightreminder"></a>
+### `bool _shouldSkipWeightReminder(DateTime firesAt, {DateTime? scheduledAt})` <a id="_shouldskipweightreminder"></a>
 - **Kind:** method of `ReminderService`
-- **Source:** `lib/shared/services/reminder_service.dart` (line 862)
-- **Purpose:** Instance-level wrapper that anchors the grace-window suppression check on a caller-
-  supplied fire moment, using the currently cached weight records and grace-minutes setting.
-- **Inputs:** `firesAt` — the actual fire moment (`current` from the desktop loop, or the scheduled
-  `candidate` time from mobile pre-scheduling).
+- **Source:** `lib/shared/services/reminder_service.dart` (line 867)
+- **Purpose:** Instance-level wrapper that runs the grace-window suppression check over a caller-
+  supplied window, using the currently cached weight records and grace-minutes setting.
+- **Inputs:** `firesAt` — the moment the check runs (`current` from the desktop loop, or the
+  scheduled `candidate` time from mobile pre-scheduling); `scheduledAt` — the configured reminder
+  minute, supplied only by the desktop loop.
 - **Returns:** `bool`.
 - **Side effects:** None.
 - **Algorithm:** Forward to [`shouldSkipWeightReminderAt`](#shouldskipweightreminderat) with
-  `firesAt`, `records: _weightRecords`, `graceMinutes: _weightReminderGraceMinutes`.
-- **Usage:** Called from [`_check`](#_check) as `_shouldSkipWeightReminder(current)` (lines 733,
-  747) and from [`_scheduleMobileWeightReminder`](#_scheduleMobileWeightReminder) as
+  `firesAt`, `scheduledAt`, `records: _weightRecords`,
+  `graceMinutes: _weightReminderGraceMinutes`.
+- **Usage:** Called from [`_check`](#_check) as
+  `_shouldSkipWeightReminder(current, scheduledAt: reminderAt)` (lines 734, 748) and from
+  [`_scheduleMobileWeightReminder`](#_scheduleMobileWeightReminder) as
   `_shouldSkipWeightReminder(candidate)` (line 443).
 - **Notes:** This is the production entry point; tests exercise the pure logic directly through
   [`shouldSkipWeightReminderAt`](#shouldskipweightreminderat) instead, since that doesn't require an
   instance.
 
-### `static bool shouldSkipWeightReminderAt({required DateTime firesAt, required List<WeightRecord> records, required int graceMinutes})` <a id="shouldskipweightreminderat"></a>
+### `static bool shouldSkipWeightReminderAt({required DateTime firesAt, required List<WeightRecord> records, required int graceMinutes, DateTime? scheduledAt})` <a id="shouldskipweightreminderat"></a>
 - **Kind:** static method of `ReminderService` (`@visibleForTesting`)
-- **Source:** `lib/shared/services/reminder_service.dart` (line 877)
+- **Source:** `lib/shared/services/reminder_service.dart` (line 889)
 - **Purpose:** Pure decision of whether a weight reminder should be suppressed because a record
-  already exists inside `[firesAt − graceMinutes, firesAt + 1 minute)`.
-- **Inputs:** `firesAt`; `records`; `graceMinutes` (suppression is disabled entirely when `<= 0`).
+  already exists inside `[(scheduledAt ?? firesAt) − graceMinutes, firesAt + 1 minute)`.
+- **Inputs:** `firesAt`; `records`; `graceMinutes` (suppression is disabled entirely when `<= 0`);
+  `scheduledAt` — optional window-start anchor, ignored unless it precedes `firesAt`.
 - **Returns:** `bool` — `true` when any record's `datetime` falls in the half-open window.
 - **Side effects:** None.
-- **Algorithm:** Return `false` immediately if `graceMinutes <= 0`. Otherwise compute `windowStart =
-  firesAt - graceMinutes` and `windowEnd = firesAt + 1 minute`; return `true` if any record's
-  `datetime` satisfies `!isBefore(windowStart) && isBefore(windowEnd)`.
+- **Algorithm:** Return `false` immediately if `graceMinutes <= 0`. Otherwise pick `anchor =
+  scheduledAt` when `scheduledAt` is non-null and before `firesAt`, else `firesAt`; compute
+  `windowStart = anchor - graceMinutes` and `windowEnd = firesAt + 1 minute`; return `true` if any
+  record's `datetime` satisfies `!isBefore(windowStart) && isBefore(windowEnd)`.
 - **Usage:**
   ```dart
   expect(
@@ -687,15 +694,20 @@ fields as data rather than functions.
     isTrue,
   );
   ```
-  (`test/weight_reminder_grace_test.dart`, covering: a record before `firesAt` inside the window, a
-  record exactly at `firesAt`, a record just outside the window (no suppression), a record *after*
-  `firesAt` but still inside `[firesAt, firesAt+1min)` (suppression), zero/negative grace disabling
-  suppression, no records, and a future `candidate` fire time.)
-- **Notes:** The window is intentionally anchored on `firesAt`, not the configured reminder minute
-  — see [`_scheduleMobileWeightReminder`](#_schedulemobileweightreminder)'s Notes and
-  [Weight](../../../features/weight.md#reminder-grace-window) for why desktop and mobile pass
-  different values for `firesAt`. The `+ 1 minute` upper bound (rather than an open `firesAt`) is
-  what lets a record logged in the same minute the reminder fires still count as suppressing it.
+  (`test/weight_reminder_grace_test.dart`, 16 cases in two groups. Without `scheduledAt`: a record
+  before `firesAt` inside the window, a record exactly at `firesAt`, a record just outside the
+  window (no suppression), a record *after* `firesAt` but still inside `[firesAt, firesAt+1min)`
+  (suppression), zero/negative grace disabling suppression, no records, and a future `candidate`
+  fire time. With `scheduledAt`: a record logged before the scheduled minute suppressing a late
+  check, one older than the window still firing, the inclusive window start, the late-check case
+  preserved, a record between the reminder and the check, a `scheduledAt` after `firesAt` being
+  ignored, zero grace, and a morning record not suppressing an evening reminder.)
+- **Notes:** The window deliberately spans both anchors — it opens `graceMinutes` before the
+  scheduled reminder minute and closes at the moment the check actually runs. Anchoring on only one
+  end misses a real case in each direction; see
+  [Weight](../../../features/weight.md#reminder-grace-window) for both scenarios and for why mobile
+  passes only `firesAt`. The `+ 1 minute` upper bound (rather than an open `firesAt`) is what lets a
+  record logged in the same minute the reminder fires still count as suppressing it.
 
 ### `Future<bool> _refreshWeightDataFromStorage()` <a id="_refreshweightdatafromstorage"></a>
 - **Kind:** method of `ReminderService`

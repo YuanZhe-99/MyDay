@@ -14,6 +14,7 @@ import '../../features/todo/models/task.dart';
 import '../../features/todo/services/todo_storage.dart';
 import '../../features/weight/models/weight_record.dart';
 import '../../features/weight/services/weight_storage.dart';
+import 'reminder_service.dart';
 
 class LocalApiServer {
   static HttpServer? _server;
@@ -864,8 +865,10 @@ class LocalApiServer {
   /// Purpose: Add a weight record with optional body composition and measurements.
   /// Inputs: JSON body with `weight`, optional `date`, `bodyFat`, measurements, and `notes`.
   /// Returns: `Future<Response>`.
-  /// Side effects: Writes weight storage.
+  /// Side effects: Writes weight storage and rebuilds mobile reminder schedules.
   /// Notes: Non-positive optional numeric fields are rejected when present.
+  /// The reminder refresh keeps the grace window honest on mobile, where the
+  /// notification is OS-scheduled ahead of time rather than decided at fire.
   static Future<Response> _handleWeightAdd(Request request) async {
     final body = await _parseBody(request);
     if (body == null) return _error(400, 'invalid JSON body');
@@ -914,6 +917,7 @@ class LocalApiServer {
       settingsModifiedAt: data.settingsModifiedAt,
     );
     await WeightStorage.save(next);
+    ReminderService.instance.refreshMobileSchedules();
     return _json({
       'success': true,
       'id': record.id,

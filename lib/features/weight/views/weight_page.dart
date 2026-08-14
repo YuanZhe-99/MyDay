@@ -97,6 +97,10 @@ class _WeightPageState extends ConsumerState<WeightPage> {
   /// Side effects: May update UI state or trigger user-facing flows.
   /// Notes: Existing but unreadable weight data is shown as an error and is
   /// never treated as an empty dataset. Reloads disable writes until complete.
+  /// Reminder times are gated on `reminderMode` exactly as
+  /// `ReminderService._refreshWeightDataFromStorage` gates them, so a file
+  /// that still carries times for a disabled mode cannot push them into the
+  /// reminder scheduler.
   Future<void> _loadData() async {
     if (_loaded && mounted) setState(() => _loaded = false);
     WeightData? data;
@@ -119,11 +123,15 @@ class _WeightPageState extends ConsumerState<WeightPage> {
         _records = data.records;
         _reminderMode = data.reminderMode;
         _weightMorningReminder =
-            data.morningHour != null && data.morningMinute != null
+            data.reminderMode != 'none' &&
+                data.morningHour != null &&
+                data.morningMinute != null
             ? TimeOfDay(hour: data.morningHour!, minute: data.morningMinute!)
             : null;
         _weightEveningReminder =
-            data.eveningHour != null && data.eveningMinute != null
+            data.reminderMode == 'twice' &&
+                data.eveningHour != null &&
+                data.eveningMinute != null
             ? TimeOfDay(hour: data.eveningHour!, minute: data.eveningMinute!)
             : null;
         _reminderGraceMinutes = data.reminderGraceMinutes;
@@ -1545,136 +1553,144 @@ class _WeightPageState extends ConsumerState<WeightPage> {
   /// Inputs: None.
   /// Returns: `Future<void>`.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Internal helper used within this file only. The sheet must be
+  /// scroll-controlled and scrollable: a default modal sheet is capped at
+  /// 9/16 of the screen height, which clipped the trailing grace-window tile
+  /// out of reach in `twice` mode and on short windows or large text scales.
   Future<void> _showReminderSettings() async {
     final l10n = AppLocalizations.of(context)!;
     await showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       builder: (ctx) {
         return StatefulBuilder(
           builder: (ctx, setSheetState) {
             return SafeArea(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ListTile(
-                    leading: const Icon(Icons.notifications_active),
-                    title: Text(l10n.weightReminder),
-                  ),
-                  const Divider(height: 1),
-
-                  RadioGroup<String>(
-                    groupValue: _reminderMode,
-                    onChanged: (value) {
-                      if (value == null) return;
-                      setState(() {
-                        _reminderMode = value;
-                        switch (value) {
-                          case 'none':
-                            _weightMorningReminder = null;
-                            _weightEveningReminder = null;
-                          case 'once':
-                            _weightMorningReminder ??= const TimeOfDay(
-                              hour: 8,
-                              minute: 0,
-                            );
-                            _weightEveningReminder = null;
-                          case 'twice':
-                            _weightMorningReminder ??= const TimeOfDay(
-                              hour: 8,
-                              minute: 0,
-                            );
-                            _weightEveningReminder ??= const TimeOfDay(
-                              hour: 21,
-                              minute: 0,
-                            );
-                        }
-                      });
-                      setSheetState(() {});
-                      _saveData();
-                    },
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Off
-                        RadioListTile<String>(
-                          value: 'none',
-                          title: Text(l10n.weightReminderNone),
-                        ),
-
-                        // Once daily
-                        RadioListTile<String>(
-                          value: 'once',
-                          title: Text(l10n.weightReminderOnce),
-                        ),
-
-                        // Twice daily
-                        RadioListTile<String>(
-                          value: 'twice',
-                          title: Text(l10n.weightReminderTwice),
-                        ),
-                      ],
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.notifications_active),
+                      title: Text(l10n.weightReminder),
                     ),
-                  ),
-
-                  if (_reminderMode != 'none') ...[
                     const Divider(height: 1),
 
-                    // Morning time picker
-                    ListTile(
-                      leading: const Icon(Icons.wb_sunny_outlined),
-                      title: Text(l10n.weightReminderMorning),
-                      subtitle: Text(_weightMorningReminder?.format(ctx) ?? ''),
-                      onTap: () async {
-                        final picked = await showTimePicker(
-                          context: ctx,
-                          initialTime:
-                              _weightMorningReminder ??
-                              const TimeOfDay(hour: 8, minute: 0),
-                        );
-                        if (picked != null) {
-                          setState(() => _weightMorningReminder = picked);
-                          setSheetState(() {});
-                          _saveData();
-                        }
+                    RadioGroup<String>(
+                      groupValue: _reminderMode,
+                      onChanged: (value) {
+                        if (value == null) return;
+                        setState(() {
+                          _reminderMode = value;
+                          switch (value) {
+                            case 'none':
+                              _weightMorningReminder = null;
+                              _weightEveningReminder = null;
+                            case 'once':
+                              _weightMorningReminder ??= const TimeOfDay(
+                                hour: 8,
+                                minute: 0,
+                              );
+                              _weightEveningReminder = null;
+                            case 'twice':
+                              _weightMorningReminder ??= const TimeOfDay(
+                                hour: 8,
+                                minute: 0,
+                              );
+                              _weightEveningReminder ??= const TimeOfDay(
+                                hour: 21,
+                                minute: 0,
+                              );
+                          }
+                        });
+                        setSheetState(() {});
+                        _saveData();
                       },
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Off
+                          RadioListTile<String>(
+                            value: 'none',
+                            title: Text(l10n.weightReminderNone),
+                          ),
+
+                          // Once daily
+                          RadioListTile<String>(
+                            value: 'once',
+                            title: Text(l10n.weightReminderOnce),
+                          ),
+
+                          // Twice daily
+                          RadioListTile<String>(
+                            value: 'twice',
+                            title: Text(l10n.weightReminderTwice),
+                          ),
+                        ],
+                      ),
                     ),
 
-                    if (_reminderMode == 'twice')
+                    if (_reminderMode != 'none') ...[
+                      const Divider(height: 1),
+
+                      // Morning time picker
                       ListTile(
-                        leading: const Icon(Icons.nightlight_outlined),
-                        title: Text(l10n.weightReminderEvening),
+                        leading: const Icon(Icons.wb_sunny_outlined),
+                        title: Text(l10n.weightReminderMorning),
                         subtitle: Text(
-                          _weightEveningReminder?.format(ctx) ?? '',
+                          _weightMorningReminder?.format(ctx) ?? '',
                         ),
                         onTap: () async {
                           final picked = await showTimePicker(
                             context: ctx,
                             initialTime:
-                                _weightEveningReminder ??
-                                const TimeOfDay(hour: 21, minute: 0),
+                                _weightMorningReminder ??
+                                const TimeOfDay(hour: 8, minute: 0),
                           );
                           if (picked != null) {
-                            setState(() => _weightEveningReminder = picked);
+                            setState(() => _weightMorningReminder = picked);
                             setSheetState(() {});
                             _saveData();
                           }
                         },
                       ),
 
-                    ListTile(
-                      leading: const Icon(Icons.timer_off_outlined),
-                      title: Text(l10n.weightReminderSkipWindow),
-                      subtitle: Text(
-                        l10n.weightReminderSkipWindowValue(
-                          _formatReminderGraceHours(),
+                      if (_reminderMode == 'twice')
+                        ListTile(
+                          leading: const Icon(Icons.nightlight_outlined),
+                          title: Text(l10n.weightReminderEvening),
+                          subtitle: Text(
+                            _weightEveningReminder?.format(ctx) ?? '',
+                          ),
+                          onTap: () async {
+                            final picked = await showTimePicker(
+                              context: ctx,
+                              initialTime:
+                                  _weightEveningReminder ??
+                                  const TimeOfDay(hour: 21, minute: 0),
+                            );
+                            if (picked != null) {
+                              setState(() => _weightEveningReminder = picked);
+                              setSheetState(() {});
+                              _saveData();
+                            }
+                          },
                         ),
+
+                      ListTile(
+                        leading: const Icon(Icons.timer_off_outlined),
+                        title: Text(l10n.weightReminderSkipWindow),
+                        subtitle: Text(
+                          l10n.weightReminderSkipWindowValue(
+                            _formatReminderGraceHours(),
+                          ),
+                        ),
+                        onTap: () => _editReminderGrace(ctx, setSheetState),
                       ),
-                      onTap: () => _editReminderGrace(ctx, setSheetState),
-                    ),
+                    ],
+                    const SizedBox(height: 8),
                   ],
-                  const SizedBox(height: 8),
-                ],
+                ),
               ),
             );
           },

@@ -530,7 +530,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
   `hipCm` (each rejected with 400 if present but not a positive number), optional `date`, optional
   `notes`.
 - **Returns:** `Future<Response>`.
-- **Side effects:** Writes weight storage.
+- **Side effects:** Writes weight storage and rebuilds mobile reminder schedules.
 - **Algorithm:**
   1. Validate `weight` and every provided optional numeric field independently — each is `null`
      when the key is entirely absent, but a 400 error when the key is present with a non-positive
@@ -538,7 +538,9 @@ are not separately indexed — they carry no doc comment and are not functions/g
   2. Validate `date` if given.
   3. Build a `WeightRecord`; append it to the (loaded-or-empty) `WeightData`, preserving every
      other settings field verbatim.
-  4. Save; return `{success: true, id, record: _weightRecordJson(record, next)}`.
+  4. Save, then `ReminderService.instance.refreshMobileSchedules()` so a record written through the
+     API suppresses a pending mobile weight reminder the same way one written in the app does;
+     return `{success: true, id, record: _weightRecordJson(record, next)}`.
 - **Usage:**
   ```dart
   await handler(_request('POST', '/weight/add', body: {'weight': 65.5}));

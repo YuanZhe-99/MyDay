@@ -34,12 +34,13 @@ those fields absent).
 
 ## Reminder grace window
 
-A reminder is skipped when a weight record already exists inside a configured grace window measured
-**against the moment the reminder actually fires**, not the configured reminder minute — because
-otherwise a record logged after the scheduled minute would never suppress a late-firing check (the
-doc comment gives a concrete case: reminder scheduled for 08:00, user logs a weight record at 08:30,
-but the desktop app isn't opened again until 11:00 — the reminder must still recognize that a record
-already exists for that day's reminder).
+A reminder is skipped when a weight record already exists inside a configured grace window. The
+window **opens `graceMinutes` before the scheduled reminder minute and closes at the moment the
+check actually runs**, because either end on its own misses a real case: anchoring only on the
+scheduled minute ignores a record logged after it (reminder 08:00, record 08:30, desktop app not
+opened again until 11:00), while anchoring only on the check moment forgets a record logged before
+it (reminder 08:00, record 06:00, desktop app not opened until 13:00 — the user weighed in two
+hours before the reminder was due and must not be nagged for it).
 
 The pure decision lives in `ReminderService.shouldSkipWeightReminderAt`
 (`lib/shared/services/reminder_service.dart`), covered by `test/weight_reminder_grace_test.dart`:
@@ -49,9 +50,13 @@ static bool shouldSkipWeightReminderAt({
   required DateTime firesAt,
   required List<WeightRecord> records,
   required int graceMinutes,
+  DateTime? scheduledAt,
 }) {
   if (graceMinutes <= 0) return false;
-  final windowStart = firesAt.subtract(Duration(minutes: graceMinutes));
+  final anchor = scheduledAt != null && scheduledAt.isBefore(firesAt)
+      ? scheduledAt
+      : firesAt;
+  final windowStart = anchor.subtract(Duration(minutes: graceMinutes));
   final windowEnd = firesAt.add(const Duration(minutes: 1));
   return records.any((record) {
     return !record.datetime.isBefore(windowStart) &&
@@ -60,19 +65,22 @@ static bool shouldSkipWeightReminderAt({
 }
 ```
 
-The window is `[firesAt − graceMinutes, firesAt + 1 minute)`. The two callers anchor `firesAt`
-differently, and this difference is deliberate:
+The window is `[(scheduledAt ?? firesAt) − graceMinutes, firesAt + 1 minute)`. `scheduledAt` is
+ignored unless it precedes `firesAt`, so the window can never widen forward past the fire moment.
+The two callers pass different ends, and this difference is deliberate:
 
-- **Desktop** anchors the window on `current` — the actual wall-clock time at the moment the
-  30-second reminder loop evaluates the check (`lib/shared/services/reminder_service.dart` around
-  the morning/evening reminder blocks: `!_shouldSkipWeightReminder(current)`). So a record logged
-  after the scheduled minute still suppresses a check that only actually runs later (a busy/
-  suspended process catching up).
-- **Mobile** anchors the window on the scheduled **candidate fire time** it is pre-computing a
-  notification for (`if (_shouldSkipWeightReminder(candidate))` when building the OS schedule),
-  because mobile notifications are scheduled ahead of time by the OS rather than evaluated live —
-  there is no "actual moment it fires" available to the app at scheduling time, only the candidate
-  time being scheduled.
+- **Desktop** passes both ends: `firesAt` is `current`, the actual wall-clock time at which the
+  30-second reminder loop evaluated the check, and `scheduledAt` is that day's configured reminder
+  minute (`!_shouldSkipWeightReminder(current, scheduledAt: reminderAt)` in the morning/evening
+  reminder blocks of `lib/shared/services/reminder_service.dart`). A desktop check can run
+  arbitrarily late — the app may have been closed, or the process suspended — so a record on either
+  side of the scheduled minute has to count.
+- **Mobile** passes only the scheduled **candidate fire time** it is pre-computing a notification
+  for (`if (_shouldSkipWeightReminder(candidate))` when building the OS schedule), because mobile
+  notifications are scheduled ahead of time by the OS rather than evaluated live — there is no
+  "actual moment it fires" available to the app at scheduling time, only the candidate time being
+  scheduled. Every path that writes a weight record rebuilds the schedule, including the intimacy
+  body section and the local HTTP API, so a stale schedule cannot outlive a new record.
 
 Mobile weight reminders that land inside the grace window keep their **daily repeat** — the repeat
 is shifted to start the next day, never replaced by a one-shot (see

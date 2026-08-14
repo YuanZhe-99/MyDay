@@ -34,7 +34,7 @@
 | [`_loadNotifiedKeys`](#_loadnotifiedkeys) | 方法（`ReminderService`） | A | 从存储配置加载今天已触发提醒键。 |
 | [`_persistNotifiedKeys`](#_persistnotifiedkeys) | 方法（`ReminderService`） | A | 把今天已触发提醒键持久化进存储配置。 |
 | [`_todayAt`](#_todayat) | 方法（`ReminderService`） | A | 把今天日期与 `TimeOfDay` 组合成 `DateTime`。 |
-| [`_shouldSkipWeightReminder`](#_shouldskipweightreminder) | 方法（`ReminderService`） | A | 把宽限窗口检查锚定在给定触发时刻的实例包装。 |
+| [`_shouldSkipWeightReminder`](#_shouldskipweightreminder) | 方法（`ReminderService`） | A | 在调用方提供的窗口上运行宽限窗口检查的实例包装。 |
 | [`shouldSkipWeightReminderAt`](#shouldskipweightreminderat) | 方法（静态，`ReminderService`） | A | 体重提醒抑制的纯宽限窗口决策。 |
 | [`_refreshWeightDataFromStorage`](#_refreshweightdatafromstorage) | 方法（`ReminderService`） | A | 从 `WeightStorage` 重新加载体重记录和提醒设置。 |
 | [`_processRenewals`](#_processrenewals) | 方法（`ReminderService`） | A | 生成过期订阅续费交易，至多每小时一次。 |
@@ -373,7 +373,7 @@
   4. 计算 `current = DateTime.now()` 和 `todayKey`（`yyyy-MM-dd`）；调用 `_loadNotifiedKeys(todayKey)`。
   5. 定义本地 `shouldFire(key, dueAt)` 闭包：`current.isBefore(dueAt)` 或键已在 `_notifiedIds` 时返回 `false`；否则添加键、标记 `notifiedChanged = true` 并返回 `true`。这是下面每个提醒族共享的逐键、逐日去重，使已触发提醒即使进程忙碌或重启也绝不在同一天触发两次，但迟到的滴答追上后仍触发一次。
   6. Todo 数据可读时：对每个每日模板（跳过无 `reminderTime`、已完成、软删除或今天已记录完成的），在今日提醒时间对 `'<taskId>_<todayKey}'` 调用 `shouldFire`，为 true 则 `_notify`。对每个一次性任务，用 [`shouldNotifyOneTimeTask`](#shouldnotifyonetimetask) 门控然后同样 `shouldFire`/`_notify`。然后早间提醒（`shouldFire('morning_$todayKey', ...)`）和完成提醒（`shouldFire('completion_$todayKey', ...)`，其体统计未完成每日模板加 [`_isActiveOneTimeTask`](#_isactiveonetimetask) 激活的一次性任务，且只在那个计数 `> 0` 时通知）。
-  7. 惰性加载体重数据（本会话尚未加载时 `_refreshWeightDataFromStorage()`）。对配置的早间/晚间体重提醒各：`current` 在或晚于提醒时间且其键未触发时，再次刷新体重数据（捕获片刻前记录的记录），然后 `shouldFire` **和** [`!_shouldSkipWeightReminder(current)`](#_shouldskipweightreminder) 门控 `_notify`。
+  7. 惰性加载体重数据（本会话尚未加载时 `_refreshWeightDataFromStorage()`）。对配置的早间/晚间体重提醒各：`current` 在或晚于提醒时间且其键未触发时，再次刷新体重数据（捕获片刻前记录的记录），然后 `shouldFire` **和** [`!_shouldSkipWeightReminder(current, scheduledAt: reminderAt)`](#_shouldskipweightreminder) 门控 `_notify`——两端都传，使宽限窗口从排定分钟之前 `graceMinutes` 一直横跨到本次检查实际运行的时刻。
   8. 订阅提醒：`shouldFire('sub_reminder_$todayKey', ...)` 然后构建 `_upcomingRenewalLines(current)` 非空则 `_notify`。
   9. 任何键新标记触发时 `await _persistNotifiedKeys(todayKey)`。
 - **用法：** 绝不被应用代码直接调用——每 30 秒被 [`start`](#start) 创建的 `Timer.periodic` 调用，并被 `start()` 自己同步调用一次。
@@ -429,25 +429,25 @@
 - **用法：** [`_check`](#_check) 通篇调用把早间/完成/体重/订阅提醒时间锚定到今天，如 `_todayAt(_morningReminderTime!)`（第 693 行）。
 - **备注：** 无。
 
-### `bool _shouldSkipWeightReminder(DateTime firesAt)` <a id="_shouldskipweightreminder"></a>
+### `bool _shouldSkipWeightReminder(DateTime firesAt, {DateTime? scheduledAt})` <a id="_shouldskipweightreminder"></a>
 - **种类：** `ReminderService` 的方法
-- **来源：** `lib/shared/services/reminder_service.dart`（第 862 行）
-- **用途：** 实例级包装，用当前缓存体重记录和宽限分钟设置把宽限窗口抑制检查锚定在调用方提供触发时刻。
-- **输入：** `firesAt` — 实际触发时刻（桌面循环的 `current`，或移动预调度的计划 `candidate` 时间）。
+- **来源：** `lib/shared/services/reminder_service.dart`（第 867 行）
+- **用途：** 实例级包装，用当前缓存体重记录和宽限分钟设置在调用方提供的窗口上运行宽限窗口抑制检查。
+- **输入：** `firesAt` — 检查运行的时刻（桌面循环的 `current`，或移动预调度的计划 `candidate` 时间）；`scheduledAt` — 配置的提醒分钟，只由桌面循环提供。
 - **返回：** `bool`。
 - **副作用：** 无。
-- **算法：** 用 `firesAt`、`records: _weightRecords`、`graceMinutes: _weightReminderGraceMinutes` 转发给 [`shouldSkipWeightReminderAt`](#shouldskipweightreminderat)。
-- **用法：** 从 [`_check`](#_check) 以 `_shouldSkipWeightReminder(current)`（第 733、747 行）和从 [`_scheduleMobileWeightReminder`](#_schedulemobileweightreminder) 以 `_shouldSkipWeightReminder(candidate)`（第 443 行）调用。
+- **算法：** 用 `firesAt`、`scheduledAt`、`records: _weightRecords`、`graceMinutes: _weightReminderGraceMinutes` 转发给 [`shouldSkipWeightReminderAt`](#shouldskipweightreminderat)。
+- **用法：** 从 [`_check`](#_check) 以 `_shouldSkipWeightReminder(current, scheduledAt: reminderAt)`（第 734、748 行）和从 [`_scheduleMobileWeightReminder`](#_schedulemobileweightreminder) 以 `_shouldSkipWeightReminder(candidate)`（第 443 行）调用。
 - **备注：** 这是生产入口点；测试改经 [`shouldSkipWeightReminderAt`](#shouldskipweightreminderat) 直接练纯逻辑，因为那不需要实例。
 
-### `static bool shouldSkipWeightReminderAt({required DateTime firesAt, required List<WeightRecord> records, required int graceMinutes})` <a id="shouldskipweightreminderat"></a>
+### `static bool shouldSkipWeightReminderAt({required DateTime firesAt, required List<WeightRecord> records, required int graceMinutes, DateTime? scheduledAt})` <a id="shouldskipweightreminderat"></a>
 - **种类：** `ReminderService` 的静态方法（`@visibleForTesting`）
-- **来源：** `lib/shared/services/reminder_service.dart`（第 877 行）
-- **用途：** 记录已存在于 `[firesAt − graceMinutes, firesAt + 1 minute)` 内时是否应抑制体重提醒的纯决策。
-- **输入：** `firesAt`；`records`；`graceMinutes`（`<= 0` 时完全禁用抑制）。
+- **来源：** `lib/shared/services/reminder_service.dart`（第 889 行）
+- **用途：** 记录已存在于 `[(scheduledAt ?? firesAt) − graceMinutes, firesAt + 1 minute)` 内时是否应抑制体重提醒的纯决策。
+- **输入：** `firesAt`；`records`；`graceMinutes`（`<= 0` 时完全禁用抑制）；`scheduledAt` — 可选的窗口起点锚，除非早于 `firesAt` 否则被忽略。
 - **返回：** `bool` — 任何记录 `datetime` 落在半开窗口时 `true`。
 - **副作用：** 无。
-- **算法：** `graceMinutes <= 0` 时立即返回 `false`。否则计算 `windowStart = firesAt - graceMinutes` 和 `windowEnd = firesAt + 1 minute`；任何记录 `datetime` 满足 `!isBefore(windowStart) && isBefore(windowEnd)` 时返回 `true`。
+- **算法：** `graceMinutes <= 0` 时立即返回 `false`。否则 `scheduledAt` 非空且早于 `firesAt` 时取 `anchor = scheduledAt`，否则取 `firesAt`；计算 `windowStart = anchor - graceMinutes` 和 `windowEnd = firesAt + 1 minute`；任何记录 `datetime` 满足 `!isBefore(windowStart) && isBefore(windowEnd)` 时返回 `true`。
 - **用法：**
   ```dart
   expect(
@@ -459,8 +459,8 @@
     isTrue,
   );
   ```
-  （`test/weight_reminder_grace_test.dart`，覆盖：窗口内 `firesAt` 前的记录、恰在 `firesAt` 的记录、刚出窗口的记录（不抑制）、`firesAt` *后*但仍在 `[firesAt, firesAt+1min)` 内的记录（抑制）、零/负宽限禁用抑制、无记录和未来 `candidate` 触发时间。）
-- **备注：** 窗口刻意锚定 `firesAt` 而非配置提醒分钟——桌面和移动为何给 `firesAt` 传不同值见 [`_scheduleMobileWeightReminder`](#_schedulemobileweightreminder) 的备注和 [体重 — 提醒宽限窗口](../../../features/weight.md#reminder-grace-window)。`+ 1 minute` 上界（而非开放 `firesAt`）正是让提醒触发的同一分钟记录的记录仍算抑制它的东西。
+  （`test/weight_reminder_grace_test.dart`，两组共 16 个用例。无 `scheduledAt`：窗口内 `firesAt` 前的记录、恰在 `firesAt` 的记录、刚出窗口的记录（不抑制）、`firesAt` *后*但仍在 `[firesAt, firesAt+1min)` 内的记录（抑制）、零/负宽限禁用抑制、无记录和未来 `candidate` 触发时间。有 `scheduledAt`：排定分钟前记录的数据抑制迟到检查、比窗口更早的记录仍触发、包含式窗口起点、迟到检查情形得以保留、提醒与检查之间的记录、`scheduledAt` 晚于 `firesAt` 时被忽略、零宽限，以及早间记录不抑制晚间提醒。）
+- **备注：** 窗口刻意横跨两个锚——它在排定的提醒分钟之前 `graceMinutes` 打开，在检查实际运行的时刻关闭。只锚定一端会在各自方向上漏掉真实情形；两种情形以及移动端为何只传 `firesAt` 见 [体重 — 提醒宽限窗口](../../../features/weight.md#reminder-grace-window)。`+ 1 minute` 上界（而非开放 `firesAt`）正是让提醒触发的同一分钟记录的记录仍算抑制它的东西。
 
 ### `Future<bool> _refreshWeightDataFromStorage()` <a id="_refreshweightdatafromstorage"></a>
 - **种类：** `ReminderService` 的方法

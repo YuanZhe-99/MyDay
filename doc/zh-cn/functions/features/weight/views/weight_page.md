@@ -111,7 +111,7 @@
 - **算法：**
   1. 已加载且 mounted 时把 `_loaded` 翻回 `false`（`AutoSyncService` 的本地数据变更通知触发的重载在途时显示加载转圈）。
   2. `await WeightStorage.load()`。异常时：告诉 `ReminderService` 无记录、`mounted` 守卫、`setState` 记录 `_loadError = e.toString()` 和 `_loaded = true`，然后返回——错误视图接管而非显示空状态。
-  3. 成功时（`mounted` 守卫）：清除 `_loadError`；`data != null` 时把 `height`/`records`/`reminderMode` 复制进状态，存储小时和分钟都非 null 时才把 `_weightMorningReminder`/`_weightEveningReminder` 重建为 `TimeOfDay`；设 `_loaded = true`。
+  3. 成功时（`mounted` 守卫）：清除 `_loadError`；`data != null` 时把 `height`/`records`/`reminderMode` 复制进状态，存储小时和分钟都非 null **且** `reminderMode` 启用该提醒（早间 `!= 'none'`，晚间 `== 'twice'`）时才把 `_weightMorningReminder`/`_weightEveningReminder` 重建为 `TimeOfDay`——与 `ReminderService._refreshWeightDataFromStorage` 施加的门控相同，因此仍为已禁用模式携带时间的文件无法把它们推进调度器；设 `_loaded = true`。
   4. 把新加载提醒字段推给 `ReminderService.instance.updateWeightData`。
 - **用法：**
   ```dart
@@ -368,12 +368,12 @@
 
 ### `Future<void> _showReminderSettings()` <a id="_showremindersettings"></a>
 - **种类：** `_WeightPageState` 的 async 方法
-- **来源：** `lib/features/weight/views/weight_page.dart`（第 1549 行）
+- **来源：** `lib/features/weight/views/weight_page.dart`（第 1560 行）
 - **用途：** 打开提醒设置底部面板，并拥有决定提醒模式变化时早间/晚间提醒时间发生什么 的模式切换逻辑。
 - **输入：** 无。
 - **返回：** `Future<void>`。
 - **副作用：** 显示模态底部面板；模式/时间变化时：`setState`，然后 `setSheetState(() {})` 原地重建面板，然后 `_saveData()`。
-- **算法：** 面板在 `'none'`/`'once'`/`'twice'` 上渲染 `RadioGroup<String>`。其 `onChanged` 回调是真实逻辑：
+- **算法：** 面板以 `isScrollControlled: true` 打开，其主体是 `SingleChildScrollView`——这是必需而非装饰：默认模态面板被限制在屏幕高度的 9/16，这会把末尾的"已有记录则跳过"磁贴裁切到够不着。它在 `'none'`/`'once'`/`'twice'` 上渲染 `RadioGroup<String>`。其 `onChanged` 回调是真实逻辑：
   1. `setState(() => _reminderMode = value)`，然后对 `value` 做 `switch`：
      - `'none'` → 清除 `_weightMorningReminder` 和 `_weightEveningReminder` 两者。
      - `'once'` → 设 `_weightMorningReminder ??= 08:00`（只在未设时）并清除 `_weightEveningReminder`。
@@ -389,7 +389,7 @@
   )
   ```
   （`build`，第 262-272 行，应用栏的提醒铃铛操作。）
-- **备注：** 切入 `'once'`/`'twice'` 时用 `??=` 意味着既有早间/晚间时间跨模式切换保留（关掉提醒再打开不把先前选的时间重置回 08:00/21:00 默认）——只有无先前值的字段获得默认。
+- **备注：** 切入 `'once'`/`'twice'` 时用 `??=` 意味着既有早间/晚间时间跨模式切换保留（关掉提醒再打开不把先前选的时间重置回 08:00/21:00 默认）——只有无先前值的字段获得默认。宽限窗口磁贴是面板的最后一个子项，因此未来添加在它下方的任何内容都继承同一裁切风险，滚动视图现在正防着这一点——`test/weight_reminder_sheet_test.dart` 通过在 400x640 表面上打开面板并断言磁贴被布局在视口内且确实可点击，把这一点钉住。
 
 ### `String _formatReminderGraceHours()` <a id="_formatremindergracehours"></a>
 - **种类：** `_WeightPageState` 的方法

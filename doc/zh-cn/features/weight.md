@@ -17,7 +17,7 @@
 
 ## 提醒宽限窗口
 
-体重记录已存在于配置的宽限窗口内时跳过提醒，窗口**对照提醒实际触发的时刻**测量，而不是配置的提醒分钟——因为否则在排定分钟后记录的数据永远不会抑制迟到的检查（文档注释给了具体情形：提醒排定 08:00，用户在 08:30 记录体重，但桌面应用直到 11:00 才再次打开——提醒必须仍识别当天提醒已有记录）。
+体重记录已存在于配置的宽限窗口内时跳过提醒。窗口**在排定的提醒分钟之前 `graceMinutes` 打开，在检查实际运行的时刻关闭**，因为任一端单独都会漏掉真实情形：只锚定在排定分钟会忽略在其之后记录的数据（提醒 08:00，记录 08:30，桌面应用直到 11:00 才再次打开），而只锚定在检查时刻会忘记在其之前记录的数据（提醒 08:00，记录 06:00，桌面应用直到 13:00 才打开——用户在提醒到期前两小时已称重，不该为此被打扰）。
 
 纯决策位于 `ReminderService.shouldSkipWeightReminderAt`（`lib/shared/services/reminder_service.dart`），由 `test/weight_reminder_grace_test.dart` 覆盖：
 
@@ -26,9 +26,13 @@ static bool shouldSkipWeightReminderAt({
   required DateTime firesAt,
   required List<WeightRecord> records,
   required int graceMinutes,
+  DateTime? scheduledAt,
 }) {
   if (graceMinutes <= 0) return false;
-  final windowStart = firesAt.subtract(Duration(minutes: graceMinutes));
+  final anchor = scheduledAt != null && scheduledAt.isBefore(firesAt)
+      ? scheduledAt
+      : firesAt;
+  final windowStart = anchor.subtract(Duration(minutes: graceMinutes));
   final windowEnd = firesAt.add(const Duration(minutes: 1));
   return records.any((record) {
     return !record.datetime.isBefore(windowStart) &&
@@ -37,10 +41,10 @@ static bool shouldSkipWeightReminderAt({
 }
 ```
 
-窗口是 `[firesAt − graceMinutes, firesAt + 1 minute)`。两个调用方锚定 `firesAt` 的方式不同，这个差异是刻意的：
+窗口是 `[(scheduledAt ?? firesAt) − graceMinutes, firesAt + 1 minute)`。除非 `scheduledAt` 早于 `firesAt`，否则它被忽略，因此窗口绝不会向前扩展越过触发时刻。两个调用方传入的端点不同，这个差异是刻意的：
 
-- **桌面**把窗口锚定在 `current`——30 秒提醒循环评估检查那一刻的实际挂钟时间（`lib/shared/services/reminder_service.dart` 早晚提醒块附近：`!_shouldSkipWeightReminder(current)`）。因此在排定分钟后记录的数据仍能抑制只在之后实际运行的检查（忙碌/被挂起进程追赶）。
-- **移动端**把窗口锚定在它正在预计算通知的排定**候选触发时间**（构建 OS 日程时 `if (_shouldSkipWeightReminder(candidate))`），因为移动通知由 OS 提前排定而不是实时评估——应用在排定时间时没有"实际触发时刻"可用，只有正在排定的候选时间。
+- **桌面**两端都传：`firesAt` 是 `current`——30 秒提醒循环评估检查那一刻的实际挂钟时间，`scheduledAt` 是当天配置的提醒分钟（`lib/shared/services/reminder_service.dart` 早晚提醒块中：`!_shouldSkipWeightReminder(current, scheduledAt: reminderAt)`）。桌面检查可能任意迟到——应用可能已关闭，或进程被挂起——因此排定分钟两侧的记录都必须计入。
+- **移动端**只传它正在预计算通知的排定**候选触发时间**（构建 OS 日程时 `if (_shouldSkipWeightReminder(candidate))`），因为移动通知由 OS 提前排定而不是实时评估——应用在排定时间时没有"实际触发时刻"可用，只有正在排定的候选时间。每条写入体重记录的路径都会重建日程，包括亲密身体层和本地 HTTP API，因此陈旧日程不会比新记录活得更久。
 
 落入宽限窗口的移动体重提醒保持其**每日重复**——重复被移到下一天开始，绝不被一次性通知替换（见 [平台说明](../platform-notes.md#notifications-reminders-tray-and-startup)）。
 

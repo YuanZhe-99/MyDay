@@ -285,8 +285,9 @@ all. Tier split: 18 Tier A, 17 Tier B.
 - **Inputs:** None (reads `_bust`/`_waist`/`_hip`).
 - **Returns:** `Future<void>`.
 - **Side effects:** Appends a record to `weight_data.json` via `WeightStorage.save`; calls
-  `AutoSyncService.instance.notifySaved()` on success; existing records and weight settings
-  (`height`, reminder config, etc.) are copied through untouched.
+  `AutoSyncService.instance.notifySaved()` and `ReminderService.instance.refreshMobileSchedules()`
+  on success; existing records and weight settings (`height`, reminder config, etc.) are copied
+  through untouched.
 - **Algorithm:**
   1. If `!_weightCommitPending`, return immediately (already committed, or superseded by a later call).
   2. Clear the pending flag first, then `WeightStorage.load() ?? WeightData(records: [])`.
@@ -298,8 +299,12 @@ all. Tier split: 18 Tier A, 17 Tier B.
   5. On any exception: if still `mounted`, `setState` to roll `_bust`/`_waist`/`_hip` back to the
      `_persisted*` values and set `_weightLoadFailed = true`; if not mounted, do the same without
      `setState`. Return without updating `_persisted*` or notifying sync.
-  6. On success: update `_persistedBust`/`Waist`/`Hip` to the just-committed values and call
-     `AutoSyncService.instance.notifySaved()`.
+  6. On success: update `_persistedBust`/`Waist`/`Hip` to the just-committed values, call
+     `AutoSyncService.instance.notifySaved()`, then
+     `ReminderService.instance.refreshMobileSchedules()` — this page writes a weight record without
+     going through the weight page, and on mobile the reminder is OS-scheduled ahead of time, so
+     without the refresh the pending notification would still fire against a stale grace window
+     (a no-op on desktop, which re-reads storage at fire time).
 - **Usage:**
   ```dart
   // _onMeasurementChanged, line 273-275 (the debounce timer body):

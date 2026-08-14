@@ -218,14 +218,14 @@
 - **用途：** 追加一条携带当前显示胸/腰/臀值的新 `WeightRecord`。
 - **输入：** 无（读取 `_bust`/`_waist`/`_hip`）。
 - **返回：** `Future<void>`。
-- **副作用：** 经 `WeightStorage.save` 向 `weight_data.json` 追加记录；成功时调用 `AutoSyncService.instance.notifySaved()`；既有记录和体重设置（`height`、提醒配置等）原样复制通过。
+- **副作用：** 经 `WeightStorage.save` 向 `weight_data.json` 追加记录；成功时调用 `AutoSyncService.instance.notifySaved()` 和 `ReminderService.instance.refreshMobileSchedules()`；既有记录和体重设置（`height`、提醒配置等）原样复制通过。
 - **算法：**
   1. `!_weightCommitPending` 时立即返回（已提交，或被更晚调用取代）。
   2. 先清除挂起标志，然后 `WeightStorage.load() ?? WeightData(records: [])`。
   3. 构建复用 `latest?.weight ?? 0`（记录的体重字段不被此功能触碰；只有胸/腰/臀来自身体页）加当前 `_bust`/`_waist`/`_hip` 的新 `WeightRecord`。
   4. 构造复制加载数据其他每个字段并追加新记录的 `WeightData`，然后 `WeightStorage.save(next)`。
   5. 任何异常时：仍 `mounted` 则 `setState` 把 `_bust`/`_waist`/`_hip` 回滚到 `_persisted*` 值并设 `_weightLoadFailed = true`；未挂载则不做 `setState` 做同样的事。不更新 `_persisted*` 或通知同步地返回。
-  6. 成功时：把 `_persistedBust`/`Waist`/`Hip` 更新为刚提交的值并调用 `AutoSyncService.instance.notifySaved()`。
+  6. 成功时：把 `_persistedBust`/`Waist`/`Hip` 更新为刚提交的值，调用 `AutoSyncService.instance.notifySaved()`，然后 `ReminderService.instance.refreshMobileSchedules()`——本页不经体重页就写入体重记录，而移动端提醒由 OS 提前排定，因此没有这次刷新，挂起的通知仍会对着陈旧宽限窗口触发（桌面上是空操作，它在触发时重读存储）。
 - **用法：**
   ```dart
   // _onMeasurementChanged, line 273-275 (the debounce timer body):

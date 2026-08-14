@@ -150,8 +150,11 @@ own `/// Purpose:` block and is counted as a real declaration.
      — the error view takes over instead of showing an empty state.
   3. On success (guarded on `mounted`): clear `_loadError`; if `data != null`, copy
      `height`/`records`/`reminderMode` into state and reconstruct `_weightMorningReminder`/
-     `_weightEveningReminder` as `TimeOfDay` only when both the stored hour and minute are non-null;
-     set `_loaded = true`.
+     `_weightEveningReminder` as `TimeOfDay` only when both the stored hour and minute are non-null
+     **and** `reminderMode` enables that reminder (`!= 'none'` for morning, `== 'twice'` for
+     evening) — the same gating `ReminderService._refreshWeightDataFromStorage` applies, so a file
+     that still carries times for a disabled mode cannot push them into the scheduler; set
+     `_loaded = true`.
   4. Push the freshly loaded reminder fields into `ReminderService.instance.updateWeightData`.
 - **Usage:**
   ```dart
@@ -531,15 +534,17 @@ own `/// Purpose:` block and is counted as a real declaration.
 
 ### `Future<void> _showReminderSettings()` <a id="_showremindersettings"></a>
 - **Kind:** async method of `_WeightPageState`
-- **Source:** `lib/features/weight/views/weight_page.dart` (line 1549)
+- **Source:** `lib/features/weight/views/weight_page.dart` (line 1560)
 - **Purpose:** Open the reminder settings bottom sheet, and own the mode-switch logic that decides
   what happens to the morning/evening reminder times when the reminder mode changes.
 - **Inputs:** None.
 - **Returns:** `Future<void>`.
 - **Side effects:** Shows a modal bottom sheet; on mode/time changes: `setState`, then
   `setSheetState(() {})` to rebuild the sheet in place, then `_saveData()`.
-- **Algorithm:** The sheet renders a `RadioGroup<String>` over `'none'`/`'once'`/`'twice'`. Its
-  `onChanged` callback is the real logic:
+- **Algorithm:** The sheet is opened with `isScrollControlled: true` and its body is a
+  `SingleChildScrollView` — required, not cosmetic: a default modal sheet is capped at 9/16 of the
+  screen height, which clipped the trailing "skip if already logged" tile out of reach. It renders a
+  `RadioGroup<String>` over `'none'`/`'once'`/`'twice'`. Its `onChanged` callback is the real logic:
   1. `setState(() => _reminderMode = value)`, then a `switch (value)`:
      - `'none'` → clear both `_weightMorningReminder` and `_weightEveningReminder`.
      - `'once'` → set `_weightMorningReminder ??= 08:00` (only if unset) and clear
@@ -562,7 +567,10 @@ own `/// Purpose:` block and is counted as a real declaration.
 - **Notes:** Using `??=` when switching *into* `'once'`/`'twice'` means an existing morning/evening
   time is preserved across mode toggles (turning reminders off and back on doesn't reset a
   previously chosen time back to the 08:00/21:00 defaults) — only a field with no prior value gets
-  the default.
+  the default. The grace-window tile is the last child of the sheet, so any future content added
+  below it inherits the same clipping hazard the scroll view now guards against —
+  `test/weight_reminder_sheet_test.dart` pins this by opening the sheet on a 400x640 surface and
+  asserting the tile is laid out inside the viewport and is genuinely tappable.
 
 ### `String _formatReminderGraceHours()` <a id="_formatremindergracehours"></a>
 - **Kind:** method of `_WeightPageState`

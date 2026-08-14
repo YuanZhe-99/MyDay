@@ -39,7 +39,8 @@
 - **通知后端：** 桌面用 `local_notifier`；移动端用带时区调度的 `flutter_local_notifications`。时区位置来自经 `flutter_timezone` 的操作系统 IANA zone id，绝不用 `DateTime.now().timeZoneName`。
 - **移动端逐任务调度：** 每日模板用每日操作系统日程（今天已完成时移到明天开始）；未来一次性任务先使用一次性开始日期日程，激活后切到每日重复日程——见 [待办](features/todo.md)。
 - **移动端订阅提醒**是未来 7 天的按日一次性通知（id `9100+offset`）；每天的提醒正文列出该日起 3 天内到期的续费，空天跳过——因此进入窗口的续费被通告，过期文本绝不重复。日程在数据变更、每小时续费处理（它也从存储加载订阅，因此财务页无需打开）和应用恢复时经 `refreshMobileSchedules()` 刷新。
-- **移动端体重提醒**在记录落入宽限窗口时保持每日重复——重复被移到下一天开始，绝不被一次性通知替换。宽限窗口算法本身见 [体重](features/weight.md)。
+- **移动端体重提醒**在记录落入宽限窗口时保持每日重复——重复被移到下一天开始，绝不被一次性通知替换。因为决策是在构建 OS 日程时而不是触发时做出的，每条写入体重记录的路径都会重建日程——体重页、亲密身体层和本地 HTTP API——因此陈旧日程不会比新记录活得更久。宽限窗口算法本身见 [体重](features/weight.md)。
+- **体重宽限窗口，桌面 vs 移动：** 桌面实时评估窗口并传入两端——它在排定的提醒分钟之前 `graceMinutes` 打开，在检查实际运行的时刻关闭——因此在提醒*之前*不久记录的数据和在其之后但在迟到检查之前记录的数据都能抑制它。移动端只传排定候选，因为在排定时还没有"触发的时刻"。
 - `SCHEDULE_EXACT_ALARM` 刻意**不**请求；调度使用 `inexactAllowWhileIdle`。
 - **`TrayService`** 处理托盘图标/菜单、显示/退出、最小化到托盘、关闭到托盘，以及经 `TodoStorage` 持久化的设置。
 - **`launch_at_startup`** 在应用启动时从 `PackageInfo.fromPlatform()` 和 `Platform.resolvedExecutable` 配置（见 [架构](architecture.md) 启动序列）。

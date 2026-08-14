@@ -73,8 +73,16 @@ the same change (per the project's maintenance rule).
   refresh on data change, hourly renewal processing (which also loads subscriptions from storage so
   the Finance page need not be open), and app resume via `refreshMobileSchedules()`.
 - **Mobile weight reminders** keep their daily repeat when a record falls inside the grace window —
-  the repeat is shifted to start the next day, never replaced by a one-shot. See
-  [Weight](features/weight.md) for the grace-window algorithm itself.
+  the repeat is shifted to start the next day, never replaced by a one-shot. Because the decision is
+  made when the OS schedule is built rather than when it fires, every path that writes a weight
+  record rebuilds the schedule — the weight page, the intimacy body section, and the local HTTP API
+  — so a stale schedule cannot outlive a new record. See [Weight](features/weight.md) for the
+  grace-window algorithm itself.
+- **Weight grace window, desktop vs mobile:** desktop evaluates the window live and passes both
+  ends — it opens `graceMinutes` before the scheduled reminder minute and closes at the moment the
+  check actually ran — so a record logged shortly *before* the reminder and one logged after it but
+  before a late check both suppress it. Mobile passes only the scheduled candidate, because at
+  scheduling time there is no "moment it fires" yet.
 - `SCHEDULE_EXACT_ALARM` is intentionally **not** requested; scheduling uses
   `inexactAllowWhileIdle`.
 - **`TrayService`** handles the tray icon/menu, Show/Quit, minimize-to-tray, close-to-tray, and

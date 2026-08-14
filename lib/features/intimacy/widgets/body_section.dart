@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/services/auto_sync_service.dart';
+import '../../../shared/services/reminder_service.dart';
 import '../../../shared/widgets/delete_confirm.dart';
 import '../../todo/services/todo_storage.dart';
 import '../../weight/models/weight_record.dart';
@@ -290,8 +291,9 @@ class _BodySectionViewState extends ConsumerState<BodySectionView> {
   /// Purpose: Create one new weight record from the displayed measurements.
   /// Inputs: None.
   /// Returns: `Future<void>`.
-  /// Side effects: Appends a record to weight_data.json and notifies
-  /// auto-sync; existing records and weight settings stay untouched.
+  /// Side effects: Appends a record to weight_data.json, notifies auto-sync,
+  /// and rebuilds mobile reminder schedules; existing records and weight
+  /// settings stay untouched.
   /// Notes: Reuses the latest record's weight, or 0 when none exists. A load
   /// or save failure restores the persisted display values and disables the
   /// fields so partial in-memory state never appears saved.
@@ -339,6 +341,7 @@ class _BodySectionViewState extends ConsumerState<BodySectionView> {
     _persistedWaist = _waist;
     _persistedHip = _hip;
     AutoSyncService.instance.notifySaved();
+    ReminderService.instance.refreshMobileSchedules();
   }
 
   /// Purpose: Return this person's recorded period start days.
