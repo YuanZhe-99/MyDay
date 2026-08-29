@@ -41,8 +41,10 @@ selectable-month home summaries and grouped monthly transactions described there
 | `build` | method (`_TransactionTile`) | B | Render one transaction's list tile (category/account labels, signed amount). |
 | `_buildLeading` | method (`_TransactionTile`, widget helper) | B | Build the tile's leading avatar (resolved account image, or a fallback icon). |
 | `defaultAvatar` (nested in `_buildLeading`) | local function (widget helper) | B | Build the fallback finance transaction avatar. |
+| `_FinanceBody({...})` | constructor (`_FinanceBody`) | B | Create the finance body arranger. |
+| [`build`](#financebody-build) | method (`_FinanceBody`) | A | Stack the summary above the transactions, or put it in a pane beside them. |
 
-**Reconciliation:** `grep -c 'Purpose:' lib/features/finance/views/finance_page.dart` returns 29,
+**Reconciliation:** `grep -c 'Purpose:' lib/features/finance/views/finance_page.dart` returns 31,
 matching the 29 rows above exactly — every block sits immediately above its real declaration (a
 constructor, `createState`, a lifecycle method, a private method, a `build` override, or the nested
 local function inside `_buildLeading`); none were found misattached above a call-site statement,
@@ -290,3 +292,26 @@ this codebase's convention of documenting callable members rather than data fiel
   kept in sync by `_updateReminderService`.
 - [`auto_sync_service.md`](../../../shared/services/auto_sync_service.md) —
   `addOnLocalDataChanged`/`notifySaved`, used by `initState`/[`_saveData`](#_savedata).
+
+### `Widget build(BuildContext context)` (`_FinanceBody`) <a id="financebody-build"></a>
+- **Kind:** method of `_FinanceBody`
+- **Source:** `lib/features/finance/views/finance_page.dart` (approx. line 940)
+- **Purpose:** Arrange the month summary and the transaction list either stacked or in two panes.
+- **Inputs:** `context`; the widget's own `twoPane`, `leftPaneWidth`, `summaryBlocks`,
+  `transactionHeader` and `transactionList` fields.
+- **Returns:** A `Column` when stacked, a `Row` when split.
+- **Side effects:** None beyond building widgets.
+- **Algorithm:**
+  1. `!twoPane` → `Column(children: [...summaryBlocks, transactionHeader,
+     Expanded(transactionList)])`, which is exactly the body the page had before v1.4.1.
+  2. Otherwise `Row` of `SizedBox(width: leftPaneWidth, child: ListView(summaryBlocks))`, a
+     `VerticalDivider(width: 1)`, and an `Expanded` right pane holding the header above the list.
+- **Usage:** Built by `_FinancePageState.build` once the split decision and the pane width are
+  resolved.
+- **Notes:** The three content slots are built once by the page and arranged two ways here, so the
+  two layouts can never show different content. Stacked, the month summary spends up to a third of
+  a phone's height before the first transaction appears; split, the transaction list — the thing
+  the user actually reads — takes everything the summary does not. The left pane is a `ListView` in
+  its own right because a long renewal strip plus the summary can outgrow a compact height, which
+  the split rule still admits at 480. See
+  [../../../adaptive-layout.md](../../../adaptive-layout.md).

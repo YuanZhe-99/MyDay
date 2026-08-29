@@ -150,3 +150,122 @@ int listColumnCount({
   if (preference == listColumnsAuto) return capacity;
   return preference.clamp(1, capacity);
 }
+
+/// Minimum width, in logical pixels, one Todo task section may occupy.
+///
+/// A section carries its own header, count and sort control above task tiles
+/// with a checkbox, a title, a subtask line and a trailing menu button; below
+/// this the title truncates before the trailing controls.
+const taskSectionMinWidth = 340.0;
+
+/// Largest number of Todo section columns, however wide the window is.
+///
+/// There are only three sections, so a fourth column could never be filled.
+const taskSectionMaxColumns = 3;
+
+/// Minimum width, in logical pixels, one transaction tile may occupy.
+///
+/// A category emoji or icon, the note, an account/category subtitle and a
+/// right-aligned amount carrying a currency symbol.
+const transactionTileMinWidth = 320.0;
+
+/// Largest number of transaction columns, however wide the window is.
+const transactionMaxColumns = 4;
+
+/// Minimum width, in logical pixels, one weight record tile may occupy.
+///
+/// A date, the weight, its BMI and up to three measurement values on one line.
+const weightRecordMinWidth = 300.0;
+
+/// Largest number of weight record columns, however wide the window is.
+const weightRecordMaxColumns = 3;
+
+/// Minimum width, in logical pixels, one intimacy record tile may occupy.
+///
+/// A date, partner and toy chips, duration, and the derived thrust rate; the
+/// widest tile in the app, because the chips wrap rather than truncate.
+const intimacyRecordMinWidth = 340.0;
+
+/// Largest number of intimacy record columns, however wide the window is.
+const intimacyRecordMaxColumns = 3;
+
+/// Smallest width, in logical pixels, the settings detail pane may be given.
+const settingsRightPaneMinWidth = 280.0;
+
+/// Smallest width, in logical pixels, the weight summary card may occupy when
+/// it sits beside the trend chart rather than above it.
+///
+/// The card carries the latest weight at `displaySmall` beside a change figure,
+/// then a `Wrap` of stat labels each constrained to 88-168.
+const weightSummaryPaneMinWidth = 280.0;
+
+/// Smallest width, in logical pixels, the weight trend chart may be given
+/// before the summary card stops sitting beside it.
+///
+/// The chart reserves about 40 for its left axis and needs roughly 48 per date
+/// label, so this shows about seven labelled points without crowding.
+const weightChartMinWidth = 380.0;
+
+/// Purpose: Return the width of the finance page's fixed left pane.
+/// Inputs: `contentWidth` — the width both panes share, in logical pixels.
+/// Returns: `double`.
+/// Side effects: None.
+/// Notes: Proportional rather than fixed because one foldable generation spans
+/// roughly 672 to 954 logical pixels unfolded. The floor keeps the three
+/// summary figures on their own lines rather than truncating; the ceiling stops
+/// the pane sprawling on a desktop window while the transaction list, which is
+/// what the user actually reads, keeps the rest.
+double financeLeftPaneWidth(double contentWidth) =>
+    (contentWidth * 0.36).clamp(280.0, 420.0);
+
+/// Purpose: Return the width of the intimacy page's fixed left pane.
+/// Inputs: `contentWidth` — the width both panes share, in logical pixels.
+/// Returns: `double`.
+/// Side effects: None.
+/// Notes: The floor is higher than the finance page's because this pane holds a
+/// month calendar: seven columns plus the card's own padding do not fit below
+/// about 320, and squeezing them turns the day numbers into a smear.
+double intimacyLeftPaneWidth(double contentWidth) =>
+    (contentWidth * 0.36).clamp(320.0, 440.0);
+
+/// Purpose: Return the width of the settings page's fixed left pane.
+/// Inputs: `contentWidth` — the width both panes share, in logical pixels.
+/// Returns: `double`.
+/// Side effects: None.
+/// Notes: Proportional, then clamped, then capped so the detail pane can never
+/// be squeezed below [settingsRightPaneMinWidth]. The left pane needs room for
+/// full `ListTile`s with two-line subtitles and a trailing chevron. The cap only
+/// binds on a hand-resized desktop window and on the narrowest foldables, where
+/// it gives up left-pane width rather than let the detail pane become unusable.
+double settingsLeftPaneWidth(double contentWidth) {
+  final preferred = (contentWidth * 0.44).clamp(300.0, 440.0);
+  final capped = contentWidth - settingsRightPaneMinWidth;
+  if (preferred <= capped) return preferred;
+  return capped.clamp(240.0, 440.0);
+}
+
+/// Purpose: Report whether the weight summary card fits beside the trend chart.
+/// Inputs: `contentWidth` — the width the weight body gets, in logical pixels.
+/// Returns: `bool`.
+/// Side effects: None.
+/// Notes: A width floor **on top of** [canSplitLayout], not instead of it. The
+/// split rule alone admits viewports the size of a Z Fold 5 in portrait, where
+/// the chart would be left about 300 logical pixels and show four date labels.
+/// Callers must test both, and must also test that there is a chart at all —
+/// it renders nothing below two records, and a summary card alone in a 280 pane
+/// beside a blank half is worse than the stacked layout it replaced.
+bool useWeightSummaryBesideChart(double contentWidth) =>
+    contentWidth >=
+    weightSummaryPaneMinWidth + weightChartMinWidth + listTileGap;
+
+/// Purpose: Return the width of the weight summary card when it sits beside
+/// the trend chart.
+/// Inputs: `contentWidth` — the width both blocks share, in logical pixels.
+/// Returns: `double`.
+/// Side effects: None.
+/// Notes: No right-hand cap, unlike [settingsLeftPaneWidth], because none can
+/// bind: under [useWeightSummaryBesideChart] the card grows at 0.34 of the
+/// width while the chart grows at 0.66, so [weightChartMinWidth] is met exactly
+/// at the gate and only more comfortably above it.
+double weightSummaryPaneWidth(double contentWidth) =>
+    (contentWidth * 0.34).clamp(weightSummaryPaneMinWidth, 380.0);

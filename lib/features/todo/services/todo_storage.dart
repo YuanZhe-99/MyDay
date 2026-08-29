@@ -6,6 +6,7 @@ import 'package:myapps_data/myapps_data.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../../shared/services/data_file_safety.dart';
+import '../../../shared/utils/adaptive_layout.dart';
 import '../../../shared/utils/json_preservation.dart';
 import '../models/task.dart';
 
@@ -413,6 +414,107 @@ class TodoStorage {
     _weekStartDay = normalized;
     await _saveConfig();
   }
+
+  /// Read a stored list column preference.
+  /// Purpose: Return one module's persisted column-count preference.
+  /// Inputs: `key` — the `storage_config.json` key for one list surface.
+  /// Returns: `Future<int>` — `listColumnsAuto` when unset or malformed.
+  /// Side effects: Reads `storage_config.json`.
+  /// Notes: Internal helper shared by the four per-surface accessors. These
+  /// keys are read and written directly rather than through the `_loadConfig`
+  /// cache, because they are touched once per page build at most and are
+  /// device-local — see `doc/en-us/adaptive-layout.md`.
+  static Future<int> _getListColumns(String key) async {
+    final config = await readConfig();
+    final value = config[key];
+    if (value is! int || value < 1 || value > listMaxColumns) {
+      return listColumnsAuto;
+    }
+    return value;
+  }
+
+  /// Persist a list column preference for one module.
+  /// Purpose: Store one list surface's column-count preference.
+  /// Inputs: `key`, `columns`.
+  /// Returns: `Future<void>`.
+  /// Side effects: Writes `storage_config.json`.
+  /// Notes: The default `listColumnsAuto` removes the key rather than storing
+  /// a zero, matching how `_saveConfig` handles its own defaults.
+  static Future<void> _setListColumns(String key, int columns) async {
+    if (columns >= 1 && columns <= listMaxColumns) {
+      await writeConfig({key: columns});
+      return;
+    }
+    final config = await readConfig();
+    config.remove(key);
+    final file = await _getConfigFile();
+    await file.writeAsString(jsonEncode(config));
+    _configLoaded = false;
+  }
+
+  /// Purpose: Read the Todo page's section-column preference.
+  /// Inputs: None.
+  /// Returns: `Future<int>` — defaults to `listColumnsAuto`.
+  /// Side effects: Reads `storage_config.json`.
+  /// Notes: None.
+  static Future<int> getTodoSectionColumns() =>
+      _getListColumns('todoSectionColumns');
+
+  /// Purpose: Persist the Todo page's section-column preference.
+  /// Inputs: `columns`.
+  /// Returns: `Future<void>`.
+  /// Side effects: Writes `storage_config.json`.
+  /// Notes: None.
+  static Future<void> setTodoSectionColumns(int columns) =>
+      _setListColumns('todoSectionColumns', columns);
+
+  /// Purpose: Read the Finance page's transaction-column preference.
+  /// Inputs: None.
+  /// Returns: `Future<int>` — defaults to `listColumnsAuto`.
+  /// Side effects: Reads `storage_config.json`.
+  /// Notes: None.
+  static Future<int> getFinanceListColumns() =>
+      _getListColumns('financeListColumns');
+
+  /// Purpose: Persist the Finance page's transaction-column preference.
+  /// Inputs: `columns`.
+  /// Returns: `Future<void>`.
+  /// Side effects: Writes `storage_config.json`.
+  /// Notes: None.
+  static Future<void> setFinanceListColumns(int columns) =>
+      _setListColumns('financeListColumns', columns);
+
+  /// Purpose: Read the Weight page's record-column preference.
+  /// Inputs: None.
+  /// Returns: `Future<int>` — defaults to `listColumnsAuto`.
+  /// Side effects: Reads `storage_config.json`.
+  /// Notes: None.
+  static Future<int> getWeightListColumns() =>
+      _getListColumns('weightListColumns');
+
+  /// Purpose: Persist the Weight page's record-column preference.
+  /// Inputs: `columns`.
+  /// Returns: `Future<void>`.
+  /// Side effects: Writes `storage_config.json`.
+  /// Notes: None.
+  static Future<void> setWeightListColumns(int columns) =>
+      _setListColumns('weightListColumns', columns);
+
+  /// Purpose: Read the Intimacy page's record-column preference.
+  /// Inputs: None.
+  /// Returns: `Future<int>` — defaults to `listColumnsAuto`.
+  /// Side effects: Reads `storage_config.json`.
+  /// Notes: None.
+  static Future<int> getIntimacyListColumns() =>
+      _getListColumns('intimacyListColumns');
+
+  /// Purpose: Persist the Intimacy page's record-column preference.
+  /// Inputs: `columns`.
+  /// Returns: `Future<void>`.
+  /// Side effects: Writes `storage_config.json`.
+  /// Notes: None.
+  static Future<void> setIntimacyListColumns(int columns) =>
+      _setListColumns('intimacyListColumns', columns);
 
   /// Purpose: Implement the get app dir behavior for this file.
   /// Inputs: None.

@@ -1,12 +1,16 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/services/auto_sync_service.dart';
 import '../../../shared/services/image_service.dart';
+import '../../../shared/providers/app_settings.dart';
 import '../../../shared/services/reminder_service.dart';
+import '../../../shared/utils/adaptive_layout.dart';
+import '../../../shared/widgets/adaptive_tile_grid.dart';
 import '../../../shared/widgets/delete_confirm.dart';
 import '../models/finance.dart';
 import '../services/balance_util.dart';
@@ -21,7 +25,7 @@ import 'categories_page.dart';
 import 'exchange_rates_page.dart';
 import 'subscriptions_page.dart';
 
-class FinancePage extends StatefulWidget {
+class FinancePage extends ConsumerStatefulWidget {
   /// Purpose: Create a finance page instance.
   /// Inputs: None.
   /// Returns: A new `FinancePage` instance.
@@ -35,10 +39,10 @@ class FinancePage extends StatefulWidget {
   /// Side effects: May update UI state or trigger user-facing flows.
   /// Notes: None.
   @override
-  State<FinancePage> createState() => _FinancePageState();
+  ConsumerState<FinancePage> createState() => _FinancePageState();
 }
 
-class _FinancePageState extends State<FinancePage> {
+class _FinancePageState extends ConsumerState<FinancePage> {
   List<Account> _accounts = [];
   List<Category> _categories = [];
   List<Transaction> _transactions = [];
@@ -450,10 +454,45 @@ class _FinancePageState extends State<FinancePage> {
     // Upcoming renewals (within 3 days)
     final upcomingSubs = _getUpcomingSubs(3);
 
+    // The gate reads the whole screen's shape; the capacity reads the width the
+    // transaction list actually gets, which is the screen less the navigation
+    // rail and less the left pane when both panes are showing.
+    final settings = ref.watch(appSettingsProvider);
+    final screen = MediaQuery.sizeOf(context);
+    final twoPane = canSplitLayout(screen.width, screen.height);
+    final contentWidth = shellContentWidth(screen.width);
+    final listWidth = twoPane
+        ? contentWidth - financeLeftPaneWidth(contentWidth) - 1
+        : contentWidth;
+    final listCapacity = twoPane
+        ? columnCapacity(
+            listWidth,
+            minItemWidth: transactionTileMinWidth,
+            maxColumns: transactionMaxColumns,
+          )
+        : 1;
+    final listColumns = listColumnCount(
+      screenWidth: screen.width,
+      screenHeight: screen.height,
+      contentWidth: listWidth,
+      minItemWidth: transactionTileMinWidth,
+      preference: settings.financeListColumns,
+      maxColumns: transactionMaxColumns,
+    );
+
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.financeTitle),
         actions: [
+          listColumnsButton(
+            context,
+            preference: settings.financeListColumns,
+            capacity: listCapacity,
+            maxColumns: transactionMaxColumns,
+            onChanged: (value) => ref
+                .read(appSettingsProvider.notifier)
+                .setFinanceListColumns(value),
+          ),
           IconButton(
             icon: const Icon(Icons.account_balance),
             tooltip: l10n.financeAccounts,
@@ -486,8 +525,10 @@ class _FinancePageState extends State<FinancePage> {
           ? const Center(child: CircularProgressIndicator())
           : _loadError != null
           ? _FinanceDataError(message: _loadError!, onRetry: _loadData)
-          : Column(
-              children: [
+          : _FinanceBody(
+              twoPane: twoPane,
+              leftPaneWidth: financeLeftPaneWidth(contentWidth),
+              summaryBlocks: [
                 // L1: Summary cards
                 _SummaryHeader(
                   monthLabel: monthLabel,
@@ -574,82 +615,79 @@ class _FinancePageState extends State<FinancePage> {
                     ),
                   ),
                 if (upcomingSubs.isNotEmpty) const Divider(height: 1),
-
-                // L1: Transaction flow
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.receipt_long,
-                        size: 20,
-                        color: theme.colorScheme.primary,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        l10n.financeTitle,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: monthTransactions.isEmpty
-                      ? Center(
-                          child: Text(
-                            l10n.financeNoTransactions,
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        )
-                      : buildGroupedTransactionList(
-                          context,
-                          List.of(monthTransactions)
-                            ..sort((a, b) => b.date.compareTo(a.date)),
-                          (tx) => Dismissible(
-                            key: ValueKey(tx.id),
-                            direction: DismissDirection.horizontal,
-                            background: Container(
-                              alignment: Alignment.centerLeft,
-                              padding: const EdgeInsets.only(left: 20),
-                              color: theme.colorScheme.primary,
-                              child: Icon(
-                                Icons.edit_outlined,
-                                color: theme.colorScheme.onPrimary,
-                              ),
-                            ),
-                            secondaryBackground: Container(
-                              alignment: Alignment.centerRight,
-                              padding: const EdgeInsets.only(right: 20),
-                              color: theme.colorScheme.error,
-                              child: Icon(
-                                Icons.delete_outline,
-                                color: theme.colorScheme.onError,
-                              ),
-                            ),
-                            confirmDismiss: (direction) async {
-                              if (direction == DismissDirection.startToEnd) {
-                                _editTransaction(tx);
-                                return false;
-                              }
-                              return confirmDelete(
-                                context,
-                                l10n.financeThisTransaction,
-                              );
-                            },
-                            onDismissed: (_) => _deleteTransaction(tx),
-                            child: _TransactionTile(
-                              transaction: tx,
-                              categories: _categories,
-                              accounts: _accounts,
-                            ),
-                          ),
-                        ),
-                ),
               ],
+              transactionHeader: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.receipt_long,
+                      size: 20,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      l10n.financeTitle,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              transactionList: monthTransactions.isEmpty
+                  ? Center(
+                      child: Text(
+                        l10n.financeNoTransactions,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    )
+                  : buildGroupedTransactionList(
+                      context,
+                      List.of(monthTransactions)
+                        ..sort((a, b) => b.date.compareTo(a.date)),
+                      (tx) => Dismissible(
+                        key: ValueKey(tx.id),
+                        direction: DismissDirection.horizontal,
+                        background: Container(
+                          alignment: Alignment.centerLeft,
+                          padding: const EdgeInsets.only(left: 20),
+                          color: theme.colorScheme.primary,
+                          child: Icon(
+                            Icons.edit_outlined,
+                            color: theme.colorScheme.onPrimary,
+                          ),
+                        ),
+                        secondaryBackground: Container(
+                          alignment: Alignment.centerRight,
+                          padding: const EdgeInsets.only(right: 20),
+                          color: theme.colorScheme.error,
+                          child: Icon(
+                            Icons.delete_outline,
+                            color: theme.colorScheme.onError,
+                          ),
+                        ),
+                        confirmDismiss: (direction) async {
+                          if (direction == DismissDirection.startToEnd) {
+                            _editTransaction(tx);
+                            return false;
+                          }
+                          return confirmDelete(
+                            context,
+                            l10n.financeThisTransaction,
+                          );
+                        },
+                        onDismissed: (_) => _deleteTransaction(tx),
+                        child: _TransactionTile(
+                          transaction: tx,
+                          categories: _categories,
+                          accounts: _accounts,
+                        ),
+                      ),
+                      columns: listColumns,
+                    ),
             ),
       floatingActionButton: FloatingActionButton(
         onPressed: _loadError == null ? _addTransaction : null,
@@ -889,6 +927,71 @@ class _FinancePageState extends State<FinancePage> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _FinanceBody extends StatelessWidget {
+  final bool twoPane;
+  final double leftPaneWidth;
+  final List<Widget> summaryBlocks;
+  final Widget transactionHeader;
+  final Widget transactionList;
+
+  /// Purpose: Create a finance body instance.
+  /// Inputs: `twoPane`, `leftPaneWidth`, `summaryBlocks`, `transactionHeader`, `transactionList`.
+  /// Returns: A new `_FinanceBody` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. The three content
+  /// slots are built once by the page and arranged two ways here, so the two
+  /// layouts can never show different content.
+  const _FinanceBody({
+    required this.twoPane,
+    required this.leftPaneWidth,
+    required this.summaryBlocks,
+    required this.transactionHeader,
+    required this.transactionList,
+  });
+
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: On a window the app-wide split rule allows, the month summary and
+  /// the upcoming-renewal strip keep a fixed pane on the left while the
+  /// transaction list — the thing the user actually reads — takes the rest.
+  /// Stacked, that summary spends up to a third of a phone's height before the
+  /// first transaction appears. The left pane scrolls in its own right because
+  /// a long renewal strip plus the summary can outgrow a compact height, which
+  /// the split rule still admits at 480.
+  @override
+  Widget build(BuildContext context) {
+    if (!twoPane) {
+      return Column(
+        children: [
+          ...summaryBlocks,
+          transactionHeader,
+          Expanded(child: transactionList),
+        ],
+      );
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          width: leftPaneWidth,
+          child: ListView(children: summaryBlocks),
+        ),
+        const VerticalDivider(width: 1),
+        Expanded(
+          child: Column(
+            children: [
+              transactionHeader,
+              Expanded(child: transactionList),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

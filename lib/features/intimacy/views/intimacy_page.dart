@@ -10,7 +10,9 @@ import '../../../l10n/app_localizations.dart';
 import '../../../shared/providers/app_settings.dart';
 import '../../../shared/services/auto_sync_service.dart';
 import '../../../shared/services/image_service.dart';
+import '../../../shared/utils/adaptive_layout.dart';
 import '../../../shared/utils/week_grouping.dart';
+import '../../../shared/widgets/adaptive_tile_grid.dart';
 import '../../../shared/widgets/app_date_picker.dart';
 import '../../../shared/widgets/delete_confirm.dart';
 import '../../../shared/widgets/unsaved_changes_guard.dart';
@@ -491,10 +493,44 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
         ? filteredRecords.take(_defaultVisibleRecordCount).toList()
         : filteredRecords;
 
+    // The gate reads the whole screen's shape; the capacity reads the width the
+    // record list actually gets, which is the screen less the navigation rail
+    // and less the calendar pane when both panes are showing.
+    final screen = MediaQuery.sizeOf(context);
+    final twoPane = canSplitLayout(screen.width, screen.height);
+    final contentWidth = shellContentWidth(screen.width);
+    final listWidth = twoPane
+        ? contentWidth - intimacyLeftPaneWidth(contentWidth) - 1
+        : contentWidth;
+    final recordCapacity = twoPane
+        ? columnCapacity(
+            listWidth,
+            minItemWidth: intimacyRecordMinWidth,
+            maxColumns: intimacyRecordMaxColumns,
+          )
+        : 1;
+    final recordColumns = listColumnCount(
+      screenWidth: screen.width,
+      screenHeight: screen.height,
+      contentWidth: listWidth,
+      minItemWidth: intimacyRecordMinWidth,
+      preference: settings.intimacyListColumns,
+      maxColumns: intimacyRecordMaxColumns,
+    );
+
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.intimacyTitle),
         actions: [
+          listColumnsButton(
+            context,
+            preference: settings.intimacyListColumns,
+            capacity: recordCapacity,
+            maxColumns: intimacyRecordMaxColumns,
+            onChanged: (value) => ref
+                .read(appSettingsProvider.notifier)
+                .setIntimacyListColumns(value),
+          ),
           IconButton(
             icon: const Icon(Icons.timer_outlined),
             tooltip: l10n.intimacyTimer,
@@ -562,8 +598,10 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
           ? const Center(child: CircularProgressIndicator())
           : _loadError != null
           ? _IntimacyDataError(message: _loadError!, onRetry: _loadData)
-          : ListView(
-              children: [
+          : _IntimacyBody(
+              twoPane: twoPane,
+              leftPaneWidth: intimacyLeftPaneWidth(contentWidth),
+              leftBlocks: [
                 // Calendar
                 _CalendarWidget(
                   focusedMonth: _focusedMonth,
@@ -583,8 +621,8 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
                   cycleOverlays: _buildCycleOverlays(l10n),
                 ),
                 ..._buildCycleCalendarExtras(theme, l10n),
-                const Divider(height: 1),
-
+              ],
+              rightBlocks: [
                 // Consolidated trend chart
                 if (_records.length >= 2)
                   IntimacyTrendChart(
@@ -654,6 +692,7 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
                     theme,
                     visibleRecords,
                     settings.weekStartDay,
+                    recordColumns,
                   ),
                   if (_selectedDate == null &&
                       filteredRecords.length > _defaultVisibleRecordCount)
@@ -685,6 +724,17 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
   void _showAllRecords(BuildContext context, int weekStartDay) {
     final theme = Theme.of(context);
     final records = _filteredRecords;
+    // The sheet is drawn on the root overlay, so it spans the whole screen
+    // including the width the navigation rail occupies.
+    final screen = MediaQuery.sizeOf(context);
+    final sheetColumns = listColumnCount(
+      screenWidth: screen.width,
+      screenHeight: screen.height,
+      contentWidth: screen.width - 32,
+      minItemWidth: intimacyRecordMinWidth,
+      preference: ref.read(appSettingsProvider).intimacyListColumns,
+      maxColumns: intimacyRecordMaxColumns,
+    );
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -695,24 +745,37 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
         builder: (context, controller) => ListView(
           controller: controller,
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          children: _buildRecordListWidgets(theme, records, weekStartDay),
+          children: _buildRecordListWidgets(
+            theme,
+            records,
+            weekStartDay,
+            sheetColumns,
+          ),
         ),
       ),
     );
   }
 
   /// Purpose: Provide the internal build record list widgets helper for this file.
-  /// Inputs: `theme`, `records`, and `weekStartDay`.
+  /// Inputs: `theme`, `records`, `weekStartDay`, and `columns`.
   /// Returns: `List<Widget>`.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Internal helper used within this file only. Tiles are packed into
+  /// rows **inside each week group**, so a week header always spans the full
+  /// width and one week's records can never sit beside another week's. The
+  /// single-date view has no headers, so its tiles pack directly.
   List<Widget> _buildRecordListWidgets(
     ThemeData theme,
     List<IntimacyRecord> records,
     int weekStartDay,
+    int columns,
   ) {
     if (_selectedDate != null) {
-      return records.map(_buildRecordDismissible).toList();
+      return adaptiveTileRows(
+        columns: columns,
+        itemCount: records.length,
+        itemBuilder: (i) => _buildRecordDismissible(records[i]),
+      );
     }
 
     final groups = groupByWeek(
@@ -724,7 +787,11 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
     return [
       for (final group in groups) ...[
         _buildWeekHeader(theme, group),
-        ...group.items.map(_buildRecordDismissible),
+        ...adaptiveTileRows(
+          columns: columns,
+          itemCount: group.items.length,
+          itemBuilder: (i) => _buildRecordDismissible(group.items[i]),
+        ),
       ],
     ];
   }
@@ -1049,6 +1116,58 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
           },
         ),
       ),
+    );
+  }
+}
+
+class _IntimacyBody extends StatelessWidget {
+  final bool twoPane;
+  final double leftPaneWidth;
+  final List<Widget> leftBlocks;
+  final List<Widget> rightBlocks;
+
+  /// Purpose: Create an intimacy body instance.
+  /// Inputs: `twoPane`, `leftPaneWidth`, `leftBlocks`, `rightBlocks`.
+  /// Returns: A new `_IntimacyBody` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. The two content groups
+  /// are built once by the page and arranged two ways here, so the layouts can
+  /// never show different content.
+  const _IntimacyBody({
+    required this.twoPane,
+    required this.leftPaneWidth,
+    required this.leftBlocks,
+    required this.rightBlocks,
+  });
+
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: On a window the app-wide split rule allows, the month calendar and
+  /// its cycle strips keep a fixed pane on the left while the trend chart and
+  /// the record history take the rest. Stacked, the calendar alone is most of a
+  /// phone's height, so selecting a date scrolls the records it selected out of
+  /// view. Both panes scroll independently: the left one because a calendar
+  /// plus several people's cycle rows can outgrow a compact height, which the
+  /// split rule still admits at 480.
+  @override
+  Widget build(BuildContext context) {
+    if (!twoPane) {
+      return ListView(
+        children: [...leftBlocks, const Divider(height: 1), ...rightBlocks],
+      );
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          width: leftPaneWidth,
+          child: ListView(children: leftBlocks),
+        ),
+        const VerticalDivider(width: 1),
+        Expanded(child: ListView(children: rightBlocks)),
+      ],
     );
   }
 }

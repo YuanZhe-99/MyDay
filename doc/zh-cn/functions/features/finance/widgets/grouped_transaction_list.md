@@ -7,8 +7,9 @@
 | 声明 | 种类 | Tier | 用途 |
 |---|---|---|---|
 | [`buildGroupedTransactionList`](#buildgroupedtransactionlist) | 顶层函数 | A | 构建把排序交易列表分组到日期页头行下的 `ListView`。 |
+| `flush` | 局部函数（`buildGroupedTransactionList` 内） | A | 把当前日期收集到的交易作为打包好的行发出。 |
 
-`grep -c 'Purpose:' lib/features/finance/widgets/grouped_transaction_list.dart` 报告 1，与本文件唯一的真实声明匹配。未发现错附或未文档化声明。
+`grep -c 'Purpose:' lib/features/finance/widgets/grouped_transaction_list.dart` 报告 2，与本文件全部两个真实声明匹配。未发现错附或未文档化声明。
 
 ## 文档
 
@@ -37,3 +38,14 @@
   ```
   （`lib/features/finance/views/accounts_page.dart`，账户详情交易列表；`category_detail_page.dart`、`subscription_detail_page.dart` 和 `finance_page.dart` 中重复相同模式。）
 - **备注：** 依赖调用方保证排序——此函数不知道升序还是降序日期顺序，只是对它得到的任意连续同日交易段分组。
+
+### `void flush()`（`buildGroupedTransactionList` 内的局部函数） <a id="flush"></a>
+- **种类：** 嵌套局部函数
+- **来源：** `lib/features/finance/widgets/grouped_transaction_list.dart`（第 37 行）
+- **用途：** 把当前日期收集到的交易作为一行或多行打包好的行发出，然后清空累加器。
+- **输入：** 无——从外层作用域读取 `current` 和 `perRow`。
+- **返回：** 无。
+- **副作用：** 向 `items` 追加行条目并清空 `current`。
+- **算法：** 以 `perRow` 为步长遍历 `current`，每次把至多 `perRow` 条交易的 `sublist` 作为一个条目追加，最后 `current.clear()`。
+- **用法：** 扫描 `sorted` 时每次日期变化都调用，并在循环结束后再调用一次，以免丢掉最后一个日期。
+- **备注：** 在 flush **内部**分块，正是让日期标题横跨整个宽度、而它自己的交易打包成列的原因；一个日期的图块绝不会挨着另一个日期的。因此每个发出的条目至多持有 `perRow` 项，这也是构建器可以取 `adaptiveTileRows(...).single` 的原因。

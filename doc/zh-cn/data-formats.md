@@ -1,4 +1,4 @@
-# 数据格式
+# 数据格式仅本地的体重同步警告退出（`intimacyBodyWeightSyncWarningDisabled`）、设备本地的列表列数偏好（`todoSectionColumns`、`financeListColumns`、`weightListColumns`、`intimacyListColumns`） |
 
 本页记录每个持久化模型的字段级形态、`storage_config.json` 和完整持久化数据清单。字段列表直接读取自每个小节下列出的模型源文件。适用于所有这些文件的存储/写队列/UTC 时间戳规则见 [架构](architecture.md)，它们如何跨设备合并见 [WebDAV 同步](sync.md) / [三方合并](algorithms/three-way-merge.md)。
 
@@ -64,7 +64,9 @@
 
 ## `storage_config.json`
 
-总是留在默认应用目录（绝不随自定义存储路径移动）。保存：自定义存储路径、亲密可见性开关、主题、语言区域、周起始日、托盘设置、备份设置、本地 API 设置（`apiPort`、`apiListenAddress`、`apiEnabled`、`apiUsername`、`apiPassword`）、今天已触发的桌面提醒键（`reminderNotifiedKeys`）、仅本地的亲密计时器保持屏幕唤醒偏好（`intimacyTimerKeepScreenAwake`）和仅本地的体重同步警告退出（`intimacyBodyWeightSyncWarningDisabled`）。
+总是留在默认应用目录（绝不随自定义存储路径移动）。保存：自定义存储路径、亲密可见性开关、主题、语言区域、周起始日、托盘设置、备份设置、本地 API 设置（`apiPort`、`apiListenAddress`、`apiEnabled`、`apiUsername`、`apiPassword`）、今天已触发的桌面提醒键（`reminderNotifiedKeys`）、仅本地的亲密计时器保持屏幕唤醒偏好（`intimacyTimerKeepScreenAwake`）、仅本地的体重同步警告退出（`intimacyBodyWeightSyncWarningDisabled`），以及四个设备本地的列表列数偏好（`todoSectionColumns`、`financeListColumns`、`weightListColumns`、`intimacyListColumns`）。
+
+这四个列数偏好存放在这里、因而从不同步，是刻意的：窗口尺寸是设备的属性，不是账户的属性——见 [自适应布局](adaptive-layout.md)。在用户固定列数之前每一个都不存在，存在时保存 1..4 的整数；其余情况（含不存在）一律读作「自动」。
 
 ## 持久化数据清单
 

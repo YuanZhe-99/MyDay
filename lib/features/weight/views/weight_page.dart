@@ -10,12 +10,24 @@ import '../../../l10n/app_localizations.dart';
 import '../../../shared/providers/app_settings.dart';
 import '../../../shared/services/auto_sync_service.dart';
 import '../../../shared/services/reminder_service.dart';
+import '../../../shared/utils/adaptive_layout.dart';
 import '../../../shared/utils/week_grouping.dart';
+import '../../../shared/widgets/adaptive_tile_grid.dart';
 import '../../../shared/widgets/app_date_picker.dart';
 import '../../../shared/widgets/delete_confirm.dart';
 import '../../../shared/widgets/unsaved_changes_guard.dart';
 import '../models/weight_record.dart';
 import '../services/weight_storage.dart';
+
+/// Identifies the weight summary card wherever the page places it.
+///
+/// Layout tests assert the summary and the chart's relative positions rather
+/// than either block's internal structure; a stable key is what makes that
+/// possible without reaching into the widgets themselves.
+const weightSummaryKey = ValueKey('weightSummaryCard');
+
+/// Identifies the weight chart section wherever the page places it.
+const weightChartKey = ValueKey('weightChartSection');
 
 const Color _weightChartColor = Color(0xFF1565C0);
 const Color _weightTrendChartColor = Color(0xFF2E7D32);
@@ -263,10 +275,48 @@ class _WeightPageState extends ConsumerState<WeightPage> {
     final l10n = AppLocalizations.of(context)!;
     final settings = ref.watch(appSettingsProvider);
 
+    // The gate reads the whole screen's shape; the capacity reads the width the
+    // body actually gets, which is the screen less the navigation rail and less
+    // the page's own 16 dp horizontal padding on each side.
+    final screen = MediaQuery.sizeOf(context);
+    final contentWidth = shellContentWidth(screen.width) - 32;
+    final recordCapacity = canSplitLayout(screen.width, screen.height)
+        ? columnCapacity(
+            contentWidth,
+            minItemWidth: weightRecordMinWidth,
+            maxColumns: weightRecordMaxColumns,
+          )
+        : 1;
+    final recordColumns = listColumnCount(
+      screenWidth: screen.width,
+      screenHeight: screen.height,
+      contentWidth: contentWidth,
+      minItemWidth: weightRecordMinWidth,
+      preference: settings.weightListColumns,
+      maxColumns: weightRecordMaxColumns,
+    );
+    // The double gate: the window must have the shape, the body must have room
+    // for both blocks, and there must be a chart at all — it renders nothing
+    // below two records, and a summary card alone in a 280 pane beside a blank
+    // half is worse than the stacked layout it would replace.
+    final summaryBesideChart =
+        canSplitLayout(screen.width, screen.height) &&
+        useWeightSummaryBesideChart(contentWidth) &&
+        _records.length >= 2;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.weightTitle),
         actions: [
+          listColumnsButton(
+            context,
+            preference: settings.weightListColumns,
+            capacity: recordCapacity,
+            maxColumns: weightRecordMaxColumns,
+            onChanged: (value) => ref
+                .read(appSettingsProvider.notifier)
+                .setWeightListColumns(value),
+          ),
           IconButton(
             icon: Icon(
               _reminderMode != 'none'
@@ -291,7 +341,14 @@ class _WeightPageState extends ConsumerState<WeightPage> {
           ? _WeightDataError(message: _loadError!, onRetry: _loadData)
           : _records.isEmpty
           ? _buildEmptyState(theme, l10n)
-          : _buildContent(theme, l10n, settings.weekStartDay),
+          : _buildContent(
+              theme,
+              l10n,
+              settings.weekStartDay,
+              summaryBesideChart: summaryBesideChart,
+              summaryPaneWidth: weightSummaryPaneWidth(contentWidth),
+              recordColumns: recordColumns,
+            ),
       floatingActionButton: FloatingActionButton(
         onPressed: _loaded && _loadError == null ? _addRecord : null,
         child: const Icon(Icons.add),
@@ -333,15 +390,23 @@ class _WeightPageState extends ConsumerState<WeightPage> {
   }
 
   /// Purpose: Provide the internal build content helper for this file.
-  /// Inputs: `theme`, `l10n`, and `weekStartDay`.
+  /// Inputs: `theme`, `l10n`, `weekStartDay`, `summaryBesideChart`,
+  /// `summaryPaneWidth`, `recordColumns`.
   /// Returns: `Widget`.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Internal helper used within this file only. Stacked, the summary
+  /// card and the chart between them fill a phone before a single history row
+  /// appears; side by side they fit above the history on any window with room
+  /// for both. The record list stays full width in both arrangements, because
+  /// its week headers must span whatever columns the tiles use.
   Widget _buildContent(
     ThemeData theme,
     AppLocalizations l10n,
-    int weekStartDay,
-  ) {
+    int weekStartDay, {
+    required bool summaryBesideChart,
+    required double summaryPaneWidth,
+    required int recordColumns,
+  }) {
     final latest = _latestRecord!;
     final bmi = _currentBMI;
     final change = _weightChange;
@@ -349,27 +414,50 @@ class _WeightPageState extends ConsumerState<WeightPage> {
     final range = _recentRange;
     final timeSince = _timeSinceLastRecord(latest.datetime, l10n);
 
+    final summaryCard = _buildSummaryCard(
+      theme,
+      l10n,
+      latest,
+      bmi,
+      change,
+      days,
+      range,
+      timeSince,
+    );
+    final chartSection = _buildChartSection(theme, l10n);
+
+    // Keys so the layout tests can assert where these two blocks land relative
+    // to each other rather than depending on either one's internal structure.
+
     return ListView(
       children: [
-        // ── Summary card (like the reference UI) ──
-        _buildSummaryCard(
-          theme,
-          l10n,
-          latest,
-          bmi,
-          change,
-          days,
-          range,
-          timeSince,
-        ),
-        const SizedBox(height: 16),
+        if (summaryBesideChart)
+          // Deliberately not wrapped in IntrinsicHeight: the chart section
+          // scrolls horizontally, so asking it for an intrinsic width makes it
+          // report the whole series and overflow the row.
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                key: weightSummaryKey,
+                width: summaryPaneWidth,
+                child: summaryCard,
+              ),
+              Expanded(key: weightChartKey, child: chartSection),
+            ],
+          )
+        else ...[
+          // ── Summary card (like the reference UI) ──
+          KeyedSubtree(key: weightSummaryKey, child: summaryCard),
+          const SizedBox(height: 16),
 
-        // ── Chart section ──
-        _buildChartSection(theme, l10n),
+          // ── Chart section ──
+          KeyedSubtree(key: weightChartKey, child: chartSection),
+        ],
         const SizedBox(height: 16),
 
         // ── Today / Recent records ──
-        _buildRecordsList(theme, l10n, weekStartDay),
+        _buildRecordsList(theme, l10n, weekStartDay, recordColumns),
       ],
     );
   }
@@ -448,10 +536,14 @@ class _WeightPageState extends ConsumerState<WeightPage> {
                         crossAxisAlignment: CrossAxisAlignment.baseline,
                         textBaseline: TextBaseline.alphabetic,
                         children: [
-                          Text(
-                            latest.weight.toStringAsFixed(1),
-                            style: theme.textTheme.displaySmall?.copyWith(
-                              fontWeight: FontWeight.bold,
+                          Flexible(
+                            child: Text(
+                              latest.weight.toStringAsFixed(1),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.displaySmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 4),
@@ -467,47 +559,57 @@ class _WeightPageState extends ConsumerState<WeightPage> {
                   ),
                 ),
                 if (change != null && days != null) ...[
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        '$days ${l10n.weightDays}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            change < 0
-                                ? Icons.arrow_downward
-                                : change > 0
-                                ? Icons.arrow_upward
-                                : Icons.remove,
-                            color: change < 0
-                                ? Colors.blue
-                                : change > 0
-                                ? Colors.red
-                                : theme.colorScheme.onSurfaceVariant,
-                            size: 20,
+                  // Flexible, and the figure ellipsizes: the two-pane layout
+                  // hands this card a 280 dp pane, narrower than any phone
+                  // gives it, and a fixed-size block here would overflow the
+                  // row rather than give ground.
+                  Flexible(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '$days ${l10n.weightDays}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
                           ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${change.abs().toStringAsFixed(1)} ${l10n.weightUnitKg}',
-                            style: theme.textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              change < 0
+                                  ? Icons.arrow_downward
+                                  : change > 0
+                                  ? Icons.arrow_upward
+                                  : Icons.remove,
                               color: change < 0
                                   ? Colors.blue
                                   : change > 0
                                   ? Colors.red
-                                  : null,
+                                  : theme.colorScheme.onSurfaceVariant,
+                              size: 20,
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                '${change.abs().toStringAsFixed(1)} ${l10n.weightUnitKg}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: change < 0
+                                      ? Colors.blue
+                                      : change > 0
+                                      ? Colors.red
+                                      : null,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ],
@@ -1353,6 +1455,7 @@ class _WeightPageState extends ConsumerState<WeightPage> {
     ThemeData theme,
     AppLocalizations l10n,
     int weekStartDay,
+    int columns,
   ) {
     final sorted = List<WeightRecord>.from(_records)
       ..sort((a, b) => b.datetime.compareTo(a.datetime));
@@ -1374,6 +1477,7 @@ class _WeightPageState extends ConsumerState<WeightPage> {
             l10n,
             sorted.take(20).toList(),
             weekStartDay,
+            columns,
           ),
           if (sorted.length > 20)
             Center(
@@ -1388,15 +1492,18 @@ class _WeightPageState extends ConsumerState<WeightPage> {
   }
 
   /// Purpose: Provide the internal build grouped record tiles helper for this file.
-  /// Inputs: `theme`, `l10n`, `records`, and `weekStartDay`.
+  /// Inputs: `theme`, `l10n`, `records`, `weekStartDay`, and `columns`.
   /// Returns: `List<Widget>`.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Internal helper used within this file only. Tiles are packed into
+  /// rows **inside each week group**, so a week header always spans the full
+  /// width and one week's tiles can never sit beside another week's.
   List<Widget> _buildGroupedRecordTiles(
     ThemeData theme,
     AppLocalizations l10n,
     List<WeightRecord> records,
     int weekStartDay,
+    int columns,
   ) {
     final groups = groupByWeek(
       records,
@@ -1406,7 +1513,11 @@ class _WeightPageState extends ConsumerState<WeightPage> {
     return [
       for (final group in groups) ...[
         _buildWeekHeader(theme, l10n, group),
-        ...group.items.map((record) => _buildRecordTile(theme, l10n, record)),
+        ...adaptiveTileRows(
+          columns: columns,
+          itemCount: group.items.length,
+          itemBuilder: (i) => _buildRecordTile(theme, l10n, group.items[i]),
+        ),
       ],
     ];
   }
@@ -1525,10 +1636,22 @@ class _WeightPageState extends ConsumerState<WeightPage> {
   /// Inputs: `context`.
   /// Returns: None.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Internal helper used within this file only. The sheet is drawn on
+  /// the root overlay, so it spans the whole screen **including** the width the
+  /// navigation rail occupies — its capacity is therefore measured against the
+  /// screen width rather than `shellContentWidth`, unlike the page behind it.
   void _showAllRecords(BuildContext context, int weekStartDay) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
+    final screen = MediaQuery.sizeOf(context);
+    final sheetColumns = listColumnCount(
+      screenWidth: screen.width,
+      screenHeight: screen.height,
+      contentWidth: screen.width - 32,
+      minItemWidth: weightRecordMinWidth,
+      preference: ref.read(appSettingsProvider).weightListColumns,
+      maxColumns: weightRecordMaxColumns,
+    );
     final sorted = List<WeightRecord>.from(_records)
       ..sort((a, b) => b.datetime.compareTo(a.datetime));
     showModalBottomSheet(
@@ -1541,7 +1664,13 @@ class _WeightPageState extends ConsumerState<WeightPage> {
         builder: (context, controller) => ListView(
           controller: controller,
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          children: _buildGroupedRecordTiles(theme, l10n, sorted, weekStartDay),
+          children: _buildGroupedRecordTiles(
+            theme,
+            l10n,
+            sorted,
+            weekStartDay,
+            sheetColumns,
+          ),
         ),
       ),
     );

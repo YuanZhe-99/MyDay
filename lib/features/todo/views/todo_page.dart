@@ -7,7 +7,9 @@ import '../../../l10n/app_localizations.dart';
 import '../../../shared/providers/app_settings.dart';
 import '../../../shared/services/auto_sync_service.dart';
 import '../../../shared/services/reminder_service.dart';
+import '../../../shared/utils/adaptive_layout.dart';
 import '../../../shared/utils/week_grouping.dart';
+import '../../../shared/widgets/adaptive_tile_grid.dart';
 import '../models/task.dart';
 import '../services/todo_storage.dart';
 import '../widgets/add_task_dialog.dart';
@@ -1349,10 +1351,40 @@ class _TodoPageState extends ConsumerState<TodoPage> {
     final l10n = AppLocalizations.of(context)!;
     final settings = ref.watch(appSettingsProvider);
 
+    // The gate reads the whole screen's shape; the capacity reads the width the
+    // sections actually get, which is the screen less the navigation rail when
+    // the shell is showing one. See doc/en-us/adaptive-layout.md.
+    final screen = MediaQuery.sizeOf(context);
+    final contentWidth = shellContentWidth(screen.width);
+    final sectionCapacity = canSplitLayout(screen.width, screen.height)
+        ? columnCapacity(
+            contentWidth,
+            minItemWidth: taskSectionMinWidth,
+            maxColumns: taskSectionMaxColumns,
+          )
+        : 1;
+    final sectionColumns = listColumnCount(
+      screenWidth: screen.width,
+      screenHeight: screen.height,
+      contentWidth: contentWidth,
+      minItemWidth: taskSectionMinWidth,
+      preference: settings.todoSectionColumns,
+      maxColumns: taskSectionMaxColumns,
+    );
+
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.navTodo),
         actions: [
+          listColumnsButton(
+            context,
+            preference: settings.todoSectionColumns,
+            capacity: sectionCapacity,
+            maxColumns: taskSectionMaxColumns,
+            onChanged: (value) => ref
+                .read(appSettingsProvider.notifier)
+                .setTodoSectionColumns(value),
+          ),
           IconButton(
             icon: Icon(
               Icons.notifications_outlined,
@@ -1378,80 +1410,8 @@ class _TodoPageState extends ConsumerState<TodoPage> {
                 _buildWeekCalendar(theme, l10n, settings.weekStartDay),
                 const Divider(height: 1),
 
-                // Task list: 3 sections
-                Expanded(
-                  child: ListView(
-                    children: [
-                      TaskSectionWidget(
-                        title: l10n.todoSectionDaily,
-                        icon: Icons.repeat,
-                        color: theme.colorScheme.primary,
-                        tasks: _dailyForDate,
-                        taskType: TaskType.daily,
-                        sortMode: _taskSortMode(TaskType.daily),
-                        onSortModeChanged: (mode) =>
-                            _onTaskSortModeChanged(TaskType.daily, mode),
-                        onReorder: (tasks, oldIndex, newIndex) =>
-                            _onTaskReorder(
-                              TaskType.daily,
-                              tasks,
-                              oldIndex,
-                              newIndex,
-                            ),
-                        onToggle: _toggleTask,
-                        onDelete: _deleteTask,
-                        onEdit: _editTask,
-                        onSubtaskToggle: _toggleSubtask,
-                      ),
-                      const Divider(indent: 16, endIndent: 16),
-                      TaskSectionWidget(
-                        title: l10n.todoSectionRoutine,
-                        icon: Icons.today,
-                        color: theme.colorScheme.tertiary,
-                        tasks: _routineForDate,
-                        taskType: TaskType.routineOnce,
-                        sortMode: _taskSortMode(TaskType.routineOnce),
-                        onSortModeChanged: (mode) =>
-                            _onTaskSortModeChanged(TaskType.routineOnce, mode),
-                        onReorder: (tasks, oldIndex, newIndex) =>
-                            _onTaskReorder(
-                              TaskType.routineOnce,
-                              tasks,
-                              oldIndex,
-                              newIndex,
-                            ),
-                        onToggle: _toggleTask,
-                        onDelete: _deleteTask,
-                        onEdit: _editTask,
-                        onSubtaskToggle: _toggleSubtask,
-                      ),
-                      const Divider(indent: 16, endIndent: 16),
-                      TaskSectionWidget(
-                        title: l10n.todoSectionWork,
-                        icon: Icons.work_outline,
-                        color: theme.colorScheme.secondary,
-                        tasks: _workForDate,
-                        taskType: TaskType.workOnce,
-                        sortMode: _taskSortMode(TaskType.workOnce),
-                        onSortModeChanged: (mode) =>
-                            _onTaskSortModeChanged(TaskType.workOnce, mode),
-                        onReorder: (tasks, oldIndex, newIndex) =>
-                            _onTaskReorder(
-                              TaskType.workOnce,
-                              tasks,
-                              oldIndex,
-                              newIndex,
-                            ),
-                        onToggle: _toggleTask,
-                        onDelete: _deleteTask,
-                        onEdit: _editTask,
-                        onSubtaskToggle: _toggleSubtask,
-                      ),
-                      _buildDailyScoreCard(theme, l10n),
-                      const SizedBox(height: 80),
-                    ],
-                  ),
-                ),
+                // Task list: 3 sections, in one column or side by side
+                Expanded(child: _buildTaskArea(theme, l10n, sectionColumns)),
               ],
             ),
       floatingActionButton: FloatingActionButton(
@@ -1459,6 +1419,113 @@ class _TodoPageState extends ConsumerState<TodoPage> {
         child: const Icon(Icons.add),
       ),
     );
+  }
+
+  /// Purpose: Build the task area, in one column or several side by side.
+  /// Inputs: `theme`, `l10n`, `columns` — the resolved section-column count.
+  /// Returns: `Widget`.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only. The unit here is the
+  /// **section**, not the tile: each `TaskSectionWidget` wraps a shrink-wrapped
+  /// `ReorderableListView`, and dragging a task between columns of one section
+  /// is not a thing, so the sections themselves are what go side by side. At
+  /// one column this is exactly the list the page has always built. Above it,
+  /// the blocks are dealt round-robin into independently scrolling columns, so
+  /// a long Daily list cannot push Work off the bottom of the window.
+  Widget _buildTaskArea(ThemeData theme, AppLocalizations l10n, int columns) {
+    final blocks = _taskAreaBlocks(theme, l10n);
+    if (columns <= 1) {
+      return ListView(
+        children: [
+          for (var i = 0; i < blocks.length; i++) ...[
+            if (i > 0 && i < blocks.length - 1)
+              const Divider(indent: 16, endIndent: 16),
+            blocks[i],
+          ],
+          const SizedBox(height: 80),
+        ],
+      );
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var column = 0; column < columns; column++) ...[
+          if (column > 0) const VerticalDivider(width: 1),
+          Expanded(
+            child: ListView(
+              children: [
+                for (var i = column; i < blocks.length; i += columns) ...[
+                  if (i > column) const Divider(indent: 16, endIndent: 16),
+                  blocks[i],
+                ],
+                const SizedBox(height: 80),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  /// Purpose: Return the task area's blocks in their fixed display order.
+  /// Inputs: `theme`, `l10n`.
+  /// Returns: `List<Widget>` — the three task sections then the score card.
+  /// Side effects: May update UI state or trigger user-facing flows.
+  /// Notes: Internal helper used within this file only. Extracted so the single
+  /// and multi-column layouts are two arrangements of one list rather than two
+  /// copies of the same four blocks.
+  List<Widget> _taskAreaBlocks(ThemeData theme, AppLocalizations l10n) {
+    return [
+      TaskSectionWidget(
+        title: l10n.todoSectionDaily,
+        icon: Icons.repeat,
+        color: theme.colorScheme.primary,
+        tasks: _dailyForDate,
+        taskType: TaskType.daily,
+        sortMode: _taskSortMode(TaskType.daily),
+        onSortModeChanged: (mode) =>
+            _onTaskSortModeChanged(TaskType.daily, mode),
+        onReorder: (tasks, oldIndex, newIndex) =>
+            _onTaskReorder(TaskType.daily, tasks, oldIndex, newIndex),
+        onToggle: _toggleTask,
+        onDelete: _deleteTask,
+        onEdit: _editTask,
+        onSubtaskToggle: _toggleSubtask,
+      ),
+      TaskSectionWidget(
+        title: l10n.todoSectionRoutine,
+        icon: Icons.today,
+        color: theme.colorScheme.tertiary,
+        tasks: _routineForDate,
+        taskType: TaskType.routineOnce,
+        sortMode: _taskSortMode(TaskType.routineOnce),
+        onSortModeChanged: (mode) =>
+            _onTaskSortModeChanged(TaskType.routineOnce, mode),
+        onReorder: (tasks, oldIndex, newIndex) =>
+            _onTaskReorder(TaskType.routineOnce, tasks, oldIndex, newIndex),
+        onToggle: _toggleTask,
+        onDelete: _deleteTask,
+        onEdit: _editTask,
+        onSubtaskToggle: _toggleSubtask,
+      ),
+      TaskSectionWidget(
+        title: l10n.todoSectionWork,
+        icon: Icons.work_outline,
+        color: theme.colorScheme.secondary,
+        tasks: _workForDate,
+        taskType: TaskType.workOnce,
+        sortMode: _taskSortMode(TaskType.workOnce),
+        onSortModeChanged: (mode) =>
+            _onTaskSortModeChanged(TaskType.workOnce, mode),
+        onReorder: (tasks, oldIndex, newIndex) =>
+            _onTaskReorder(TaskType.workOnce, tasks, oldIndex, newIndex),
+        onToggle: _toggleTask,
+        onDelete: _deleteTask,
+        onEdit: _editTask,
+        onSubtaskToggle: _toggleSubtask,
+      ),
+      _buildDailyScoreCard(theme, l10n),
+    ];
   }
 }
 

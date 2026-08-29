@@ -73,8 +73,10 @@
 | [`_submit`](#_submit) | 方法（`_WeightRecordDialogState`） | A | 验证输入、构建结果 `WeightRecord` 并带它弹出。 |
 | `_WeightDataError`（构造函数） | 构造函数（`_WeightDataError`） | B | 创建阻塞体重数据读取错误视图。 |
 | `_WeightDataError.build` | 方法（`_WeightDataError`） | B | 渲染错误消息和重试按钮。 |
+| `weightSummaryKey` | 顶层 `const ValueKey` | B | 无论页面把摘要卡片放在哪里都能标识它。 |
+| `weightChartKey` | 顶层 `const ValueKey` | B | 无论页面把图表区放在哪里都能标识它。 |
 
-`grep -c 'Purpose:' lib/features/weight/views/weight_page.dart` 报告 65，与上面计数的全部 65 个真实声明精确匹配（31 个 Tier A、34 个 Tier B）。每个 `/// Purpose:` 块都恰好位于其文档化的真实声明正上方——未发现错附块（记录调用点而非声明的块）——也不存在未文档化真实声明：五个顶层 `const Color ...` 图表颜色常量（第 20-24 行）和 `_ChartRange` 枚举（第 56 行）是无行为的普通数据/类型声明，因此与 [`weight_record.md`](../models/weight_record.md) 处理普通类型别名的方式一致，刻意不给表格行。唯一嵌套本地函数 `_setHeight` 内的 `saveHeight`（第 1817 行）确实带自己的 `/// Purpose:` 块并被计为真实声明。
+`grep -c 'Purpose:' lib/features/weight/views/weight_page.dart` 报告 65，对应 67 行：v1.4.1 新增的两个顶层 `const ValueKey`（`weightSummaryKey`、`weightChartKey`）带的是散文文档注释而不是 `Purpose:` 块，但它们是文件表面的一部分因而有对应行（31 个 Tier A、36 个 Tier B）。每个 `/// Purpose:` 块都恰好位于其文档化的真实声明正上方——未发现错附块（记录调用点而非声明的块）——也不存在未文档化真实声明：五个顶层 `const Color ...` 图表颜色常量（第 20-24 行）和 `_ChartRange` 枚举（第 56 行）是无行为的普通数据/类型声明，因此与 [`weight_record.md`](../models/weight_record.md) 处理普通类型别名的方式一致，刻意不给表格行。唯一嵌套本地函数 `_setHeight` 内的 `saveHeight`（第 1817 行）确实带自己的 `/// Purpose:` 块并被计为真实声明。
 
 ## 文档
 

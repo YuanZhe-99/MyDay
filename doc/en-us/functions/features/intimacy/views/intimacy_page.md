@@ -207,8 +207,10 @@ public `IntimacyChartRange` enum exported by the chart widget instead of a priva
 | `_ToyCostTrendData.new` | constructor | B | Trivial forwarding constructor. |
 | `_DatePickerTile.new` | constructor | B | Trivial forwarding constructor. |
 | `_DatePickerTile.build` | method (widget) | B | Render a labeled tappable date field. |
+| `_IntimacyBody({...})` | constructor (`_IntimacyBody`) | B | Create the intimacy body arranger. |
+| [`build`](#intimacybody-build) | method (`_IntimacyBody`) | A | Stack the calendar above the records, or put it in a pane beside them. |
 
-**Row count reconciliation:** 175 rows above, matching `grep -c '/// Purpose:'` = 175 exactly (53
+**Row count reconciliation:** 177 rows above, matching `grep -c '/// Purpose:'` = 177 exactly (54
 Tier A, 122 Tier B). v1.3.2 removed 27 rows (17 Tier A, 10 Tier B) when the record-metric charts
 moved to [`intimacy_trend_chart.dart`](../widgets/intimacy_trend_chart.md), and added one
 (`_saveChartSettings`, Tier A). See the note at the end of this page for how duplicate-named
@@ -1296,3 +1298,24 @@ declarations
   ```
   (in `_buildSummaryCard` for the cost overview page).
 - **Notes:** None beyond the cross-reference above.
+
+### `Widget build(BuildContext context)` (`_IntimacyBody`) <a id="intimacybody-build"></a>
+- **Kind:** method of `_IntimacyBody`
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (approx. line 1105)
+- **Purpose:** Arrange the month calendar and the record history either stacked or in two panes.
+- **Inputs:** `context`; the widget's own `twoPane`, `leftPaneWidth`, `leftBlocks` and
+  `rightBlocks` fields.
+- **Returns:** A `ListView` when stacked, a `Row` of two `ListView`s when split.
+- **Side effects:** None beyond building widgets.
+- **Algorithm:**
+  1. `!twoPane` → one `ListView` of `leftBlocks`, a `Divider(height: 1)`, then `rightBlocks` —
+     exactly the body the page had before v1.4.1.
+  2. Otherwise `Row` of `SizedBox(width: leftPaneWidth, child: ListView(leftBlocks))`, a
+     `VerticalDivider(width: 1)`, and `Expanded(child: ListView(rightBlocks))`.
+- **Usage:** Built by `_IntimacyPageState.build` once the split decision and the pane width are
+  resolved.
+- **Notes:** Stacked, the calendar alone is most of a phone's height, so selecting a date scrolls
+  the records it selected out of view; split, the calendar keeps its place while the trend chart
+  and the history take the rest. Both panes scroll independently, because a calendar plus several
+  people's cycle rows can outgrow a compact height. See
+  [../../../adaptive-layout.md](../../../adaptive-layout.md).

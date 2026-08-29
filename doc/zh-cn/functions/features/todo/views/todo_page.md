@@ -77,6 +77,8 @@
 | `build` | 方法（`_TodoCalendarPageState`） | B | 构建日历页组件子树。 |
 | `_CalendarLegendItem({...})` | 构造函数（`_CalendarLegendItem`） | B | 创建紧凑日历图例项。 |
 | `build` | 方法（`_CalendarLegendItem`） | B | 构建图例项的图标加标签行。 |
+| [`_buildTaskArea`](#buildtaskarea) | 方法（`_TodoPageState`） | A | 把任务块排成一列或并排的数列。 |
+| [`_taskAreaBlocks`](#taskareablocks) | 方法（`_TodoPageState`） | A | 按显示顺序返回三个任务分区和评分卡片。 |
 
 ## 文档
 
@@ -657,3 +659,28 @@
 
 - [Todo](../../../../features/todo.md) — `Task`、`TaskRecurrence`、`DailyCompletionLog`、`DailyScoreLog` 模型概念和本文件实现的存储/提醒规则。
 - [三方合并](../../../../algorithms/three-way-merge.md) — `_dailyLog`/`_dailyScores` 如何跨设备合并（不在此文件实现，但本文件编辑该状态）。
+
+### `Widget _buildTaskArea(ThemeData theme, AppLocalizations l10n, int columns)` <a id="buildtaskarea"></a>
+- **种类：** `_TodoPageState` 的方法
+- **来源：** `lib/features/todo/views/todo_page.dart`（约第 1435 行）
+- **用途：** 把任务块排成页面一贯的单列滚动布局，或并排排成数个各自独立滚动的列。
+- **输入：** `theme`、`l10n`；`columns`——由 `listColumnCount` 解析出的分区列数。
+- **返回：** `Widget`。
+- **副作用：** 除构建组件外无。
+- **算法：**
+  1. 从 `_taskAreaBlocks` 取得各个块。
+  2. `columns <= 1` → 一个 `ListView`，相邻块之间放 `Divider`，末尾留 80 dp 的 FAB 让位。
+  3. 否则是一个由 `columns` 个 `Expanded` 子组件、以 `VerticalDivider` 分隔的 `Row`；第 `i` 个块进入第 `i % columns` 列，因此是轮流发牌。
+- **用法：** `build` 中的 `Expanded(child: _buildTaskArea(theme, l10n, sectionColumns))`。
+- **备注：** 单位是**分区**而不是图块：每个 `TaskSectionWidget` 包着一个 shrink-wrap 的 `ReorderableListView`，把任务在同一分区的不同列之间拖动没有意义，因此并排的是分区本身。每一列各自滚动，因此很长的每日清单不会把工作清单挤出窗口底部。产生 `columns` 的规则见 [../../../adaptive-layout.md](../../../adaptive-layout.md)。
+
+### `List<Widget> _taskAreaBlocks(ThemeData theme, AppLocalizations l10n)` <a id="taskareablocks"></a>
+- **种类：** `_TodoPageState` 的方法
+- **来源：** `lib/features/todo/views/todo_page.dart`（约第 1477 行）
+- **用途：** 按显示顺序返回三个任务分区，其后跟每日评分卡片。
+- **输入：** `theme`、`l10n`。
+- **返回：** 四个块的 `List<Widget>`。
+- **副作用：** 除构建组件外无。
+- **算法：** 由 `TaskSectionWidget(daily)`、`TaskSectionWidget(routineOnce)`、`TaskSectionWidget(workOnce)` 和 `_buildDailyScoreCard` 组成的列表字面量。
+- **用法：** 仅由 `_buildTaskArea` 调用。
+- **备注：** 抽取出来，使单列和多列布局成为同一份列表的两种排布，而不是同样四个块的两份副本——与外壳只构建一次目的地是同一个理由。

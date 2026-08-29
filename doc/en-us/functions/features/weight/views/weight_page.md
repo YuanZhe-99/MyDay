@@ -90,8 +90,10 @@ branching or computation beyond widget composition, per the tiering rule.
 | [`_submit`](#_submit) | method (`_WeightRecordDialogState`) | A | Validate inputs, build the resulting `WeightRecord`, and pop with it. |
 | `_WeightDataError` (constructor) | constructor (`_WeightDataError`) | B | Create a blocking weight-data-read-error view. |
 | `_WeightDataError.build` | method (`_WeightDataError`) | B | Render the error message and a retry button. |
+| `weightSummaryKey` | top-level `const ValueKey` | B | Identify the summary card wherever the page places it. |
+| `weightChartKey` | top-level `const ValueKey` | B | Identify the chart section wherever the page places it. |
 
-`grep -c 'Purpose:' lib/features/weight/views/weight_page.dart` reports 65, matching all 65 real
+`grep -c 'Purpose:' lib/features/weight/views/weight_page.dart` reports 65 against 67 rows: the two `const ValueKey` declarations added in v1.4.1 (`weightSummaryKey`, `weightChartKey`) carry a prose doc comment rather than a `Purpose:` block, but are part of the file surface and get rows. All 65 documented real
 declarations counted above exactly (31 Tier A, 34 Tier B). Every `/// Purpose:` block sits directly
 above the real declaration it documents — no misattached blocks (blocks documenting a call site
 instead of a declaration) were found — and no undocumented real declaration exists either: the five

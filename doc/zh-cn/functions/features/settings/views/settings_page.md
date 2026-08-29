@@ -29,8 +29,13 @@
 | `_showThemePicker` | 方法（`_SettingsPageState`） | B | 显示主题模式选择器底部面板。 |
 | `_showWeekStartPicker` | 方法（`_SettingsPageState`） | B | 显示全局周起始日选择器底部面板。 |
 | [`_showLanguagePicker`](#showlanguagepicker) | 方法（`_SettingsPageState`） | A | 显示应用语言选择器，把选择解析为 `Locale`。 |
+| `_SettingsDetail` | 顶层枚举 | B | 设置行可以通向的二级页面。 |
+| [`_detailPage`](#detailpage) | 方法（`_SettingsPageState`） | A | 构建设置行通向的二级页面。 |
+| [`_open`](#open) | 方法（`_SettingsPageState`） | A | 按当前布局所要求的方式打开二级页面。 |
+| [`_buildDetailPane`](#builddetailpane) | 方法（`_SettingsPageState`） | A | 构建双栏布局的右侧窗格。 |
+| [`_buildSettingsList`](#buildsettingslist) | 方法（`_SettingsPageState`） | A | 构建一级设置列表。 |
 
-**对账：** `grep -c 'Purpose:' lib/features/settings/views/settings_page.dart` 返回 23。23 个块都文档化真实声明（22 个方法/构造函数/getter，加在 `_showApiSettingsDialog` 内声明的嵌套本地函数 `signature()`，它自己有 `Purpose:` 块）——无错附块、未发现未文档化真实声明。`_SettingsPageState` 顶部的实例字段（`_storagePath`、`_apiPort` 等）无 `Purpose:` 块，与它们是状态而非函数一致。
+**对账：** `grep -c 'Purpose:' lib/features/settings/views/settings_page.dart` 返回 27，对应 28 行；多出的一行是不带 `Purpose:` 块的 `_SettingsDetail` 枚举。27 个块都文档化真实声明（26 个方法/构造函数/getter，加在 `_showApiSettingsDialog` 内声明的嵌套本地函数 `signature()`，它自己有 `Purpose:` 块）——无错附块、未发现未文档化真实声明。`_SettingsPageState` 顶部的实例字段（`_storagePath`、`_apiPort` 等）无 `Purpose:` 块，与它们是状态而非函数一致。
 
 ## 文档
 
@@ -136,3 +141,47 @@
 - [设置](../../../../features/settings.md) — 本页实现的逐小节功能描述。
 - [平台说明](../../../../platform-notes.md) — `_showApiSettingsDialog` 编辑的本地 API 服务器配置键，以及桌面小节其他开关背后的托盘/启动机制。
 - [WebDAV 同步](../../../../sync.md) 和 [备份与恢复](../../../../backup-restore.md) — 数据小节底层行为，在 [`webdav_config_page.dart`](../../../shared/views/webdav_config_page.md) 和 [`backup_page.dart`](../../../shared/views/backup_page.md) 中实现。
+
+### `Widget _detailPage(_SettingsDetail detail)` <a id="detailpage"></a>
+- **种类：** `_SettingsPageState` 的方法
+- **来源：** `lib/features/settings/views/settings_page.dart`（约第 466 行）
+- **用途：** 构建设置行通向的二级页面。
+- **输入：** `detail`。
+- **返回：** `Widget`——一个带自己 app bar 的 `Scaffold`。
+- **副作用：** 除构建组件外无。
+- **算法：** 对 `_SettingsDetail` 的 `switch`，返回 `WebDAVConfigPage`、`BackupPage`、`LicensePage` 或 `PrivacyPolicyPage`。
+- **用法：** 推入时由 `_open` 调用，托管时由 `_buildDetailPane` 调用。
+- **备注：** 同一个组件服务两种模式：窄窗口上整屏推入，宽窗口上托管在详情窗格里。四个页面都无需改动即可被嵌入，因为只持有一条路由的嵌套 `Navigator` 报告 `canPop == false`，因此它们的 app bar 不会长出返回箭头。
+
+### `Future<void> _open(_SettingsDetail detail)` <a id="open"></a>
+- **种类：** `_SettingsPageState` 的方法
+- **来源：** `lib/features/settings/views/settings_page.dart`（约第 485 行）
+- **用途：** 按当前布局所要求的方式打开二级页面。
+- **输入：** `detail`。
+- **返回：** `Future<void>`——推入的页面被弹出时完成；使用窗格时立即完成。
+- **副作用：** 要么 `setState` 更新详情选择，要么在**根**导航器上推入一条路由。
+- **算法：** `_twoPane` → `setState(() => _detail = detail)`；否则 `Navigator.of(context, rootNavigator: true).push(...)`。
+- **用法：** 全部四个 chevron 行——WebDAV、备份、许可证、隐私——都经由这里。
+- **备注：** 让每一行都走同一个方法，正是阻止两种模式彼此漂移的东西。`_twoPane` 在这里是读取而不是重算，因此一次点击的行为始终与它发生时屏幕上的样子一致。Flutter 自带的 `showLicensePage` 刻意**不在**这四者之列：那是本应用并不拥有的页面，因此在两种模式下都保持推入。
+
+### `Widget _buildDetailPane(AppLocalizations l10n)` <a id="builddetailpane"></a>
+- **种类：** `_SettingsPageState` 的方法
+- **来源：** `lib/features/settings/views/settings_page.dart`（约第 505 行）
+- **用途：** 构建双栏设置布局的右侧窗格。
+- **输入：** `l10n`。
+- **返回：** `Widget`——居中的占位内容，或托管所选页面的 `Navigator`。
+- **副作用：** 除构建组件外无。
+- **算法：** 无选择时是一个 tune 图标加 `l10n.settingsSelectItem`。否则是一个以选择为 key 的 `Navigator`，其唯一生成路由构建 `_detailPage(detail)`。
+- **用法：** 仅在 `_twoPane` 为真时由 `build` 调用。
+- **备注：** 嵌套 `Navigator` 给被托管的页面一条真实路由，这正是让其中的 `Navigator.pop` 仍有意义、且其 app bar 没有前导控件的原因。以选择为 key 使得每次变化都会销毁并重建，这对挂载时异步加载的页面是正确的。
+
+### `Widget _buildSettingsList(...)` <a id="buildsettingslist"></a>
+- **种类：** `_SettingsPageState` 的方法
+- **来源：** `lib/features/settings/views/settings_page.dart`（约第 545 行）
+- **用途：** 构建一级设置列表。
+- **输入：** `context`、`l10n`、`visibility`、`settings`；`labels`——`build` 在选择布局之前就已格式化好的四个字符串。
+- **返回：** `Widget`——分区的滚动 `ListView`。
+- **副作用：** 除构建组件外无；磁贴自己的回调各有其副作用。
+- **算法：** 与 v1.4.1 之前 `build` 返回的列表完全相同——常规、隐私、桌面（仅桌面）、数据、关于和调试分区。
+- **用法：** 由 `build` 调用；它在窄窗口上是整个主体，在宽窗口上是左窗格。
+- **备注：** 抽取而不是复制，因此列表在两种模式下完全相同，变的只是它的 chevron 行落在哪里。

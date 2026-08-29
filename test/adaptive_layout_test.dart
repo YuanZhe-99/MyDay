@@ -210,4 +210,161 @@ void main() {
       expect(columns(1440, 900, -5), 1);
     });
   });
+
+  group('pane widths', () {
+    test('the finance left pane is proportional between its clamps', () {
+      // Below the floor's crossover the clamp binds; above it, proportional.
+      expect(financeLeftPaneWidth(672), 280); // 0.36 x 672 = 242, floored
+      expect(financeLeftPaneWidth(1000), closeTo(360, 0.01));
+      expect(financeLeftPaneWidth(2000), 420); // ceiling
+    });
+
+    test('the intimacy left pane never drops below seven calendar columns', () {
+      // Every splittable width leaves the calendar its 320 floor.
+      for (var width = 600.0; width <= 2000; width += 1) {
+        expect(intimacyLeftPaneWidth(width), greaterThanOrEqualTo(320));
+        expect(intimacyLeftPaneWidth(width), lessThanOrEqualTo(440));
+      }
+    });
+
+    test('the settings detail pane always clears its floor', () {
+      // The cap is what makes this true at the narrow end, where 0.44 of the
+      // width would otherwise leave the detail pane under 280.
+      for (var width = 600.0; width <= 2000; width += 1) {
+        final left = settingsLeftPaneWidth(width);
+        expect(
+          width - left,
+          greaterThanOrEqualTo(settingsRightPaneMinWidth),
+          reason: 'content width $width',
+        );
+      }
+    });
+
+    test('the settings left pane still honours its own clamps', () {
+      expect(settingsLeftPaneWidth(600), 300); // 0.44 x 600 = 264, floored
+      expect(settingsLeftPaneWidth(672), 300); // 0.44 x 672 = 295.68, floored
+      expect(settingsLeftPaneWidth(800), closeTo(352, 0.01)); // proportional
+      expect(settingsLeftPaneWidth(2000), 440); // ceiling
+    });
+
+    test('the detail-pane cap never actually binds above the split floor', () {
+      // Worth stating rather than assuming: at every width the split rule
+      // admits, the proportional value already leaves the detail pane its
+      // floor, so the cap is a guard for a pane narrower than any real window
+      // rather than a second breakpoint that fires in practice.
+      for (var width = 600.0; width <= 2000; width += 1) {
+        final preferred = (width * 0.44).clamp(300.0, 440.0);
+        expect(settingsLeftPaneWidth(width), preferred, reason: 'width ');
+      }
+      // It does bind below the split floor, which is what it is there for.
+      expect(settingsLeftPaneWidth(560), lessThan(300));
+    });
+  });
+
+  group('useWeightSummaryBesideChart', () {
+    test('holds at n - 1 and n', () {
+      const gate =
+          weightSummaryPaneMinWidth + weightChartMinWidth + listTileGap; // 672
+      expect(useWeightSummaryBesideChart(gate - 1), isFalse);
+      expect(useWeightSummaryBesideChart(gate), isTrue);
+    });
+
+    test('a Z Fold 5 in portrait passes the split rule but not this one', () {
+      // The split rule alone would leave the chart about 300 logical pixels.
+      // This is why the page tests both, rather than the shape rule alone.
+      expect(canSplitLayout(675, 810), isTrue);
+      expect(useWeightSummaryBesideChart(shellContentWidth(675) - 32), isFalse);
+    });
+
+    test('an unfolded Fold 8 in landscape passes both', () {
+      expect(canSplitLayout(932, 704), isTrue);
+      expect(useWeightSummaryBesideChart(shellContentWidth(932) - 32), isTrue);
+    });
+
+    test('the chart always clears its floor from the gate up', () {
+      // The invariant that makes a right-hand cap on the summary pane
+      // unnecessary: the pane grows at 0.34 while the chart grows at 0.66.
+      for (var width = 672.0; width <= 2000; width += 1) {
+        final pane = weightSummaryPaneWidth(width);
+        expect(
+          width - pane - listTileGap,
+          greaterThanOrEqualTo(weightChartMinWidth),
+          reason: 'content width $width',
+        );
+      }
+    });
+
+    test('the summary pane honours both its clamps', () {
+      expect(weightSummaryPaneWidth(672), 280); // 0.34 x 672 = 228, floored
+      expect(weightSummaryPaneWidth(1000), closeTo(340, 0.01));
+      expect(weightSummaryPaneWidth(2000), 380); // ceiling
+    });
+  });
+
+  group('per-content minimums', () {
+    /// Purpose: Resolve a shell page's column count the way its build does.
+    /// Inputs: `width`, `height` — the whole screen; `minItemWidth`, `max`.
+    /// Returns: `int`.
+    /// Side effects: None.
+    /// Notes: No page padding is subtracted here; the pages that have some
+    /// subtract it themselves before calling.
+    int columnsFor(double width, double height, double minItemWidth, int max) =>
+        listColumnCount(
+          screenWidth: width,
+          screenHeight: height,
+          contentWidth: shellContentWidth(width),
+          minItemWidth: minItemWidth,
+          preference: listColumnsAuto,
+          maxColumns: max,
+        );
+
+    test('a phone stays on one column for every surface', () {
+      for (final min in [
+        taskSectionMinWidth,
+        transactionTileMinWidth,
+        weightRecordMinWidth,
+        intimacyRecordMinWidth,
+      ]) {
+        expect(columnsFor(412, 915, min, 4), 1); // portrait
+        expect(columnsFor(915, 412, min, 4), 1); // landscape: gated on height
+      }
+    });
+
+    test(
+      'a Fold 8 in portrait stays on one column, in landscape it does not',
+      () {
+        expect(columnsFor(704, 932, taskSectionMinWidth, 3), 1);
+        expect(columnsFor(932, 704, taskSectionMinWidth, 3), 2);
+      },
+    );
+
+    test('Todo never offers a fourth section column', () {
+      // There are only three sections, so a fourth could never be filled.
+      expect(
+        columnsFor(4000, 2000, taskSectionMinWidth, taskSectionMaxColumns),
+        taskSectionMaxColumns,
+      );
+      expect(taskSectionMaxColumns, 3);
+    });
+
+    test('a desktop window fills every surface to its own ceiling', () {
+      expect(
+        columnsFor(1920, 1080, transactionTileMinWidth, transactionMaxColumns),
+        transactionMaxColumns,
+      );
+      expect(
+        columnsFor(1920, 1080, weightRecordMinWidth, weightRecordMaxColumns),
+        weightRecordMaxColumns,
+      );
+      expect(
+        columnsFor(
+          1920,
+          1080,
+          intimacyRecordMinWidth,
+          intimacyRecordMaxColumns,
+        ),
+        intimacyRecordMaxColumns,
+      );
+    });
+  });
 }

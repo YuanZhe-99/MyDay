@@ -16,6 +16,7 @@ import '../../../shared/services/import_export_service.dart';
 import '../../../shared/services/local_api_server.dart';
 import '../../../shared/services/tray_service.dart';
 import '../../../shared/services/webdav_service.dart';
+import '../../../shared/utils/adaptive_layout.dart';
 import '../../../shared/utils/week_grouping.dart';
 import '../../../shared/widgets/app_date_picker.dart';
 import '../../../shared/widgets/unsaved_changes_guard.dart';
@@ -43,7 +44,18 @@ class SettingsPage extends ConsumerStatefulWidget {
   ConsumerState<SettingsPage> createState() => _SettingsPageState();
 }
 
+/// The second-level pages a settings row can lead to.
+enum _SettingsDetail { webdav, backup, license, privacy }
+
 class _SettingsPageState extends ConsumerState<SettingsPage> {
+  /// Whether the last build used the two-pane layout. Cached rather than
+  /// recomputed inside a tap handler, so what a tap does always matches what
+  /// was on screen when it happened.
+  bool _twoPane = false;
+
+  /// The detail page currently hosted in the right pane, if any.
+  _SettingsDetail? _detail;
+
   String _storagePath = '';
   String _appVersion = '';
   bool _minimizeToTray = false;
@@ -150,9 +162,16 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   /// Inputs: None.
   /// Returns: `Future<void>`.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Internal helper used within this file only. The version is a label
+  /// on an About row, so a platform that cannot answer leaves the placeholder
+  /// rather than taking down the page that hosts every other setting.
   Future<void> _loadVersion() async {
-    final info = await PackageInfo.fromPlatform();
+    final PackageInfo info;
+    try {
+      info = await PackageInfo.fromPlatform();
+    } catch (_) {
+      return;
+    }
     // Format matches MyAnime/MyDevice: "<version>+<build>".
     if (mounted) {
       setState(() => _appVersion = '${info.version}+${info.buildNumber}');
@@ -175,9 +194,17 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   /// Inputs: None.
   /// Returns: `Future<void>`.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Internal helper used within this file only. `launchAtStartup` is
+  /// only wired up in `main()` on a real desktop build; its no-op fallback
+  /// throws `UnsupportedError` everywhere else, which would otherwise take down
+  /// the whole settings page over one switch tile.
   Future<void> _loadAutoStartStatus() async {
-    final enabled = await launchAtStartup.isEnabled();
+    final bool enabled;
+    try {
+      enabled = await launchAtStartup.isEnabled();
+    } catch (_) {
+      return;
+    }
     if (mounted) setState(() => _autoStart = enabled);
   }
 
@@ -410,279 +437,394 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ? l10n.settingsWebDAVConfigured
         : l10n.settingsWebDAVNotConfigured;
 
+    // The gate reads the whole screen's shape, never the body's, and is cached
+    // so `_open` and the rendered layout can never disagree.
+    final screen = MediaQuery.sizeOf(context);
+    _twoPane = canSplitLayout(screen.width, screen.height);
+
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settingsTitle)),
-      body: ListView(
-        children: [
-          _buildSection(context, l10n.settingsGeneral, [
-            ListTile(
-              leading: const Icon(Icons.language),
-              title: Text(l10n.settingsLanguage),
-              subtitle: Text(localeLabel),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => _showLanguagePicker(context, settings),
-            ),
-            ListTile(
-              leading: const Icon(Icons.calendar_view_week_outlined),
-              title: Text(l10n.settingsWeekStartDay),
-              subtitle: Text(weekStartLabel),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => _showWeekStartPicker(context, settings),
-            ),
-            ListTile(
-              leading: const Icon(Icons.dark_mode),
-              title: Text(l10n.settingsTheme),
-              subtitle: Text(themeModeLabel),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => _showThemePicker(context, settings),
-            ),
-          ]),
-
-          _buildSection(context, l10n.settingsPrivacy, [
-            SwitchListTile(
-              secondary: const Icon(Icons.favorite_border),
-              title: Text(l10n.settingsIntimacyModule),
-              subtitle: Text(
-                visibility.visible
-                    ? l10n.intimacyModuleVisible
-                    : l10n.intimacyModuleHidden,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final list = _buildSettingsList(context, l10n, visibility, settings, {
+            'themeModeLabel': themeModeLabel,
+            'localeLabel': localeLabel,
+            'weekStartLabel': weekStartLabel,
+            'syncSubtitle': syncSubtitle,
+          });
+          if (!_twoPane) return list;
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                width: settingsLeftPaneWidth(constraints.maxWidth),
+                child: list,
               ),
-              value: visibility.visible,
-              onChanged: (value) async {
-                if (!value) {
-                  final confirmed = await showDialog<bool>(
-                    context: context,
-                    builder: (ctx) => AlertDialog(
-                      title: Text(l10n.settingsIntimacyModule),
-                      content: Text(l10n.intimacyHideConfirm),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(ctx, false),
-                          child: Text(l10n.commonCancel),
-                        ),
-                        TextButton(
-                          onPressed: () => Navigator.pop(ctx, true),
-                          child: Text(l10n.commonConfirm),
-                        ),
-                      ],
-                    ),
-                  );
-                  if (confirmed != true) return;
-                }
-                ref.read(intimacyVisibilityProvider.notifier).setVisible(value);
-              },
-            ),
-          ]),
-
-          // Desktop-only section: tray settings + storage location + API
-          if (_isDesktop)
-            _buildSection(context, l10n.settingsDesktop, [
-              SwitchListTile(
-                secondary: const Icon(Icons.minimize),
-                title: Text(l10n.settingsMinimizeToTray),
-                value: _minimizeToTray,
-                onChanged: (value) async {
-                  await TrayService.instance.setMinimizeToTray(value);
-                  setState(() => _minimizeToTray = value);
-                },
-              ),
-              SwitchListTile(
-                secondary: const Icon(Icons.close),
-                title: Text(l10n.settingsCloseToTray),
-                value: _closeToTray,
-                onChanged: (value) async {
-                  await TrayService.instance.setCloseToTray(value);
-                  setState(() => _closeToTray = value);
-                },
-              ),
-              SwitchListTile(
-                secondary: const Icon(Icons.login_outlined),
-                title: Text(l10n.settingsAutoStart),
-                value: _autoStart,
-                onChanged: (v) async {
-                  if (v) {
-                    await launchAtStartup.enable();
-                  } else {
-                    await launchAtStartup.disable();
-                  }
-                  setState(() => _autoStart = v);
-                },
-              ),
-              const Divider(height: 1, indent: 16, endIndent: 16),
-              SwitchListTile(
-                secondary: const Icon(Icons.dns_outlined),
-                title: Text(l10n.settingsApiEnabled),
-                subtitle: Text(
-                  LocalApiServer.isRunning
-                      ? l10n.settingsApiRunning(LocalApiServer.port)
-                      : LocalApiServer.lastError == 'credentials_required'
-                      ? l10n.settingsApiNeedCredentials
-                      : LocalApiServer.lastError != null
-                      ? '${l10n.settingsApiStopped} (${LocalApiServer.lastError})'
-                      : l10n.settingsApiStopped,
-                  style:
-                      !LocalApiServer.isRunning &&
-                          LocalApiServer.lastError != null
-                      ? TextStyle(color: Theme.of(context).colorScheme.error)
-                      : null,
-                ),
-                value: _apiEnabled,
-                onChanged: (v) async {
-                  await TodoStorage.writeConfig({'apiEnabled': v});
-                  setState(() => _apiEnabled = v);
-                  if (v) {
-                    await LocalApiServer.start();
-                  } else {
-                    await LocalApiServer.stop();
-                  }
-                  if (mounted) setState(() {});
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.settings_outlined),
-                title: Text(l10n.settingsApiServer),
-                trailing: const Icon(Icons.chevron_right),
-                enabled: _apiEnabled,
-                onTap: _apiEnabled ? _showApiSettingsDialog : null,
-              ),
-              const Divider(height: 1, indent: 16, endIndent: 16),
-              ListTile(
-                leading: const Icon(Icons.folder_outlined),
-                title: Text(l10n.settingsStorageLocation),
-                subtitle: Text(
-                  _storagePath,
-                  style: Theme.of(context).textTheme.bodySmall,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => _showStoragePathDialog(context),
-              ),
-              ListTile(
-                leading: const Icon(Icons.folder_open_outlined),
-                title: Text(l10n.settingsOpenDataFolder),
-                subtitle: Text(l10n.settingsOpenDataFolderDesc),
-                onTap: _openDataFolder,
-              ),
-            ]),
-
-          _buildSection(context, l10n.settingsData, [
-            ListTile(
-              leading: const Icon(Icons.sync),
-              title: Text(l10n.settingsWebDAVSync),
-              subtitle: Text(syncSubtitle),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const WebDAVConfigPage()),
-                );
-                _loadWebDAVStatus();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.archive_outlined),
-              title: Text(l10n.settingsExportJSON),
-              onTap: _exportData,
-            ),
-            ListTile(
-              leading: const Icon(Icons.upload_file),
-              title: Text(l10n.settingsImportData),
-              onTap: _importData,
-            ),
-            ListTile(
-              leading: const Icon(Icons.backup),
-              title: Text(l10n.backupTitle),
-              subtitle: Text(l10n.backupSubtitle),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const BackupPage()),
-              ),
-            ),
-          ]),
-
-          _buildSection(context, l10n.settingsAbout, [
-            ListTile(
-              leading: const Icon(Icons.info_outline),
-              title: Text(l10n.settingsAboutTitle),
-            ),
-            ListTile(
-              leading: const Icon(Icons.tag),
-              title: Text(_appVersion.isNotEmpty ? _appVersion : '...'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.gavel_outlined),
-              title: Text(l10n.settingsLicense),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const app_license.LicensePage(),
-                ),
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.description_outlined),
-              title: Text(l10n.settingsLicenses),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => showLicensePage(
-                context: context,
-                applicationName: 'MyDay',
-                applicationVersion: _appVersion,
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.privacy_tip_outlined),
-              title: Text(l10n.settingsPrivacyPolicy),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()),
-              ),
-            ),
-          ]),
-
-          if (kDebugMode)
-            _buildSection(context, 'Debug', [
-              ListTile(
-                leading: const Icon(Icons.access_time),
-                title: const Text('Date Override'),
-                subtitle: Text(
-                  SubscriptionProcessor.debugNowOverride != null
-                      ? DateFormat(
-                          'yyyy-MM-dd',
-                        ).format(SubscriptionProcessor.debugNowOverride!)
-                      : 'Using system date',
-                ),
-                trailing: SubscriptionProcessor.debugNowOverride != null
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () => setState(() {
-                          SubscriptionProcessor.debugNowOverride = null;
-                        }),
-                      )
-                    : null,
-                onTap: () async {
-                  final picked = await showAppDatePicker(
-                    context: context,
-                    initialDate:
-                        SubscriptionProcessor.debugNowOverride ??
-                        DateTime.now(),
-                    firstDate: DateTime(2020),
-                    lastDate: DateTime(2030),
-                    title: 'Date Override',
-                  );
-                  if (picked != null) {
-                    setState(() {
-                      SubscriptionProcessor.debugNowOverride = picked;
-                    });
-                  }
-                },
-              ),
-            ]),
-        ],
+              const VerticalDivider(width: 1),
+              Expanded(child: _buildDetailPane(l10n)),
+            ],
+          );
+        },
       ),
+    );
+  }
+
+  /// Purpose: Build the second-level page a settings row leads to.
+  /// Inputs: `detail`.
+  /// Returns: `Widget` — the page, which is a `Scaffold` with its own app bar.
+  /// Side effects: None beyond building widgets.
+  /// Notes: Internal helper used within this file only. The same widget serves
+  /// both modes: pushed full-screen on a narrow window, and hosted in the
+  /// detail pane on a wide one. None of the four pages needed a change to be
+  /// embeddable, because a nested `Navigator` holding one route reports
+  /// `canPop == false` and their app bars therefore grow no back arrow.
+  Widget _detailPage(_SettingsDetail detail) {
+    return switch (detail) {
+      _SettingsDetail.webdav => const WebDAVConfigPage(),
+      _SettingsDetail.backup => const BackupPage(),
+      _SettingsDetail.license => const app_license.LicensePage(),
+      _SettingsDetail.privacy => const PrivacyPolicyPage(),
+    };
+  }
+
+  /// Purpose: Open a second-level page the way the current layout calls for.
+  /// Inputs: `detail`.
+  /// Returns: `Future<void>` — completes when a pushed page is popped, and
+  /// immediately in the two-pane case.
+  /// Side effects: Either selects the detail pane's page or pushes a route on
+  /// the root navigator.
+  /// Notes: Internal helper used within this file only. Every one of the four
+  /// rows goes through here, so the two modes cannot drift apart. Flutter's own
+  /// `showLicensePage` is not one of them: it is a page this app does not own,
+  /// so it stays a push in both modes.
+  Future<void> _open(_SettingsDetail detail) async {
+    if (_twoPane) {
+      setState(() => _detail = detail);
+      return;
+    }
+    await Navigator.of(
+      context,
+      rootNavigator: true,
+    ).push(MaterialPageRoute(builder: (_) => _detailPage(detail)));
+  }
+
+  /// Purpose: Build the right-hand pane of the two-pane settings layout.
+  /// Inputs: `l10n`.
+  /// Returns: `Widget`.
+  /// Side effects: None beyond building widgets.
+  /// Notes: Internal helper used within this file only. The nested `Navigator`
+  /// gives the hosted page a real route, which is what keeps `Navigator.pop`
+  /// inside it meaningful and its app bar leading-free. Keying it on the
+  /// selection disposes and rebuilds on every change, which is correct for the
+  /// two pages that load asynchronously when they mount.
+  Widget _buildDetailPane(AppLocalizations l10n) {
+    final detail = _detail;
+    if (detail == null) {
+      final theme = Theme.of(context);
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.tune_outlined,
+                size: 48,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                l10n.settingsSelectItem,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    return Navigator(
+      key: ValueKey(detail),
+      onGenerateRoute: (_) =>
+          MaterialPageRoute(builder: (_) => _detailPage(detail)),
+    );
+  }
+
+  /// Purpose: Build the first-level settings list.
+  /// Inputs: `context`, `l10n`, `visibility`, `settings`, `labels`.
+  /// Returns: `Widget` — the scrolling list of sections.
+  /// Side effects: None beyond building widgets.
+  /// Notes: Internal helper used within this file only. Extracted from `build`
+  /// unchanged so the same list is the whole body on a narrow window and the
+  /// left pane on a wide one, rather than being written twice.
+  Widget _buildSettingsList(
+    BuildContext context,
+    AppLocalizations l10n,
+    IntimacyVisibility visibility,
+    AppSettings settings,
+    Map<String, String> labels,
+  ) {
+    final themeModeLabel = labels['themeModeLabel']!;
+    final localeLabel = labels['localeLabel']!;
+    final weekStartLabel = labels['weekStartLabel']!;
+    final syncSubtitle = labels['syncSubtitle']!;
+    return ListView(
+      children: [
+        _buildSection(context, l10n.settingsGeneral, [
+          ListTile(
+            leading: const Icon(Icons.language),
+            title: Text(l10n.settingsLanguage),
+            subtitle: Text(localeLabel),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _showLanguagePicker(context, settings),
+          ),
+          ListTile(
+            leading: const Icon(Icons.calendar_view_week_outlined),
+            title: Text(l10n.settingsWeekStartDay),
+            subtitle: Text(weekStartLabel),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _showWeekStartPicker(context, settings),
+          ),
+          ListTile(
+            leading: const Icon(Icons.dark_mode),
+            title: Text(l10n.settingsTheme),
+            subtitle: Text(themeModeLabel),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _showThemePicker(context, settings),
+          ),
+        ]),
+
+        _buildSection(context, l10n.settingsPrivacy, [
+          SwitchListTile(
+            secondary: const Icon(Icons.favorite_border),
+            title: Text(l10n.settingsIntimacyModule),
+            subtitle: Text(
+              visibility.visible
+                  ? l10n.intimacyModuleVisible
+                  : l10n.intimacyModuleHidden,
+            ),
+            value: visibility.visible,
+            onChanged: (value) async {
+              if (!value) {
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: Text(l10n.settingsIntimacyModule),
+                    content: Text(l10n.intimacyHideConfirm),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: Text(l10n.commonCancel),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        child: Text(l10n.commonConfirm),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirmed != true) return;
+              }
+              ref.read(intimacyVisibilityProvider.notifier).setVisible(value);
+            },
+          ),
+        ]),
+
+        // Desktop-only section: tray settings + storage location + API
+        if (_isDesktop)
+          _buildSection(context, l10n.settingsDesktop, [
+            SwitchListTile(
+              secondary: const Icon(Icons.minimize),
+              title: Text(l10n.settingsMinimizeToTray),
+              value: _minimizeToTray,
+              onChanged: (value) async {
+                await TrayService.instance.setMinimizeToTray(value);
+                setState(() => _minimizeToTray = value);
+              },
+            ),
+            SwitchListTile(
+              secondary: const Icon(Icons.close),
+              title: Text(l10n.settingsCloseToTray),
+              value: _closeToTray,
+              onChanged: (value) async {
+                await TrayService.instance.setCloseToTray(value);
+                setState(() => _closeToTray = value);
+              },
+            ),
+            SwitchListTile(
+              secondary: const Icon(Icons.login_outlined),
+              title: Text(l10n.settingsAutoStart),
+              value: _autoStart,
+              onChanged: (v) async {
+                if (v) {
+                  await launchAtStartup.enable();
+                } else {
+                  await launchAtStartup.disable();
+                }
+                setState(() => _autoStart = v);
+              },
+            ),
+            const Divider(height: 1, indent: 16, endIndent: 16),
+            SwitchListTile(
+              secondary: const Icon(Icons.dns_outlined),
+              title: Text(l10n.settingsApiEnabled),
+              subtitle: Text(
+                LocalApiServer.isRunning
+                    ? l10n.settingsApiRunning(LocalApiServer.port)
+                    : LocalApiServer.lastError == 'credentials_required'
+                    ? l10n.settingsApiNeedCredentials
+                    : LocalApiServer.lastError != null
+                    ? '${l10n.settingsApiStopped} (${LocalApiServer.lastError})'
+                    : l10n.settingsApiStopped,
+                style:
+                    !LocalApiServer.isRunning &&
+                        LocalApiServer.lastError != null
+                    ? TextStyle(color: Theme.of(context).colorScheme.error)
+                    : null,
+              ),
+              value: _apiEnabled,
+              onChanged: (v) async {
+                await TodoStorage.writeConfig({'apiEnabled': v});
+                setState(() => _apiEnabled = v);
+                if (v) {
+                  await LocalApiServer.start();
+                } else {
+                  await LocalApiServer.stop();
+                }
+                if (mounted) setState(() {});
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings_outlined),
+              title: Text(l10n.settingsApiServer),
+              trailing: const Icon(Icons.chevron_right),
+              enabled: _apiEnabled,
+              onTap: _apiEnabled ? _showApiSettingsDialog : null,
+            ),
+            const Divider(height: 1, indent: 16, endIndent: 16),
+            ListTile(
+              leading: const Icon(Icons.folder_outlined),
+              title: Text(l10n.settingsStorageLocation),
+              subtitle: Text(
+                _storagePath,
+                style: Theme.of(context).textTheme.bodySmall,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _showStoragePathDialog(context),
+            ),
+            ListTile(
+              leading: const Icon(Icons.folder_open_outlined),
+              title: Text(l10n.settingsOpenDataFolder),
+              subtitle: Text(l10n.settingsOpenDataFolderDesc),
+              onTap: _openDataFolder,
+            ),
+          ]),
+
+        _buildSection(context, l10n.settingsData, [
+          ListTile(
+            leading: const Icon(Icons.sync),
+            title: Text(l10n.settingsWebDAVSync),
+            subtitle: Text(syncSubtitle),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () async {
+              await _open(_SettingsDetail.webdav);
+              _loadWebDAVStatus();
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.archive_outlined),
+            title: Text(l10n.settingsExportJSON),
+            onTap: _exportData,
+          ),
+          ListTile(
+            leading: const Icon(Icons.upload_file),
+            title: Text(l10n.settingsImportData),
+            onTap: _importData,
+          ),
+          ListTile(
+            leading: const Icon(Icons.backup),
+            title: Text(l10n.backupTitle),
+            subtitle: Text(l10n.backupSubtitle),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _open(_SettingsDetail.backup),
+          ),
+        ]),
+
+        _buildSection(context, l10n.settingsAbout, [
+          ListTile(
+            leading: const Icon(Icons.info_outline),
+            title: Text(l10n.settingsAboutTitle),
+          ),
+          ListTile(
+            leading: const Icon(Icons.tag),
+            title: Text(_appVersion.isNotEmpty ? _appVersion : '...'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.gavel_outlined),
+            title: Text(l10n.settingsLicense),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _open(_SettingsDetail.license),
+          ),
+          ListTile(
+            leading: const Icon(Icons.description_outlined),
+            title: Text(l10n.settingsLicenses),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => showLicensePage(
+              context: context,
+              applicationName: 'MyDay',
+              applicationVersion: _appVersion,
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.privacy_tip_outlined),
+            title: Text(l10n.settingsPrivacyPolicy),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _open(_SettingsDetail.privacy),
+          ),
+        ]),
+
+        if (kDebugMode)
+          _buildSection(context, 'Debug', [
+            ListTile(
+              leading: const Icon(Icons.access_time),
+              title: const Text('Date Override'),
+              subtitle: Text(
+                SubscriptionProcessor.debugNowOverride != null
+                    ? DateFormat(
+                        'yyyy-MM-dd',
+                      ).format(SubscriptionProcessor.debugNowOverride!)
+                    : 'Using system date',
+              ),
+              trailing: SubscriptionProcessor.debugNowOverride != null
+                  ? IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () => setState(() {
+                        SubscriptionProcessor.debugNowOverride = null;
+                      }),
+                    )
+                  : null,
+              onTap: () async {
+                final picked = await showAppDatePicker(
+                  context: context,
+                  initialDate:
+                      SubscriptionProcessor.debugNowOverride ?? DateTime.now(),
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime(2030),
+                  title: 'Date Override',
+                );
+                if (picked != null) {
+                  setState(() {
+                    SubscriptionProcessor.debugNowOverride = picked;
+                  });
+                }
+              },
+            ),
+          ]),
+      ],
     );
   }
 

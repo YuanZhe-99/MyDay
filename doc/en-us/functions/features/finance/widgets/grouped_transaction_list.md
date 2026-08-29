@@ -11,8 +11,9 @@ inserted wherever the date changes. See [Finance](../../../../features/finance.m
 | Declaration | Kind | Tier | Purpose |
 |---|---|---|---|
 | [`buildGroupedTransactionList`](#buildgroupedtransactionlist) | top-level function | A | Build a `ListView` that groups a sorted transaction list under date-header rows. |
+| `flush` | local function (inside `buildGroupedTransactionList`) | A | Emit the transactions collected for the current date as packed rows. |
 
-`grep -c 'Purpose:' lib/features/finance/widgets/grouped_transaction_list.dart` reports 1,
+`grep -c 'Purpose:' lib/features/finance/widgets/grouped_transaction_list.dart` reports 2,
 matching the single real declaration in this file. No misattachment or undocumented declarations
 found.
 
@@ -59,3 +60,20 @@ found.
 - **Notes:** Relies on the caller for sort order — this function has no knowledge of ascending vs.
   descending date order and simply groups whatever contiguous run of same-day transactions it is
   given.
+
+### `void flush()` (local to `buildGroupedTransactionList`) <a id="flush"></a>
+- **Kind:** nested local function
+- **Source:** `lib/features/finance/widgets/grouped_transaction_list.dart` (line 37)
+- **Purpose:** Emit the transactions collected for the current date as one or more packed rows,
+  then clear the accumulator.
+- **Inputs:** None — reads `current` and `perRow` from the enclosing scope.
+- **Returns:** None.
+- **Side effects:** Appends row entries to `items` and empties `current`.
+- **Algorithm:** Walk `current` in strides of `perRow`, appending a `sublist` of at most `perRow`
+  transactions as one entry, then `current.clear()`.
+- **Usage:** Called on every date change while scanning `sorted`, and once more after the loop so
+  the final date is not dropped.
+- **Notes:** Chunking **inside** the flush is what keeps a date header spanning the full width
+  while its own transactions pack into columns; one date's tiles can never end up beside another
+  date's. Each emitted entry therefore holds at most `perRow` items, which is why the builder can
+  take `adaptiveTileRows(...).single`.

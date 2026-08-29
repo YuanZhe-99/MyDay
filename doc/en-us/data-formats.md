@@ -175,8 +175,15 @@ Always stays in the default app directory (never moved by a custom storage path)
 storage path, intimacy visibility toggle, theme, locale, week start day, tray settings, backup
 settings, local API settings (`apiPort`, `apiListenAddress`, `apiEnabled`, `apiUsername`,
 `apiPassword`), today's fired desktop reminder keys (`reminderNotifiedKeys`), the local-only
-intimacy timer keep-screen-awake preference (`intimacyTimerKeepScreenAwake`), and the local-only
-body weight-sync warning opt-out (`intimacyBodyWeightSyncWarningDisabled`).
+intimacy timer keep-screen-awake preference (`intimacyTimerKeepScreenAwake`), the local-only
+body weight-sync warning opt-out (`intimacyBodyWeightSyncWarningDisabled`), and the four
+device-local list column preferences (`todoSectionColumns`, `financeListColumns`,
+`weightListColumns`, `intimacyListColumns`).
+
+The four list column preferences are stored here, and therefore never synced, on purpose: window
+size is a property of the device, not of the account — see
+[adaptive-layout.md](adaptive-layout.md). Each is absent until the user pins a count and holds an
+integer 1..4; anything else, including the absent case, reads back as "auto".
 
 ## Persisted Data Inventory
 
@@ -186,7 +193,7 @@ platform app documents directory on mobile; desktop users can choose a custom st
 
 | Data | File | Synced | Notes |
 | --- | --- | --- | --- |
-| Core preferences | `storage_config.json` | No | Custom path, intimacy visibility, theme, locale, week start day, tray, backup, local API settings, today's fired desktop reminder keys (`reminderNotifiedKeys`), local-only intimacy timer keep-screen-awake preference (`intimacyTimerKeepScreenAwake`), local-only body weight-sync warning opt-out (`intimacyBodyWeightSyncWarningDisabled`) |
+| Core preferences | `storage_config.json` | No | Custom path, intimacy visibility, theme, locale, week start day, tray, backup, local API settings, today's fired desktop reminder keys (`reminderNotifiedKeys`), local-only intimacy timer keep-screen-awake preference (`intimacyTimerKeepScreenAwake`), local-only body weight-sync warning opt-out (`intimacyBodyWeightSyncWarningDisabled`), device-local list column preferences (`todoSectionColumns`, `financeListColumns`, `weightListColumns`, `intimacyListColumns`) |
 | Todo | `todo_data.json` | Yes | Tasks, daily templates, completion log, daily score log, reminders, task sort/custom order |
 | Finance | `finance_data.json` | Yes | Accounts including optional fee waiver criteria, categories, transactions, subscriptions, finance settings, transaction account picker settings |
 | Exchange rates | `exchange_rates.json` | Yes | Rate snapshots and `lastFetchedAt` |

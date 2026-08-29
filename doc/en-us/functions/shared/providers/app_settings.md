@@ -15,23 +15,27 @@ changes into `TrayService` and `ReminderService` so their user-facing text stays
 | [`setThemeMode`](#setthememode) | method (`AppSettingsNotifier`) | A | Update and persist the theme mode. |
 | [`setLocale`](#setlocale) | method (`AppSettingsNotifier`) | A | Update and persist the locale, propagating it to tray/reminder services. |
 | [`setWeekStartDay`](#setweekstartday) | method (`AppSettingsNotifier`) | A | Update and persist the first weekday for calendars/week grouping. |
+| [`setTodoSectionColumns`](#settodosectioncolumns) | method (`AppSettingsNotifier`) | A | Update and persist the Todo section-column preference. |
+| [`setFinanceListColumns`](#setfinancelistcolumns) | method (`AppSettingsNotifier`) | A | Update and persist the Finance transaction-column preference. |
+| [`setWeightListColumns`](#setweightlistcolumns) | method (`AppSettingsNotifier`) | A | Update and persist the Weight record-column preference. |
+| [`setIntimacyListColumns`](#setintimacylistcolumns) | method (`AppSettingsNotifier`) | A | Update and persist the Intimacy record-column preference. |
 | [`AppSettings` (constructor)](#appsettings-new) | constructor (`AppSettings`) | A | Create an app settings value. |
 | [`copyWith`](#copywith) | method (`AppSettings`) | A | Create a copy of this value with selected fields replaced. |
 | `appSettingsProvider` | top-level variable (`StateNotifierProvider`) | B | Expose `AppSettingsNotifier` to the widget tree. |
 
-`grep -c 'Purpose:' lib/shared/providers/app_settings.dart` reports 7, matching the seven
+`grep -c 'Purpose:' lib/shared/providers/app_settings.dart` reports 11, matching the eleven
 `Purpose:`-documented declarations above. The eighth row, `appSettingsProvider`, is a real
 top-level declaration with no doc block at all (undocumented, not misattached) — a one-line
 `StateNotifierProvider<AppSettingsNotifier, AppSettings>((ref) => AppSettingsNotifier())` factory,
 trivial enough for Tier B.
 
-**Reconciliation:** `grep -c 'Purpose:' lib/shared/providers/app_settings.dart` reports 7, matching 7 of the 8 rows above exactly. The extra row is `appSettingsProvider`, the `StateNotifierProvider` top-level variable: no `Purpose:` block, but it is the file's public entry point.
+**Reconciliation:** `grep -c 'Purpose:' lib/shared/providers/app_settings.dart` reports 11, matching 11 of the 12 rows above exactly. The extra row is `appSettingsProvider`, the `StateNotifierProvider` top-level variable: no `Purpose:` block, but it is the file's public entry point.
 
 ## Documentation
 
 ### `AppSettingsNotifier() : super(const AppSettings())` <a id="appsettingsnotifier-new"></a>
 - **Kind:** constructor of `AppSettingsNotifier` (extends `StateNotifier<AppSettings>`)
-- **Source:** `lib/shared/providers/app_settings.dart` (line 17)
+- **Source:** `lib/shared/providers/app_settings.dart` (line 18)
 - **Purpose:** Initialize state with default settings, then start loading the persisted settings
   asynchronously.
 - **Inputs:** None.
@@ -45,7 +49,7 @@ trivial enough for Tier B.
 
 ### `Future<void> _loadPersisted()` <a id="_loadpersisted"></a>
 - **Kind:** private method of `AppSettingsNotifier`
-- **Source:** `lib/shared/providers/app_settings.dart` (line 26)
+- **Source:** `lib/shared/providers/app_settings.dart` (line 27)
 - **Purpose:** Read the persisted theme mode, locale tag, and week-start day from `TodoStorage`
   and apply them to state, then propagate the resolved locale to `TrayService`/`ReminderService`.
 - **Inputs:** None.
@@ -68,7 +72,7 @@ trivial enough for Tier B.
 
 ### `void setThemeMode(ThemeMode mode)` <a id="setthememode"></a>
 - **Kind:** method of `AppSettingsNotifier`
-- **Source:** `lib/shared/providers/app_settings.dart` (line 58)
+- **Source:** `lib/shared/providers/app_settings.dart` (line 67)
 - **Purpose:** Update the app's theme mode and persist the choice.
 - **Inputs:** `mode`.
 - **Returns:** None.
@@ -84,7 +88,7 @@ trivial enough for Tier B.
 
 ### `void setLocale(Locale? locale)` <a id="setlocale"></a>
 - **Kind:** method of `AppSettingsNotifier`
-- **Source:** `lib/shared/providers/app_settings.dart` (line 68)
+- **Source:** `lib/shared/providers/app_settings.dart` (line 82)
 - **Purpose:** Update the app's locale (or clear it back to system), persist the choice, and
   propagate the effective locale to `TrayService`/`ReminderService`.
 - **Inputs:** `locale` — `null` means "follow system".
@@ -108,7 +112,7 @@ trivial enough for Tier B.
 
 ### `void setWeekStartDay(int weekday)` <a id="setweekstartday"></a>
 - **Kind:** method of `AppSettingsNotifier`
-- **Source:** `lib/shared/providers/app_settings.dart` (line 93)
+- **Source:** `lib/shared/providers/app_settings.dart` (line 102)
 - **Purpose:** Update the first weekday used by app calendars and week grouping, persisting a
   normalized value.
 - **Inputs:** `weekday` — Dart weekday numbering (Monday=1 .. Sunday=7); need not already be valid.
@@ -127,7 +131,7 @@ trivial enough for Tier B.
 
 ### `const AppSettings({this.themeMode = ThemeMode.system, this.locale, this.weekStartDay = DateTime.monday})` <a id="appsettings-new"></a>
 - **Kind:** const constructor of `AppSettings`
-- **Source:** `lib/shared/providers/app_settings.dart` (line 110)
+- **Source:** `lib/shared/providers/app_settings.dart` (line 174)
 - **Purpose:** Create an immutable settings value with system-following defaults.
 - **Inputs:** `themeMode` (default `ThemeMode.system`); `locale` (default `null` = system);
   `weekStartDay` (default `DateTime.monday`).
@@ -140,7 +144,7 @@ trivial enough for Tier B.
 
 ### `AppSettings copyWith({ThemeMode? themeMode, Locale? locale, int? weekStartDay, bool clearLocale = false})` <a id="copywith"></a>
 - **Kind:** method of `AppSettings`
-- **Source:** `lib/shared/providers/app_settings.dart` (line 121)
+- **Source:** `lib/shared/providers/app_settings.dart` (line 189)
 - **Purpose:** Create a copy of this settings value with selected fields replaced, with an explicit
   escape hatch to clear the locale back to `null`.
 - **Inputs:** `themeMode`, `locale`, `weekStartDay` (all optional, fall back to current value);
@@ -156,3 +160,53 @@ trivial enough for Tier B.
 - **Notes:** The `clearLocale` parameter exists because a plain `locale ?? this.locale` pattern can
   never represent "explicitly set locale back to null" — without it, `setLocale(null)` would be
   indistinguishable from "don't change the locale".
+
+### `void setTodoSectionColumns(int columns)` <a id="settodosectioncolumns"></a>
+- **Kind:** method of `AppSettingsNotifier`
+- **Source:** `lib/shared/providers/app_settings.dart` (line 114)
+- **Purpose:** Update and persist how many task sections the Todo page puts on a row.
+- **Inputs:** `columns` — `listColumnsAuto` (0) or a pinned count.
+- **Returns:** None.
+- **Side effects:** Replaces provider state and writes `storage_config.json`.
+- **Algorithm:** `state = state.copyWith(...)`, then `TodoStorage.setTodoSectionColumns(columns)`.
+- **Usage:** The Todo page's app-bar `listColumnsButton` calls this from `onChanged`.
+- **Notes:** The unit is a **section**, not a tile. Stored device-locally in
+  `storage_config.json`, which is never synced, because window size is a property of the device
+  rather than of the account — see [../../../adaptive-layout.md](../../../adaptive-layout.md). What
+  is stored is the raw preference; what renders is that preference clamped to what the current
+  width fits, so a choice made on a desktop survives a fold and comes back on unfolding.
+
+### `void setFinanceListColumns(int columns)` <a id="setfinancelistcolumns"></a>
+- **Kind:** method of `AppSettingsNotifier`
+- **Source:** `lib/shared/providers/app_settings.dart` (line 124)
+- **Purpose:** Update and persist how many transaction tiles the Finance list puts on a row.
+- **Inputs:** `columns`.
+- **Returns:** None.
+- **Side effects:** Replaces provider state and writes `storage_config.json`.
+- **Algorithm:** As `setTodoSectionColumns`, against `financeListColumns`.
+- **Usage:** The Finance page's app-bar `listColumnsButton`.
+- **Notes:** Stored per surface, so the four list surfaces are independent.
+
+### `void setWeightListColumns(int columns)` <a id="setweightlistcolumns"></a>
+- **Kind:** method of `AppSettingsNotifier`
+- **Source:** `lib/shared/providers/app_settings.dart` (line 134)
+- **Purpose:** Update and persist how many weight record tiles go on a row.
+- **Inputs:** `columns`.
+- **Returns:** None.
+- **Side effects:** Replaces provider state and writes `storage_config.json`.
+- **Algorithm:** As `setTodoSectionColumns`, against `weightListColumns`.
+- **Usage:** The Weight page's app-bar `listColumnsButton`; the same preference also drives the
+  show-all bottom sheet, which measures the screen rather than the page because it is drawn on the
+  root overlay.
+- **Notes:** None.
+
+### `void setIntimacyListColumns(int columns)` <a id="setintimacylistcolumns"></a>
+- **Kind:** method of `AppSettingsNotifier`
+- **Source:** `lib/shared/providers/app_settings.dart` (line 144)
+- **Purpose:** Update and persist how many intimacy record tiles go on a row.
+- **Inputs:** `columns`.
+- **Returns:** None.
+- **Side effects:** Replaces provider state and writes `storage_config.json`.
+- **Algorithm:** As `setTodoSectionColumns`, against `intimacyListColumns`.
+- **Usage:** The Intimacy page's app-bar `listColumnsButton` and its show-all sheet.
+- **Notes:** None.

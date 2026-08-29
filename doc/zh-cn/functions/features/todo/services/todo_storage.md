@@ -39,8 +39,18 @@
 | [`getCloseToTray`](#getclosetotray) | 静态方法（`TodoStorage`） | A | 获取持久化关闭到托盘设置。 |
 | [`setCloseToTray`](#setclosetotray) | 静态方法（`TodoStorage`） | A | 设置并持久化关闭到托盘设置。 |
 | [`_normalizeWeekStartDay`](#_normalizeweekstartday) | 静态方法（`TodoStorage`） | A | 返回有效持久化周起始日，无效值默认周一。 |
+| `_getListColumns` | 静态方法（`TodoStorage`） | A | 读取某个列表界面持久化的列数偏好。 |
+| `_setListColumns` | 静态方法（`TodoStorage`） | A | 存储某个列表界面的列数偏好。 |
+| `getTodoSectionColumns` | 静态方法（`TodoStorage`） | A | 读取待办页的分区列数偏好。 |
+| `setTodoSectionColumns` | 静态方法（`TodoStorage`） | A | 持久化待办页的分区列数偏好。 |
+| `getFinanceListColumns` | 静态方法（`TodoStorage`） | A | 读取财务页的交易列数偏好。 |
+| `setFinanceListColumns` | 静态方法（`TodoStorage`） | A | 持久化财务页的交易列数偏好。 |
+| `getWeightListColumns` | 静态方法（`TodoStorage`） | A | 读取体重页的记录列数偏好。 |
+| `setWeightListColumns` | 静态方法（`TodoStorage`） | A | 持久化体重页的记录列数偏好。 |
+| `getIntimacyListColumns` | 静态方法（`TodoStorage`） | A | 读取亲密页的记录列数偏好。 |
+| `setIntimacyListColumns` | 静态方法（`TodoStorage`） | A | 持久化亲密页的记录列数偏好。 |
 
-`grep -c 'Purpose:' lib/features/todo/services/todo_storage.dart` 报告 33，与上面列出的全部三十三个真实声明精确匹配。未发现错附文档注释——每个 `/// Purpose:` 块都恰好位于其文档化的真实构造函数/方法正上方——也不存在未文档化真实声明；唯一非 `Purpose:` 文档化的成员是普通字段（`_fileName`、`_customPath`、`_configLoaded`、`_intimacyVisible`、`_themeMode`、`_localeTag`、`_weekStartDay`、`_minimizeToTray`、`_closeToTray`、`_writeQueue`、`_dataFileNames`），它们是数据而非行为声明，正确排除在表格外。Tier 划分：32 个 Tier A / 1 个 Tier B。唯一 Tier B 行是 `TodoStorageException.toString`，返回存储 `message` 字段的平凡访问器，无逻辑（与 [`weight_storage.dart`](../../weight/services/weight_storage.md#weightstorageexception-new) 的 `WeightStorageException.toString` 相同模式）。每个其他声明都是 Tier A：`TodoData` 的构造函数/`toJson`/`fromJson` 和 `TodoStorageException` 的构造函数属于显式模型 Tier A 规则，每个 `TodoStorage` 静态方法执行真实配置缓存、文件路径解析或文件 IO——显式服务/IO Tier A 规则——即使个别方法体只有一两行（如 `_getConfigFile`、`getConfigFile`），与本仓库其他存储服务（如 `WeightStorage._getFile`）把简短 IO 邻近辅助归为 Tier A 而非平凡转发的方式一致。
+`grep -c 'Purpose:' lib/features/todo/services/todo_storage.dart` 报告 43，与上面列出的全部四十三个真实声明精确匹配。未发现错附文档注释——每个 `/// Purpose:` 块都恰好位于其文档化的真实构造函数/方法正上方——也不存在未文档化真实声明；唯一非 `Purpose:` 文档化的成员是普通字段（`_fileName`、`_customPath`、`_configLoaded`、`_intimacyVisible`、`_themeMode`、`_localeTag`、`_weekStartDay`、`_minimizeToTray`、`_closeToTray`、`_writeQueue`、`_dataFileNames`），它们是数据而非行为声明，正确排除在表格外。Tier 划分：42 个 Tier A / 1 个 Tier B。唯一 Tier B 行是 `TodoStorageException.toString`，返回存储 `message` 字段的平凡访问器，无逻辑（与 [`weight_storage.dart`](../../weight/services/weight_storage.md#weightstorageexception-new) 的 `WeightStorageException.toString` 相同模式）。每个其他声明都是 Tier A：`TodoData` 的构造函数/`toJson`/`fromJson` 和 `TodoStorageException` 的构造函数属于显式模型 Tier A 规则，每个 `TodoStorage` 静态方法执行真实配置缓存、文件路径解析或文件 IO——显式服务/IO Tier A 规则——即使个别方法体只有一两行（如 `_getConfigFile`、`getConfigFile`），与本仓库其他存储服务（如 `WeightStorage._getFile`）把简短 IO 邻近辅助归为 Tier A 而非平凡转发的方式一致。
 
 ## 文档
 

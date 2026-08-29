@@ -41,8 +41,13 @@ page's WebDAV status tile reacts to.
 | `_showThemePicker` | method (`_SettingsPageState`) | B | Show the theme-mode picker bottom sheet. |
 | `_showWeekStartPicker` | method (`_SettingsPageState`) | B | Show the global week-start-day picker bottom sheet. |
 | [`_showLanguagePicker`](#showlanguagepicker) | method (`_SettingsPageState`) | A | Show the app-language picker, parsing the selection into a `Locale`. |
+| `_SettingsDetail` | top-level enum | B | The second-level pages a settings row can lead to. |
+| [`_detailPage`](#detailpage) | method (`_SettingsPageState`) | A | Build the second-level page a settings row leads to. |
+| [`_open`](#open) | method (`_SettingsPageState`) | A | Open a second-level page the way the current layout calls for. |
+| [`_buildDetailPane`](#builddetailpane) | method (`_SettingsPageState`) | A | Build the right-hand pane of the two-pane layout. |
+| [`_buildSettingsList`](#buildsettingslist) | method (`_SettingsPageState`) | A | Build the first-level settings list. |
 
-**Reconciliation:** `grep -c 'Purpose:' lib/features/settings/views/settings_page.dart` returns 23.
+**Reconciliation:** `grep -c 'Purpose:' lib/features/settings/views/settings_page.dart` returns 27 against 28 rows; the extra row is the `_SettingsDetail` enum, which carries no `Purpose:` block.
 All 23 blocks document real declarations (22 methods/constructors/a getter, plus the nested local
 function `signature()` declared inside `_showApiSettingsDialog`, which itself has its own `Purpose:`
 block) — no misattached blocks and no undocumented real declarations were found. The instance fields
@@ -197,3 +202,65 @@ consistent with them being state, not functions.
   Data section's underlying behavior, implemented in
   [`webdav_config_page.dart`](../../../shared/views/webdav_config_page.md) and
   [`backup_page.dart`](../../../shared/views/backup_page.md).
+
+### `Widget _detailPage(_SettingsDetail detail)` <a id="detailpage"></a>
+- **Kind:** method of `_SettingsPageState`
+- **Source:** `lib/features/settings/views/settings_page.dart` (approx. line 466)
+- **Purpose:** Build the second-level page a settings row leads to.
+- **Inputs:** `detail`.
+- **Returns:** `Widget` — a `Scaffold` with its own app bar.
+- **Side effects:** None beyond building widgets.
+- **Algorithm:** A `switch` over `_SettingsDetail` returning `WebDAVConfigPage`, `BackupPage`,
+  `LicensePage` or `PrivacyPolicyPage`.
+- **Usage:** Called from `_open` when pushing, and from `_buildDetailPane` when hosting.
+- **Notes:** The same widget serves both modes: pushed full-screen on a narrow window, hosted in
+  the detail pane on a wide one. None of the four pages needed a change to be embeddable, because a
+  nested `Navigator` holding one route reports `canPop == false` and their app bars therefore grow
+  no back arrow.
+
+### `Future<void> _open(_SettingsDetail detail)` <a id="open"></a>
+- **Kind:** method of `_SettingsPageState`
+- **Source:** `lib/features/settings/views/settings_page.dart` (approx. line 485)
+- **Purpose:** Open a second-level page the way the current layout calls for.
+- **Inputs:** `detail`.
+- **Returns:** `Future<void>` — completes when a pushed page is popped, immediately when the pane
+  is used.
+- **Side effects:** Either `setState`s the detail selection or pushes a route on the **root**
+  navigator.
+- **Algorithm:** `_twoPane` → `setState(() => _detail = detail)`; otherwise
+  `Navigator.of(context, rootNavigator: true).push(...)`.
+- **Usage:** All four chevron rows — WebDAV, Backup, License, Privacy — go through here.
+- **Notes:** Routing every row through one method is what keeps the two modes from drifting apart.
+  `_twoPane` is read here rather than recomputed, so what a tap does always matches what was on
+  screen when it happened. Flutter's own `showLicensePage` is deliberately **not** one of the four:
+  it is a page this app does not own, so it stays a push in both modes.
+
+### `Widget _buildDetailPane(AppLocalizations l10n)` <a id="builddetailpane"></a>
+- **Kind:** method of `_SettingsPageState`
+- **Source:** `lib/features/settings/views/settings_page.dart` (approx. line 505)
+- **Purpose:** Build the right-hand pane of the two-pane settings layout.
+- **Inputs:** `l10n`.
+- **Returns:** `Widget` — a centred placeholder, or a `Navigator` hosting the selected page.
+- **Side effects:** None beyond building widgets.
+- **Algorithm:** No selection → a tune icon above `l10n.settingsSelectItem`. Otherwise a
+  `Navigator` keyed on the selection whose single generated route builds `_detailPage(detail)`.
+- **Usage:** Called from `build` only when `_twoPane` is true.
+- **Notes:** The nested `Navigator` gives the hosted page a real route, which is what keeps
+  `Navigator.pop` inside it meaningful and its app bar leading-free. Keying it on the selection
+  disposes and rebuilds on every change, which is correct for the pages that load asynchronously
+  when they mount.
+
+### `Widget _buildSettingsList(...)` <a id="buildsettingslist"></a>
+- **Kind:** method of `_SettingsPageState`
+- **Source:** `lib/features/settings/views/settings_page.dart` (approx. line 545)
+- **Purpose:** Build the first-level settings list.
+- **Inputs:** `context`, `l10n`, `visibility`, `settings`; `labels` — the four already-formatted
+  strings `build` derives before choosing a layout.
+- **Returns:** `Widget` — the scrolling `ListView` of sections.
+- **Side effects:** None beyond building widgets; the tiles' own callbacks have their own.
+- **Algorithm:** Unchanged from the list `build` returned before v1.4.1 — General, Privacy,
+  Desktop (desktop only), Data, About, and Debug sections.
+- **Usage:** Called from `build`; it is the whole body on a narrow window and the left pane on a
+  wide one.
+- **Notes:** Extracted rather than duplicated, so the list is identical in both modes and only
+  where its chevron rows land changes.

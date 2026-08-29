@@ -143,13 +143,20 @@ much room is left, which the rail very much does.
 ## Adoption status
 
 The policy module and both shared widgets landed whole in **v1.4.0**, together with the shell's
-adoption of Rule B. Rules A and C are provided by the module and exercised by
-`test/adaptive_layout_test.dart`; the pages that call them are being converted in subsequent
-releases, page by page, and each page's own decision is recorded here as it lands.
+adoption of Rule B. The five pages inside the shell followed in **v1.4.1**. The pages reached with
+`Navigator.push` — the finance and intimacy sub-pages, the management lists, the timer, the backup
+and WebDAV pages, and the form dialogs — are still on their original single-column layouts. Each
+page's own decision is recorded here as it lands.
 
 | Surface | Rule it uses | Since |
 |---|---|---|
 | `ShellScaffold` — rail vs bottom bar | B (width only) | v1.4.0 |
+| Todo — three task sections per row | A + C (sections, not tiles) | v1.4.1 |
+| Finance — summary pane beside the transaction list | A, plus C for the tiles | v1.4.1 |
+| Weight — summary card beside the trend chart | A + width floor + "is there a chart" | v1.4.1 |
+| Weight / Intimacy — record columns | A + C | v1.4.1 |
+| Intimacy — calendar pane beside the records | A, plus C for the tiles | v1.4.1 |
+| Settings — section list beside a hosted detail page | A | v1.4.1 |
 
 **One inline breakpoint is still outstanding.** `intimacy_page.dart`'s toy/partner detail summary
 card still carries `constraints.maxWidth >= 720 / >= 360` for its metric grid; it is routed through
@@ -171,6 +178,14 @@ grep -rnE "maxWidth *[<>]=? *[0-9]|size\.width *[<>]=? *[0-9]" lib/
    the shell are to use auto capacity with no stored preference and no column button, so the
    settings surface does not grow one control per sub-page.
 
+3. **Task sections keep one tile column.** `TaskSectionWidget` wraps a shrink-wrapped
+   `ReorderableListView`, and dragging a task between columns of one section is not meaningful. The
+   Todo page's column rule therefore counts **sections per row**, not tiles per row, and its
+   `taskSectionMaxColumns` is 3 because there are only three sections to deal out.
+4. **The Weight page's summary/chart split is gated three ways, not two.** The shape rule and a
+   width floor are the guide's double gate; the third condition — that there are at least two
+   records — is there because the chart renders nothing below that, and a summary card alone in a
+   280 pane beside a blank half is worse than the stacked layout it would replace.
 ## Divergence from Google's guidance, stated on purpose
 
 Google's adaptive-layout guidance says window size classes are "explicitly not determined by the

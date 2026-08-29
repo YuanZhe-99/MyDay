@@ -27,27 +27,45 @@ named predicate.
 | `listColumnsAuto` | top-level `const int` | B | Column preference meaning "use whatever fits" (0). |
 | `navRailMinWidth` | top-level `const double` | B | Minimum screen width before the shell shows a navigation rail (600). |
 | `navRailWidth` | top-level `const double` | B | Logical pixels the rail takes from the content when shown (81). |
+| `taskSectionMinWidth` | top-level `const double` | B | Minimum width one Todo task section may occupy (340). |
+| `taskSectionMaxColumns` | top-level `const int` | B | Ceiling on Todo section columns (3). |
+| `transactionTileMinWidth` | top-level `const double` | B | Minimum width one transaction tile may occupy (320). |
+| `transactionMaxColumns` | top-level `const int` | B | Ceiling on transaction columns (4). |
+| `weightRecordMinWidth` | top-level `const double` | B | Minimum width one weight record tile may occupy (300). |
+| `weightRecordMaxColumns` | top-level `const int` | B | Ceiling on weight record columns (3). |
+| `intimacyRecordMinWidth` | top-level `const double` | B | Minimum width one intimacy record tile may occupy (340). |
+| `intimacyRecordMaxColumns` | top-level `const int` | B | Ceiling on intimacy record columns (3). |
+| `settingsRightPaneMinWidth` | top-level `const double` | B | Smallest width the settings detail pane may be given (280). |
+| `weightSummaryPaneMinWidth` | top-level `const double` | B | Smallest width the weight summary card may occupy beside the chart (280). |
+| `weightChartMinWidth` | top-level `const double` | B | Smallest width the weight trend chart may be given (380). |
 | [`canSplitLayout`](#cansplitlayout) | top-level function | A | Report whether a layout may split into panes or columns. |
 | [`useNavigationRail`](#usenavigationrail) | top-level function | A | Report whether the shell should show a navigation rail. |
 | [`shellContentWidth`](#shellcontentwidth) | top-level function | A | Return the width a shell page's content actually receives. |
 | [`columnCapacity`](#columncapacity) | top-level function | A | Return how many columns of a given minimum width fit a content box. |
 | [`listRowCount`](#listrowcount) | top-level function | A | Return how many rows a list of items needs at a column count. |
 | [`listColumnCount`](#listcolumncount) | top-level function | A | Return the number of columns a list should actually render. |
+| [`financeLeftPaneWidth`](#financeleftpanewidth) | top-level function | A | Return the width of the finance page's fixed left pane. |
+| [`intimacyLeftPaneWidth`](#intimacyleftpanewidth) | top-level function | A | Return the width of the intimacy page's fixed left pane. |
+| [`settingsLeftPaneWidth`](#settingsleftpanewidth) | top-level function | A | Return the width of the settings page's fixed left pane. |
+| [`useWeightSummaryBesideChart`](#useweightsummarybesidechart) | top-level function | A | Report whether the weight summary card fits beside the trend chart. |
+| [`weightSummaryPaneWidth`](#weightsummarypanewidth) | top-level function | A | Return the width of the weight summary card when it sits beside the chart. |
 
-**Reconciliation:** `grep -c 'Purpose:' lib/shared/utils/adaptive_layout.dart` reports 6 against 14
-rows. The eight top-level `const` declarations carry a prose doc comment stating where their value
-came from rather than a `Purpose:` block, matching how the index treats top-level constants
-elsewhere; they are part of the file's surface and therefore get rows. All six functions are Tier A
-per the blanket rule for top-level functions under `shared/`. The constants are Tier B: their whole
-content is the value and the reason for it, both of which the table and
+**Reconciliation:** `grep -c 'Purpose:' lib/shared/utils/adaptive_layout.dart` reports 11 against 30
+rows. The nineteen top-level `const` declarations carry a prose doc comment stating where their
+value came from rather than a `Purpose:` block, matching how the index treats top-level constants
+elsewhere; they are part of the file's surface and therefore get rows. All eleven functions are
+Tier A per the blanket rule for top-level functions under `shared/`. The constants are Tier B:
+their whole content is the value and the reason for it, both of which the tables below and
 [../../../adaptive-layout.md](../../../adaptive-layout.md) already carry.
 
 ## Constants
 
-The three split thresholds, the two navigation-rail figures, and the three list figures are the
-whole numeric surface of MyDay's layout policy. Their values are shared with the sibling apps and
-must not be changed without reading [../../../adaptive-layout.md](../../../adaptive-layout.md)
-first — `splitMinAspect` in particular is a whole-app behavior change.
+These nineteen numbers are the whole numeric surface of MyDay's layout policy. The first eight are
+shared with the sibling apps and must not be changed without reading
+[../../../adaptive-layout.md](../../../adaptive-layout.md) first — `splitMinAspect` in particular
+is a whole-app behavior change. The rest are MyDay's own per-content minimums, and each one states
+what content it is measuring, because a minimum with no stated content is a number nobody can
+safely change later.
 
 | Constant | Value | Where the number came from |
 |---|---|---|
@@ -59,6 +77,17 @@ first — `splitMinAspect` in particular is a whole-app behavior change.
 | `listColumnsAuto` | `0` | The sentinel preference value meaning "derive from width"; distinct from any real column count, which starts at 1. |
 | `navRailMinWidth` | `600.0` | Material's *medium* width class, where Google's guidance moves navigation to the side. Equal to `splitMinWidth` by coincidence of the same Material breakpoint, not by dependency — the two rules are deliberately independent. |
 | `navRailWidth` | `81.0` | An 80 dp `NavigationRail` plus the 1 dp `VerticalDivider` beside it. |
+| `taskSectionMinWidth` | `340.0` | A Todo section carries its own header, count and sort control above task tiles with a checkbox, a title, a subtask line and a trailing menu button; below this the title truncates before the trailing controls. |
+| `taskSectionMaxColumns` | `3` | There are only three sections, so a fourth column could never be filled. |
+| `transactionTileMinWidth` | `320.0` | A category emoji or icon, the note, an account/category subtitle and a right-aligned amount carrying a currency symbol. |
+| `transactionMaxColumns` | `4` | The app-wide list ceiling; transactions are the shortest tiles MyDay has, so they are the one surface that can use it. |
+| `weightRecordMinWidth` | `300.0` | A date, the weight, its BMI and up to three measurement values on one line. |
+| `weightRecordMaxColumns` | `3` | Beyond three, a weight row's date and value stop reading as a pair. |
+| `intimacyRecordMinWidth` | `340.0` | A date, partner and toy chips, duration, and the derived thrust rate — the widest tile in the app, because the chips wrap rather than truncate. |
+| `intimacyRecordMaxColumns` | `3` | As above; the chips need the width more than the list needs another column. |
+| `settingsRightPaneMinWidth` | `280.0` | The narrowest a hosted second-level page stays usable at — a form field plus its label. |
+| `weightSummaryPaneMinWidth` | `280.0` | The card carries the latest weight at `displaySmall` beside a change figure, then a `Wrap` of stat labels each constrained to 88–168. |
+| `weightChartMinWidth` | `380.0` | The chart reserves about 40 for its left axis and needs roughly 48 per date label, so this shows about seven labelled points without crowding. |
 
 ## Documentation
 
@@ -204,3 +233,91 @@ first — `splitMinAspect` in particular is a whole-app behavior change.
   desktop survive being carried onto a folded phone and come back on unfolding, rather than being
   overwritten with 1. The control that sets the preference is hidden entirely when capacity is 1,
   so it never appears on a phone or a cover screen.
+
+### `double financeLeftPaneWidth(double contentWidth)` <a id="financeleftpanewidth"></a>
+- **Kind:** top-level function
+- **Source:** `lib/shared/utils/adaptive_layout.dart` (line 218)
+- **Purpose:** Return the width of the finance page's fixed left pane, which holds the month summary
+  and the upcoming-renewal strip.
+- **Inputs:** `contentWidth` — the width both panes share, in logical pixels.
+- **Returns:** `double` between 280 and 420.
+- **Side effects:** None.
+- **Algorithm:** `(contentWidth * 0.36).clamp(280.0, 420.0)`.
+- **Usage:** `SizedBox(width: financeLeftPaneWidth(contentWidth), child: summaryPane)`.
+- **Notes:** Proportional rather than fixed, because one foldable generation spans roughly 672 to
+  954 logical pixels unfolded. The floor keeps the three summary figures on their own lines rather
+  than truncating; the ceiling stops the pane sprawling on a desktop window while the transaction
+  list — the thing the user actually reads — keeps the rest.
+
+### `double intimacyLeftPaneWidth(double contentWidth)` <a id="intimacyleftpanewidth"></a>
+- **Kind:** top-level function
+- **Source:** `lib/shared/utils/adaptive_layout.dart` (line 228)
+- **Purpose:** Return the width of the intimacy page's fixed left pane, which holds the month
+  calendar and its cycle strips.
+- **Inputs:** `contentWidth` — the width both panes share, in logical pixels.
+- **Returns:** `double` between 320 and 440.
+- **Side effects:** None.
+- **Algorithm:** `(contentWidth * 0.36).clamp(320.0, 440.0)`.
+- **Usage:** `SizedBox(width: intimacyLeftPaneWidth(contentWidth), child: calendarPane)`.
+- **Notes:** The same 0.36 proportion as the finance page, but a higher floor, and the floor is the
+  point: this pane holds a month calendar, whose seven columns plus the card's own padding do not
+  fit below about 320. Squeezing them turns the day numbers into a smear.
+
+### `double settingsLeftPaneWidth(double contentWidth)` <a id="settingsleftpanewidth"></a>
+- **Kind:** top-level function
+- **Source:** `lib/shared/utils/adaptive_layout.dart` (line 240)
+- **Purpose:** Return the width of the settings page's section list when the detail pane is beside
+  it.
+- **Inputs:** `contentWidth` — the width both panes share, in logical pixels, taken from the
+  page's own `LayoutBuilder` rather than the screen.
+- **Returns:** `double`.
+- **Side effects:** None.
+- **Algorithm:**
+  1. `preferred = (contentWidth * 0.44).clamp(300.0, 440.0)`.
+  2. `capped = contentWidth - settingsRightPaneMinWidth`.
+  3. Return `preferred` when it fits inside `capped`, otherwise `capped.clamp(240.0, 440.0)`.
+- **Usage:** `SizedBox(width: settingsLeftPaneWidth(constraints.maxWidth), child: sectionList)`.
+- **Notes:** A larger proportion than the other two panes, because this list carries full
+  `ListTile`s with two-line subtitles and a trailing chevron rather than a summary block. The cap
+  never actually binds at any width the split rule admits — `test/adaptive_layout_test.dart`
+  asserts exactly that across the whole range — so it is a guard for a pane narrower than any real
+  window, not a second breakpoint. It is kept rather than deleted because this function takes a
+  **pane** width, and a future caller could hand it one.
+
+### `bool useWeightSummaryBesideChart(double contentWidth)` <a id="useweightsummarybesidechart"></a>
+- **Kind:** top-level function
+- **Source:** `lib/shared/utils/adaptive_layout.dart` (line 257)
+- **Purpose:** Report whether the weight summary card and the trend chart both have room to sit on
+  one row.
+- **Inputs:** `contentWidth` — the width the weight body gets, in logical pixels.
+- **Returns:** `bool`.
+- **Side effects:** None.
+- **Algorithm:** `contentWidth >= weightSummaryPaneMinWidth + weightChartMinWidth + listTileGap`
+  (280 + 380 + 12 = 672).
+- **Usage:**
+  ```dart
+  final summaryBesideChart = canSplitLayout(screen.width, screen.height) &&
+      useWeightSummaryBesideChart(contentWidth) &&
+      _records.length >= 2;
+  ```
+- **Notes:** A width floor **on top of** `canSplitLayout`, not instead of it — the double gate. The
+  split rule alone admits viewports the size of a Z Fold 5 in portrait, where the chart would be
+  left about 300 logical pixels and show four date labels. Callers must test both, **and** must
+  test that there is a chart at all: it renders nothing below two records, and a summary card alone
+  in a 280 pane beside a blank half is worse than the stacked layout it would replace. Whenever a
+  block can render to nothing, it belongs in the gate.
+
+### `double weightSummaryPaneWidth(double contentWidth)` <a id="weightsummarypanewidth"></a>
+- **Kind:** top-level function
+- **Source:** `lib/shared/utils/adaptive_layout.dart` (line 270)
+- **Purpose:** Return the width of the weight summary card when it sits beside the trend chart.
+- **Inputs:** `contentWidth` — the width both blocks share, in logical pixels.
+- **Returns:** `double` between 280 and 380.
+- **Side effects:** None.
+- **Algorithm:** `(contentWidth * 0.34).clamp(weightSummaryPaneMinWidth, 380.0)`.
+- **Usage:** `SizedBox(width: weightSummaryPaneWidth(contentWidth), child: summaryCard)`.
+- **Notes:** No right-hand cap, unlike `settingsLeftPaneWidth`, because none can bind: under
+  `useWeightSummaryBesideChart` the card grows at 0.34 of the width while the chart grows at 0.66,
+  so `weightChartMinWidth` is met exactly at the gate and only more comfortably above it. That is
+  an invariant asserted across the whole range in `test/adaptive_layout_test.dart` rather than
+  defended with arithmetic that never fires.

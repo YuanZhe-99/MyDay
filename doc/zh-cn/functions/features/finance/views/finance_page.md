@@ -35,8 +35,10 @@
 | `build` | 方法（`_TransactionTile`） | B | 渲染一笔交易的列表块（分类/账户标签、带符号金额）。 |
 | `_buildLeading` | 方法（`_TransactionTile`，组件辅助） | B | 构建块的前导头像（解析的账户图像，或回退图标）。 |
 | `defaultAvatar`（嵌套于 `_buildLeading`） | 本地函数（组件辅助） | B | 构建回退财务交易头像。 |
+| `_FinanceBody({...})` | 构造函数（`_FinanceBody`） | B | 创建财务主体排布器。 |
+| [`build`](#financebody-build) | 方法（`_FinanceBody`） | A | 把摘要堆叠在交易之上，或放进它们旁边的窗格里。 |
 
-**对账：** `grep -c 'Purpose:' lib/features/finance/views/finance_page.dart` 返回 29，与上面 29 行精确匹配——每个块都恰好位于其真实声明（构造函数、`createState`、生命周期方法、私有方法、`build` 覆盖或 `_buildLeading` 内的嵌套本地函数）正上方；未发现错附在调用点语句上方，也未发现未文档化的真实声明。四个类的普通组件字段（如 `_FinancePageState` 的 `_accounts`/`_categories`/`_transactions`/... 状态字段，以及 `StatelessWidget` 子类的构造函数参数）不带 `/// Purpose:` 块，与本代码库记录可调用成员而非数据字段的约定一致。
+**对账：** `grep -c 'Purpose:' lib/features/finance/views/finance_page.dart` 返回 31，与上面 31 行精确匹配——每个块都恰好位于其真实声明（构造函数、`createState`、生命周期方法、私有方法、`build` 覆盖或 `_buildLeading` 内的嵌套本地函数）正上方；未发现错附在调用点语句上方，也未发现未文档化的真实声明。四个类的普通组件字段（如 `_FinancePageState` 的 `_accounts`/`_categories`/`_transactions`/... 状态字段，以及 `StatelessWidget` 子类的构造函数参数）不带 `/// Purpose:` 块，与本代码库记录可调用成员而非数据字段的约定一致。
 
 ## 文档
 
@@ -181,3 +183,16 @@
 - [`add_transaction_dialog.dart`](../widgets/add_transaction_dialog.md) — `_addTransaction` 和 `_editTransaction` 显示的对话框。
 - [`reminder_service.md`](../../../shared/services/reminder_service.md) — `updateSubscriptionData`，由 `_updateReminderService` 保持同步。
 - [`auto_sync_service.md`](../../../shared/services/auto_sync_service.md) — `addOnLocalDataChanged`/`notifySaved`，由 `initState`/[`_saveData`](#_savedata) 使用。
+
+### `Widget build(BuildContext context)`（`_FinanceBody`） <a id="financebody-build"></a>
+- **种类：** `_FinanceBody` 的方法
+- **来源：** `lib/features/finance/views/finance_page.dart`（约第 940 行）
+- **用途：** 把月度摘要和交易列表排成堆叠布局或双栏布局。
+- **输入：** `context`；以及组件自己的 `twoPane`、`leftPaneWidth`、`summaryBlocks`、`transactionHeader` 和 `transactionList` 字段。
+- **返回：** 堆叠时为 `Column`，分栏时为 `Row`。
+- **副作用：** 除构建组件外无。
+- **算法：**
+  1. `!twoPane` → `Column(children: [...summaryBlocks, transactionHeader, Expanded(transactionList)])`，与 v1.4.1 之前页面的主体完全相同。
+  2. 否则是由 `SizedBox(width: leftPaneWidth, child: ListView(summaryBlocks))`、`VerticalDivider(width: 1)` 和承载标题及列表的 `Expanded` 右窗格组成的 `Row`。
+- **用法：** 在分栏决策和窗格宽度解析完成后由 `_FinancePageState.build` 构建。
+- **备注：** 三个内容槽由页面构建一次、在这里以两种方式排布，因此两种布局不可能显示不同的内容。堆叠时，月度摘要在第一笔交易出现之前就要花掉手机高度的三分之一；分栏时，交易列表——用户真正在读的东西——拿走摘要之外的一切。左窗格本身是 `ListView`，因为很长的续订条加上摘要可能超出紧凑高度，而分栏规则在 480 处仍然放行这种高度。见 [../../../adaptive-layout.md](../../../adaptive-layout.md)。

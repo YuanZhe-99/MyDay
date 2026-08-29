@@ -54,14 +54,24 @@ atomic-write conventions this file implements. `Task`/`DailyCompletionLog`/`Dail
 | [`getCloseToTray`](#getclosetotray) | static method (`TodoStorage`) | A | Get persisted close-to-tray setting. |
 | [`setCloseToTray`](#setclosetotray) | static method (`TodoStorage`) | A | Set and persist close-to-tray setting. |
 | [`_normalizeWeekStartDay`](#_normalizeweekstartday) | static method (`TodoStorage`) | A | Return a valid persisted week start day, defaulting invalid values to Monday. |
+| `_getListColumns` | static method (`TodoStorage`) | A | Read one list surface's persisted column-count preference. |
+| `_setListColumns` | static method (`TodoStorage`) | A | Store one list surface's column-count preference. |
+| `getTodoSectionColumns` | static method (`TodoStorage`) | A | Read the Todo page's section-column preference. |
+| `setTodoSectionColumns` | static method (`TodoStorage`) | A | Persist the Todo page's section-column preference. |
+| `getFinanceListColumns` | static method (`TodoStorage`) | A | Read the Finance page's transaction-column preference. |
+| `setFinanceListColumns` | static method (`TodoStorage`) | A | Persist the Finance page's transaction-column preference. |
+| `getWeightListColumns` | static method (`TodoStorage`) | A | Read the Weight page's record-column preference. |
+| `setWeightListColumns` | static method (`TodoStorage`) | A | Persist the Weight page's record-column preference. |
+| `getIntimacyListColumns` | static method (`TodoStorage`) | A | Read the Intimacy page's record-column preference. |
+| `setIntimacyListColumns` | static method (`TodoStorage`) | A | Persist the Intimacy page's record-column preference. |
 
-`grep -c 'Purpose:' lib/features/todo/services/todo_storage.dart` reports 33, matching all
-thirty-three real declarations listed above exactly. No misattached doc comments were found — every
+`grep -c 'Purpose:' lib/features/todo/services/todo_storage.dart` reports 43, matching all
+forty-three real declarations listed above exactly. No misattached doc comments were found — every
 `/// Purpose:` block sits directly above the real constructor/method it documents — and no
 undocumented real declaration exists either; the only non-`Purpose:`-documented members are plain
 fields (`_fileName`, `_customPath`, `_configLoaded`, `_intimacyVisible`, `_themeMode`, `_localeTag`,
 `_weekStartDay`, `_minimizeToTray`, `_closeToTray`, `_writeQueue`, `_dataFileNames`), which are data,
-not declarations of behavior, and are correctly excluded from the table. Tier split: 32 Tier A / 1
+not declarations of behavior, and are correctly excluded from the table. Tier split: 42 Tier A / 1
 Tier B. The single Tier B row is `TodoStorageException.toString`, a trivial accessor returning the
 stored `message` field with no logic (the same pattern as `WeightStorageException.toString` in
 [`weight_storage.dart`](../../weight/services/weight_storage.md#weightstorageexception-new)). Every

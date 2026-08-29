@@ -11,19 +11,23 @@
 | [`setThemeMode`](#setthememode) | 方法（`AppSettingsNotifier`） | A | 更新并持久化主题模式。 |
 | [`setLocale`](#setlocale) | 方法（`AppSettingsNotifier`） | A | 更新并持久化语言区域，传播给托盘/提醒服务。 |
 | [`setWeekStartDay`](#setweekstartday) | 方法（`AppSettingsNotifier`） | A | 更新并持久化日历/周分组的第一工作日。 |
+| [`setTodoSectionColumns`](#settodosectioncolumns) | 方法（`AppSettingsNotifier`） | A | 更新并持久化待办分区列数偏好。 |
+| [`setFinanceListColumns`](#setfinancelistcolumns) | 方法（`AppSettingsNotifier`） | A | 更新并持久化财务交易列数偏好。 |
+| [`setWeightListColumns`](#setweightlistcolumns) | 方法（`AppSettingsNotifier`） | A | 更新并持久化体重记录列数偏好。 |
+| [`setIntimacyListColumns`](#setintimacylistcolumns) | 方法（`AppSettingsNotifier`） | A | 更新并持久化亲密记录列数偏好。 |
 | [`AppSettings`（构造函数）](#appsettings-new) | 构造函数（`AppSettings`） | A | 创建应用设置值。 |
 | [`copyWith`](#copywith) | 方法（`AppSettings`） | A | 创建此值的副本并替换所选字段。 |
 | `appSettingsProvider` | 顶层变量（`StateNotifierProvider`） | B | 向组件树暴露 `AppSettingsNotifier`。 |
 
-`grep -c 'Purpose:' lib/shared/providers/app_settings.dart` 报告 7，与上面七个 `Purpose:` 文档化声明匹配。第八行 `appSettingsProvider` 是完全无文档块（未文档化，非错附）的真实顶层声明——一行 `StateNotifierProvider<AppSettingsNotifier, AppSettings>((ref) => AppSettingsNotifier())` 工厂，平凡到 Tier B。
+`grep -c 'Purpose:' lib/shared/providers/app_settings.dart` 报告 11，与上面十一个 `Purpose:` 文档化声明匹配。第十二行 `appSettingsProvider` 是完全无文档块（未文档化，非错附）的真实顶层声明——一行 `StateNotifierProvider<AppSettingsNotifier, AppSettings>((ref) => AppSettingsNotifier())` 工厂，平凡到 Tier B。
 
-**对账：** `grep -c 'Purpose:' lib/shared/providers/app_settings.dart` 报告 7，与上面 8 行中的 7 行精确匹配。额外行是 `appSettingsProvider`，`StateNotifierProvider` 顶层变量：无 `Purpose:` 块，但它是文件的公共入口点。
+**对账：** `grep -c 'Purpose:' lib/shared/providers/app_settings.dart` 报告 11，与上面 12 行中的 11 行精确匹配。额外行是 `appSettingsProvider`，`StateNotifierProvider` 顶层变量：无 `Purpose:` 块，但它是文件的公共入口点。
 
 ## 文档
 
 ### `AppSettingsNotifier() : super(const AppSettings())` <a id="appsettingsnotifier-new"></a>
 - **种类：** `AppSettingsNotifier` 的构造函数（扩展 `StateNotifier<AppSettings>`）
-- **来源：** `lib/shared/providers/app_settings.dart`（第 17 行）
+- **来源：** `lib/shared/providers/app_settings.dart`（第 18 行）
 - **用途：** 用默认设置初始化状态，然后异步开始加载持久化设置。
 - **输入：** 无。
 - **返回：** 新 `AppSettingsNotifier`。
@@ -34,7 +38,7 @@
 
 ### `Future<void> _loadPersisted()` <a id="_loadpersisted"></a>
 - **种类：** `AppSettingsNotifier` 的私有方法
-- **来源：** `lib/shared/providers/app_settings.dart`（第 26 行）
+- **来源：** `lib/shared/providers/app_settings.dart`（第 27 行）
 - **用途：** 从 `TodoStorage` 读取持久化主题模式、语言区域标签和周起始日并应用到状态，然后把解析语言区域传播给 `TrayService`/`ReminderService`。
 - **输入：** 无。
 - **返回：** `Future<void>`。
@@ -50,7 +54,7 @@
 
 ### `void setThemeMode(ThemeMode mode)` <a id="setthememode"></a>
 - **种类：** `AppSettingsNotifier` 的方法
-- **来源：** `lib/shared/providers/app_settings.dart`（第 58 行）
+- **来源：** `lib/shared/providers/app_settings.dart`（第 67 行）
 - **用途：** 更新应用主题模式并持久化选择。
 - **输入：** `mode`。
 - **返回：** 无。
@@ -65,7 +69,7 @@
 
 ### `void setLocale(Locale? locale)` <a id="setlocale"></a>
 - **种类：** `AppSettingsNotifier` 的方法
-- **来源：** `lib/shared/providers/app_settings.dart`（第 68 行）
+- **来源：** `lib/shared/providers/app_settings.dart`（第 82 行）
 - **用途：** 更新应用语言区域（或清除回系统）、持久化选择并把有效语言区域传播给 `TrayService`/`ReminderService`。
 - **输入：** `locale` — `null` 意为"跟随系统"。
 - **返回：** 无。
@@ -83,7 +87,7 @@
 
 ### `void setWeekStartDay(int weekday)` <a id="setweekstartday"></a>
 - **种类：** `AppSettingsNotifier` 的方法
-- **来源：** `lib/shared/providers/app_settings.dart`（第 93 行）
+- **来源：** `lib/shared/providers/app_settings.dart`（第 102 行）
 - **用途：** 更新应用日历和周分组使用的第一工作日，持久化规范化值。
 - **输入：** `weekday` — Dart 工作日编号（周一=1 .. 周日=7）；不必已有效。
 - **返回：** 无。
@@ -98,7 +102,7 @@
 
 ### `const AppSettings({this.themeMode = ThemeMode.system, this.locale, this.weekStartDay = DateTime.monday})` <a id="appsettings-new"></a>
 - **种类：** `AppSettings` 的 const 构造函数
-- **来源：** `lib/shared/providers/app_settings.dart`（第 110 行）
+- **来源：** `lib/shared/providers/app_settings.dart`（第 174 行）
 - **用途：** 创建带跟随系统默认的不可变设置值。
 - **输入：** `themeMode`（默认 `ThemeMode.system`）；`locale`（默认 `null` = 系统）；`weekStartDay`（默认 `DateTime.monday`）。
 - **返回：** 新 `AppSettings`。
@@ -109,7 +113,7 @@
 
 ### `AppSettings copyWith({ThemeMode? themeMode, Locale? locale, int? weekStartDay, bool clearLocale = false})` <a id="copywith"></a>
 - **种类：** `AppSettings` 的方法
-- **来源：** `lib/shared/providers/app_settings.dart`（第 121 行）
+- **来源：** `lib/shared/providers/app_settings.dart`（第 189 行）
 - **用途：** 创建此设置值的副本并替换所选字段，带把语言区域清除回 `null` 的显式逃生舱口。
 - **输入：** `themeMode`、`locale`、`weekStartDay`（都可选，回退当前值）；`clearLocale`（默认 `false`）——为 `true` 时无论 `locale` 参数如何都强制结果 `locale` 为 `null`。
 - **返回：** 新 `AppSettings`。
@@ -117,3 +121,47 @@
 - **算法：** `locale: clearLocale ? null : (locale ?? this.locale)`；另两个字段用普通 `?? this.x` 模式。
 - **用法：** `state.copyWith(themeMode: mode)`、`state.copyWith(locale: locale, clearLocale: locale == null)`、`state.copyWith(weekStartDay: normalized)`——全部三个都在本文件上面的 `AppSettingsNotifier` 方法内。
 - **备注：** 存在 `clearLocale` 参数是因为普通 `locale ?? this.locale` 模式永远无法表示"显式把语言区域设回 null"——没有它，`setLocale(null)` 会与"不改变语言区域"无法区分。
+
+### `void setTodoSectionColumns(int columns)` <a id="settodosectioncolumns"></a>
+- **种类：** `AppSettingsNotifier` 的方法
+- **来源：** `lib/shared/providers/app_settings.dart`（第 114 行）
+- **用途：** 更新并持久化待办页每行放几个任务分区。
+- **输入：** `columns`——`listColumnsAuto`（0）或固定的列数。
+- **返回：** 无。
+- **副作用：** 替换 provider 状态并写入 `storage_config.json`。
+- **算法：** `state = state.copyWith(...)`，然后 `TodoStorage.setTodoSectionColumns(columns)`。
+- **用法：** 待办页 app bar 的 `listColumnsButton` 在 `onChanged` 中调用它。
+- **备注：** 单位是**分区**，不是图块。存放在从不同步的 `storage_config.json` 中，是设备本地的，因为窗口尺寸是设备的属性而不是账户的属性——见 [../../../adaptive-layout.md](../../../adaptive-layout.md)。存储的是原始偏好；渲染的是该偏好被钳制到当前宽度放得下的结果，因此在桌面上做出的选择能挺过折叠并在展开时回来。
+
+### `void setFinanceListColumns(int columns)` <a id="setfinancelistcolumns"></a>
+- **种类：** `AppSettingsNotifier` 的方法
+- **来源：** `lib/shared/providers/app_settings.dart`（第 124 行）
+- **用途：** 更新并持久化财务列表每行放几个交易图块。
+- **输入：** `columns`。
+- **返回：** 无。
+- **副作用：** 替换 provider 状态并写入 `storage_config.json`。
+- **算法：** 同 `setTodoSectionColumns`，针对 `financeListColumns`。
+- **用法：** 财务页 app bar 的 `listColumnsButton`。
+- **备注：** 逐界面存储，因此四个列表界面彼此独立。
+
+### `void setWeightListColumns(int columns)` <a id="setweightlistcolumns"></a>
+- **种类：** `AppSettingsNotifier` 的方法
+- **来源：** `lib/shared/providers/app_settings.dart`（第 134 行）
+- **用途：** 更新并持久化每行放几个体重记录图块。
+- **输入：** `columns`。
+- **返回：** 无。
+- **副作用：** 替换 provider 状态并写入 `storage_config.json`。
+- **算法：** 同 `setTodoSectionColumns`，针对 `weightListColumns`。
+- **用法：** 体重页 app bar 的 `listColumnsButton`；同一偏好也驱动「显示全部」底部面板，该面板测量屏幕而不是页面，因为它绘制在根 overlay 上。
+- **备注：** 无。
+
+### `void setIntimacyListColumns(int columns)` <a id="setintimacylistcolumns"></a>
+- **种类：** `AppSettingsNotifier` 的方法
+- **来源：** `lib/shared/providers/app_settings.dart`（第 144 行）
+- **用途：** 更新并持久化每行放几个亲密记录图块。
+- **输入：** `columns`。
+- **返回：** 无。
+- **副作用：** 替换 provider 状态并写入 `storage_config.json`。
+- **算法：** 同 `setTodoSectionColumns`，针对 `intimacyListColumns`。
+- **用法：** 亲密页 app bar 的 `listColumnsButton` 及其「显示全部」面板。
+- **备注：** 无。

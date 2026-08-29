@@ -8,14 +8,14 @@ mirroring the `lib/` tree (with `.dart` replaced by `.md`).
 
 | Measure | Count |
 |---|---|
-| `grep -r '/// Purpose:' lib --include=*.dart` | **1378** |
-| Declarations-table rows across all 75 pages | **1377** |
-| — of those rows, Tier A (full entry) | 776 |
-| — of those rows, Tier B (index row only) | 601 |
+| `grep -r '/// Purpose:' lib --include=*.dart` | **1408** |
+| Declarations-table rows across all 75 pages | **1421** |
+| — of those rows, Tier A (full entry) | 804 |
+| — of those rows, Tier B (index row only) | 617 |
 
 The **Declarations** and **Tier A** columns below count **rows in each page's Declarations
 table**, which is the mechanically checkable figure. A row is not always one `/// Purpose:` block,
-and the 1-declaration net gap between the two totals is fully itemized — every page whose row count
+and the 13-row net excess of the table count over the grep count is fully itemized — every page whose row count
 differs from its own `grep` carries a `**Reconciliation:**` note saying exactly why. There are
 three recurring reasons:
 
@@ -66,13 +66,13 @@ drifted from the per-file rows.)
 | `lib/features/finance/views/categories_page.dart` | [features/finance/views/categories_page.md](features/finance/views/categories_page.md) | 22 | 5 |
 | `lib/features/finance/views/category_detail_page.dart` | [features/finance/views/category_detail_page.md](features/finance/views/category_detail_page.md) | 14 | 4 |
 | `lib/features/finance/views/exchange_rates_page.dart` | [features/finance/views/exchange_rates_page.md](features/finance/views/exchange_rates_page.md) | 18 | 9 |
-| `lib/features/finance/views/finance_page.dart` | [features/finance/views/finance_page.md](features/finance/views/finance_page.md) | 29 | 6 |
+| `lib/features/finance/views/finance_page.dart` | [features/finance/views/finance_page.md](features/finance/views/finance_page.md) | 31 | 7 |
 | `lib/features/finance/views/subscription_detail_page.dart` | [features/finance/views/subscription_detail_page.md](features/finance/views/subscription_detail_page.md) | 12 | 3 |
 | `lib/features/finance/views/subscriptions_page.dart` | [features/finance/views/subscriptions_page.md](features/finance/views/subscriptions_page.md) | 35 | 19 |
 | `lib/features/finance/widgets/add_subscription_dialog.dart` | [features/finance/widgets/add_subscription_dialog.md](features/finance/widgets/add_subscription_dialog.md) | 13 | 4 |
 | `lib/features/finance/widgets/add_transaction_dialog.dart` | [features/finance/widgets/add_transaction_dialog.md](features/finance/widgets/add_transaction_dialog.md) | 39 | 15 |
 | `lib/features/finance/widgets/bank_preset_picker.dart` | [features/finance/widgets/bank_preset_picker.md](features/finance/widgets/bank_preset_picker.md) | 11 | 1 |
-| `lib/features/finance/widgets/grouped_transaction_list.dart` | [features/finance/widgets/grouped_transaction_list.md](features/finance/widgets/grouped_transaction_list.md) | 1 | 1 |
+| `lib/features/finance/widgets/grouped_transaction_list.dart` | [features/finance/widgets/grouped_transaction_list.md](features/finance/widgets/grouped_transaction_list.md) | 2 | 2 |
 
 ## features/intimacy/
 
@@ -83,7 +83,7 @@ drifted from the per-file rows.)
 | `lib/features/intimacy/services/cycle_predictor.dart` | [features/intimacy/services/cycle_predictor.md](features/intimacy/services/cycle_predictor.md) | 16 | 7 |
 | `lib/features/intimacy/services/intimacy_storage.dart` | [features/intimacy/services/intimacy_storage.md](features/intimacy/services/intimacy_storage.md) | 7 | 6 |
 | `lib/features/intimacy/views/body_page.dart` | [features/intimacy/views/body_page.md](features/intimacy/views/body_page.md) | 4 | 0 |
-| `lib/features/intimacy/views/intimacy_page.dart` | [features/intimacy/views/intimacy_page.md](features/intimacy/views/intimacy_page.md) | 175 | 53 |
+| `lib/features/intimacy/views/intimacy_page.dart` | [features/intimacy/views/intimacy_page.md](features/intimacy/views/intimacy_page.md) | 177 | 54 |
 | `lib/features/intimacy/widgets/add_record_dialog.dart` | [features/intimacy/widgets/add_record_dialog.md](features/intimacy/widgets/add_record_dialog.md) | 9 | 2 |
 | `lib/features/intimacy/widgets/body_section.dart` | [features/intimacy/widgets/body_section.md](features/intimacy/widgets/body_section.md) | 35 | 18 |
 | `lib/features/intimacy/widgets/cycle_calendar.dart` | [features/intimacy/widgets/cycle_calendar.md](features/intimacy/widgets/cycle_calendar.md) | 9 | 1 |
@@ -96,15 +96,15 @@ drifted from the per-file rows.)
 |---|---|---|---|
 | `lib/features/settings/views/license_page.dart` | [features/settings/views/license_page.md](features/settings/views/license_page.md) | 2 | 0 |
 | `lib/features/settings/views/privacy_policy_page.dart` | [features/settings/views/privacy_policy_page.md](features/settings/views/privacy_policy_page.md) | 3 | 0 |
-| `lib/features/settings/views/settings_page.dart` | [features/settings/views/settings_page.md](features/settings/views/settings_page.md) | 23 | 4 |
+| `lib/features/settings/views/settings_page.dart` | [features/settings/views/settings_page.md](features/settings/views/settings_page.md) | 28 | 8 |
 
 ## features/todo/
 
 | Source file | Page | Declarations | Tier A |
 |---|---|---|---|
 | `lib/features/todo/models/task.dart` | [features/todo/models/task.md](features/todo/models/task.md) | 38 | 37 |
-| `lib/features/todo/services/todo_storage.dart` | [features/todo/services/todo_storage.md](features/todo/services/todo_storage.md) | 33 | 32 |
-| `lib/features/todo/views/todo_page.dart` | [features/todo/views/todo_page.md](features/todo/views/todo_page.md) | 71 | 31 |
+| `lib/features/todo/services/todo_storage.dart` | [features/todo/services/todo_storage.md](features/todo/services/todo_storage.md) | 43 | 42 |
+| `lib/features/todo/views/todo_page.dart` | [features/todo/views/todo_page.md](features/todo/views/todo_page.md) | 73 | 33 |
 | `lib/features/todo/widgets/add_task_dialog.dart` | [features/todo/widgets/add_task_dialog.md](features/todo/widgets/add_task_dialog.md) | 15 | 5 |
 | `lib/features/todo/widgets/edit_task_dialog.dart` | [features/todo/widgets/edit_task_dialog.md](features/todo/widgets/edit_task_dialog.md) | 16 | 5 |
 | `lib/features/todo/widgets/recurrence_picker.dart` | [features/todo/widgets/recurrence_picker.md](features/todo/widgets/recurrence_picker.md) | 4 | 0 |
@@ -116,7 +116,7 @@ drifted from the per-file rows.)
 |---|---|---|---|
 | `lib/features/weight/models/weight_record.dart` | [features/weight/models/weight_record.md](features/weight/models/weight_record.md) | 13 | 13 |
 | `lib/features/weight/services/weight_storage.dart` | [features/weight/services/weight_storage.md](features/weight/services/weight_storage.md) | 6 | 5 |
-| `lib/features/weight/views/weight_page.dart` | [features/weight/views/weight_page.md](features/weight/views/weight_page.md) | 65 | 31 |
+| `lib/features/weight/views/weight_page.dart` | [features/weight/views/weight_page.md](features/weight/views/weight_page.md) | 67 | 31 |
 
 ## l10n/
 
@@ -127,7 +127,7 @@ the 1436/1435 hand-documented declarations above).
 
 | Source file | Page | Declarations | Tier A |
 |---|---|---|---|
-| `lib/shared/providers/app_settings.dart` | [shared/providers/app_settings.md](shared/providers/app_settings.md) | 8 | 7 |
+| `lib/shared/providers/app_settings.dart` | [shared/providers/app_settings.md](shared/providers/app_settings.md) | 12 | 11 |
 | `lib/shared/providers/intimacy_visibility.dart` | [shared/providers/intimacy_visibility.md](shared/providers/intimacy_visibility.md) | 6 | 5 |
 | `lib/shared/services/auto_sync_service.dart` | [shared/services/auto_sync_service.md](shared/services/auto_sync_service.md) | 11 | 11 |
 | `lib/shared/services/backup_service.dart` | [shared/services/backup_service.md](shared/services/backup_service.md) | 12 | 12 |
@@ -142,7 +142,7 @@ the 1436/1435 hand-documented declarations above).
 | `lib/shared/services/sync_wake_lock.dart` | [shared/services/sync_wake_lock.md](shared/services/sync_wake_lock.md) | 0 | 0 |
 | `lib/shared/services/tray_service.dart` | [shared/services/tray_service.md](shared/services/tray_service.md) | 16 | 13 |
 | `lib/shared/services/webdav_service.dart` | [shared/services/webdav_service.md](shared/services/webdav_service.md) | 12 | 12 |
-| `lib/shared/utils/adaptive_layout.dart` | [shared/utils/adaptive_layout.md](shared/utils/adaptive_layout.md) | 14 | 6 |
+| `lib/shared/utils/adaptive_layout.dart` | [shared/utils/adaptive_layout.md](shared/utils/adaptive_layout.md) | 30 | 11 |
 | `lib/shared/utils/json_preservation.dart` | [shared/utils/json_preservation.md](shared/utils/json_preservation.md) | 3 | 2 |
 | `lib/shared/utils/week_grouping.dart` | [shared/utils/week_grouping.md](shared/utils/week_grouping.md) | 16 | 16 |
 | `lib/shared/views/backup_page.dart` | [shared/views/backup_page.md](shared/views/backup_page.md) | 17 | 2 |
@@ -160,14 +160,14 @@ the 1436/1435 hand-documented declarations above).
 |---|---|---|---|---|
 | Root (`lib/`) | 1 | 1 | 1 | 0 |
 | `app/` | 4 | 17 | 14 | 3 |
-| `features/finance/` | 20 | 385 | 190 | 195 |
-| `features/intimacy/` | 11 | 363 | 175 | 188 |
-| `features/settings/` | 3 | 28 | 4 | 24 |
-| `features/todo/` | 7 | 186 | 110 | 76 |
-| `features/weight/` | 3 | 84 | 49 | 35 |
-| `shared/` | 26 | 313 | 233 | 80 |
-| **Total** | **75** | **1377** | **776** | **601** |
+| `features/finance/` | 20 | 388 | 192 | 196 |
+| `features/intimacy/` | 11 | 365 | 176 | 189 |
+| `features/settings/` | 3 | 33 | 8 | 25 |
+| `features/todo/` | 7 | 198 | 122 | 76 |
+| `features/weight/` | 3 | 86 | 49 | 37 |
+| `shared/` | 26 | 333 | 242 | 91 |
+| **Total** | **75** | **1421** | **804** | **617** |
 
-Every row here is the arithmetic sum of the per-file rows above, re-derived in v1.4.0. The file
+Every row here is the arithmetic sum of the per-file rows above, re-derived in v1.4.1. The file
 counts also match `find lib -name '*.dart' -not -path 'lib/l10n/*'` exactly — 75 source files, 75
 pages, no file without a page and no page without a file.

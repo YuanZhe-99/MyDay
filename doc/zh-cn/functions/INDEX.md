@@ -6,12 +6,12 @@
 
 | 度量 | 计数 |
 |---|---|
-| `grep -r '/// Purpose:' lib --include=*.dart` | **1378** |
-| 全部 75 页的声明表行 | **1377** |
-| ——其中 Tier A（完整条目） | 776 |
-| ——其中 Tier B（仅索引行） | 601 |
+| `grep -r '/// Purpose:' lib --include=*.dart` | **1408** |
+| 全部 75 页的声明表行 | **1421** |
+| ——其中 Tier A（完整条目） | 804 |
+| ——其中 Tier B（仅索引行） | 617 |
 
-下面的 **Declarations** 和 **Tier A** 列统计**每页声明表中的行**，这是可机械检查的数字。一行不总是一个 `/// Purpose:` 块，两个总计之间 1 个声明的净差距被完整逐项列出——行数与自己的 `grep` 不同的每页都带一条 `**Reconciliation:**` 说明确切原因。有三个反复出现的原因：
+下面的 **Declarations** 和 **Tier A** 列统计**每页声明表中的行**，这是可机械检查的数字。一行不总是一个 `/// Purpose:` 块，表行数超出 grep 计数的 13 行净差额被完整逐项列出——行数与自己的 `grep` 不同的每页都带一条 `**Reconciliation:**` 说明确切原因。有三个反复出现的原因：
 
 - **文件级库注释**（`backup_service.dart`、`webdav_service.dart`、`import_export_service.dart`、`json_preservation.dart`、`sync_progress.dart`、`sync_wake_lock.dart`）：`import` 块上方的一个 `/// Purpose:` 块记录文件，不记录声明，因此被 `grep` 计数但得不到行。
 - **没有 `Purpose:` 块的真实声明**（枚举、顶层 `const`、Riverpod provider、`appRouter`）：无 `grep` 命中，但有一行，因为它们是文件表面的一部分。
@@ -51,13 +51,13 @@
 | `lib/features/finance/views/categories_page.dart` | [features/finance/views/categories_page.md](features/finance/views/categories_page.md) | 22 | 5 |
 | `lib/features/finance/views/category_detail_page.dart` | [features/finance/views/category_detail_page.md](features/finance/views/category_detail_page.md) | 14 | 4 |
 | `lib/features/finance/views/exchange_rates_page.dart` | [features/finance/views/exchange_rates_page.md](features/finance/views/exchange_rates_page.md) | 18 | 9 |
-| `lib/features/finance/views/finance_page.dart` | [features/finance/views/finance_page.md](features/finance/views/finance_page.md) | 29 | 6 |
+| `lib/features/finance/views/finance_page.dart` | [features/finance/views/finance_page.md](features/finance/views/finance_page.md) | 31 | 7 |
 | `lib/features/finance/views/subscription_detail_page.dart` | [features/finance/views/subscription_detail_page.md](features/finance/views/subscription_detail_page.md) | 12 | 3 |
 | `lib/features/finance/views/subscriptions_page.dart` | [features/finance/views/subscriptions_page.md](features/finance/views/subscriptions_page.md) | 35 | 19 |
 | `lib/features/finance/widgets/add_subscription_dialog.dart` | [features/finance/widgets/add_subscription_dialog.md](features/finance/widgets/add_subscription_dialog.md) | 13 | 4 |
 | `lib/features/finance/widgets/add_transaction_dialog.dart` | [features/finance/widgets/add_transaction_dialog.md](features/finance/widgets/add_transaction_dialog.md) | 39 | 15 |
 | `lib/features/finance/widgets/bank_preset_picker.dart` | [features/finance/widgets/bank_preset_picker.md](features/finance/widgets/bank_preset_picker.md) | 11 | 1 |
-| `lib/features/finance/widgets/grouped_transaction_list.dart` | [features/finance/widgets/grouped_transaction_list.md](features/finance/widgets/grouped_transaction_list.md) | 1 | 1 |
+| `lib/features/finance/widgets/grouped_transaction_list.dart` | [features/finance/widgets/grouped_transaction_list.md](features/finance/widgets/grouped_transaction_list.md) | 2 | 2 |
 
 ## features/intimacy/
 
@@ -68,7 +68,7 @@
 | `lib/features/intimacy/services/cycle_predictor.dart` | [features/intimacy/services/cycle_predictor.md](features/intimacy/services/cycle_predictor.md) | 16 | 7 |
 | `lib/features/intimacy/services/intimacy_storage.dart` | [features/intimacy/services/intimacy_storage.md](features/intimacy/services/intimacy_storage.md) | 7 | 6 |
 | `lib/features/intimacy/views/body_page.dart` | [features/intimacy/views/body_page.md](features/intimacy/views/body_page.md) | 4 | 0 |
-| `lib/features/intimacy/views/intimacy_page.dart` | [features/intimacy/views/intimacy_page.md](features/intimacy/views/intimacy_page.md) | 175 | 53 |
+| `lib/features/intimacy/views/intimacy_page.dart` | [features/intimacy/views/intimacy_page.md](features/intimacy/views/intimacy_page.md) | 177 | 54 |
 | `lib/features/intimacy/widgets/add_record_dialog.dart` | [features/intimacy/widgets/add_record_dialog.md](features/intimacy/widgets/add_record_dialog.md) | 9 | 2 |
 | `lib/features/intimacy/widgets/body_section.dart` | [features/intimacy/widgets/body_section.md](features/intimacy/widgets/body_section.md) | 35 | 18 |
 | `lib/features/intimacy/widgets/cycle_calendar.dart` | [features/intimacy/widgets/cycle_calendar.md](features/intimacy/widgets/cycle_calendar.md) | 9 | 1 |
@@ -81,15 +81,15 @@
 |---|---|---|---|
 | `lib/features/settings/views/license_page.dart` | [features/settings/views/license_page.md](features/settings/views/license_page.md) | 2 | 0 |
 | `lib/features/settings/views/privacy_policy_page.dart` | [features/settings/views/privacy_policy_page.md](features/settings/views/privacy_policy_page.md) | 3 | 0 |
-| `lib/features/settings/views/settings_page.dart` | [features/settings/views/settings_page.md](features/settings/views/settings_page.md) | 23 | 4 |
+| `lib/features/settings/views/settings_page.dart` | [features/settings/views/settings_page.md](features/settings/views/settings_page.md) | 28 | 8 |
 
 ## features/todo/
 
 | 源文件 | 页面 | 声明数 | Tier A |
 |---|---|---|---|
 | `lib/features/todo/models/task.dart` | [features/todo/models/task.md](features/todo/models/task.md) | 38 | 37 |
-| `lib/features/todo/services/todo_storage.dart` | [features/todo/services/todo_storage.md](features/todo/services/todo_storage.md) | 33 | 32 |
-| `lib/features/todo/views/todo_page.dart` | [features/todo/views/todo_page.md](features/todo/views/todo_page.md) | 71 | 31 |
+| `lib/features/todo/services/todo_storage.dart` | [features/todo/services/todo_storage.md](features/todo/services/todo_storage.md) | 43 | 42 |
+| `lib/features/todo/views/todo_page.dart` | [features/todo/views/todo_page.md](features/todo/views/todo_page.md) | 73 | 33 |
 | `lib/features/todo/widgets/add_task_dialog.dart` | [features/todo/widgets/add_task_dialog.md](features/todo/widgets/add_task_dialog.md) | 15 | 5 |
 | `lib/features/todo/widgets/edit_task_dialog.dart` | [features/todo/widgets/edit_task_dialog.md](features/todo/widgets/edit_task_dialog.md) | 16 | 5 |
 | `lib/features/todo/widgets/recurrence_picker.dart` | [features/todo/widgets/recurrence_picker.md](features/todo/widgets/recurrence_picker.md) | 4 | 0 |
@@ -101,7 +101,7 @@
 |---|---|---|---|
 | `lib/features/weight/models/weight_record.dart` | [features/weight/models/weight_record.md](features/weight/models/weight_record.md) | 13 | 13 |
 | `lib/features/weight/services/weight_storage.dart` | [features/weight/services/weight_storage.md](features/weight/services/weight_storage.md) | 6 | 5 |
-| `lib/features/weight/views/weight_page.dart` | [features/weight/views/weight_page.md](features/weight/views/weight_page.md) | 65 | 31 |
+| `lib/features/weight/views/weight_page.dart` | [features/weight/views/weight_page.md](features/weight/views/weight_page.md) | 67 | 31 |
 
 ## l10n/
 
@@ -111,7 +111,7 @@
 
 | 源文件 | 页面 | 声明数 | Tier A |
 |---|---|---|---|
-| `lib/shared/providers/app_settings.dart` | [shared/providers/app_settings.md](shared/providers/app_settings.md) | 8 | 7 |
+| `lib/shared/providers/app_settings.dart` | [shared/providers/app_settings.md](shared/providers/app_settings.md) | 12 | 11 |
 | `lib/shared/providers/intimacy_visibility.dart` | [shared/providers/intimacy_visibility.md](shared/providers/intimacy_visibility.md) | 6 | 5 |
 | `lib/shared/services/auto_sync_service.dart` | [shared/services/auto_sync_service.md](shared/services/auto_sync_service.md) | 11 | 11 |
 | `lib/shared/services/backup_service.dart` | [shared/services/backup_service.md](shared/services/backup_service.md) | 12 | 12 |
@@ -126,7 +126,7 @@
 | `lib/shared/services/sync_wake_lock.dart` | [shared/services/sync_wake_lock.md](shared/services/sync_wake_lock.md) | 0 | 0 |
 | `lib/shared/services/tray_service.dart` | [shared/services/tray_service.md](shared/services/tray_service.md) | 16 | 13 |
 | `lib/shared/services/webdav_service.dart` | [shared/services/webdav_service.md](shared/services/webdav_service.md) | 12 | 12 |
-| `lib/shared/utils/adaptive_layout.dart` | [shared/utils/adaptive_layout.md](shared/utils/adaptive_layout.md) | 14 | 6 |
+| `lib/shared/utils/adaptive_layout.dart` | [shared/utils/adaptive_layout.md](shared/utils/adaptive_layout.md) | 30 | 11 |
 | `lib/shared/utils/json_preservation.dart` | [shared/utils/json_preservation.md](shared/utils/json_preservation.md) | 3 | 2 |
 | `lib/shared/utils/week_grouping.dart` | [shared/utils/week_grouping.md](shared/utils/week_grouping.md) | 16 | 16 |
 | `lib/shared/views/backup_page.dart` | [shared/views/backup_page.md](shared/views/backup_page.md) | 17 | 2 |
@@ -144,12 +144,12 @@
 |---|---|---|---|---|
 | 根（`lib/`） | 1 | 1 | 1 | 0 |
 | `app/` | 4 | 17 | 14 | 3 |
-| `features/finance/` | 20 | 385 | 190 | 195 |
-| `features/intimacy/` | 11 | 363 | 175 | 188 |
-| `features/settings/` | 3 | 28 | 4 | 24 |
-| `features/todo/` | 7 | 186 | 110 | 76 |
-| `features/weight/` | 3 | 84 | 49 | 35 |
-| `shared/` | 26 | 313 | 233 | 80 |
-| **总计** | **75** | **1377** | **776** | **601** |
+| `features/finance/` | 20 | 388 | 192 | 196 |
+| `features/intimacy/` | 11 | 365 | 176 | 189 |
+| `features/settings/` | 3 | 33 | 8 | 25 |
+| `features/todo/` | 7 | 198 | 122 | 76 |
+| `features/weight/` | 3 | 86 | 49 | 37 |
+| `shared/` | 26 | 333 | 242 | 91 |
+| **总计** | **75** | **1421** | **804** | **617** |
 
-这里的每行都是上面逐文件行的算术和，在 v1.4.0 中重新派生。文件计数也与 `find lib -name '*.dart' -not -path 'lib/l10n/*'` 完全匹配——75 个源文件、75 个页面，没有无页面的文件，也没有无文件的面。
+这里的每行都是上面逐文件行的算术和，在 v1.4.1 中重新派生。文件计数也与 `find lib -name '*.dart' -not -path 'lib/l10n/*'` 完全匹配——75 个源文件、75 个页面，没有无页面的文件，也没有无文件的面。
