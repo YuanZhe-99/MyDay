@@ -749,5 +749,11 @@
   "intimacyRetiredToys": "退役玩具",
   "intimacySortByRelationshipDate": "按交往時間",
   "intimacySortByPurchaseDate": "按購買時間",
-  "intimacySortByUseCount": "按使用次數"
+  "intimacySortByUseCount": "按使用次數",
+
+  "listColumns": "欄數",
+  "listColumnsAuto": "自動",
+  "listColumnsCount": "{count} 欄",
+  "@listColumnsCount": { "placeholders": { "count": { "type": "int" } } },
+  "settingsSelectItem": "從左側清單中選擇一項"
 }

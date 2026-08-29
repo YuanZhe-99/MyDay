@@ -34,6 +34,9 @@ The shared WebDAV sync, backup, and ZIP engines are not in this repository. They
   localization, repository layout, and core storage/concurrency rules.
 - [Data Formats](data-formats.md) — every persisted model's fields, `storage_config.json`, and the
   full Persisted Data Inventory.
+- [Adaptive Layout](adaptive-layout.md) — the three layout rules (split gate, navigation rail,
+  column capacity), the foldable geometry they were derived from, and the divergences recorded on
+  purpose.
 - [WebDAV Sync](sync.md) — the 10-step per-record three-way sync flow, retry/heartbeat/lock
   behavior, the Sync Data Reference table, and auto-sync triggers.
 - [Backup & Restore](backup-restore.md) — backup format v2, blob garbage collection, restore

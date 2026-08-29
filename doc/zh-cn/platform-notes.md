@@ -54,6 +54,7 @@
 - **`file_picker` 精确固定为 `10.3.7`**：既自己应用 KGP（`builtInKotlin=false` 时需要）*又*能对照 `flutter.compileSdkVersion` 编译（AGP 9 AAR 元数据检查需要）的最后一个版本。`10.3.9`+ 和 `11.x` 依赖 AGP 内置 Kotlin，在兼容模式下无法编译；`10.3.2` 及更早固定 `compileSdk 34`，无法通过元数据检查。不要用 caret 约束。其 Dart API 是 `FilePicker.platform.*`。
 - 签名读取 `android/key.properties`（如存在）并在本地回退调试签名；发布签名秘密在 CI 中注入。
 - 清单权限包括调度通知需要的 internet、notification 和 boot 相关条目。`SCHEDULE_EXACT_ALARM` 刻意不声明，因为所有调度使用非精确模式。
+- **activity 的 `configChanges` 必须保留 `screenLayout|screenSize|smallestScreenSize|density`。** 有了它们，窗口缩放时不重启 activity，因此所有读 `MediaQuery.sizeOf` 的地方都会在下一帧重新求值，折叠或展开的设备切换布局时不丢状态、不改路由。去掉其中任何一项，activity 都会在折叠过程中被重建，丢掉所有未持久化的页面状态。参见 [自适应布局](adaptive-layout.md)。
 - CI 仍为 `flutter_timezone`、`package_info_plus`、`shared_preferences_android`、`wakelock_plus`、`flutter_local_notifications` 和 `file_picker` 打印 Flutter 的"应用 KGP 的插件"警告——仅插件侧，截至 2026-07 即使它们的最新版本仍应用 KGP。彻底消除需要在每个插件都提供 Built-in Kotlin 支持后翻转为 `android.builtInKotlin=true`。
 
 ## iOS

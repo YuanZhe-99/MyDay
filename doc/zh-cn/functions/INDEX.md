@@ -6,12 +6,12 @@
 
 | 度量 | 计数 |
 |---|---|
-| `grep -r '/// Purpose:' lib --include=*.dart` | **1367** |
-| 全部 73 页的声明表行 | **1358** |
-| ——其中 Tier A（完整条目） | 765 |
-| ——其中 Tier B（仅索引行） | 593 |
+| `grep -r '/// Purpose:' lib --include=*.dart` | **1378** |
+| 全部 75 页的声明表行 | **1377** |
+| ——其中 Tier A（完整条目） | 776 |
+| ——其中 Tier B（仅索引行） | 601 |
 
-下面的 **Declarations** 和 **Tier A** 列统计**每页声明表中的行**，这是可机械检查的数字。一行不总是一个 `/// Purpose:` 块，两个总计之间的 9 个声明差距被完整逐项列出——行数与自己的 `grep` 不同的每页都带一条 `**Reconciliation:**` 说明确切原因。有三个反复出现的原因：
+下面的 **Declarations** 和 **Tier A** 列统计**每页声明表中的行**，这是可机械检查的数字。一行不总是一个 `/// Purpose:` 块，两个总计之间 1 个声明的净差距被完整逐项列出——行数与自己的 `grep` 不同的每页都带一条 `**Reconciliation:**` 说明确切原因。有三个反复出现的原因：
 
 - **文件级库注释**（`backup_service.dart`、`webdav_service.dart`、`import_export_service.dart`、`json_preservation.dart`、`sync_progress.dart`、`sync_wake_lock.dart`）：`import` 块上方的一个 `/// Purpose:` 块记录文件，不记录声明，因此被 `grep` 计数但得不到行。
 - **没有 `Purpose:` 块的真实声明**（枚举、顶层 `const`、Riverpod provider、`appRouter`）：无 `grep` 命中，但有一行，因为它们是文件表面的一部分。
@@ -126,13 +126,15 @@
 | `lib/shared/services/sync_wake_lock.dart` | [shared/services/sync_wake_lock.md](shared/services/sync_wake_lock.md) | 0 | 0 |
 | `lib/shared/services/tray_service.dart` | [shared/services/tray_service.md](shared/services/tray_service.md) | 16 | 13 |
 | `lib/shared/services/webdav_service.dart` | [shared/services/webdav_service.md](shared/services/webdav_service.md) | 12 | 12 |
+| `lib/shared/utils/adaptive_layout.dart` | [shared/utils/adaptive_layout.md](shared/utils/adaptive_layout.md) | 14 | 6 |
 | `lib/shared/utils/json_preservation.dart` | [shared/utils/json_preservation.md](shared/utils/json_preservation.md) | 3 | 2 |
 | `lib/shared/utils/week_grouping.dart` | [shared/utils/week_grouping.md](shared/utils/week_grouping.md) | 16 | 16 |
 | `lib/shared/views/backup_page.dart` | [shared/views/backup_page.md](shared/views/backup_page.md) | 17 | 2 |
 | `lib/shared/views/webdav_config_page.dart` | [shared/views/webdav_config_page.md](shared/views/webdav_config_page.md) | 20 | 6 |
+| `lib/shared/widgets/adaptive_tile_grid.dart` | [shared/widgets/adaptive_tile_grid.md](shared/widgets/adaptive_tile_grid.md) | 3 | 3 |
 | `lib/shared/widgets/app_date_picker.dart` | [shared/widgets/app_date_picker.md](shared/widgets/app_date_picker.md) | 23 | 13 |
 | `lib/shared/widgets/delete_confirm.dart` | [shared/widgets/delete_confirm.md](shared/widgets/delete_confirm.md) | 1 | 1 |
-| `lib/shared/widgets/shell_scaffold.dart` | [shared/widgets/shell_scaffold.md](shared/widgets/shell_scaffold.md) | 8 | 2 |
+| `lib/shared/widgets/shell_scaffold.dart` | [shared/widgets/shell_scaffold.md](shared/widgets/shell_scaffold.md) | 10 | 4 |
 | `lib/shared/widgets/sync_conflict_dialog.dart` | [shared/widgets/sync_conflict_dialog.md](shared/widgets/sync_conflict_dialog.md) | 6 | 0 |
 | `lib/shared/widgets/unsaved_changes_guard.dart` | [shared/widgets/unsaved_changes_guard.md](shared/widgets/unsaved_changes_guard.md) | 10 | 5 |
 
@@ -147,7 +149,7 @@
 | `features/settings/` | 3 | 28 | 4 | 24 |
 | `features/todo/` | 7 | 186 | 110 | 76 |
 | `features/weight/` | 3 | 84 | 49 | 35 |
-| `shared/` | 24 | 294 | 222 | 72 |
-| **总计** | **73** | **1358** | **765** | **593** |
+| `shared/` | 26 | 313 | 233 | 80 |
+| **总计** | **75** | **1377** | **776** | **601** |
 
-这里的每行都是上面逐文件行的算术和，在 v1.3.2 中重新派生。文件计数也与 `find lib -name '*.dart' -not -path 'lib/l10n/*'` 完全匹配——73 个源文件、73 个页面，没有无页面的文件，也没有无文件的面。
+这里的每行都是上面逐文件行的算术和，在 v1.4.0 中重新派生。文件计数也与 `find lib -name '*.dart' -not -path 'lib/l10n/*'` 完全匹配——75 个源文件、75 个页面，没有无页面的文件，也没有无文件的面。

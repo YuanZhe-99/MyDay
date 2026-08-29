@@ -29,6 +29,8 @@
 
 `initialLocation` 是 `/todo`。
 
+外壳在窄窗口上把这些目的地渲染成底部 `NavigationBar`，从 600 逻辑像素宽度起渲染成侧边 `NavigationRail`，两者由同一份目的地列表构建，因此不会彼此漂移。出现哪一种是仅看宽度的决策——为什么这条规则刻意不是全应用的分栏规则，以及应用如何使用平板或折叠屏多出来的空间，见 [自适应布局](adaptive-layout.md)。
+
 ## 主题
 
 `lib/app/theme.dart` 经 `flex_color_scheme` 的 `FlexThemeData` 构建浅色和深色 `ThemeData`，两者都用 `scheme: FlexScheme.indigo`、`useMaterial3Typography: true` 和 `useMaterial3: true`。这给出共享同一靛蓝种子方案、跨越浅/深色的 Material 3 视觉体系。
@@ -101,6 +103,7 @@ lib/
       sync_wake_lock.dart
       tray_service.dart
       webdav_service.dart
+    utils/adaptive_layout.dart
     utils/json_preservation.dart
     utils/week_grouping.dart
     views/

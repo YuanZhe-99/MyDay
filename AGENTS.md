@@ -27,6 +27,7 @@ about to change, verify against the code, then fix the docs in the same commit.
 | Question | Read |
 |---|---|
 | App shell, repository layout, core rules, shared package | `doc/en-us/architecture.md` |
+| Split/rail/column rules, foldable and tablet layout | `doc/en-us/adaptive-layout.md` |
 | What a file or function does | `doc/en-us/functions/<mirrored path>.md` |
 | Which page covers which source file | `doc/en-us/functions/INDEX.md` |
 | WebDAV sync flow, lock, conflicts | `doc/en-us/sync.md` |

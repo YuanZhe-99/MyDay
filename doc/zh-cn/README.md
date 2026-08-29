@@ -19,6 +19,7 @@ MyDay!!!!! 是一款隐私优先的 Flutter 日常生活伴侣应用，覆盖待
 
 - [架构](architecture.md) — 应用外壳/启动、状态管理、导航、主题、本地化、仓库布局，以及核心存储/并发规则。
 - [数据格式](data-formats.md) — 每个持久化模型的字段、`storage_config.json` 和完整持久化数据清单。
+- [自适应布局](adaptive-layout.md) — 三条布局规则（分栏闸门、导航栏、列容量）、它们所依据的折叠屏几何数据，以及刻意记录的偏离。
 - [WebDAV 同步](sync.md) — 十步逐记录三方同步流程、重试/心跳/锁行为、同步数据参考表和自动同步触发。
 - [备份与恢复](backup-restore.md) — 备份格式 v2、blob 垃圾回收、恢复校验与安全，以及仅 ZIP 的导入/导出。
 - [平台说明](platform-notes.md) — Android/iOS/macOS/Windows 注意事项、本地 HTTP API、托盘行为和启动。

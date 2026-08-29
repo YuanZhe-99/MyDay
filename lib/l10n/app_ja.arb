@@ -750,5 +750,11 @@
   "intimacyRetiredToys": "引退済みトイ",
   "intimacySortByRelationshipDate": "交際開始日順",
   "intimacySortByPurchaseDate": "購入日順",
-  "intimacySortByUseCount": "使用回数順"
+  "intimacySortByUseCount": "使用回数順",
+
+  "listColumns": "列数",
+  "listColumnsAuto": "自動",
+  "listColumnsCount": "{count} 列",
+  "@listColumnsCount": { "placeholders": { "count": { "type": "int" } } },
+  "settingsSelectItem": "左のリストから項目を選択してください"
 }

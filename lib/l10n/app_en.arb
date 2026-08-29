@@ -786,5 +786,11 @@
   "intimacyRetiredToys": "Retired Toys",
   "intimacySortByRelationshipDate": "By Relationship Date",
   "intimacySortByPurchaseDate": "By Purchase Date",
-  "intimacySortByUseCount": "By Use Count"
+  "intimacySortByUseCount": "By Use Count",
+
+  "listColumns": "Columns",
+  "listColumnsAuto": "Auto",
+  "listColumnsCount": "{count} columns",
+  "@listColumnsCount": { "placeholders": { "count": { "type": "int" } } },
+  "settingsSelectItem": "Select an item from the list"
 }

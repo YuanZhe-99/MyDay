@@ -2107,6 +2107,20 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get intimacySortByUseCount => '按使用次数';
+
+  @override
+  String get listColumns => '列数';
+
+  @override
+  String get listColumnsAuto => '自动';
+
+  @override
+  String listColumnsCount(int count) {
+    return '$count 列';
+  }
+
+  @override
+  String get settingsSelectItem => '从左侧列表中选择一项';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -4212,4 +4226,18 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get intimacySortByUseCount => '按使用次數';
+
+  @override
+  String get listColumns => '欄數';
+
+  @override
+  String get listColumnsAuto => '自動';
+
+  @override
+  String listColumnsCount(int count) {
+    return '$count 欄';
+  }
+
+  @override
+  String get settingsSelectItem => '從左側清單中選擇一項';
 }

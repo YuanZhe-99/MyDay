@@ -39,6 +39,12 @@ navigation destinations:
 
 `initialLocation` is `/todo`.
 
+The shell renders those destinations as a bottom `NavigationBar` on a narrow window and as a side
+`NavigationRail` from 600 logical pixels of width up, built from one destination list so the two
+cannot drift apart. Which one appears is a width-only decision — see
+[adaptive-layout.md](adaptive-layout.md) for why that rule is deliberately not the app-wide split
+rule, and for everything else the app does with a tablet's or a foldable's extra room.
+
 ## Theming
 
 `lib/app/theme.dart` builds both light and dark `ThemeData` via `flex_color_scheme`'s
@@ -120,6 +126,7 @@ lib/
       sync_wake_lock.dart
       tray_service.dart
       webdav_service.dart
+    utils/adaptive_layout.dart
     utils/json_preservation.dart
     utils/week_grouping.dart
     views/

@@ -113,6 +113,11 @@ the same change (per the project's maintenance rule).
 - Manifest permissions include internet, notification, and boot-related entries needed by scheduled
   notifications. `SCHEDULE_EXACT_ALARM` is intentionally not declared because all scheduling uses
   inexact modes.
+- **The activity's `configChanges` must keep `screenLayout|screenSize|smallestScreenSize|density`.**
+  With them the window resizes without restarting the activity, so everything reading
+  `MediaQuery.sizeOf` re-evaluates on the next frame and a device that folds or unfolds swaps its
+  layout with no state loss and no route change. Remove any of them and the activity is recreated
+  mid-fold, dropping every un-persisted page state. See [adaptive-layout.md](adaptive-layout.md).
 - CI still prints Flutter's "plugins that apply KGP" warning for `flutter_timezone`,
   `package_info_plus`, `shared_preferences_android`, `wakelock_plus`, `flutter_local_notifications`,
   and `file_picker` — plugin-side only, as of 2026-07 even their latest releases still apply KGP.

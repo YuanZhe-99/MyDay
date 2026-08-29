@@ -2120,4 +2120,18 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get intimacySortByUseCount => '使用回数順';
+
+  @override
+  String get listColumns => '列数';
+
+  @override
+  String get listColumnsAuto => '自動';
+
+  @override
+  String listColumnsCount(int count) {
+    return '$count 列';
+  }
+
+  @override
+  String get settingsSelectItem => '左のリストから項目を選択してください';
 }
