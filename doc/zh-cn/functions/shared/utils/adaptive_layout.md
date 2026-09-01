@@ -29,6 +29,24 @@
 | `settingsRightPaneMinWidth` | 顶层 `const double` | B | 设置详情窗格可获得的最小宽度（280）。 |
 | `weightSummaryPaneMinWidth` | 顶层 `const double` | B | 体重摘要卡片并排于图表旁时可占的最小宽度（280）。 |
 | `weightChartMinWidth` | 顶层 `const double` | B | 体重趋势图可获得的最小宽度（380）。 |
+| `metricCardMinWidth` | 顶层 `const double` | B | 一张指标卡片可占的最小宽度（160）。 |
+| `metricMaxColumns` | 顶层 `const int` | B | 摘要卡片中指标列数的上限（4）。 |
+| `accountCardMinWidth` | 顶层 `const double` | B | 一张账户卡片可占的最小宽度（340）。 |
+| `accountMaxColumns` | 顶层 `const int` | B | 账户列数的上限（3）。 |
+| `categoryTileMinWidth` | 顶层 `const double` | B | 一个分类图块可占的最小宽度（300）。 |
+| `exchangeRateTileMinWidth` | 顶层 `const double` | B | 一行汇率可占的最小宽度（280）。 |
+| `formFieldMinWidth` | 顶层 `const double` | B | 成对排列时一个表单字段可占的最小宽度（260）。 |
+| `formMaxContentWidth` | 顶层 `const double` | B | 表单页允许其内容增长到的最大宽度（720）。 |
+| `readingMaxContentWidth` | 顶层 `const double` | B | 散文页允许其文本增长到的最大宽度（840）。 |
+| `pieChartMinWidth` | 顶层 `const double` | B | 分析饼图可获得的最小宽度（280）。 |
+| `pieLegendMinWidth` | 顶层 `const double` | B | 并排时分类图例可获得的最小宽度（320）。 |
+| `calendarCardMinWidth` | 顶层 `const double` | B | 待办月历并排于趋势图时可占的最小宽度（340）。 |
+| `scoreTrendMinWidth` | 顶层 `const double` | B | 待办评分趋势图可获得的最小宽度（360）。 |
+| `timerHistoryPaneWidth` | 顶层 `const double` | B | 计时器页会话历史窗格的宽度（320）。 |
+| `dialogMaxContentWidth` | 顶层 `const double` | B | 对话框内容改为居中之前能增长到的最大宽度（640）。 |
+| `dialogMinHorizontalInset` | 顶层 `const double` | B | Flutter 自带的对话框水平内缩默认值（40）。 |
+| `pickerCellMinWidth` | 顶层 `const double` | B | 一个 emoji 或图标选择器单元格可占的最小宽度（44）。 |
+| `pickerMaxColumns` | 顶层 `const int` | B | 选择器列数的上限（12）。 |
 | [`canSplitLayout`](#cansplitlayout) | 顶层函数 | A | 报告布局是否可以分成窗格或列。 |
 | [`useNavigationRail`](#usenavigationrail) | 顶层函数 | A | 报告外壳是否应显示导航栏。 |
 | [`shellContentWidth`](#shellcontentwidth) | 顶层函数 | A | 返回外壳页面内容实际获得的宽度。 |
@@ -40,12 +58,17 @@
 | [`settingsLeftPaneWidth`](#settingsleftpanewidth) | 顶层函数 | A | 返回设置页固定左窗格的宽度。 |
 | [`useWeightSummaryBesideChart`](#useweightsummarybesidechart) | 顶层函数 | A | 报告体重摘要卡片是否放得下在趋势图旁边。 |
 | [`weightSummaryPaneWidth`](#weightsummarypanewidth) | 顶层函数 | A | 返回体重摘要卡片并排于图表旁时的宽度。 |
+| [`cappedContentWidth`](#cappedcontentwidth) | 顶层函数 | A | 返回页面把内容居中所用的宽度（若有）。 |
+| [`usePieChartSideBySide`](#usepiechartsidebyside) | 顶层函数 | A | 报告分析图例是否放得下在饼图旁边。 |
+| [`useTodoCalendarSideBySide`](#usetodocalendarsidebyside) | 顶层函数 | A | 报告待办评分趋势是否放得下在月历旁边。 |
+| [`todoCalendarPaneWidth`](#todocalendarpanewidth) | 顶层函数 | A | 返回待办日历页月历窗格的宽度。 |
+| [`dialogHorizontalInset`](#dialoghorizontalinset) | 顶层函数 | A | 返回限定对话框内容宽度的水平内缩值。 |
 
-**对账：** `grep -c 'Purpose:' lib/shared/utils/adaptive_layout.dart` 报告 11，对应 30 行。十九个顶层 `const` 声明带的是说明其取值来源的散文文档注释而不是 `Purpose:` 块，与索引在别处处理顶层常量的方式一致；它们是文件表面的一部分，因此有对应行。十一个函数全部按 `shared/` 下顶层函数的通用规则为 Tier A。常量为 Tier B：它们的全部内容就是取值及其理由，而这两者下面的表格和 [../../../adaptive-layout.md](../../../adaptive-layout.md) 已经承载。
+**对账：** `grep -c 'Purpose:' lib/shared/utils/adaptive_layout.dart` 报告 16，对应 53 行。三十七个顶层 `const` 声明带的是说明其取值来源的散文文档注释而不是 `Purpose:` 块，与索引在别处处理顶层常量的方式一致；它们是文件表面的一部分，因此有对应行。十六个函数全部按 `shared/` 下顶层函数的通用规则为 Tier A。常量为 Tier B：它们的全部内容就是取值及其理由，而这两者下面的表格和 [../../../adaptive-layout.md](../../../adaptive-layout.md) 已经承载。
 
 ## 常量
 
-这十九个数字构成 MyDay 布局策略的全部数值表面。前八个与兄弟应用共享，未先阅读 [../../../adaptive-layout.md](../../../adaptive-layout.md) 不得更改——尤其 `splitMinAspect` 是全应用范围的行为变更。其余是 MyDay 自己的逐内容最小值，每一个都说明它所度量的内容，因为一个没有说明内容的最小值是日后没人能安全更改的数字。
+这三十七个数字构成 MyDay 布局策略的全部数值表面。前八个与兄弟应用共享，未先阅读 [../../../adaptive-layout.md](../../../adaptive-layout.md) 不得更改——尤其 `splitMinAspect` 是全应用范围的行为变更。其余是 MyDay 自己的逐内容最小值，每一个都说明它所度量的内容，因为一个没有说明内容的最小值是日后没人能安全更改的数字。
 
 | 常量 | 取值 | 数字从何而来 |
 |---|---|---|
@@ -68,6 +91,24 @@
 | `settingsRightPaneMinWidth` | `280.0` | 被托管的二级页面仍然可用的最窄宽度——一个表单字段加它的标签。 |
 | `weightSummaryPaneMinWidth` | `280.0` | 卡片以 `displaySmall` 显示最新体重并在旁边放变化量，然后是一个各自被限制在 88–168 的统计标签 `Wrap`。 |
 | `weightChartMinWidth` | `380.0` | 图表为左轴保留约 40，每个日期标签需要约 48，因此这个宽度可以不拥挤地显示约七个带标签的点。 |
+| `metricCardMinWidth` | `160.0` | 一个统计标签在其数值之上；低于此值「平均抽插速率」这样的本地化标签会折成三行。 |
+| `metricMaxColumns` | `4` | 一张摘要卡片最多承载四个指标，四个并排仍然一眼可扫。 |
+| `accountCardMinWidth` | `340.0` | 账户名称、其银行预设芯片，以及一行内同时以本币和默认货币显示的余额。 |
+| `accountMaxColumns` | `3` | 账户行承载两种货币；第四列会开始截断其中之一。 |
+| `categoryTileMinWidth` | `300.0` | 一个 emoji、一个图标、名称和尾部 chevron；低于此值最长的本地化分类名会被截断。 |
+| `exchangeRateTileMinWidth` | `280.0` | 一个货币对、其六位有效数字的汇率，以及产生它的那次抓取的时间戳。 |
+| `formFieldMinWidth` | `260.0` | 一个 `OutlineInputBorder` 字段，其最长的本地化标签是日语；更窄的话标签会在字段自己的后缀之前被截断。 |
+| `formMaxContentWidth` | `720.0` | 横跨 1400 dp 桌面窗口的 `ListTile` 把标题和尾部控件放在屏幕两端；这个上限让它们保持在一眼之内。 |
+| `readingMaxContentWidth` | `840.0` | 在应用正文字号下约 90 个字符，是舒适阅读行宽的上端。散文比表单获得更多，因为它没有需要靠近彼此的控件。 |
+| `pieChartMinWidth` | `280.0` | 一个 200 dp 的饼图，加上其百分比标签和卡片自己的内边距所需的空间。 |
+| `pieLegendMinWidth` | `320.0` | 一个色块、一个 emoji、分类名称，以及带 chevron 的右对齐金额。 |
+| `calendarCardMinWidth` | `340.0` | 七个日期列加上卡片自己的内边距；低于此值日期数字会糊成一团。 |
+| `scoreTrendMinWidth` | `360.0` | 图表为左轴保留约 24，在 31 天的月份中每个日期标签约需 11。 |
+| `timerHistoryPaneWidth` | `320.0` | 一个时长、一个开始时间戳及其下方的抽插次数，以及尾部的恢复按钮。固定而不是按比例：超出此值的每一个像素都属于秒表，而秒表正是这个页面存在的理由。 |
+| `dialogMaxContentWidth` | `640.0` | 每个表单对话框都是全宽字段的滚动 `Column`；1300 逻辑像素宽的文本框比 600 的更难读，而不是更好读。 |
+| `dialogMinHorizontalInset` | `40.0` | Flutter 自带 `Dialog` 的默认值，保留它使手机上的对话框与一贯的布局逐字节相同。 |
+| `pickerCellMinWidth` | `44.0` | Material 的最小触摸目标尺寸。选择器单元格是一个只装着一个字形的方形点击目标，因此点击目标*就是*最小值。 |
+| `pickerMaxColumns` | `12` | 超过这个数，眼睛就不再把选择器当作网格来扫，而是当作噪声；它也让单元格不会长得远超一根拇指。 |
 
 ## 文档
 
@@ -238,3 +279,58 @@
 - **算法：** `(contentWidth * 0.34).clamp(weightSummaryPaneMinWidth, 380.0)`。
 - **用法：** `SizedBox(width: weightSummaryPaneWidth(contentWidth), child: summaryCard)`。
 - **说明：** 与 `settingsLeftPaneWidth` 不同，这里没有右侧上限，因为不可能有一个会生效：在 `useWeightSummaryBesideChart` 之上，卡片以宽度的 0.34 增长而图表以 0.66 增长，因此 `weightChartMinWidth` 在闸门处恰好被满足，往上只会更宽裕。这是在 `test/adaptive_layout_test.dart` 中跨整个区间断言的不变量，而不是用永远不触发的算术去防守。
+
+### `double cappedContentWidth(double contentWidth, double maxWidth)` <a id="cappedcontentwidth"></a>
+- **种类：** 顶层函数
+- **源：** `lib/shared/utils/adaptive_layout.dart`（第 352 行）
+- **用途：** 返回页面应把内容居中所用的宽度（若有）。
+- **输入：** `contentWidth`——页面实际拥有的宽度；`maxWidth`——内容应当增长到的最大宽度。
+- **返回：** `double`——页面更宽时为 `maxWidth`，否则为 `contentWidth`。
+- **副作用：** 无。
+- **算法：** `contentWidth > maxWidth ? maxWidth : contentWidth`。
+- **用法：** 这是 `AdaptiveContentWidth` 以组件形式所做之事的数值那一半——见 [../widgets/adaptive_tile_grid.md#adaptivecontentwidth](../widgets/adaptive_tile_grid.md#adaptivecontentwidth)。
+- **说明：** 仅看宽度且没有闸门，因此比上限更窄的页面在任何视口上都不受影响，这也就不可能改变手机渲染的东西。这就是规则 D：表单页或散文页拿桌面窗口做什么，而不是分栏。
+
+### `bool usePieChartSideBySide(double contentWidth)` <a id="usepiechartsidebyside"></a>
+- **种类：** 顶层函数
+- **源：** `lib/shared/utils/adaptive_layout.dart`（第 362 行）
+- **用途：** 报告分析图例是否放得下在饼图旁边。
+- **输入：** `contentWidth`——分析标签页获得的宽度，以逻辑像素计。
+- **返回：** `bool`。
+- **副作用：** 无。
+- **算法：** `contentWidth >= pieChartMinWidth + pieLegendMinWidth + listTileGap`（612）。
+- **用法：** 在 `_buildPieChart` 中与 `canSplitLayout` 一同检查。
+- **说明：** 这是**叠加在**形状规则之上的宽度下限，与体重页使用的双重闸门相同。低于它时图例保持在图表下方，那是 v1.4.2 之前每个视口的布局。
+
+### `bool useTodoCalendarSideBySide(double contentWidth)` <a id="usetodocalendarsidebyside"></a>
+- **种类：** 顶层函数
+- **源：** `lib/shared/utils/adaptive_layout.dart`（第 372 行）
+- **用途：** 报告待办评分趋势是否放得下在月历旁边。
+- **输入：** `contentWidth`——日历页获得的宽度，以逻辑像素计。
+- **返回：** `bool`。
+- **副作用：** 无。
+- **算法：** `contentWidth >= calendarCardMinWidth + scoreTrendMinWidth + listTileGap`（712）。
+- **用法：** 在 `_TodoCalendarPageState.build` 中与 `canSplitLayout` 一同检查。
+- **说明：** 月历和趋势图堆叠在手机上是整整两屏；并排在平板上就是一屏。Z Fold 5 竖持通过形状规则却通不过这一条，而那正是第二重闸门存在的理由。
+
+### `double todoCalendarPaneWidth(double contentWidth)` <a id="todocalendarpanewidth"></a>
+- **种类：** 顶层函数
+- **源：** `lib/shared/utils/adaptive_layout.dart`（第 386 行）
+- **用途：** 返回待办日历页月历窗格的宽度。
+- **输入：** `contentWidth`——两个块共享的宽度，以逻辑像素计。
+- **返回：** 介于 `calendarCardMinWidth` 与 480 之间的 `double`。
+- **副作用：** 无。
+- **算法：** `(contentWidth * 0.4).clamp(calendarCardMinWidth, 480.0)`。
+- **用法：** `SizedBox(width: todoCalendarPaneWidth(screen.width), child: calendarCard)`。
+- **说明：** 按比例，使桌面窗口给日期单元格更大的点击目标，而不是让日历停在最低限度旁边配一张很宽的图表；上限的存在是因为月历的单元格一旦舒适，再多宽度也无益。不需要右侧上限——在闸门之上，窗格以 0.4 增长而图表以 0.6 增长，因此图表在边界处恰好满足其下限，往上只会更宽裕，这一点在 `test/adaptive_layout_test.dart` 中跨整个区间断言。
+
+### `double dialogHorizontalInset(double screenWidth)` <a id="dialoghorizontalinset"></a>
+- **种类：** 顶层函数
+- **源：** `lib/shared/utils/adaptive_layout.dart`（第 417 行）
+- **用途：** 返回限定对话框内容宽度的水平内缩值。
+- **输入：** `screenWidth`——以逻辑像素表示的整个屏幕宽度。
+- **返回：** `double`，绝不低于 `dialogMinHorizontalInset`。
+- **副作用：** 无。
+- **算法：** `(screenWidth - dialogMaxContentWidth) / 2`，下限为 `dialogMinHorizontalInset`。
+- **用法：** 经由 `adaptiveDialogInset`——见 [../widgets/adaptive_tile_grid.md#adaptivedialoginset](../widgets/adaptive_tile_grid.md#adaptivedialoginset)。
+- **说明：** 仅看宽度且没有闸门。在约 720 以下结果就是 Flutter 自己的默认值，因此手机上的对话框不受影响；在其之上，多出的宽度变成两侧的内缩，于是对话框被居中而不是被拉伸。对话框绘制在根 overlay 上，因此测量的是**屏幕**而不是它背后的页面——导航栏的宽度也在对话框覆盖的范围之内。

@@ -8,14 +8,14 @@ mirroring the `lib/` tree (with `.dart` replaced by `.md`).
 
 | Measure | Count |
 |---|---|
-| `grep -r '/// Purpose:' lib --include=*.dart` | **1408** |
-| Declarations-table rows across all 75 pages | **1421** |
-| — of those rows, Tier A (full entry) | 804 |
-| — of those rows, Tier B (index row only) | 617 |
+| `grep -r '/// Purpose:' lib --include=*.dart` | **1419** |
+| Declarations-table rows across all 75 pages | **1450** |
+| — of those rows, Tier A (full entry) | 813 |
+| — of those rows, Tier B (index row only) | 637 |
 
 The **Declarations** and **Tier A** columns below count **rows in each page's Declarations
 table**, which is the mechanically checkable figure. A row is not always one `/// Purpose:` block,
-and the 13-row net excess of the table count over the grep count is fully itemized — every page whose row count
+and the 31-row net excess of the table count over the grep count is fully itemized — every page whose row count
 differs from its own `grep` carries a `**Reconciliation:**` note saying exactly why. There are
 three recurring reasons:
 
@@ -88,7 +88,7 @@ drifted from the per-file rows.)
 | `lib/features/intimacy/widgets/body_section.dart` | [features/intimacy/widgets/body_section.md](features/intimacy/widgets/body_section.md) | 35 | 18 |
 | `lib/features/intimacy/widgets/cycle_calendar.dart` | [features/intimacy/widgets/cycle_calendar.md](features/intimacy/widgets/cycle_calendar.md) | 9 | 1 |
 | `lib/features/intimacy/widgets/intimacy_trend_chart.dart` | [features/intimacy/widgets/intimacy_trend_chart.md](features/intimacy/widgets/intimacy_trend_chart.md) | 25 | 16 |
-| `lib/features/intimacy/widgets/timer_page.dart` | [features/intimacy/widgets/timer_page.md](features/intimacy/widgets/timer_page.md) | 32 | 22 |
+| `lib/features/intimacy/widgets/timer_page.dart` | [features/intimacy/widgets/timer_page.md](features/intimacy/widgets/timer_page.md) | 34 | 23 |
 
 ## features/settings/
 
@@ -142,12 +142,12 @@ the 1436/1435 hand-documented declarations above).
 | `lib/shared/services/sync_wake_lock.dart` | [shared/services/sync_wake_lock.md](shared/services/sync_wake_lock.md) | 0 | 0 |
 | `lib/shared/services/tray_service.dart` | [shared/services/tray_service.md](shared/services/tray_service.md) | 16 | 13 |
 | `lib/shared/services/webdav_service.dart` | [shared/services/webdav_service.md](shared/services/webdav_service.md) | 12 | 12 |
-| `lib/shared/utils/adaptive_layout.dart` | [shared/utils/adaptive_layout.md](shared/utils/adaptive_layout.md) | 30 | 11 |
+| `lib/shared/utils/adaptive_layout.dart` | [shared/utils/adaptive_layout.md](shared/utils/adaptive_layout.md) | 53 | 16 |
 | `lib/shared/utils/json_preservation.dart` | [shared/utils/json_preservation.md](shared/utils/json_preservation.md) | 3 | 2 |
 | `lib/shared/utils/week_grouping.dart` | [shared/utils/week_grouping.md](shared/utils/week_grouping.md) | 16 | 16 |
 | `lib/shared/views/backup_page.dart` | [shared/views/backup_page.md](shared/views/backup_page.md) | 17 | 2 |
 | `lib/shared/views/webdav_config_page.dart` | [shared/views/webdav_config_page.md](shared/views/webdav_config_page.md) | 20 | 6 |
-| `lib/shared/widgets/adaptive_tile_grid.dart` | [shared/widgets/adaptive_tile_grid.md](shared/widgets/adaptive_tile_grid.md) | 3 | 3 |
+| `lib/shared/widgets/adaptive_tile_grid.dart` | [shared/widgets/adaptive_tile_grid.md](shared/widgets/adaptive_tile_grid.md) | 7 | 6 |
 | `lib/shared/widgets/app_date_picker.dart` | [shared/widgets/app_date_picker.md](shared/widgets/app_date_picker.md) | 23 | 13 |
 | `lib/shared/widgets/delete_confirm.dart` | [shared/widgets/delete_confirm.md](shared/widgets/delete_confirm.md) | 1 | 1 |
 | `lib/shared/widgets/shell_scaffold.dart` | [shared/widgets/shell_scaffold.md](shared/widgets/shell_scaffold.md) | 10 | 4 |
@@ -161,13 +161,13 @@ the 1436/1435 hand-documented declarations above).
 | Root (`lib/`) | 1 | 1 | 1 | 0 |
 | `app/` | 4 | 17 | 14 | 3 |
 | `features/finance/` | 20 | 388 | 192 | 196 |
-| `features/intimacy/` | 11 | 365 | 176 | 189 |
+| `features/intimacy/` | 11 | 367 | 177 | 190 |
 | `features/settings/` | 3 | 33 | 8 | 25 |
 | `features/todo/` | 7 | 198 | 122 | 76 |
 | `features/weight/` | 3 | 86 | 49 | 37 |
-| `shared/` | 26 | 333 | 242 | 91 |
-| **Total** | **75** | **1421** | **804** | **617** |
+| `shared/` | 26 | 360 | 250 | 110 |
+| **Total** | **75** | **1450** | **813** | **637** |
 
-Every row here is the arithmetic sum of the per-file rows above, re-derived in v1.4.1. The file
+Every row here is the arithmetic sum of the per-file rows above, re-derived in v1.4.2. The file
 counts also match `find lib -name '*.dart' -not -path 'lib/l10n/*'` exactly — 75 source files, 75
 pages, no file without a page and no page without a file.

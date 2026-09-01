@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/utils/adaptive_layout.dart';
 import '../../../shared/widgets/app_date_picker.dart';
 import '../models/finance.dart';
 import '../services/balance_util.dart';
@@ -514,22 +515,32 @@ class _AnalysisPageState extends State<AnalysisPage>
         ? theme.colorScheme.error
         : Colors.green;
 
+    // Pushed on top of the shell, so its own width is the whole width. The
+    // double gate: the window must have the shape, and the tab must have room
+    // for both the chart and a readable legend beside it.
+    final screen = MediaQuery.sizeOf(context);
+    final sideBySide =
+        canSplitLayout(screen.width, screen.height) &&
+        usePieChartSideBySide(screen.width);
+
+    final chart = SizedBox(
+      height: 200,
+      child: PieChart(
+        PieChartData(
+          sections: sections,
+          centerSpaceRadius: 36,
+          sectionsSpace: 2,
+        ),
+      ),
+    );
+
     return Column(
       children: [
         const SizedBox(height: 16),
         _buildCategoryTypeSelector(l10n),
         const SizedBox(height: 16),
-        SizedBox(
-          height: 200,
-          child: PieChart(
-            PieChartData(
-              sections: sections,
-              centerSpaceRadius: 36,
-              sectionsSpace: 2,
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
+        if (!sideBySide) chart,
+        if (!sideBySide) const SizedBox(height: 16),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Row(
@@ -548,45 +559,65 @@ class _AnalysisPageState extends State<AnalysisPage>
         ),
         const Divider(indent: 24, endIndent: 24),
         Expanded(
-          child: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            children: legendEntries.map((e) {
-              return ListTile(
-                leading: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 14,
-                      height: 14,
-                      decoration: BoxDecoration(
-                        color: e.color,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    if (e.emoji != null) ...[
-                      const SizedBox(width: 8),
-                      Text(e.emoji!, style: const TextStyle(fontSize: 18)),
-                    ],
-                  ],
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Side by side, the chart keeps the pane its own minimum earns
+              // and the legend scrolls beside it instead of below the fold.
+              if (sideBySide)
+                SizedBox(
+                  width: pieChartMinWidth,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: chart,
+                  ),
                 ),
-                title: Text(e.name),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      '$sym${nf.format(e.amount)}',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  children: legendEntries.map((e) {
+                    return ListTile(
+                      leading: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 14,
+                            height: 14,
+                            decoration: BoxDecoration(
+                              color: e.color,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          if (e.emoji != null) ...[
+                            const SizedBox(width: 8),
+                            Text(
+                              e.emoji!,
+                              style: const TextStyle(fontSize: 18),
+                            ),
+                          ],
+                        ],
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    const Icon(Icons.chevron_right, size: 20),
-                  ],
+                      title: Text(e.name),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '$sym${nf.format(e.amount)}',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Icon(Icons.chevron_right, size: 20),
+                        ],
+                      ),
+                      dense: true,
+                      onTap: () => _openCategoryTransactions(e.categoryId),
+                    );
+                  }).toList(),
                 ),
-                dense: true,
-                onTap: () => _openCategoryTransactions(e.categoryId),
-              );
-            }).toList(),
+              ),
+            ],
           ),
         ),
       ],

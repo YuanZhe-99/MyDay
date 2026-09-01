@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/services/auto_sync_service.dart';
+import '../../../shared/utils/adaptive_layout.dart';
+import '../../../shared/widgets/adaptive_tile_grid.dart';
 import '../../../shared/widgets/unsaved_changes_guard.dart';
 import '../services/exchange_rate_api.dart';
 import '../services/exchange_rate_storage.dart';
@@ -158,6 +160,16 @@ class _ExchangeRatesPageState extends State<ExchangeRatesPage> {
     final theme = Theme.of(context);
     final entries = _rates.entries.toList()
       ..sort((a, b) => a.key.compareTo(b.key));
+    // Pushed on top of the shell, so its own width is the whole width.
+    final screen = MediaQuery.sizeOf(context);
+    final rateColumns = listColumnCount(
+      screenWidth: screen.width,
+      screenHeight: screen.height,
+      contentWidth: screen.width,
+      minItemWidth: exchangeRateTileMinWidth,
+      preference: listColumnsAuto,
+      maxColumns: 3,
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -189,59 +201,65 @@ class _ExchangeRatesPageState extends State<ExchangeRatesPage> {
               ),
             )
           : ListView.builder(
-              itemCount: entries.length,
-              itemBuilder: (context, index) {
-                final entry = entries[index];
-                final parts = entry.key.split('_');
-                final from = parts.isNotEmpty ? parts[0] : '?';
-                final to = parts.length > 1 ? parts[1] : '?';
+              // Rows, not tiles, so the builder keeps virtualizing.
+              itemCount: listRowCount(entries.length, rateColumns),
+              itemBuilder: (context, row) => adaptiveTileRow(
+                rowIndex: row,
+                columns: rateColumns,
+                itemCount: entries.length,
+                itemBuilder: (index) {
+                  final entry = entries[index];
+                  final parts = entry.key.split('_');
+                  final from = parts.isNotEmpty ? parts[0] : '?';
+                  final to = parts.length > 1 ? parts[1] : '?';
 
-                return Dismissible(
-                  key: ValueKey(entry.key),
-                  direction: DismissDirection.horizontal,
-                  background: Container(
-                    alignment: Alignment.centerLeft,
-                    padding: const EdgeInsets.only(left: 20),
-                    color: theme.colorScheme.primary,
-                    child: Icon(
-                      Icons.edit_outlined,
-                      color: theme.colorScheme.onPrimary,
-                    ),
-                  ),
-                  secondaryBackground: Container(
-                    alignment: Alignment.centerRight,
-                    padding: const EdgeInsets.only(right: 20),
-                    color: theme.colorScheme.error,
-                    child: Icon(
-                      Icons.delete_outline,
-                      color: theme.colorScheme.onError,
-                    ),
-                  ),
-                  confirmDismiss: (direction) async {
-                    if (direction == DismissDirection.startToEnd) {
-                      _editRate(entry.key, entry.value);
-                      return false;
-                    }
-                    return true;
-                  },
-                  onDismissed: (_) => _deleteRate(entry.key),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: theme.colorScheme.primaryContainer,
+                  return Dismissible(
+                    key: ValueKey(entry.key),
+                    direction: DismissDirection.horizontal,
+                    background: Container(
+                      alignment: Alignment.centerLeft,
+                      padding: const EdgeInsets.only(left: 20),
+                      color: theme.colorScheme.primary,
                       child: Icon(
-                        Icons.currency_exchange,
-                        color: theme.colorScheme.onPrimaryContainer,
-                        size: 20,
+                        Icons.edit_outlined,
+                        color: theme.colorScheme.onPrimary,
                       ),
                     ),
-                    title: Text(
-                      '1 $from = ${entry.value.toStringAsFixed(4)} $to',
+                    secondaryBackground: Container(
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.only(right: 20),
+                      color: theme.colorScheme.error,
+                      child: Icon(
+                        Icons.delete_outline,
+                        color: theme.colorScheme.onError,
+                      ),
                     ),
-                    subtitle: Text('$from → $to'),
-                    onTap: () => _editRate(entry.key, entry.value),
-                  ),
-                );
-              },
+                    confirmDismiss: (direction) async {
+                      if (direction == DismissDirection.startToEnd) {
+                        _editRate(entry.key, entry.value);
+                        return false;
+                      }
+                      return true;
+                    },
+                    onDismissed: (_) => _deleteRate(entry.key),
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: theme.colorScheme.primaryContainer,
+                        child: Icon(
+                          Icons.currency_exchange,
+                          color: theme.colorScheme.onPrimaryContainer,
+                          size: 20,
+                        ),
+                      ),
+                      title: Text(
+                        '1 $from = ${entry.value.toStringAsFixed(4)} $to',
+                      ),
+                      subtitle: Text('$from → $to'),
+                      onTap: () => _editRate(entry.key, entry.value),
+                    ),
+                  );
+                },
+              ),
             ),
       floatingActionButton: FloatingActionButton(
         onPressed: _addRate,
@@ -322,6 +340,7 @@ class _RateDialogState extends State<_RateDialog> {
     return UnsavedChangesGuard(
       hasUnsavedChanges: _hasUnsavedChanges,
       builder: (context, guard) => Dialog(
+        insetPadding: adaptiveDialogInset(context),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Column(

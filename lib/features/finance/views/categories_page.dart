@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/utils/adaptive_layout.dart';
+import '../../../shared/widgets/adaptive_tile_grid.dart';
 import '../../../shared/widgets/delete_confirm.dart';
 import '../../../shared/widgets/unsaved_changes_guard.dart';
 import '../models/finance.dart';
@@ -355,57 +357,77 @@ class _CategoriesPageState extends State<CategoriesPage>
       );
     }
 
+    // Pushed on top of the shell, so its own width is the whole width — there
+    // is no navigation rail to subtract. See doc/en-us/adaptive-layout.md.
+    final screen = MediaQuery.sizeOf(context);
+    final columns = listColumnCount(
+      screenWidth: screen.width,
+      screenHeight: screen.height,
+      contentWidth: screen.width,
+      minItemWidth: categoryTileMinWidth,
+      preference: listColumnsAuto,
+    );
+
     return ListView.builder(
-      itemCount: cats.length,
+      // Rows, not tiles, so the builder keeps virtualizing a long category list.
+      itemCount: listRowCount(cats.length, columns),
       padding: const EdgeInsets.only(bottom: 80),
-      itemBuilder: (context, index) {
-        final cat = cats[index];
-        return Dismissible(
-          key: ValueKey(cat.id),
-          direction: DismissDirection.horizontal,
-          background: Container(
-            alignment: Alignment.centerLeft,
-            padding: const EdgeInsets.only(left: 20),
-            color: theme.colorScheme.primary,
-            child: Icon(
-              Icons.edit_outlined,
-              color: theme.colorScheme.onPrimary,
+      itemBuilder: (context, row) => adaptiveTileRow(
+        rowIndex: row,
+        columns: columns,
+        itemCount: cats.length,
+        itemBuilder: (index) {
+          final cat = cats[index];
+          return Dismissible(
+            key: ValueKey(cat.id),
+            direction: DismissDirection.horizontal,
+            background: Container(
+              alignment: Alignment.centerLeft,
+              padding: const EdgeInsets.only(left: 20),
+              color: theme.colorScheme.primary,
+              child: Icon(
+                Icons.edit_outlined,
+                color: theme.colorScheme.onPrimary,
+              ),
             ),
-          ),
-          secondaryBackground: Container(
-            alignment: Alignment.centerRight,
-            padding: const EdgeInsets.only(right: 20),
-            color: theme.colorScheme.error,
-            child: Icon(Icons.delete_outline, color: theme.colorScheme.onError),
-          ),
-          confirmDismiss: (direction) async {
-            if (direction == DismissDirection.startToEnd) {
-              _editCategory(cat);
-              return false;
-            }
-            return confirmDelete(
-              context,
-              AppLocalizations.of(context)!.financeThisCategory,
-            );
-          },
-          onDismissed: (_) => _deleteCategory(cat),
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: theme.colorScheme.primaryContainer,
-              child: cat.emoji != null
-                  ? Text(cat.emoji!, style: const TextStyle(fontSize: 18))
-                  : Icon(
-                      cat.icon.toIconData(),
-                      color: theme.colorScheme.onPrimaryContainer,
-                      size: 20,
-                    ),
+            secondaryBackground: Container(
+              alignment: Alignment.centerRight,
+              padding: const EdgeInsets.only(right: 20),
+              color: theme.colorScheme.error,
+              child: Icon(
+                Icons.delete_outline,
+                color: theme.colorScheme.onError,
+              ),
             ),
-            title: Text(cat.name),
-            trailing: const Icon(Icons.chevron_right, size: 20),
-            onTap: () => _openCategoryDetail(cat),
-          ),
-        );
-      },
+            confirmDismiss: (direction) async {
+              if (direction == DismissDirection.startToEnd) {
+                _editCategory(cat);
+                return false;
+              }
+              return confirmDelete(
+                context,
+                AppLocalizations.of(context)!.financeThisCategory,
+              );
+            },
+            onDismissed: (_) => _deleteCategory(cat),
+            child: ListTile(
+              leading: CircleAvatar(
+                backgroundColor: theme.colorScheme.primaryContainer,
+                child: cat.emoji != null
+                    ? Text(cat.emoji!, style: const TextStyle(fontSize: 18))
+                    : Icon(
+                        cat.icon.toIconData(),
+                        color: theme.colorScheme.onPrimaryContainer,
+                        size: 20,
+                      ),
+              ),
+              title: Text(cat.name),
+              trailing: const Icon(Icons.chevron_right, size: 20),
+              onTap: () => _openCategoryDetail(cat),
+            ),
+          );
+        },
+      ),
     );
   }
 }
@@ -554,6 +576,7 @@ class _CategoryDialogState extends State<_CategoryDialog> {
     return UnsavedChangesGuard(
       hasUnsavedChanges: _hasUnsavedChanges,
       builder: (context, guard) => Dialog(
+        insetPadding: adaptiveDialogInset(context),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Column(
@@ -583,43 +606,54 @@ class _CategoryDialogState extends State<_CategoryDialog> {
               const SizedBox(height: 8),
               SizedBox(
                 height: 110,
-                child: GridView.builder(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 8,
-                    mainAxisSpacing: 4,
-                    crossAxisSpacing: 4,
-                  ),
-                  itemCount: _commonEmojis.length,
-                  itemBuilder: (context, index) {
-                    final emoji = _commonEmojis[index];
-                    final isSelected = emoji == _selectedEmoji;
-                    return InkWell(
-                      borderRadius: BorderRadius.circular(8),
-                      onTap: () => setState(() {
-                        _selectedEmoji = isSelected ? null : emoji;
-                      }),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          color: isSelected
-                              ? theme.colorScheme.primaryContainer
-                              : null,
-                          border: isSelected
-                              ? Border.all(
-                                  color: theme.colorScheme.primary,
-                                  width: 2,
-                                )
-                              : null,
-                        ),
-                        child: Center(
-                          child: Text(
-                            emoji,
-                            style: const TextStyle(fontSize: 20),
+                child: LayoutBuilder(
+                  builder: (context, constraints) => GridView.builder(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      // Cells are square tap targets holding a single glyph, so
+                      // the tap target is the minimum. A fixed count made them
+                      // smaller than 44 dp on a narrow phone and wasted the room
+                      // a wide dialog gives them.
+                      crossAxisCount: columnCapacity(
+                        constraints.maxWidth,
+                        minItemWidth: pickerCellMinWidth,
+                        gap: 4,
+                        maxColumns: pickerMaxColumns,
+                      ),
+                      mainAxisSpacing: 4,
+                      crossAxisSpacing: 4,
+                    ),
+                    itemCount: _commonEmojis.length,
+                    itemBuilder: (context, index) {
+                      final emoji = _commonEmojis[index];
+                      final isSelected = emoji == _selectedEmoji;
+                      return InkWell(
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: () => setState(() {
+                          _selectedEmoji = isSelected ? null : emoji;
+                        }),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            color: isSelected
+                                ? theme.colorScheme.primaryContainer
+                                : null,
+                            border: isSelected
+                                ? Border.all(
+                                    color: theme.colorScheme.primary,
+                                    width: 2,
+                                  )
+                                : null,
+                          ),
+                          child: Center(
+                            child: Text(
+                              emoji,
+                              style: const TextStyle(fontSize: 20),
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -630,43 +664,54 @@ class _CategoryDialogState extends State<_CategoryDialog> {
               // Icon grid
               SizedBox(
                 height: 200,
-                child: GridView.builder(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 6,
-                    mainAxisSpacing: 4,
-                    crossAxisSpacing: 4,
-                  ),
-                  itemCount: _categoryIcons.length,
-                  itemBuilder: (context, index) {
-                    final icon = _categoryIcons[index];
-                    final isSelected =
-                        icon.codePoint == _selectedIcon.codePoint;
-                    return InkWell(
-                      borderRadius: BorderRadius.circular(8),
-                      onTap: () => setState(() => _selectedIcon = icon),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          color: isSelected
-                              ? theme.colorScheme.primaryContainer
-                              : null,
-                          border: isSelected
-                              ? Border.all(
-                                  color: theme.colorScheme.primary,
-                                  width: 2,
-                                )
-                              : null,
-                        ),
-                        child: Icon(
-                          icon,
-                          size: 22,
-                          color: isSelected
-                              ? theme.colorScheme.primary
-                              : theme.colorScheme.onSurfaceVariant,
-                        ),
+                child: LayoutBuilder(
+                  builder: (context, constraints) => GridView.builder(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      // Cells are square tap targets holding a single glyph, so
+                      // the tap target is the minimum. A fixed count made them
+                      // smaller than 44 dp on a narrow phone and wasted the room
+                      // a wide dialog gives them.
+                      crossAxisCount: columnCapacity(
+                        constraints.maxWidth,
+                        minItemWidth: pickerCellMinWidth,
+                        gap: 4,
+                        maxColumns: pickerMaxColumns,
                       ),
-                    );
-                  },
+                      mainAxisSpacing: 4,
+                      crossAxisSpacing: 4,
+                    ),
+                    itemCount: _categoryIcons.length,
+                    itemBuilder: (context, index) {
+                      final icon = _categoryIcons[index];
+                      final isSelected =
+                          icon.codePoint == _selectedIcon.codePoint;
+                      return InkWell(
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: () => setState(() => _selectedIcon = icon),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            color: isSelected
+                                ? theme.colorScheme.primaryContainer
+                                : null,
+                            border: isSelected
+                                ? Border.all(
+                                    color: theme.colorScheme.primary,
+                                    width: 2,
+                                  )
+                                : null,
+                          ),
+                          child: Icon(
+                            icon,
+                            size: 22,
+                            color: isSelected
+                                ? theme.colorScheme.primary
+                                : theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
               const SizedBox(height: 16),

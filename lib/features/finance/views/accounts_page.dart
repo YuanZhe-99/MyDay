@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/services/image_service.dart';
+import '../../../shared/utils/adaptive_layout.dart';
+import '../../../shared/widgets/adaptive_tile_grid.dart';
 import '../../../shared/widgets/app_date_picker.dart';
 import '../../../shared/widgets/delete_confirm.dart';
 import '../../../shared/widgets/unsaved_changes_guard.dart';
@@ -509,6 +511,18 @@ class _AccountsPageState extends State<AccountsPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    // Pushed on top of the shell, so there is no navigation rail to subtract:
+    // the screen width less this page's own padding is what the list gets.
+    final screen = MediaQuery.sizeOf(context);
+    final accountColumns = listColumnCount(
+      screenWidth: screen.width,
+      screenHeight: screen.height,
+      contentWidth: screen.width,
+      minItemWidth: accountCardMinWidth,
+      preference: listColumnsAuto,
+      maxColumns: accountMaxColumns,
+    );
+
     final grouped = <AccountType, List<MapEntry<int, Account>>>{};
     for (var i = 0; i < _accounts.length; i++) {
       grouped.putIfAbsent(_accounts[i].type, () => []);
@@ -560,78 +574,91 @@ class _AccountsPageState extends State<AccountsPage> {
                         _sortMode(type) == _sortCustom)
                       _buildReorderList(type, sortedGrouped[type]!)
                     else
-                      ...sortedGrouped[type]!.map(
-                        (entry) => Dismissible(
-                          key: ValueKey(entry.value.id),
-                          direction: DismissDirection.horizontal,
-                          background: Container(
-                            alignment: Alignment.centerLeft,
-                            padding: const EdgeInsets.only(left: 20),
-                            color: theme.colorScheme.primary,
-                            child: Icon(
-                              Icons.edit_outlined,
-                              color: theme.colorScheme.onPrimary,
-                            ),
-                          ),
-                          secondaryBackground: Container(
-                            alignment: Alignment.centerRight,
-                            padding: const EdgeInsets.only(right: 20),
-                            color: theme.colorScheme.error,
-                            child: Icon(
-                              Icons.delete_outline,
-                              color: theme.colorScheme.onError,
-                            ),
-                          ),
-                          confirmDismiss: (direction) async {
-                            if (direction == DismissDirection.startToEnd) {
-                              _editAccount(entry.key);
-                              return false;
-                            }
-                            return confirmDelete(
-                              context,
-                              AppLocalizations.of(context)!.financeThisAccount,
-                            );
-                          },
-                          onDismissed: (_) => _deleteAccount(entry.key),
-                          child: ListTile(
-                            leading: _buildAccountAvatar(entry.value, theme),
-                            title: Text(entry.value.name),
-                            subtitle: _buildAccountSubtitle(entry.value, theme),
-                            trailing: Text(
-                              '${currencySymbol(entry.value.currency)}${NumberFormat('#,##0.00').format(accountBalance(entry.value, _transactions, widget.rateData))}',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
+                      ...adaptiveTileRows(
+                        columns: accountColumns,
+                        itemCount: sortedGrouped[type]!.length,
+                        itemBuilder: (index) {
+                          final entry = sortedGrouped[type]![index];
+                          return Dismissible(
+                            key: ValueKey(entry.value.id),
+                            direction: DismissDirection.horizontal,
+                            background: Container(
+                              alignment: Alignment.centerLeft,
+                              padding: const EdgeInsets.only(left: 20),
+                              color: theme.colorScheme.primary,
+                              child: Icon(
+                                Icons.edit_outlined,
+                                color: theme.colorScheme.onPrimary,
                               ),
                             ),
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => _AccountTransactionsPage(
-                                  account: entry.value,
-                                  accounts: _accounts,
-                                  transactions: _transactions,
-                                  categories: widget.categories,
-                                  rateData: widget.rateData,
-                                  accountPickerSettings: _accountPickerSettings,
-                                  onAdd: (tx) {
-                                    setState(() => _transactions.insert(0, tx));
-                                    _notifyTransactions();
-                                  },
-                                  onEdit: (updated) {
-                                    setState(() {
-                                      final i = _transactions.indexWhere(
-                                        (t) => t.id == updated.id,
+                            secondaryBackground: Container(
+                              alignment: Alignment.centerRight,
+                              padding: const EdgeInsets.only(right: 20),
+                              color: theme.colorScheme.error,
+                              child: Icon(
+                                Icons.delete_outline,
+                                color: theme.colorScheme.onError,
+                              ),
+                            ),
+                            confirmDismiss: (direction) async {
+                              if (direction == DismissDirection.startToEnd) {
+                                _editAccount(entry.key);
+                                return false;
+                              }
+                              return confirmDelete(
+                                context,
+                                AppLocalizations.of(
+                                  context,
+                                )!.financeThisAccount,
+                              );
+                            },
+                            onDismissed: (_) => _deleteAccount(entry.key),
+                            child: ListTile(
+                              leading: _buildAccountAvatar(entry.value, theme),
+                              title: Text(entry.value.name),
+                              subtitle: _buildAccountSubtitle(
+                                entry.value,
+                                theme,
+                              ),
+                              trailing: Text(
+                                '${currencySymbol(entry.value.currency)}${NumberFormat('#,##0.00').format(accountBalance(entry.value, _transactions, widget.rateData))}',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => _AccountTransactionsPage(
+                                    account: entry.value,
+                                    accounts: _accounts,
+                                    transactions: _transactions,
+                                    categories: widget.categories,
+                                    rateData: widget.rateData,
+                                    accountPickerSettings:
+                                        _accountPickerSettings,
+                                    onAdd: (tx) {
+                                      setState(
+                                        () => _transactions.insert(0, tx),
                                       );
-                                      if (i != -1) _transactions[i] = updated;
-                                    });
-                                    _notifyTransactions();
-                                  },
-                                  onDelete: _deleteTransaction,
+                                      _notifyTransactions();
+                                    },
+                                    onEdit: (updated) {
+                                      setState(() {
+                                        final i = _transactions.indexWhere(
+                                          (t) => t.id == updated.id,
+                                        );
+                                        if (i != -1) _transactions[i] = updated;
+                                      });
+                                      _notifyTransactions();
+                                    },
+                                    onDelete: _deleteTransaction,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ),
+                          );
+                        },
                       ),
                   ],
                 const SizedBox(height: 80),
@@ -1279,6 +1306,16 @@ class _AccountTransactionsPageState extends State<_AccountTransactionsPage> {
             )
             .toList()
           ..sort((a, b) => b.date.compareTo(a.date));
+    // Pushed on top of the shell, so its own width is the whole width.
+    final screen = MediaQuery.sizeOf(context);
+    final txColumns = listColumnCount(
+      screenWidth: screen.width,
+      screenHeight: screen.height,
+      contentWidth: screen.width,
+      minItemWidth: transactionTileMinWidth,
+      preference: listColumnsAuto,
+      maxColumns: transactionMaxColumns,
+    );
     final balance = accountBalance(
       widget.account,
       _transactions,
@@ -1436,7 +1473,7 @@ class _AccountTransactionsPageState extends State<_AccountTransactionsPage> {
                         ),
                       ),
                     );
-                  }),
+                  }, columns: txColumns),
           ),
         ],
       ),
@@ -1598,6 +1635,7 @@ class _AccountDialogState extends State<_AccountDialog> {
     return UnsavedChangesGuard(
       hasUnsavedChanges: _hasUnsavedChanges,
       builder: (context, guard) => Dialog(
+        insetPadding: adaptiveDialogInset(context),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Column(

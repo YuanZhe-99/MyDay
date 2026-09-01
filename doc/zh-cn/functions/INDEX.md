@@ -6,12 +6,12 @@
 
 | 度量 | 计数 |
 |---|---|
-| `grep -r '/// Purpose:' lib --include=*.dart` | **1408** |
-| 全部 75 页的声明表行 | **1421** |
-| ——其中 Tier A（完整条目） | 804 |
-| ——其中 Tier B（仅索引行） | 617 |
+| `grep -r '/// Purpose:' lib --include=*.dart` | **1419** |
+| 全部 75 页的声明表行 | **1450** |
+| ——其中 Tier A（完整条目） | 813 |
+| ——其中 Tier B（仅索引行） | 637 |
 
-下面的 **Declarations** 和 **Tier A** 列统计**每页声明表中的行**，这是可机械检查的数字。一行不总是一个 `/// Purpose:` 块，表行数超出 grep 计数的 13 行净差额被完整逐项列出——行数与自己的 `grep` 不同的每页都带一条 `**Reconciliation:**` 说明确切原因。有三个反复出现的原因：
+下面的 **Declarations** 和 **Tier A** 列统计**每页声明表中的行**，这是可机械检查的数字。一行不总是一个 `/// Purpose:` 块，表行数超出 grep 计数的 31 行净差额被完整逐项列出——行数与自己的 `grep` 不同的每页都带一条 `**Reconciliation:**` 说明确切原因。有三个反复出现的原因：
 
 - **文件级库注释**（`backup_service.dart`、`webdav_service.dart`、`import_export_service.dart`、`json_preservation.dart`、`sync_progress.dart`、`sync_wake_lock.dart`）：`import` 块上方的一个 `/// Purpose:` 块记录文件，不记录声明，因此被 `grep` 计数但得不到行。
 - **没有 `Purpose:` 块的真实声明**（枚举、顶层 `const`、Riverpod provider、`appRouter`）：无 `grep` 命中，但有一行，因为它们是文件表面的一部分。
@@ -73,7 +73,7 @@
 | `lib/features/intimacy/widgets/body_section.dart` | [features/intimacy/widgets/body_section.md](features/intimacy/widgets/body_section.md) | 35 | 18 |
 | `lib/features/intimacy/widgets/cycle_calendar.dart` | [features/intimacy/widgets/cycle_calendar.md](features/intimacy/widgets/cycle_calendar.md) | 9 | 1 |
 | `lib/features/intimacy/widgets/intimacy_trend_chart.dart` | [features/intimacy/widgets/intimacy_trend_chart.md](features/intimacy/widgets/intimacy_trend_chart.md) | 25 | 16 |
-| `lib/features/intimacy/widgets/timer_page.dart` | [features/intimacy/widgets/timer_page.md](features/intimacy/widgets/timer_page.md) | 32 | 22 |
+| `lib/features/intimacy/widgets/timer_page.dart` | [features/intimacy/widgets/timer_page.md](features/intimacy/widgets/timer_page.md) | 34 | 23 |
 
 ## features/settings/
 
@@ -126,12 +126,12 @@
 | `lib/shared/services/sync_wake_lock.dart` | [shared/services/sync_wake_lock.md](shared/services/sync_wake_lock.md) | 0 | 0 |
 | `lib/shared/services/tray_service.dart` | [shared/services/tray_service.md](shared/services/tray_service.md) | 16 | 13 |
 | `lib/shared/services/webdav_service.dart` | [shared/services/webdav_service.md](shared/services/webdav_service.md) | 12 | 12 |
-| `lib/shared/utils/adaptive_layout.dart` | [shared/utils/adaptive_layout.md](shared/utils/adaptive_layout.md) | 30 | 11 |
+| `lib/shared/utils/adaptive_layout.dart` | [shared/utils/adaptive_layout.md](shared/utils/adaptive_layout.md) | 53 | 16 |
 | `lib/shared/utils/json_preservation.dart` | [shared/utils/json_preservation.md](shared/utils/json_preservation.md) | 3 | 2 |
 | `lib/shared/utils/week_grouping.dart` | [shared/utils/week_grouping.md](shared/utils/week_grouping.md) | 16 | 16 |
 | `lib/shared/views/backup_page.dart` | [shared/views/backup_page.md](shared/views/backup_page.md) | 17 | 2 |
 | `lib/shared/views/webdav_config_page.dart` | [shared/views/webdav_config_page.md](shared/views/webdav_config_page.md) | 20 | 6 |
-| `lib/shared/widgets/adaptive_tile_grid.dart` | [shared/widgets/adaptive_tile_grid.md](shared/widgets/adaptive_tile_grid.md) | 3 | 3 |
+| `lib/shared/widgets/adaptive_tile_grid.dart` | [shared/widgets/adaptive_tile_grid.md](shared/widgets/adaptive_tile_grid.md) | 7 | 6 |
 | `lib/shared/widgets/app_date_picker.dart` | [shared/widgets/app_date_picker.md](shared/widgets/app_date_picker.md) | 23 | 13 |
 | `lib/shared/widgets/delete_confirm.dart` | [shared/widgets/delete_confirm.md](shared/widgets/delete_confirm.md) | 1 | 1 |
 | `lib/shared/widgets/shell_scaffold.dart` | [shared/widgets/shell_scaffold.md](shared/widgets/shell_scaffold.md) | 10 | 4 |
@@ -145,11 +145,11 @@
 | 根（`lib/`） | 1 | 1 | 1 | 0 |
 | `app/` | 4 | 17 | 14 | 3 |
 | `features/finance/` | 20 | 388 | 192 | 196 |
-| `features/intimacy/` | 11 | 365 | 176 | 189 |
+| `features/intimacy/` | 11 | 367 | 177 | 190 |
 | `features/settings/` | 3 | 33 | 8 | 25 |
 | `features/todo/` | 7 | 198 | 122 | 76 |
 | `features/weight/` | 3 | 86 | 49 | 37 |
-| `shared/` | 26 | 333 | 242 | 91 |
-| **总计** | **75** | **1421** | **804** | **617** |
+| `shared/` | 26 | 360 | 250 | 110 |
+| **总计** | **75** | **1450** | **813** | **637** |
 
-这里的每行都是上面逐文件行的算术和，在 v1.4.1 中重新派生。文件计数也与 `find lib -name '*.dart' -not -path 'lib/l10n/*'` 完全匹配——75 个源文件、75 个页面，没有无页面的文件，也没有无文件的面。
+这里的每行都是上面逐文件行的算术和，在 v1.4.2 中重新派生。文件计数也与 `find lib -name '*.dart' -not -path 'lib/l10n/*'` 完全匹配——75 个源文件、75 个页面，没有无页面的文件，也没有无文件的面。

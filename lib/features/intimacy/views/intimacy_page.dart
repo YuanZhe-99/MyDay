@@ -2444,22 +2444,25 @@ class _PartnerManagementPageState extends State<_PartnerManagementPage> {
       appBar: AppBar(title: Text(l10n.intimacyPartners), centerTitle: true),
       body: _partners.isEmpty
           ? Center(child: Text(l10n.intimacyNoPartners))
-          : ListView(
-              children: [
-                if (active.isNotEmpty)
-                  _buildPartnerSection(
-                    title: l10n.intimacyActivePartners,
-                    statusKey: _statusActive,
-                    partners: active,
-                  ),
-                if (inactive.isNotEmpty)
-                  _buildPartnerSection(
-                    title: l10n.intimacyPastPartners,
-                    statusKey: _statusInactive,
-                    partners: inactive,
-                  ),
-                const SizedBox(height: 80),
-              ],
+          : AdaptiveContentWidth(
+              maxWidth: formMaxContentWidth,
+              child: ListView(
+                children: [
+                  if (active.isNotEmpty)
+                    _buildPartnerSection(
+                      title: l10n.intimacyActivePartners,
+                      statusKey: _statusActive,
+                      partners: active,
+                    ),
+                  if (inactive.isNotEmpty)
+                    _buildPartnerSection(
+                      title: l10n.intimacyPastPartners,
+                      statusKey: _statusInactive,
+                      partners: inactive,
+                    ),
+                  const SizedBox(height: 80),
+                ],
+              ),
             ),
       floatingActionButton: FloatingActionButton(
         onPressed: _addPartner,
@@ -3524,23 +3527,26 @@ class _ToyManagementPageState extends State<_ToyManagementPage> {
       appBar: AppBar(title: Text(l10n.intimacyToys), centerTitle: true),
       body: _toys.isEmpty
           ? Center(child: Text(l10n.intimacyNoToys))
-          : ListView(
-              children: [
-                _buildActiveCostSummary(active),
-                if (active.isNotEmpty)
-                  _buildToySection(
-                    title: l10n.intimacyActiveToys,
-                    statusKey: _statusActive,
-                    toys: active,
-                  ),
-                if (retired.isNotEmpty)
-                  _buildToySection(
-                    title: l10n.intimacyRetiredToys,
-                    statusKey: _statusInactive,
-                    toys: retired,
-                  ),
-                const SizedBox(height: 80),
-              ],
+          : AdaptiveContentWidth(
+              maxWidth: formMaxContentWidth,
+              child: ListView(
+                children: [
+                  _buildActiveCostSummary(active),
+                  if (active.isNotEmpty)
+                    _buildToySection(
+                      title: l10n.intimacyActiveToys,
+                      statusKey: _statusActive,
+                      toys: active,
+                    ),
+                  if (retired.isNotEmpty)
+                    _buildToySection(
+                      title: l10n.intimacyRetiredToys,
+                      statusKey: _statusInactive,
+                      toys: retired,
+                    ),
+                  const SizedBox(height: 80),
+                ],
+              ),
             ),
       floatingActionButton: FloatingActionButton(
         onPressed: _addToy,
@@ -4168,6 +4174,15 @@ class _PositionManagementPageState extends State<_PositionManagementPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    // Pushed on top of the shell, so its own width is the whole width.
+    final screen = MediaQuery.sizeOf(context);
+    final positionColumns = listColumnCount(
+      screenWidth: screen.width,
+      screenHeight: screen.height,
+      contentWidth: screen.width,
+      minItemWidth: categoryTileMinWidth,
+      preference: listColumnsAuto,
+    );
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.intimacyPositions),
@@ -4208,48 +4223,54 @@ class _PositionManagementPageState extends State<_PositionManagementPage> {
               ),
             )
           : ListView.builder(
-              itemCount: _positions.length,
-              itemBuilder: (context, index) {
-                final p = _positions[index];
-                final recordCount = widget.records
-                    .where((r) => r.positionIds.contains(p.id))
-                    .length;
-                return Dismissible(
-                  key: ValueKey(p.id),
-                  direction: DismissDirection.horizontal,
-                  background: Container(
-                    alignment: Alignment.centerLeft,
-                    padding: const EdgeInsets.only(left: 20),
-                    color: Theme.of(context).colorScheme.primary,
-                    child: Icon(
-                      Icons.edit_outlined,
-                      color: Theme.of(context).colorScheme.onPrimary,
+              // Rows, not tiles, so the builder keeps virtualizing.
+              itemCount: listRowCount(_positions.length, positionColumns),
+              itemBuilder: (context, row) => adaptiveTileRow(
+                rowIndex: row,
+                columns: positionColumns,
+                itemCount: _positions.length,
+                itemBuilder: (index) {
+                  final p = _positions[index];
+                  final recordCount = widget.records
+                      .where((r) => r.positionIds.contains(p.id))
+                      .length;
+                  return Dismissible(
+                    key: ValueKey(p.id),
+                    direction: DismissDirection.horizontal,
+                    background: Container(
+                      alignment: Alignment.centerLeft,
+                      padding: const EdgeInsets.only(left: 20),
+                      color: Theme.of(context).colorScheme.primary,
+                      child: Icon(
+                        Icons.edit_outlined,
+                        color: Theme.of(context).colorScheme.onPrimary,
+                      ),
                     ),
-                  ),
-                  secondaryBackground: Container(
-                    alignment: Alignment.centerRight,
-                    padding: const EdgeInsets.only(right: 20),
-                    color: Theme.of(context).colorScheme.error,
-                    child: Icon(
-                      Icons.delete_outline,
-                      color: Theme.of(context).colorScheme.onError,
+                    secondaryBackground: Container(
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.only(right: 20),
+                      color: Theme.of(context).colorScheme.error,
+                      child: Icon(
+                        Icons.delete_outline,
+                        color: Theme.of(context).colorScheme.onError,
+                      ),
                     ),
-                  ),
-                  confirmDismiss: (direction) async {
-                    if (direction == DismissDirection.startToEnd) {
-                      _editPosition(p);
-                      return false;
-                    }
-                    return confirmDelete(context, p.name);
-                  },
-                  onDismissed: (_) => _deletePosition(p),
-                  child: ListTile(
-                    leading: CircleAvatar(child: Text(p.emoji ?? p.name[0])),
-                    title: Text(p.name),
-                    subtitle: Text(l10n.intimacyRecordCount(recordCount)),
-                  ),
-                );
-              },
+                    confirmDismiss: (direction) async {
+                      if (direction == DismissDirection.startToEnd) {
+                        _editPosition(p);
+                        return false;
+                      }
+                      return confirmDelete(context, p.name);
+                    },
+                    onDismissed: (_) => _deletePosition(p),
+                    child: ListTile(
+                      leading: CircleAvatar(child: Text(p.emoji ?? p.name[0])),
+                      title: Text(p.name),
+                      subtitle: Text(l10n.intimacyRecordCount(recordCount)),
+                    ),
+                  );
+                },
+              ),
             ),
       floatingActionButton: FloatingActionButton(
         onPressed: _addPosition,
@@ -4578,11 +4599,18 @@ class _FilteredRecordsPageState extends ConsumerState<_FilteredRecordsPage> {
               const SizedBox(height: 12),
               LayoutBuilder(
                 builder: (context, constraints) {
-                  final columns = constraints.maxWidth >= 720
-                      ? math.min(metrics.length, 4)
-                      : constraints.maxWidth >= 360
-                      ? math.min(metrics.length, 2)
-                      : 1;
+                  // This page is pushed on top of the shell, so its own
+                  // constraints already are the whole width — no rail to
+                  // subtract. See doc/en-us/adaptive-layout.md.
+                  final columns = math.min(
+                    metrics.length,
+                    columnCapacity(
+                      constraints.maxWidth,
+                      minItemWidth: metricCardMinWidth,
+                      gap: 16,
+                      maxColumns: metricMaxColumns,
+                    ),
+                  );
                   final itemWidth =
                       (constraints.maxWidth - (columns - 1) * 16) / columns;
                   return Wrap(
@@ -4692,14 +4720,17 @@ class _FilteredRecordsPageState extends ConsumerState<_FilteredRecordsPage> {
   }
 
   /// Purpose: Build grouped record list widgets for this filtered detail page.
-  /// Inputs: `theme`, `records`, and `weekStartDay`.
+  /// Inputs: `theme`, `records`, `weekStartDay`, and `columns`.
   /// Returns: `List<Widget>`.
   /// Side effects: Creates UI widgets from the current state.
-  /// Notes: Uses the same configurable week grouping style as the main intimacy history.
+  /// Notes: Uses the same configurable week grouping style as the main intimacy
+  /// history, and packs tiles into rows inside each week group so a header
+  /// always spans the full width.
   List<Widget> _buildRecordListWidgets(
     ThemeData theme,
     List<IntimacyRecord> records,
     int weekStartDay,
+    int columns,
   ) {
     final groups = groupByWeek(
       records,
@@ -4710,7 +4741,11 @@ class _FilteredRecordsPageState extends ConsumerState<_FilteredRecordsPage> {
     return [
       for (final group in groups) ...[
         _buildWeekHeader(theme, group),
-        ...group.items.map(_buildRecordDismissible),
+        ...adaptiveTileRows(
+          columns: columns,
+          itemCount: group.items.length,
+          itemBuilder: (i) => _buildRecordDismissible(group.items[i]),
+        ),
       ],
     ];
   }
@@ -4808,6 +4843,16 @@ class _FilteredRecordsPageState extends ConsumerState<_FilteredRecordsPage> {
     final settings = ref.watch(appSettingsProvider);
     final records = _filteredRecords;
     final selectedToy = _selectedToy;
+    // Pushed on top of the shell, so its own width is the whole width.
+    final screen = MediaQuery.sizeOf(context);
+    final recordColumns = listColumnCount(
+      screenWidth: screen.width,
+      screenHeight: screen.height,
+      contentWidth: screen.width,
+      minItemWidth: intimacyRecordMinWidth,
+      preference: settings.intimacyListColumns,
+      maxColumns: intimacyRecordMaxColumns,
+    );
     return ListView(
       children: [
         _buildSummaryCard(theme, records, toy: selectedToy),
@@ -4831,7 +4876,12 @@ class _FilteredRecordsPageState extends ConsumerState<_FilteredRecordsPage> {
             ),
           )
         else
-          ..._buildRecordListWidgets(theme, records, settings.weekStartDay),
+          ..._buildRecordListWidgets(
+            theme,
+            records,
+            settings.weekStartDay,
+            recordColumns,
+          ),
         const SizedBox(height: 80),
       ],
     );
@@ -4931,18 +4981,21 @@ class _ToyCostOverviewPageState extends State<_ToyCostOverviewPage> {
     final selectedToys = _selectedToys;
     return Scaffold(
       appBar: AppBar(title: Text(l10n.intimacyToyCosts), centerTitle: true),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-        children: [
-          _buildScopeSelector(l10n),
-          const SizedBox(height: 12),
-          _buildSummaryCard(theme, l10n, selectedToys),
-          const SizedBox(height: 12),
-          if (_scope == _ToyCostScope.retired)
-            _buildFinalizedCostNote(theme, l10n)
-          else
-            _buildTrendCard(theme, l10n, selectedToys),
-        ],
+      body: AdaptiveContentWidth(
+        maxWidth: readingMaxContentWidth,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+          children: [
+            _buildScopeSelector(l10n),
+            const SizedBox(height: 12),
+            _buildSummaryCard(theme, l10n, selectedToys),
+            const SizedBox(height: 12),
+            if (_scope == _ToyCostScope.retired)
+              _buildFinalizedCostNote(theme, l10n)
+            else
+              _buildTrendCard(theme, l10n, selectedToys),
+          ],
+        ),
       ),
     );
   }

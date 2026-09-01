@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../models/intimacy_record.dart';
+import '../../../shared/utils/adaptive_layout.dart';
+import '../../../shared/widgets/adaptive_tile_grid.dart';
 import '../widgets/body_section.dart';
 
 /// Full-page Body settings for the user, opened from the intimacy manage
@@ -61,35 +63,38 @@ class _BodySettingsPageState extends State<BodySettingsPage> {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(title: Text(l10n.intimacyBody), centerTitle: true),
-      body: ListView(
-        children: [
-          BodySectionView(
-            mode: BodySectionMode.user,
-            profile: _userBody,
-            personId: null,
-            personColor: cyclePersonColor(
+      body: AdaptiveContentWidth(
+        maxWidth: formMaxContentWidth,
+        child: ListView(
+          children: [
+            BodySectionView(
+              mode: BodySectionMode.user,
+              profile: _userBody,
               personId: null,
-              allPartnerIdsSorted: const [],
+              personColor: cyclePersonColor(
+                personId: null,
+                allPartnerIdsSorted: const [],
+              ),
+              cycleRecords: _cycleRecords,
+              onProfileChanged: (profile) {
+                if (mounted) {
+                  setState(() => _userBody = profile);
+                } else {
+                  _userBody = profile;
+                }
+                widget.onUserBodyChanged(profile);
+              },
+              onCycleRecordsChanged: (records) {
+                if (mounted) {
+                  setState(() => _cycleRecords = List.of(records));
+                } else {
+                  _cycleRecords = List.of(records);
+                }
+                widget.onCycleRecordsChanged(records);
+              },
             ),
-            cycleRecords: _cycleRecords,
-            onProfileChanged: (profile) {
-              if (mounted) {
-                setState(() => _userBody = profile);
-              } else {
-                _userBody = profile;
-              }
-              widget.onUserBodyChanged(profile);
-            },
-            onCycleRecordsChanged: (records) {
-              if (mounted) {
-                setState(() => _cycleRecords = List.of(records));
-              } else {
-                _cycleRecords = List.of(records);
-              }
-              widget.onCycleRecordsChanged(records);
-            },
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

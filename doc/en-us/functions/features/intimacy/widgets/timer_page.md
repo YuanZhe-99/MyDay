@@ -49,14 +49,16 @@ retention) so the caller only re-saves what's actually dirty.
 | [`_confirmRestoreHistory`](#confirmrestorehistory) | method (`_TimerPageState`) | A | Confirm, then restore a timer-history entry as a new running stopwatch session, removing it from history. |
 | `build` | method (`_TimerPageState`) | B | Render the elapsed-time display, thrust controls, start/pause/save/reset buttons, and the history list. |
 | `_buildRetentionChip` | method (widget helper) | B | Render the history-retention popup-menu chip (3d/7d/14d/forever). |
+| `_TimerBody({...})` | constructor (`_TimerBody`) | B | Create the timer body arranger. |
+| [`build`](#timerbody-build) | method (`_TimerBody`) | A | Stack the stopwatch above its history, or put it in a pane beside it. |
 
-`grep -c 'Purpose:' lib/features/intimacy/widgets/timer_page.dart` reports 32, matching all 32 rows
+`grep -c 'Purpose:' lib/features/intimacy/widgets/timer_page.dart` reports 34, matching all 34 rows
 above exactly (no undocumented real declaration was found, and no `/// Purpose:` block is misattached
 above a call site rather than a real declaration). Several blocks use generic auto-generated-looking
 phrasing in the source ("Provide the internal ... helper for this file", "Internal helper used within
 this file only") — this page's Purpose column and Documentation entries replace that phrasing with
 descriptions verified against the actual implementation, per the per-file template's instruction to
-refine (not just copy) the source `///` comment. Tier split: 22 Tier A, 10 Tier B.
+refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier B.
 
 ## Documentation
 
@@ -622,3 +624,24 @@ refine (not just copy) the source `///` comment. Tier split: 22 Tier A, 10 Tier 
 - `shared/services/sync_wake_lock.dart` — the independent, reference-counted wakelock used by
   foreground sync operations; `_applyWakelock`/`_releaseWakelock` here never interferes with it
   because each tracks its own "did I enable this" flag.
+
+### `Widget build(BuildContext context)` (`_TimerBody`) <a id="timerbody-build"></a>
+- **Kind:** method of `_TimerBody`
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (approx. line 890)
+- **Purpose:** Arrange the stopwatch and its session history either stacked or in two panes.
+- **Inputs:** `context`; the widget's own `twoPane`, `timer` and `history` fields.
+- **Returns:** A `Column` when stacked, a `Row` when split.
+- **Side effects:** None beyond building widgets.
+- **Algorithm:**
+  1. `!twoPane || history.isEmpty` → `Column(children: [timer, ...history])`, which is exactly the
+     body the page had before v1.4.2.
+  2. Otherwise a `Row` of `Expanded(child: Column(children: [timer]))`, a `VerticalDivider`, and a
+     `SizedBox(width: timerHistoryPaneWidth, child: ListView(children: history))`.
+- **Usage:** Built by `TimerPage`'s `build` once the split decision is resolved.
+- **Notes:** Stacked, a long session history pushes the stopwatch up and eventually off the top of
+  the screen, which is the one thing this page must always show. `timer` arrives already wrapped in
+  an `Expanded`, so both arrangements put it in a `Flex`. The empty-history case falls back to the
+  stacked branch rather than rendering a blank pane — whenever a block can render to nothing, it
+  belongs in the gate. Gated on `canSplitLayout` for consistency with every other split surface,
+  which costs a phone in landscape the split it would benefit from most; that trade is recorded in
+  [../../../adaptive-layout.md](../../../adaptive-layout.md).

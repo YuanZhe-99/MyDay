@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/utils/adaptive_layout.dart';
+import '../../../shared/widgets/adaptive_tile_grid.dart';
 
 class PrivacyPolicyPage extends StatelessWidget {
   /// Purpose: Create a privacy policy page instance.
@@ -23,11 +25,14 @@ class PrivacyPolicyPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settingsPrivacyPolicy)),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: SelectableText(
-          text,
-          style: Theme.of(context).textTheme.bodyMedium,
+      body: AdaptiveContentWidth(
+        maxWidth: readingMaxContentWidth,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: SelectableText(
+            text,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
         ),
       ),
     );

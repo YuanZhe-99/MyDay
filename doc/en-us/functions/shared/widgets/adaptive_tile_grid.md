@@ -1,8 +1,10 @@
 # lib/shared/widgets/adaptive_tile_grid.dart
 
-The two pieces of shared UI that turn `lib/shared/utils/adaptive_layout.dart`'s column arithmetic
-into widgets: a helper that lays a flat list of tiles out as rows of equal columns, and the app-bar
-control that lets the user pin a column count. Both are deliberately thin — every threshold and
+The pieces of shared UI that turn `lib/shared/utils/adaptive_layout.dart`'s arithmetic
+into widgets: a helper that lays a flat list of tiles out as rows of equal columns, the app-bar
+control that lets the user pin a column count, a wrapper that caps and centres a page too wide for
+its content, and the inset that keeps a dialog readable. All of them are deliberately thin —
+every threshold and
 every clamp lives in the policy module (see
 [../utils/adaptive_layout.md](../utils/adaptive_layout.md)), and the reasoning behind the numbers
 lives in [../../../adaptive-layout.md](../../../adaptive-layout.md).
@@ -14,10 +16,14 @@ lives in [../../../adaptive-layout.md](../../../adaptive-layout.md).
 | [`adaptiveTileRow`](#adaptivetilerow) | top-level function | A | Build one row of a multi-column list, filled left to right. |
 | [`adaptiveTileRows`](#adaptivetilerows) | top-level function | A | Build a list's children as rows, single column or multi-column. |
 | [`listColumnsButton`](#listcolumnsbutton) | top-level function | A | Build the app-bar control that picks a list's column count. |
+| [`AdaptiveContentWidth`](#adaptivecontentwidth) | class (`StatelessWidget`) | A | Centre a page's content once the window is wider than it needs. |
+| `AdaptiveContentWidth({...})` | constructor (`AdaptiveContentWidth`) | B | Create an adaptive content width wrapper. |
+| [`build`](#adaptivecontentwidth-build) | method (`AdaptiveContentWidth`) | A | Align and cap the wrapped child. |
+| [`adaptiveDialogInset`](#adaptivedialoginset) | top-level function | A | Return the inset padding that keeps a dialog at a readable width. |
 
-`grep -c 'Purpose:' lib/shared/widgets/adaptive_tile_grid.dart` reports 3, matching all three real
-declarations in this file exactly. No misattachment or undocumented declarations found. All three
-are Tier A per the blanket rule for top-level functions under `shared/`.
+`grep -c 'Purpose:' lib/shared/widgets/adaptive_tile_grid.dart` reports 7, matching all seven real
+declarations in this file exactly. No misattachment or undocumented declarations found. The six
+top-level functions, plus the `AdaptiveContentWidth` class and its `build`, are Tier A per the blanket rule for `shared/`; only the widget's field-initialising constructor is Tier B.
 
 ## Documentation
 
@@ -102,3 +108,53 @@ are Tier A per the blanket rule for top-level functions under `shared/`.
   and take effect on unfolding; the check mark tracks the **stored** preference while what actually
   renders is that preference clamped to what fits (see
   [../utils/adaptive_layout.md#listcolumncount](../utils/adaptive_layout.md#listcolumncount)).
+
+### `class AdaptiveContentWidth extends StatelessWidget` <a id="adaptivecontentwidth"></a>
+- **Kind:** top-level class (`StatelessWidget`)
+- **Source:** `lib/shared/widgets/adaptive_tile_grid.dart` (line 113)
+- **Purpose:** Centre a page's content once the window is wider than the content needs.
+- **Inputs:** `maxWidth` — the widest the content should ever grow; `child`.
+- **Returns:** A widget.
+- **Side effects:** None beyond building widgets.
+- **Algorithm:** See `build` below.
+- **Usage:**
+  ```dart
+  body: AdaptiveContentWidth(
+    maxWidth: formMaxContentWidth,
+    child: ListView(children: [...]),
+  ),
+  ```
+- **Notes:** This is Rule D in widget form: what a form or a prose page does with a desktop window
+  instead of splitting. A `ListTile` stretched across 1400 logical pixels puts its title and its
+  trailing control at opposite ends of the screen. Width only and no gate, so it can never change
+  what a phone renders. Wrap the **scrollable**, not its children, so the scrollbar and the scroll
+  gesture still span the whole window.
+
+### `Widget build(BuildContext context)` (`AdaptiveContentWidth`) <a id="adaptivecontentwidth-build"></a>
+- **Kind:** method of `AdaptiveContentWidth`
+- **Source:** `lib/shared/widgets/adaptive_tile_grid.dart` (line 135)
+- **Purpose:** Align the child to the top centre and cap its width.
+- **Inputs:** `context`; the widget's own `maxWidth` and `child`.
+- **Returns:** An `Align` wrapping a `ConstrainedBox`.
+- **Side effects:** None beyond building widgets.
+- **Algorithm:** `Align(alignment: Alignment.topCenter, child: ConstrainedBox(constraints:
+  BoxConstraints(maxWidth: maxWidth), child: child))`.
+- **Usage:** Invoked by Flutter.
+- **Notes:** `Align` rather than `Center` on purpose: a `Center` tries to shrink-wrap its child's
+  height, which a `ListView` cannot give it.
+
+### `EdgeInsets adaptiveDialogInset(BuildContext context)` <a id="adaptivedialoginset"></a>
+- **Kind:** top-level function
+- **Source:** `lib/shared/widgets/adaptive_tile_grid.dart` (line 154)
+- **Purpose:** Return the inset padding that keeps a dialog at a readable width.
+- **Inputs:** `context`.
+- **Returns:** `EdgeInsets` — Flutter's own default on a narrow window, more horizontal inset on a
+  wide one.
+- **Side effects:** None.
+- **Algorithm:** `EdgeInsets.symmetric(horizontal:
+  dialogHorizontalInset(MediaQuery.sizeOf(context).width), vertical: 24)`.
+- **Usage:** `Dialog(insetPadding: adaptiveDialogInset(context), child: ...)` — every form dialog
+  in the app passes it, and needs no other change to its own tree.
+- **Notes:** The vertical 24 is Flutter's default and is kept as-is; only the horizontal inset
+  varies. The numeric rule lives in the policy module — see
+  [../utils/adaptive_layout.md#dialoghorizontalinset](../utils/adaptive_layout.md#dialoghorizontalinset).

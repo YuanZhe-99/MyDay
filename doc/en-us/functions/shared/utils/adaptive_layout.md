@@ -38,6 +38,24 @@ named predicate.
 | `settingsRightPaneMinWidth` | top-level `const double` | B | Smallest width the settings detail pane may be given (280). |
 | `weightSummaryPaneMinWidth` | top-level `const double` | B | Smallest width the weight summary card may occupy beside the chart (280). |
 | `weightChartMinWidth` | top-level `const double` | B | Smallest width the weight trend chart may be given (380). |
+| `metricCardMinWidth` | top-level `const double` | B | Minimum width one metric card may occupy (160). |
+| `metricMaxColumns` | top-level `const int` | B | Ceiling on metric columns in a summary card (4). |
+| `accountCardMinWidth` | top-level `const double` | B | Minimum width one account card may occupy (340). |
+| `accountMaxColumns` | top-level `const int` | B | Ceiling on account columns (3). |
+| `categoryTileMinWidth` | top-level `const double` | B | Minimum width one category tile may occupy (300). |
+| `exchangeRateTileMinWidth` | top-level `const double` | B | Minimum width one exchange-rate row may occupy (280). |
+| `formFieldMinWidth` | top-level `const double` | B | Minimum width one paired form field may occupy (260). |
+| `formMaxContentWidth` | top-level `const double` | B | Widest a form page lets its content grow (720). |
+| `readingMaxContentWidth` | top-level `const double` | B | Widest a prose page lets its text grow (840). |
+| `pieChartMinWidth` | top-level `const double` | B | Smallest width the analysis pie chart may be given (280). |
+| `pieLegendMinWidth` | top-level `const double` | B | Smallest width the category legend may be given beside it (320). |
+| `calendarCardMinWidth` | top-level `const double` | B | Smallest width the Todo month calendar may occupy beside the trend (340). |
+| `scoreTrendMinWidth` | top-level `const double` | B | Smallest width the Todo score trend may be given (360). |
+| `timerHistoryPaneWidth` | top-level `const double` | B | Width of the timer page's session-history pane (320). |
+| `dialogMaxContentWidth` | top-level `const double` | B | Widest a dialog's content grows before it centres instead (640). |
+| `dialogMinHorizontalInset` | top-level `const double` | B | Flutter's own default dialog horizontal inset (40). |
+| `pickerCellMinWidth` | top-level `const double` | B | Minimum width one emoji or icon picker cell may occupy (44). |
+| `pickerMaxColumns` | top-level `const int` | B | Ceiling on picker columns (12). |
 | [`canSplitLayout`](#cansplitlayout) | top-level function | A | Report whether a layout may split into panes or columns. |
 | [`useNavigationRail`](#usenavigationrail) | top-level function | A | Report whether the shell should show a navigation rail. |
 | [`shellContentWidth`](#shellcontentwidth) | top-level function | A | Return the width a shell page's content actually receives. |
@@ -49,18 +67,23 @@ named predicate.
 | [`settingsLeftPaneWidth`](#settingsleftpanewidth) | top-level function | A | Return the width of the settings page's fixed left pane. |
 | [`useWeightSummaryBesideChart`](#useweightsummarybesidechart) | top-level function | A | Report whether the weight summary card fits beside the trend chart. |
 | [`weightSummaryPaneWidth`](#weightsummarypanewidth) | top-level function | A | Return the width of the weight summary card when it sits beside the chart. |
+| [`cappedContentWidth`](#cappedcontentwidth) | top-level function | A | Return the width a page centres its content at, if any. |
+| [`usePieChartSideBySide`](#usepiechartsidebyside) | top-level function | A | Report whether the analysis legend fits beside the pie chart. |
+| [`useTodoCalendarSideBySide`](#usetodocalendarsidebyside) | top-level function | A | Report whether the Todo score trend fits beside the month calendar. |
+| [`todoCalendarPaneWidth`](#todocalendarpanewidth) | top-level function | A | Return the width of the Todo calendar page's month-grid pane. |
+| [`dialogHorizontalInset`](#dialoghorizontalinset) | top-level function | A | Return the horizontal inset that caps a dialog's content width. |
 
-**Reconciliation:** `grep -c 'Purpose:' lib/shared/utils/adaptive_layout.dart` reports 11 against 30
-rows. The nineteen top-level `const` declarations carry a prose doc comment stating where their
+**Reconciliation:** `grep -c 'Purpose:' lib/shared/utils/adaptive_layout.dart` reports 16 against 53
+rows. The thirty-seven top-level `const` declarations carry a prose doc comment stating where their
 value came from rather than a `Purpose:` block, matching how the index treats top-level constants
-elsewhere; they are part of the file's surface and therefore get rows. All eleven functions are
+elsewhere; they are part of the file's surface and therefore get rows. All sixteen functions are
 Tier A per the blanket rule for top-level functions under `shared/`. The constants are Tier B:
 their whole content is the value and the reason for it, both of which the tables below and
 [../../../adaptive-layout.md](../../../adaptive-layout.md) already carry.
 
 ## Constants
 
-These nineteen numbers are the whole numeric surface of MyDay's layout policy. The first eight are
+These thirty-seven numbers are the whole numeric surface of MyDay's layout policy. The first eight are
 shared with the sibling apps and must not be changed without reading
 [../../../adaptive-layout.md](../../../adaptive-layout.md) first — `splitMinAspect` in particular
 is a whole-app behavior change. The rest are MyDay's own per-content minimums, and each one states
@@ -88,6 +111,24 @@ safely change later.
 | `settingsRightPaneMinWidth` | `280.0` | The narrowest a hosted second-level page stays usable at — a form field plus its label. |
 | `weightSummaryPaneMinWidth` | `280.0` | The card carries the latest weight at `displaySmall` beside a change figure, then a `Wrap` of stat labels each constrained to 88–168. |
 | `weightChartMinWidth` | `380.0` | The chart reserves about 40 for its left axis and needs roughly 48 per date label, so this shows about seven labelled points without crowding. |
+| `metricCardMinWidth` | `160.0` | A stat label above its value; below this a localized label such as "平均抽插速率" wraps to three lines. |
+| `metricMaxColumns` | `4` | A summary card carries at most four metrics, and four across is still scannable at a glance. |
+| `accountCardMinWidth` | `340.0` | An account name, its bank-preset chip, and a balance shown in both its native and the default currency on one line. |
+| `accountMaxColumns` | `3` | Account rows carry two currencies; a fourth column starts truncating one of them. |
+| `categoryTileMinWidth` | `300.0` | An emoji, an icon, the name and a trailing chevron; below this the longest localized category name truncates. |
+| `exchangeRateTileMinWidth` | `280.0` | A currency pair, its rate to six significant figures, and the timestamp of the fetch that produced it. |
+| `formFieldMinWidth` | `260.0` | An `OutlineInputBorder` field whose longest localized label is Japanese; narrower and the label truncates before the field's own suffix. |
+| `formMaxContentWidth` | `720.0` | A `ListTile` stretched across a 1400 dp desktop window puts its title and its trailing control at opposite ends of the screen; this keeps them within one glance of each other. |
+| `readingMaxContentWidth` | `840.0` | About 90 characters at the app's body size, the upper end of a comfortable reading measure. Prose gets more than a form because it has no controls whose separation matters. |
+| `pieChartMinWidth` | `280.0` | A 200 dp pie with room for its percentage labels and the card's own padding. |
+| `pieLegendMinWidth` | `320.0` | A colour swatch, an emoji, a category name and a right-aligned amount with a chevron. |
+| `calendarCardMinWidth` | `340.0` | Seven day columns plus the card's own padding; below this the day numbers smear together. |
+| `scoreTrendMinWidth` | `360.0` | The chart reserves about 24 for its left axis and needs roughly 11 per day label across a 31-day month. |
+| `timerHistoryPaneWidth` | `320.0` | A duration, a start timestamp with a thrust count beneath it, and a trailing restore button. Fixed rather than proportional: every pixel beyond this belongs to the stopwatch, which is what the page exists to show. |
+| `dialogMaxContentWidth` | `640.0` | Every form dialog is a scrolling `Column` of full-width fields; a text field 1300 logical pixels wide is harder to read than one at 600, not easier. |
+| `dialogMinHorizontalInset` | `40.0` | Flutter's own `Dialog` default, kept so a phone dialog is byte-for-byte the layout it always was. |
+| `pickerCellMinWidth` | `44.0` | Material's minimum touch-target size. A picker cell is a square tap target with nothing but a glyph in it, so the tap target *is* the minimum. |
+| `pickerMaxColumns` | `12` | Beyond this the eye stops scanning a picker as a grid and starts scanning it as noise; it also keeps the cells from growing far past a thumb. |
 
 ## Documentation
 
@@ -321,3 +362,77 @@ safely change later.
   so `weightChartMinWidth` is met exactly at the gate and only more comfortably above it. That is
   an invariant asserted across the whole range in `test/adaptive_layout_test.dart` rather than
   defended with arithmetic that never fires.
+
+### `double cappedContentWidth(double contentWidth, double maxWidth)` <a id="cappedcontentwidth"></a>
+- **Kind:** top-level function
+- **Source:** `lib/shared/utils/adaptive_layout.dart` (line 352)
+- **Purpose:** Return the width a page should centre its content at, if any.
+- **Inputs:** `contentWidth` — the width the page actually has; `maxWidth` — the widest that
+  content should ever grow.
+- **Returns:** `double` — `maxWidth` when the page is wider, `contentWidth` otherwise.
+- **Side effects:** None.
+- **Algorithm:** `contentWidth > maxWidth ? maxWidth : contentWidth`.
+- **Usage:** The numeric half of what `AdaptiveContentWidth` does in widget form — see
+  [../widgets/adaptive_tile_grid.md#adaptivecontentwidth](../widgets/adaptive_tile_grid.md#adaptivecontentwidth).
+- **Notes:** Width only and no gate, so a page narrower than the cap is unaffected at every
+  viewport and this can never change what a phone renders. This is Rule D: what a form or a prose
+  page does with a desktop window instead of splitting.
+
+### `bool usePieChartSideBySide(double contentWidth)` <a id="usepiechartsidebyside"></a>
+- **Kind:** top-level function
+- **Source:** `lib/shared/utils/adaptive_layout.dart` (line 362)
+- **Purpose:** Report whether the analysis legend fits beside the pie chart.
+- **Inputs:** `contentWidth` — the width the analysis tab gets, in logical pixels.
+- **Returns:** `bool`.
+- **Side effects:** None.
+- **Algorithm:** `contentWidth >= pieChartMinWidth + pieLegendMinWidth + listTileGap` (612).
+- **Usage:** Tested together with `canSplitLayout` in `_buildPieChart`.
+- **Notes:** A width floor **on top of** the shape rule, the same double gate the weight page uses.
+  Below it the legend keeps its place under the chart, which is the layout every viewport had
+  before v1.4.2.
+
+### `bool useTodoCalendarSideBySide(double contentWidth)` <a id="usetodocalendarsidebyside"></a>
+- **Kind:** top-level function
+- **Source:** `lib/shared/utils/adaptive_layout.dart` (line 372)
+- **Purpose:** Report whether the Todo score trend fits beside the month calendar.
+- **Inputs:** `contentWidth` — the width the calendar page gets, in logical pixels.
+- **Returns:** `bool`.
+- **Side effects:** None.
+- **Algorithm:** `contentWidth >= calendarCardMinWidth + scoreTrendMinWidth + listTileGap` (712).
+- **Usage:** Tested together with `canSplitLayout` in `_TodoCalendarPageState.build`.
+- **Notes:** A month grid and a trend chart stacked are two full screens on a phone; side by side
+  they are one on a tablet. A Z Fold 5 in portrait passes the shape rule and fails this one, which
+  is exactly the case the second gate exists for.
+
+### `double todoCalendarPaneWidth(double contentWidth)` <a id="todocalendarpanewidth"></a>
+- **Kind:** top-level function
+- **Source:** `lib/shared/utils/adaptive_layout.dart` (line 386)
+- **Purpose:** Return the width of the Todo calendar page's month-grid pane.
+- **Inputs:** `contentWidth` — the width both blocks share, in logical pixels.
+- **Returns:** `double` between `calendarCardMinWidth` and 480.
+- **Side effects:** None.
+- **Algorithm:** `(contentWidth * 0.4).clamp(calendarCardMinWidth, 480.0)`.
+- **Usage:** `SizedBox(width: todoCalendarPaneWidth(screen.width), child: calendarCard)`.
+- **Notes:** Proportional so a desktop window gives the day cells bigger tap targets rather than
+  leaving the calendar at its bare minimum beside a very wide chart; the ceiling exists because a
+  month grid gains nothing from extra width once its cells are comfortable. No right-hand cap is
+  needed — under the gate the pane grows at 0.4 while the chart grows at 0.6, so the chart clears
+  its floor at the boundary and only more comfortably above it, asserted across the range in
+  `test/adaptive_layout_test.dart`.
+
+### `double dialogHorizontalInset(double screenWidth)` <a id="dialoghorizontalinset"></a>
+- **Kind:** top-level function
+- **Source:** `lib/shared/utils/adaptive_layout.dart` (line 417)
+- **Purpose:** Return the horizontal inset that caps a dialog's content width.
+- **Inputs:** `screenWidth` — the whole screen width in logical pixels.
+- **Returns:** `double`, never below `dialogMinHorizontalInset`.
+- **Side effects:** None.
+- **Algorithm:** `(screenWidth - dialogMaxContentWidth) / 2`, floored at
+  `dialogMinHorizontalInset`.
+- **Usage:** Via `adaptiveDialogInset` — see
+  [../widgets/adaptive_tile_grid.md#adaptivedialoginset](../widgets/adaptive_tile_grid.md#adaptivedialoginset).
+- **Notes:** Width only and no gate. Below about 720 the result is Flutter's own default, so a
+  phone dialog is untouched; above it the extra width becomes inset on both sides, which centres
+  the dialog rather than stretching it. A dialog is drawn on the root overlay, so measure the
+  **screen**, not the page behind it — the navigation rail's width is part of what the dialog
+  covers.

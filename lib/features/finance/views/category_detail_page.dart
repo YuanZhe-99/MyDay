@@ -7,6 +7,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../shared/services/image_service.dart';
 import '../../../shared/widgets/delete_confirm.dart';
 import '../models/finance.dart';
+import '../../../shared/utils/adaptive_layout.dart';
 import '../services/balance_util.dart';
 import '../services/exchange_rate_storage.dart';
 import '../widgets/add_transaction_dialog.dart';
@@ -185,6 +186,16 @@ class _CategoryDetailPageState extends State<CategoryDetailPage> {
     final sym = currencySymbol(widget.defaultCurrency);
     final numberFormat = NumberFormat('#,##0.00');
     final isExpense = widget.transactionType == TransactionType.expense;
+    // Pushed on top of the shell, so its own width is the whole width.
+    final screen = MediaQuery.sizeOf(context);
+    final txColumns = listColumnCount(
+      screenWidth: screen.width,
+      screenHeight: screen.height,
+      contentWidth: screen.width,
+      minItemWidth: transactionTileMinWidth,
+      preference: listColumnsAuto,
+      maxColumns: transactionMaxColumns,
+    );
     final isTransfer = widget.transactionType == TransactionType.transfer;
     final monthLabel = DateFormat('yyyy-MM').format(DateTime.now());
     final typeLabel = switch (widget.transactionType) {
@@ -296,6 +307,7 @@ class _CategoryDetailPageState extends State<CategoryDetailPage> {
                         defaultCurrency: widget.defaultCurrency,
                       ),
                     ),
+                    columns: txColumns,
                   ),
           ),
         ],

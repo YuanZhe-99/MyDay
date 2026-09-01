@@ -7,6 +7,8 @@ import '../../../l10n/app_localizations.dart';
 import '../../../shared/services/image_service.dart';
 import '../../../shared/widgets/delete_confirm.dart';
 import '../models/finance.dart';
+import '../../../shared/utils/adaptive_layout.dart';
+import '../../../shared/widgets/adaptive_tile_grid.dart';
 import '../services/balance_util.dart';
 import '../services/exchange_rate_storage.dart';
 import '../services/subscription_processor.dart';
@@ -749,315 +751,326 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
       ),
       body: _reordering
           ? _buildReorderBody(theme, l10n, active)
-          : Column(
-              children: [
-                // Summary cards
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: _SummaryCard(
-                          label: l10n.financeMonthlyDue,
-                          value: '$sym${numberFormat.format(_monthlyDue())}',
-                          color: theme.colorScheme.error,
-                          icon: Icons.calendar_today,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _SummaryCard(
-                          label: l10n.financeMonthlyAvg,
-                          value: '$sym${numberFormat.format(_monthlyAvg())}',
-                          color: theme.colorScheme.primary,
-                          icon: Icons.trending_down,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _SummaryCard(
-                          label: l10n.financeYearlyAvg,
-                          value: '$sym${numberFormat.format(_yearlyAvg())}',
-                          color: Colors.orange,
-                          icon: Icons.date_range,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Divider(height: 1),
-
-                // Active subscriptions
-                if (active.isNotEmpty || historical.isNotEmpty)
-                  Expanded(
-                    child: ListView(
+          : AdaptiveContentWidth(
+              maxWidth: formMaxContentWidth,
+              child: Column(
+                children: [
+                  // Summary cards
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
                       children: [
-                        // Upcoming renewals
-                        if (upcomingSubs.isNotEmpty) ...[
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 10, 16, 2),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.notifications_active,
-                                  size: 16,
-                                  color: theme.colorScheme.error,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  l10n.financeUpcomingRenewals,
-                                  style: theme.textTheme.labelMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
+                        Expanded(
+                          child: _SummaryCard(
+                            label: l10n.financeMonthlyDue,
+                            value: '$sym${numberFormat.format(_monthlyDue())}',
+                            color: theme.colorScheme.error,
+                            icon: Icons.calendar_today,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _SummaryCard(
+                            label: l10n.financeMonthlyAvg,
+                            value: '$sym${numberFormat.format(_monthlyAvg())}',
+                            color: theme.colorScheme.primary,
+                            icon: Icons.trending_down,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _SummaryCard(
+                            label: l10n.financeYearlyAvg,
+                            value: '$sym${numberFormat.format(_yearlyAvg())}',
+                            color: Colors.orange,
+                            icon: Icons.date_range,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1),
+
+                  // Active subscriptions
+                  if (active.isNotEmpty || historical.isNotEmpty)
+                    Expanded(
+                      child: ListView(
+                        children: [
+                          // Upcoming renewals
+                          if (upcomingSubs.isNotEmpty) ...[
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 10, 16, 2),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.notifications_active,
+                                    size: 16,
                                     color: theme.colorScheme.error,
                                   ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                            child: Wrap(
-                              spacing: 8,
-                              runSpacing: 4,
-                              children: upcomingSubs.map((entry) {
-                                final (sub, _) = entry;
-                                final cat = sub.categoryId != null
-                                    ? widget.categories
-                                          .where((c) => c.id == sub.categoryId)
-                                          .firstOrNull
-                                    : null;
-                                final icon = sub.emoji ?? cat?.emoji;
-                                return Chip(
-                                  avatar: icon != null
-                                      ? Text(
-                                          icon,
-                                          style: const TextStyle(fontSize: 14),
-                                        )
-                                      : const Icon(Icons.repeat, size: 14),
-                                  label: Text(
-                                    sub.name,
-                                    style: theme.textTheme.bodySmall,
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    l10n.financeUpcomingRenewals,
+                                    style: theme.textTheme.labelMedium
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                          color: theme.colorScheme.error,
+                                        ),
                                   ),
-                                  visualDensity: VisualDensity.compact,
-                                  materialTapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                );
-                              }).toList(),
+                                ],
+                              ),
                             ),
-                          ),
-                          const Divider(height: 1),
-                        ],
-                        // Reminder setting
-                        SwitchListTile(
-                          secondary: const Icon(Icons.notifications_outlined),
-                          title: Text(
-                            l10n.financeReminderEnabled,
-                            style: theme.textTheme.bodyMedium,
-                          ),
-                          subtitle: reminderEnabled
-                              ? Text(
-                                  '${l10n.financeReminderTime}: '
-                                  '${_reminderHour!.toString().padLeft(2, '0')}:'
-                                  '${_reminderMinute!.toString().padLeft(2, '0')}',
-                                  style: theme.textTheme.bodySmall,
-                                )
-                              : null,
-                          value: reminderEnabled,
-                          onChanged: (enabled) async {
-                            if (enabled) {
-                              final picked = await showTimePicker(
-                                context: context,
-                                initialTime: const TimeOfDay(
-                                  hour: 9,
-                                  minute: 0,
-                                ),
-                              );
-                              if (picked != null) {
-                                setState(() {
-                                  _reminderHour = picked.hour;
-                                  _reminderMinute = picked.minute;
-                                });
-                                widget.onReminderChanged(
-                                  picked.hour,
-                                  picked.minute,
-                                );
-                              }
-                            } else {
-                              setState(() {
-                                _reminderHour = null;
-                                _reminderMinute = null;
-                              });
-                              widget.onReminderChanged(null, null);
-                            }
-                          },
-                        ),
-                        if (reminderEnabled)
-                          ListTile(
-                            leading: const Icon(Icons.access_time),
-                            title: Text(l10n.financeReminderTime),
-                            trailing: Text(
-                              '${_reminderHour!.toString().padLeft(2, '0')}:'
-                              '${_reminderMinute!.toString().padLeft(2, '0')}',
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                              child: Wrap(
+                                spacing: 8,
+                                runSpacing: 4,
+                                children: upcomingSubs.map((entry) {
+                                  final (sub, _) = entry;
+                                  final cat = sub.categoryId != null
+                                      ? widget.categories
+                                            .where(
+                                              (c) => c.id == sub.categoryId,
+                                            )
+                                            .firstOrNull
+                                      : null;
+                                  final icon = sub.emoji ?? cat?.emoji;
+                                  return Chip(
+                                    avatar: icon != null
+                                        ? Text(
+                                            icon,
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                            ),
+                                          )
+                                        : const Icon(Icons.repeat, size: 14),
+                                    label: Text(
+                                      sub.name,
+                                      style: theme.textTheme.bodySmall,
+                                    ),
+                                    visualDensity: VisualDensity.compact,
+                                    materialTapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  );
+                                }).toList(),
+                              ),
                             ),
-                            onTap: () async {
-                              final picked = await showTimePicker(
-                                context: context,
-                                initialTime: TimeOfDay(
-                                  hour: _reminderHour!,
-                                  minute: _reminderMinute!,
-                                ),
-                              );
-                              if (picked != null) {
-                                setState(() {
-                                  _reminderHour = picked.hour;
-                                  _reminderMinute = picked.minute;
-                                });
-                                widget.onReminderChanged(
-                                  picked.hour,
-                                  picked.minute,
+                            const Divider(height: 1),
+                          ],
+                          // Reminder setting
+                          SwitchListTile(
+                            secondary: const Icon(Icons.notifications_outlined),
+                            title: Text(
+                              l10n.financeReminderEnabled,
+                              style: theme.textTheme.bodyMedium,
+                            ),
+                            subtitle: reminderEnabled
+                                ? Text(
+                                    '${l10n.financeReminderTime}: '
+                                    '${_reminderHour!.toString().padLeft(2, '0')}:'
+                                    '${_reminderMinute!.toString().padLeft(2, '0')}',
+                                    style: theme.textTheme.bodySmall,
+                                  )
+                                : null,
+                            value: reminderEnabled,
+                            onChanged: (enabled) async {
+                              if (enabled) {
+                                final picked = await showTimePicker(
+                                  context: context,
+                                  initialTime: const TimeOfDay(
+                                    hour: 9,
+                                    minute: 0,
+                                  ),
                                 );
+                                if (picked != null) {
+                                  setState(() {
+                                    _reminderHour = picked.hour;
+                                    _reminderMinute = picked.minute;
+                                  });
+                                  widget.onReminderChanged(
+                                    picked.hour,
+                                    picked.minute,
+                                  );
+                                }
+                              } else {
+                                setState(() {
+                                  _reminderHour = null;
+                                  _reminderMinute = null;
+                                });
+                                widget.onReminderChanged(null, null);
                               }
                             },
                           ),
-                        const Divider(height: 1),
-                        if (active.isNotEmpty) ...[
-                          _SectionHeader(
-                            title: l10n.financeActiveSubscriptions,
-                          ),
-                          ...active.map(
-                            (sub) => Dismissible(
-                              key: ValueKey('active-${sub.id}'),
-                              confirmDismiss: (direction) async {
-                                if (direction == DismissDirection.startToEnd) {
-                                  _editSubscription(sub);
-                                  return false;
-                                } else {
-                                  _cancelSubscription(sub);
-                                  return false;
+                          if (reminderEnabled)
+                            ListTile(
+                              leading: const Icon(Icons.access_time),
+                              title: Text(l10n.financeReminderTime),
+                              trailing: Text(
+                                '${_reminderHour!.toString().padLeft(2, '0')}:'
+                                '${_reminderMinute!.toString().padLeft(2, '0')}',
+                              ),
+                              onTap: () async {
+                                final picked = await showTimePicker(
+                                  context: context,
+                                  initialTime: TimeOfDay(
+                                    hour: _reminderHour!,
+                                    minute: _reminderMinute!,
+                                  ),
+                                );
+                                if (picked != null) {
+                                  setState(() {
+                                    _reminderHour = picked.hour;
+                                    _reminderMinute = picked.minute;
+                                  });
+                                  widget.onReminderChanged(
+                                    picked.hour,
+                                    picked.minute,
+                                  );
                                 }
                               },
-                              background: Container(
-                                color: theme.colorScheme.primaryContainer,
-                                alignment: Alignment.centerLeft,
-                                padding: const EdgeInsets.only(left: 20),
-                                child: Icon(
-                                  Icons.edit,
-                                  color: theme.colorScheme.onPrimaryContainer,
-                                ),
-                              ),
-                              secondaryBackground: Container(
-                                color: theme.colorScheme.errorContainer,
-                                alignment: Alignment.centerRight,
-                                padding: const EdgeInsets.only(right: 20),
-                                child: Icon(
-                                  Icons.cancel_outlined,
-                                  color: theme.colorScheme.onErrorContainer,
-                                ),
-                              ),
-                              child: _SubscriptionTile(
-                                subscription: sub,
-                                categories: widget.categories,
-                                accounts: widget.accounts,
-                                defaultCurrency: widget.defaultCurrency,
-                                onTap: () => _openDetail(sub),
-                                onEdit: () => _editSubscription(sub),
-                                onCancel: () => _cancelSubscription(sub),
-                                onRestore: sub.cancelType == CancelType.atExpiry
-                                    ? () {
-                                        _restoreSubscription(sub);
-                                      }
-                                    : null,
-                                onDelete: () async {
-                                  final confirmed = await confirmDelete(
-                                    context,
-                                    l10n.financeThisSubscription,
-                                  );
-                                  if (confirmed == true) {
-                                    _deleteSubscription(sub);
+                            ),
+                          const Divider(height: 1),
+                          if (active.isNotEmpty) ...[
+                            _SectionHeader(
+                              title: l10n.financeActiveSubscriptions,
+                            ),
+                            ...active.map(
+                              (sub) => Dismissible(
+                                key: ValueKey('active-${sub.id}'),
+                                confirmDismiss: (direction) async {
+                                  if (direction ==
+                                      DismissDirection.startToEnd) {
+                                    _editSubscription(sub);
+                                    return false;
+                                  } else {
+                                    _cancelSubscription(sub);
+                                    return false;
                                   }
                                 },
+                                background: Container(
+                                  color: theme.colorScheme.primaryContainer,
+                                  alignment: Alignment.centerLeft,
+                                  padding: const EdgeInsets.only(left: 20),
+                                  child: Icon(
+                                    Icons.edit,
+                                    color: theme.colorScheme.onPrimaryContainer,
+                                  ),
+                                ),
+                                secondaryBackground: Container(
+                                  color: theme.colorScheme.errorContainer,
+                                  alignment: Alignment.centerRight,
+                                  padding: const EdgeInsets.only(right: 20),
+                                  child: Icon(
+                                    Icons.cancel_outlined,
+                                    color: theme.colorScheme.onErrorContainer,
+                                  ),
+                                ),
+                                child: _SubscriptionTile(
+                                  subscription: sub,
+                                  categories: widget.categories,
+                                  accounts: widget.accounts,
+                                  defaultCurrency: widget.defaultCurrency,
+                                  onTap: () => _openDetail(sub),
+                                  onEdit: () => _editSubscription(sub),
+                                  onCancel: () => _cancelSubscription(sub),
+                                  onRestore:
+                                      sub.cancelType == CancelType.atExpiry
+                                      ? () {
+                                          _restoreSubscription(sub);
+                                        }
+                                      : null,
+                                  onDelete: () async {
+                                    final confirmed = await confirmDelete(
+                                      context,
+                                      l10n.financeThisSubscription,
+                                    );
+                                    if (confirmed == true) {
+                                      _deleteSubscription(sub);
+                                    }
+                                  },
+                                ),
                               ),
                             ),
-                          ),
-                        ],
-                        if (historical.isNotEmpty) ...[
-                          _SectionHeader(
-                            title: l10n.financeHistoricalSubscriptions,
-                          ),
-                          ...historical.map(
-                            (sub) => Dismissible(
-                              key: ValueKey('hist-${sub.id}'),
-                              confirmDismiss: (direction) async {
-                                if (direction == DismissDirection.startToEnd) {
-                                  _editSubscription(sub);
-                                  return false;
-                                } else {
-                                  final confirmed = await confirmDelete(
-                                    context,
-                                    l10n.financeThisSubscription,
-                                  );
-                                  if (confirmed == true) {
-                                    _deleteSubscription(sub);
-                                  }
-                                  return false;
-                                }
-                              },
-                              background: Container(
-                                color: theme.colorScheme.primaryContainer,
-                                alignment: Alignment.centerLeft,
-                                padding: const EdgeInsets.only(left: 20),
-                                child: Icon(
-                                  Icons.edit,
-                                  color: theme.colorScheme.onPrimaryContainer,
-                                ),
-                              ),
-                              secondaryBackground: Container(
-                                color: theme.colorScheme.errorContainer,
-                                alignment: Alignment.centerRight,
-                                padding: const EdgeInsets.only(right: 20),
-                                child: Icon(
-                                  Icons.delete,
-                                  color: theme.colorScheme.onErrorContainer,
-                                ),
-                              ),
-                              child: _SubscriptionTile(
-                                subscription: sub,
-                                categories: widget.categories,
-                                accounts: widget.accounts,
-                                defaultCurrency: widget.defaultCurrency,
-                                onTap: () => _openDetail(sub),
-                                onEdit: () => _editSubscription(sub),
-                                onRestore: () {
-                                  _restoreSubscription(sub);
-                                },
-                                onDelete: () async {
-                                  final confirmed = await confirmDelete(
-                                    context,
-                                    l10n.financeThisSubscription,
-                                  );
-                                  if (confirmed == true) {
-                                    _deleteSubscription(sub);
+                          ],
+                          if (historical.isNotEmpty) ...[
+                            _SectionHeader(
+                              title: l10n.financeHistoricalSubscriptions,
+                            ),
+                            ...historical.map(
+                              (sub) => Dismissible(
+                                key: ValueKey('hist-${sub.id}'),
+                                confirmDismiss: (direction) async {
+                                  if (direction ==
+                                      DismissDirection.startToEnd) {
+                                    _editSubscription(sub);
+                                    return false;
+                                  } else {
+                                    final confirmed = await confirmDelete(
+                                      context,
+                                      l10n.financeThisSubscription,
+                                    );
+                                    if (confirmed == true) {
+                                      _deleteSubscription(sub);
+                                    }
+                                    return false;
                                   }
                                 },
+                                background: Container(
+                                  color: theme.colorScheme.primaryContainer,
+                                  alignment: Alignment.centerLeft,
+                                  padding: const EdgeInsets.only(left: 20),
+                                  child: Icon(
+                                    Icons.edit,
+                                    color: theme.colorScheme.onPrimaryContainer,
+                                  ),
+                                ),
+                                secondaryBackground: Container(
+                                  color: theme.colorScheme.errorContainer,
+                                  alignment: Alignment.centerRight,
+                                  padding: const EdgeInsets.only(right: 20),
+                                  child: Icon(
+                                    Icons.delete,
+                                    color: theme.colorScheme.onErrorContainer,
+                                  ),
+                                ),
+                                child: _SubscriptionTile(
+                                  subscription: sub,
+                                  categories: widget.categories,
+                                  accounts: widget.accounts,
+                                  defaultCurrency: widget.defaultCurrency,
+                                  onTap: () => _openDetail(sub),
+                                  onEdit: () => _editSubscription(sub),
+                                  onRestore: () {
+                                    _restoreSubscription(sub);
+                                  },
+                                  onDelete: () async {
+                                    final confirmed = await confirmDelete(
+                                      context,
+                                      l10n.financeThisSubscription,
+                                    );
+                                    if (confirmed == true) {
+                                      _deleteSubscription(sub);
+                                    }
+                                  },
+                                ),
                               ),
                             ),
-                          ),
+                          ],
                         ],
-                      ],
-                    ),
-                  )
-                else
-                  Expanded(
-                    child: Center(
-                      child: Text(
-                        l10n.financeNoSubscriptions,
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    )
+                  else
+                    Expanded(
+                      child: Center(
+                        child: Text(
+                          l10n.financeNoSubscriptions,
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
       floatingActionButton: FloatingActionButton(
         onPressed: _addSubscription,

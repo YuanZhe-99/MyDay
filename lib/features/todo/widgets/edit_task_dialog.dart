@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/utils/adaptive_layout.dart';
+import '../../../shared/widgets/adaptive_tile_grid.dart';
 import '../../../shared/widgets/app_date_picker.dart';
 import '../../../shared/widgets/unsaved_changes_guard.dart';
 import '../models/task.dart';
@@ -92,6 +94,7 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
     return UnsavedChangesGuard(
       hasUnsavedChanges: _hasUnsavedChanges,
       builder: (context, guard) => Dialog(
+        insetPadding: adaptiveDialogInset(context),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Column(
@@ -651,46 +654,57 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 12),
-              GridView.builder(
-                shrinkWrap: true,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 8,
-                  mainAxisSpacing: 4,
-                  crossAxisSpacing: 4,
-                ),
-                itemCount: _commonEmojis.length + 1,
-                itemBuilder: (context, index) {
-                  if (index < _commonEmojis.length) {
-                    final emoji = _commonEmojis[index];
+              LayoutBuilder(
+                builder: (context, constraints) => GridView.builder(
+                  shrinkWrap: true,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    // Cells are square tap targets holding a single glyph, so
+                    // the tap target is the minimum. A fixed count made them
+                    // smaller than 44 dp on a narrow phone and wasted the room
+                    // a wide dialog gives them.
+                    crossAxisCount: columnCapacity(
+                      constraints.maxWidth,
+                      minItemWidth: pickerCellMinWidth,
+                      gap: 4,
+                      maxColumns: pickerMaxColumns,
+                    ),
+                    mainAxisSpacing: 4,
+                    crossAxisSpacing: 4,
+                  ),
+                  itemCount: _commonEmojis.length + 1,
+                  itemBuilder: (context, index) {
+                    if (index < _commonEmojis.length) {
+                      final emoji = _commonEmojis[index];
+                      return InkWell(
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: () {
+                          setState(() => _selectedEmoji = emoji);
+                          Navigator.pop(context);
+                        },
+                        child: Center(
+                          child: Text(
+                            emoji,
+                            style: const TextStyle(fontSize: 24),
+                          ),
+                        ),
+                      );
+                    }
                     return InkWell(
                       borderRadius: BorderRadius.circular(8),
                       onTap: () {
-                        setState(() => _selectedEmoji = emoji);
                         Navigator.pop(context);
+                        _showCustomEmojiInput(context);
                       },
                       child: Center(
-                        child: Text(
-                          emoji,
-                          style: const TextStyle(fontSize: 24),
+                        child: Icon(
+                          Icons.edit_outlined,
+                          size: 24,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                     );
-                  }
-                  return InkWell(
-                    borderRadius: BorderRadius.circular(8),
-                    onTap: () {
-                      Navigator.pop(context);
-                      _showCustomEmojiInput(context);
-                    },
-                    child: Center(
-                      child: Icon(
-                        Icons.edit_outlined,
-                        size: 24,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  );
-                },
+                  },
+                ),
               ),
               const SizedBox(height: 8),
               Center(

@@ -2266,14 +2266,40 @@ class _TodoCalendarPageState extends State<_TodoCalendarPage> {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
 
+    // Pushed on top of the shell, so its own width is the whole width — there
+    // is no navigation rail to subtract. The double gate: the window must have
+    // the shape, and the page must have room for both blocks.
+    final screen = MediaQuery.sizeOf(context);
+    final sideBySide =
+        canSplitLayout(screen.width, screen.height) &&
+        useTodoCalendarSideBySide(screen.width);
+
     return Scaffold(
       appBar: AppBar(title: Text(l10n.todoCalendar), centerTitle: true),
       body: SafeArea(
         child: ListView(
           children: [
             _buildMonthNavigator(theme, l10n),
-            _buildCalendarCard(theme, l10n),
-            _buildScoreTrendCard(theme, l10n),
+            if (sideBySide)
+              // A month grid and a trend chart stacked are two full screens on
+              // a phone; side by side they are one on a tablet. Deliberately
+              // not wrapped in IntrinsicHeight: the trend chart scrolls
+              // horizontally, so asking it for an intrinsic width makes it
+              // report the whole series and overflow the row.
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: todoCalendarPaneWidth(screen.width),
+                    child: _buildCalendarCard(theme, l10n),
+                  ),
+                  Expanded(child: _buildScoreTrendCard(theme, l10n)),
+                ],
+              )
+            else ...[
+              _buildCalendarCard(theme, l10n),
+              _buildScoreTrendCard(theme, l10n),
+            ],
             _buildScoreListsCard(theme, l10n),
           ],
         ),

@@ -140,13 +140,37 @@ This asymmetry is deliberate and easy to get wrong.
 The gate asks about the window's *shape*, which the rail does not change. The capacity asks how
 much room is left, which the rail very much does.
 
+## Rule D — what a page does with width it cannot split
+
+Not every page has two things to put side by side. A form or a prose page has one column of
+content, and stretching it across a desktop window makes it worse, not better: a `ListTile` at
+1400 logical pixels puts its title and its trailing control at opposite ends of the screen, and a
+line of prose that long is read by moving your head.
+
+Those pages cap and centre instead, through `AdaptiveContentWidth`:
+
+| Cap | Value | Applies to |
+|---|---|---|
+| `formMaxContentWidth` | 720 | Backup, WebDAV, Body, the partner and toy management lists, subscriptions |
+| `readingMaxContentWidth` | 840 | Licence, privacy policy, the toy-cost overview |
+| `dialogMaxContentWidth` | 640 | Every form dialog, via `Dialog.insetPadding` |
+
+This is **width only and has no gate**, which is the point: a page narrower than its cap is
+untouched at every viewport, so nothing a phone renders can change. Prose gets more room than a
+form because it has no controls whose separation matters, and a dialog gets less than either
+because it is already a focused, single-purpose surface.
+
+Wrap the **scrollable**, not its children, so the scrollbar and the scroll gesture still span the
+whole window. A dialog measures the **screen** rather than the page behind it, because it is drawn
+on the root overlay and covers the navigation rail too.
+
 ## Adoption status
 
 The policy module and both shared widgets landed whole in **v1.4.0**, together with the shell's
-adoption of Rule B. The five pages inside the shell followed in **v1.4.1**. The pages reached with
-`Navigator.push` — the finance and intimacy sub-pages, the management lists, the timer, the backup
-and WebDAV pages, and the form dialogs — are still on their original single-column layouts. Each
-page's own decision is recorded here as it lands.
+adoption of Rule B. The five pages inside the shell followed in **v1.4.1**, and every page reached
+with `Navigator.push` — the finance and intimacy sub-pages, the management lists, the timer, the
+backup and WebDAV pages, the prose pages and the form dialogs — in **v1.4.2**. Each page's own
+decision is recorded here.
 
 | Surface | Rule it uses | Since |
 |---|---|---|
@@ -157,11 +181,20 @@ page's own decision is recorded here as it lands.
 | Weight / Intimacy — record columns | A + C | v1.4.1 |
 | Intimacy — calendar pane beside the records | A, plus C for the tiles | v1.4.1 |
 | Settings — section list beside a hosted detail page | A | v1.4.1 |
+| Accounts / Categories / Positions / Exchange rates — tile columns | A + C, auto only | v1.4.2 |
+| Account, category and subscription detail — transaction columns | A + C, auto only | v1.4.2 |
+| Analysis — pie chart beside its legend | A + width floor | v1.4.2 |
+| Todo month calendar — calendar beside the score trend | A + width floor | v1.4.2 |
+| Timer — stopwatch beside the session history | A | v1.4.2 |
+| Backup, WebDAV, Body, management lists, subscriptions | Width cap, no gate | v1.4.2 |
+| Licence, privacy policy, toy-cost overview | Width cap, no gate | v1.4.2 |
+| Every form dialog — inset instead of stretch | Width only, no gate | v1.4.2 |
+| Emoji and icon pickers — cell columns | C, at the touch-target minimum | v1.4.2 |
 
-**One inline breakpoint is still outstanding.** `intimacy_page.dart`'s toy/partner detail summary
-card still carries `constraints.maxWidth >= 720 / >= 360` for its metric grid; it is routed through
-`columnCapacity` when that page is converted. Until then, the invariant above is a rule the code is
-being brought to, not a claim about the whole tree. The check is:
+**No inline breakpoint remains.** As of v1.4.2 the whole tree is clean, and this is the check that
+says so — run it over `lib/` entire, not just the files a change touched, because the last time a
+claim like this was made in a sibling app the search behind it covered only the release's own
+files and the claim was wrong:
 
 ```bash
 grep -rnE "maxWidth *[<>]=? *[0-9]|size\.width *[<>]=? *[0-9]" lib/

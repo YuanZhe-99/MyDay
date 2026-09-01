@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/widgets/adaptive_tile_grid.dart';
 import '../../../shared/widgets/app_date_picker.dart';
 import '../../../shared/widgets/unsaved_changes_guard.dart';
 import '../models/intimacy_record.dart';
@@ -145,6 +146,7 @@ class _AddRecordDialogState extends State<AddRecordDialog> {
     return UnsavedChangesGuard(
       hasUnsavedChanges: _hasUnsavedChanges,
       builder: (context, guard) => Dialog(
+        insetPadding: adaptiveDialogInset(context),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Column(

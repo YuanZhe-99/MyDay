@@ -38,8 +38,10 @@
 | [`_confirmRestoreHistory`](#confirmrestorehistory) | 方法（`_TimerPageState`） | A | 确认，然后把计时器历史条目恢复为新运行秒表会话，从历史移除它。 |
 | `build` | 方法（`_TimerPageState`） | B | 渲染已流逝时间显示、抽插控件、开始/暂停/保存/重置按钮和历史列表。 |
 | `_buildRetentionChip` | 方法（组件辅助） | B | 渲染历史保留弹出菜单 chip（3 天/7 天/14 天/永久）。 |
+| `_TimerBody({...})` | 构造函数（`_TimerBody`） | B | 创建计时器主体排布器。 |
+| [`build`](#timerbody-build) | 方法（`_TimerBody`） | A | 把秒表堆叠在历史之上，或放进它旁边的窗格里。 |
 
-`grep -c 'Purpose:' lib/features/intimacy/widgets/timer_page.dart` 报告 32，与上面 32 行精确匹配（未发现未文档化的真实声明，也没有 `/// Purpose:` 块错附在调用点而非真实声明上方）。几个块在源码中使用泛泛的自动生成式措辞（"Provide the internal ... helper for this file"、"Internal helper used within this file only"）——本页的 Purpose 列和文档条目按逐文件模板细化（不只复制）源码 `///` 注释的要求，用对照实际实现验证的描述替换那种措辞。Tier 划分：22 个 Tier A、10 个 Tier B。
+`grep -c 'Purpose:' lib/features/intimacy/widgets/timer_page.dart` 报告 34，与上面 34 行精确匹配（未发现未文档化的真实声明，也没有 `/// Purpose:` 块错附在调用点而非真实声明上方）。几个块在源码中使用泛泛的自动生成式措辞（"Provide the internal ... helper for this file"、"Internal helper used within this file only"）——本页的 Purpose 列和文档条目按逐文件模板细化（不只复制）源码 `///` 注释的要求，用对照实际实现验证的描述替换那种措辞。Tier 划分：23 个 Tier A、11 个 Tier B。
 
 ## 文档
 
@@ -469,3 +471,16 @@
 - [亲密 — 计时器/秒表会话持久化](../../../../features/intimacy.md#timerstopwatch-session-persistence) — 运行/暂停/停止恢复契约、x100/x1 抽插次数存储规则和本文件完整实现的保持屏幕唤醒偏好。
 - [`add_record_dialog.dart`](add_record_dialog.md) — `AddRecordDialog`，由 `_saveRecord` 打开并从完成（或重新打开）的秒表会话预填。
 - `shared/services/sync_wake_lock.dart` — 前台同步操作使用的独立、引用计数唤醒锁；这里的 `_applyWakelock`/`_releaseWakelock` 绝不干扰它，因为各自跟踪自己的"我启用它了吗"标志。
+
+### `Widget build(BuildContext context)`（`_TimerBody`） <a id="timerbody-build"></a>
+- **种类：** `_TimerBody` 的方法
+- **源：** `lib/features/intimacy/widgets/timer_page.dart`（约第 890 行）
+- **用途：** 把秒表和它的会话历史排成堆叠布局或双栏布局。
+- **输入：** `context`；以及组件自己的 `twoPane`、`timer` 和 `history` 字段。
+- **返回：** 堆叠时为 `Column`，分栏时为 `Row`。
+- **副作用：** 除构建组件外无。
+- **算法：**
+  1. `!twoPane || history.isEmpty` → `Column(children: [timer, ...history])`，与 v1.4.2 之前页面的主体完全相同。
+  2. 否则是由 `Expanded(child: Column(children: [timer]))`、`VerticalDivider` 和 `SizedBox(width: timerHistoryPaneWidth, child: ListView(children: history))` 组成的 `Row`。
+- **用法：** 在分栏决策解析完成后由 `TimerPage` 的 `build` 构建。
+- **说明：** 堆叠时，很长的会话历史会把秒表往上推、最终推出屏幕顶端，而秒表恰恰是这个页面必须始终显示的东西。`timer` 传进来时已经被 `Expanded` 包好，因此两种排布都把它放进 `Flex`。历史为空的情形回退到堆叠分支而不是渲染一个空白窗格——只要一个块可能渲染成空，它就属于闸门的一部分。为与其他所有分栏界面保持一致而以 `canSplitLayout` 为闸门，这让手机横持失去了它最能受益的分栏；该取舍记录在 [../../../adaptive-layout.md](../../../adaptive-layout.md)。

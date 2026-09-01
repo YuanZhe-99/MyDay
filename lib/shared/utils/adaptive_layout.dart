@@ -269,3 +269,164 @@ bool useWeightSummaryBesideChart(double contentWidth) =>
 /// at the gate and only more comfortably above it.
 double weightSummaryPaneWidth(double contentWidth) =>
     (contentWidth * 0.34).clamp(weightSummaryPaneMinWidth, 380.0);
+
+/// Minimum width, in logical pixels, one metric card may occupy.
+///
+/// A stat label above its value, both `labelLarge`/`titleMedium`; below this a
+/// localized label such as "平均抽插速率" wraps to three lines.
+const metricCardMinWidth = 160.0;
+
+/// Largest number of metric columns in a summary card.
+const metricMaxColumns = 4;
+
+/// Minimum width, in logical pixels, one account card may occupy.
+///
+/// An account name, its bank-preset chip, and a balance shown in both its
+/// native and the default currency on one line.
+const accountCardMinWidth = 340.0;
+
+/// Largest number of account columns, however wide the window is.
+const accountMaxColumns = 3;
+
+/// Minimum width, in logical pixels, one category tile may occupy.
+///
+/// An emoji, an icon, the name and a trailing chevron; below this the longest
+/// localized category name truncates.
+const categoryTileMinWidth = 300.0;
+
+/// Minimum width, in logical pixels, one exchange-rate row may occupy.
+///
+/// A currency pair, its rate to six significant figures, and the timestamp of
+/// the fetch that produced it.
+const exchangeRateTileMinWidth = 280.0;
+
+/// Minimum width, in logical pixels, one form field may occupy when fields are
+/// paired onto a row.
+///
+/// An `OutlineInputBorder` field whose longest localized label is Japanese;
+/// narrower and the label truncates before the field's own suffix.
+const formFieldMinWidth = 260.0;
+
+/// Widest a form or settings-style page lets its content grow before centring
+/// it, in logical pixels.
+///
+/// A `ListTile` stretched across a 1400 dp desktop window puts its title and
+/// its trailing control at opposite ends of the screen; this keeps them within
+/// one glance of each other.
+const formMaxContentWidth = 720.0;
+
+/// Widest a prose page lets its text grow before centring it, in logical
+/// pixels.
+///
+/// About 90 characters at the app's body size, the upper end of a comfortable
+/// reading measure. Prose gets more than a form because it has no controls
+/// whose separation matters.
+const readingMaxContentWidth = 840.0;
+
+/// Smallest width, in logical pixels, the analysis pie chart may be given
+/// before its legend stops sitting beside it.
+const pieChartMinWidth = 280.0;
+
+/// Smallest width, in logical pixels, the analysis category legend may be
+/// given when it sits beside the pie chart rather than below it.
+const pieLegendMinWidth = 320.0;
+
+/// Smallest width, in logical pixels, the Todo month calendar card may occupy
+/// when the score-trend chart sits beside it.
+const calendarCardMinWidth = 340.0;
+
+/// Smallest width, in logical pixels, the Todo score-trend chart may be given
+/// when it sits beside the month calendar.
+const scoreTrendMinWidth = 360.0;
+
+/// Purpose: Return the width a page centres its content at, if any.
+/// Inputs: `contentWidth` — the width the page actually has, in logical
+/// pixels; `maxWidth` — the widest that content should ever grow.
+/// Returns: `double` — `maxWidth` when the page is wider, `contentWidth`
+/// otherwise.
+/// Side effects: None.
+/// Notes: Width only, and no gate: a page narrower than the cap is unaffected
+/// at every viewport, so this can never change what a phone renders. This is
+/// what a form or a prose page does with a desktop window instead of splitting
+/// — see `doc/en-us/adaptive-layout.md`.
+double cappedContentWidth(double contentWidth, double maxWidth) =>
+    contentWidth > maxWidth ? maxWidth : contentWidth;
+
+/// Purpose: Report whether the analysis legend fits beside the pie chart.
+/// Inputs: `contentWidth` — the width the analysis tab gets, in logical pixels.
+/// Returns: `bool`.
+/// Side effects: None.
+/// Notes: A width floor **on top of** [canSplitLayout], the same double gate
+/// the weight page uses. Below it the legend keeps its place under the chart,
+/// which is the layout every viewport had before.
+bool usePieChartSideBySide(double contentWidth) =>
+    contentWidth >= pieChartMinWidth + pieLegendMinWidth + listTileGap;
+
+/// Purpose: Report whether the Todo score trend fits beside the month calendar.
+/// Inputs: `contentWidth` — the width the calendar page gets, in logical
+/// pixels.
+/// Returns: `bool`.
+/// Side effects: None.
+/// Notes: The same double gate again. A month grid and a trend chart stacked
+/// are two full screens on a phone; side by side they are one on a tablet.
+bool useTodoCalendarSideBySide(double contentWidth) =>
+    contentWidth >= calendarCardMinWidth + scoreTrendMinWidth + listTileGap;
+
+/// Purpose: Return the width of the Todo calendar page's month-grid pane.
+/// Inputs: `contentWidth` — the width both blocks share, in logical pixels.
+/// Returns: `double` between [calendarCardMinWidth] and 480.
+/// Side effects: None.
+/// Notes: Proportional so a desktop window gives the day cells bigger tap
+/// targets rather than leaving the calendar at its bare minimum beside a very
+/// wide chart. The ceiling exists because a month grid stops gaining anything
+/// from extra width once its cells are comfortable. No right-hand cap is
+/// needed: under [useTodoCalendarSideBySide] the pane grows at 0.4 while the
+/// chart grows at 0.6, so the chart clears its own floor at the gate and only
+/// more comfortably above it.
+double todoCalendarPaneWidth(double contentWidth) =>
+    (contentWidth * 0.4).clamp(calendarCardMinWidth, 480.0);
+
+/// Width, in logical pixels, of the timer page's session-history pane.
+///
+/// A duration at `bodyMedium`, a start timestamp and a thrust count beneath it,
+/// and a trailing restore button. Fixed rather than proportional: the history
+/// is a reference column, and every logical pixel beyond this belongs to the
+/// stopwatch, which is what the page exists to show.
+const timerHistoryPaneWidth = 320.0;
+
+/// Widest a dialog's content grows before the dialog starts centring instead,
+/// in logical pixels.
+///
+/// Every form dialog in the app is a scrolling `Column` of full-width fields;
+/// without a cap it takes whatever the window offers, and a text field 1300
+/// logical pixels wide is harder to read than one at 600, not easier.
+const dialogMaxContentWidth = 640.0;
+
+/// Horizontal inset Flutter's own `Dialog` uses by default, in logical pixels.
+const dialogMinHorizontalInset = 40.0;
+
+/// Purpose: Return the horizontal inset that caps a dialog's content width.
+/// Inputs: `screenWidth` — the whole screen width in logical pixels.
+/// Returns: `double`, never below [dialogMinHorizontalInset].
+/// Side effects: None.
+/// Notes: Width only and no gate. Below about 720 the result is Flutter's own
+/// default, so a phone dialog is untouched; above it the extra width becomes
+/// inset on both sides, which centres the dialog rather than stretching it. A
+/// dialog is drawn on the root overlay, so measure the **screen**, not the page
+/// behind it — the navigation rail's width is part of what the dialog covers.
+double dialogHorizontalInset(double screenWidth) {
+  final inset = (screenWidth - dialogMaxContentWidth) / 2;
+  return inset < dialogMinHorizontalInset ? dialogMinHorizontalInset : inset;
+}
+
+/// Minimum width, in logical pixels, one emoji or icon picker cell may occupy.
+///
+/// Material's minimum touch-target size. A picker cell is a square tap target
+/// with nothing but a glyph in it, so the tap target *is* the minimum.
+const pickerCellMinWidth = 44.0;
+
+/// Largest number of picker columns, however wide the dialog is.
+///
+/// Beyond this the eye stops scanning a picker as a grid and starts scanning it
+/// as noise; it also keeps the cells from growing far past a thumb.
+const pickerMaxColumns = 12;

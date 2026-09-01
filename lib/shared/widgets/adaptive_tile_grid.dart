@@ -98,3 +98,62 @@ Widget listColumnsButton(
     ],
   );
 }
+
+/// Purpose: Centre a page's content once the window is wider than it needs.
+/// Inputs: `maxWidth` — the widest the content should ever grow; `child`.
+/// Returns: A widget that centres and caps `child`, or `child`'s layout
+/// unchanged on any window narrower than `maxWidth`.
+/// Side effects: None beyond building widgets.
+/// Notes: This is what a form or a prose page does with a desktop window
+/// instead of splitting: a `ListTile` stretched across 1400 logical pixels puts
+/// its title and its trailing control at opposite ends of the screen. Width
+/// only and no gate, so it can never change what a phone renders — see
+/// `doc/en-us/adaptive-layout.md`. Wrap the **scrollable**, not its children,
+/// so the scrollbar and the scroll gesture still span the whole window.
+class AdaptiveContentWidth extends StatelessWidget {
+  final double maxWidth;
+  final Widget child;
+
+  /// Purpose: Create an adaptive content width wrapper.
+  /// Inputs: `key`, `maxWidth`, `child`.
+  /// Returns: A new `AdaptiveContentWidth` instance.
+  /// Side effects: None.
+  /// Notes: None.
+  const AdaptiveContentWidth({
+    super.key,
+    required this.maxWidth,
+    required this.child,
+  });
+
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: `Align` rather than `Center` so the child keeps its own vertical
+  /// sizing; a `Center` would try to shrink-wrap a `ListView`'s height.
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        child: child,
+      ),
+    );
+  }
+}
+
+/// Purpose: Return the inset padding that keeps a dialog at a readable width.
+/// Inputs: `context`.
+/// Returns: `EdgeInsets` — Flutter's own default on a narrow window, more
+/// horizontal inset on a wide one.
+/// Side effects: None.
+/// Notes: The vertical 24 is Flutter's default and is kept as-is; only the
+/// horizontal inset varies. Pass it to `Dialog.insetPadding`, which needs no
+/// other change to the dialog's own tree.
+EdgeInsets adaptiveDialogInset(BuildContext context) {
+  return EdgeInsets.symmetric(
+    horizontal: dialogHorizontalInset(MediaQuery.sizeOf(context).width),
+    vertical: 24,
+  );
+}

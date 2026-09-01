@@ -7,6 +7,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../shared/services/image_service.dart';
 import '../../../shared/widgets/delete_confirm.dart';
 import '../models/finance.dart';
+import '../../../shared/utils/adaptive_layout.dart';
 import '../services/balance_util.dart';
 import '../services/exchange_rate_storage.dart';
 import '../widgets/add_transaction_dialog.dart';
@@ -156,6 +157,16 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
     final sym = currencySymbol(widget.defaultCurrency);
     final numberFormat = NumberFormat('#,##0.00');
     final filtered = _filtered;
+    // Pushed on top of the shell, so its own width is the whole width.
+    final screen = MediaQuery.sizeOf(context);
+    final txColumns = listColumnCount(
+      screenWidth: screen.width,
+      screenHeight: screen.height,
+      contentWidth: screen.width,
+      minItemWidth: transactionTileMinWidth,
+      preference: listColumnsAuto,
+      maxColumns: transactionMaxColumns,
+    );
 
     // Cycle description
     final cycleLabel = sub.billingCycleType == BillingCycleType.monthly
@@ -284,6 +295,7 @@ class _SubscriptionDetailPageState extends State<SubscriptionDetailPage> {
                         accounts: widget.accounts,
                       ),
                     ),
+                    columns: txColumns,
                   ),
           ),
         ],

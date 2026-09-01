@@ -1,6 +1,6 @@
 # lib/shared/widgets/adaptive_tile_grid.dart
 
-把 `lib/shared/utils/adaptive_layout.dart` 的列数算术变成组件的两件共享 UI：一个把扁平图块列表铺成等宽列行的辅助函数，以及让用户固定列数的 app bar 控件。两者都刻意做得很薄——所有阈值和所有钳制都住在策略模块里（见 [../utils/adaptive_layout.md](../utils/adaptive_layout.md)），而数字背后的推理住在 [../../../adaptive-layout.md](../../../adaptive-layout.md)。
+把 `lib/shared/utils/adaptive_layout.dart` 的算术变成组件的几件共享 UI：一个把扁平图块列表铺成等宽列行的辅助函数、让用户固定列数的 app bar 控件、一个为内容过宽的页面设上限并居中的包装器，以及让对话框保持可读的内缩值。它们都刻意做得很薄——所有阈值和所有钳制都住在策略模块里（见 [../utils/adaptive_layout.md](../utils/adaptive_layout.md)），而数字背后的推理住在 [../../../adaptive-layout.md](../../../adaptive-layout.md)。
 
 ## 声明
 
@@ -9,8 +9,12 @@
 | [`adaptiveTileRow`](#adaptivetilerow) | 顶层函数 | A | 构建多列列表的一行，从左到右填充。 |
 | [`adaptiveTileRows`](#adaptivetilerows) | 顶层函数 | A | 把列表的子组件构建为行，单列或多列。 |
 | [`listColumnsButton`](#listcolumnsbutton) | 顶层函数 | A | 构建挑选列表列数的 app bar 控件。 |
+| [`AdaptiveContentWidth`](#adaptivecontentwidth) | 类（`StatelessWidget`） | A | 在窗口宽于页面所需时把内容居中。 |
+| `AdaptiveContentWidth({...})` | 构造函数（`AdaptiveContentWidth`） | B | 创建自适应内容宽度包装器。 |
+| [`build`](#adaptivecontentwidth-build) | 方法（`AdaptiveContentWidth`） | A | 对齐并限定被包裹的子组件。 |
+| [`adaptiveDialogInset`](#adaptivedialoginset) | 顶层函数 | A | 返回让对话框保持在可读宽度的内缩内边距。 |
 
-`grep -c 'Purpose:' lib/shared/widgets/adaptive_tile_grid.dart` 报告 3，与本文件中全部三个真实声明完全一致。未发现错挂或未文档化的声明。三者均按 `shared/` 下顶层函数的通用规则为 Tier A。
+`grep -c 'Purpose:' lib/shared/widgets/adaptive_tile_grid.dart` 报告 7，与本文件中全部七个真实声明完全一致。未发现错挂或未文档化的声明。六个顶层函数外加 `AdaptiveContentWidth` 类及其 `build` 均按 `shared/` 的通用规则为 Tier A；只有该组件仅初始化字段的构造函数是 Tier B。
 
 ## 文档
 
@@ -69,3 +73,42 @@
   ]),
   ```
 - **说明：** 在 `capacity` 为 1 时是**隐藏而不是禁用**，因此手机和折叠状态的外屏永远不会显示一个什么都做不了的控件。只要它可见，菜单仍然提供直到 `maxColumns` 的每个数字，因此偏好可以在一个窄但可分栏的窗口上设定并在展开时生效；对勾跟踪的是**存储的**偏好，而实际渲染的是该偏好钳制到放得下的结果（见 [../utils/adaptive_layout.md#listcolumncount](../utils/adaptive_layout.md#listcolumncount)）。
+
+### `class AdaptiveContentWidth extends StatelessWidget` <a id="adaptivecontentwidth"></a>
+- **种类：** 顶层类（`StatelessWidget`）
+- **源：** `lib/shared/widgets/adaptive_tile_grid.dart`（第 113 行）
+- **用途：** 在窗口宽于内容所需时把页面内容居中。
+- **输入：** `maxWidth`——内容应当增长到的最大宽度；`child`。
+- **返回：** 一个组件。
+- **副作用：** 除构建组件外无。
+- **算法：** 见下面的 `build`。
+- **用法：**
+  ```dart
+  body: AdaptiveContentWidth(
+    maxWidth: formMaxContentWidth,
+    child: ListView(children: [...]),
+  ),
+  ```
+- **说明：** 这是组件形式的规则 D：表单页或散文页拿桌面窗口做什么，而不是分栏。横跨 1400 逻辑像素的 `ListTile` 把标题和尾部控件放在屏幕两端。仅看宽度且没有闸门，因此它不可能改变手机渲染的东西。包裹**可滚动组件**而不是它的子组件，这样滚动条和滚动手势仍然横跨整个窗口。
+
+### `Widget build(BuildContext context)`（`AdaptiveContentWidth`） <a id="adaptivecontentwidth-build"></a>
+- **种类：** `AdaptiveContentWidth` 的方法
+- **源：** `lib/shared/widgets/adaptive_tile_grid.dart`（第 135 行）
+- **用途：** 把子组件对齐到顶部居中并限定其宽度。
+- **输入：** `context`；以及组件自己的 `maxWidth` 和 `child`。
+- **返回：** 包着 `ConstrainedBox` 的 `Align`。
+- **副作用：** 除构建组件外无。
+- **算法：** `Align(alignment: Alignment.topCenter, child: ConstrainedBox(constraints: BoxConstraints(maxWidth: maxWidth), child: child))`。
+- **用法：** 由 Flutter 调用。
+- **说明：** 刻意用 `Align` 而不是 `Center`：`Center` 会试图对子组件的高度做 shrink-wrap，而 `ListView` 给不了它这个。
+
+### `EdgeInsets adaptiveDialogInset(BuildContext context)` <a id="adaptivedialoginset"></a>
+- **种类：** 顶层函数
+- **源：** `lib/shared/widgets/adaptive_tile_grid.dart`（第 154 行）
+- **用途：** 返回让对话框保持在可读宽度的内缩内边距。
+- **输入：** `context`。
+- **返回：** `EdgeInsets`——窄窗口上是 Flutter 自己的默认值，宽窗口上是更大的水平内缩。
+- **副作用：** 无。
+- **算法：** `EdgeInsets.symmetric(horizontal: dialogHorizontalInset(MediaQuery.sizeOf(context).width), vertical: 24)`。
+- **用法：** `Dialog(insetPadding: adaptiveDialogInset(context), child: ...)`——应用中每个表单对话框都传它，而各自的组件树无需其他改动。
+- **说明：** 垂直方向的 24 是 Flutter 的默认值并原样保留；只有水平内缩会变。数值规则住在策略模块里——见 [../utils/adaptive_layout.md#dialoghorizontalinset](../utils/adaptive_layout.md#dialoghorizontalinset)。

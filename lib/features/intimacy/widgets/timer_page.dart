@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/utils/adaptive_layout.dart';
 import '../../todo/services/todo_storage.dart';
 import '../models/intimacy_record.dart';
 import 'add_record_dialog.dart';
@@ -589,6 +590,12 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
     final isRunning = _running;
     final hasElapsed = _elapsed > Duration.zero;
     final sessionStart = _sessionStartTime;
+    // Pushed on top of the shell, so its own width is the whole width. Gated on
+    // the app-wide shape rule for consistency with every other split surface —
+    // which costs a phone in landscape the split it would benefit from most.
+    // That trade is recorded in doc/en-us/adaptive-layout.md.
+    final screen = MediaQuery.sizeOf(context);
+    final twoPane = canSplitLayout(screen.width, screen.height);
 
     return PopScope(
       canPop: false,
@@ -598,174 +605,179 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
       },
       child: Scaffold(
         appBar: AppBar(title: Text(l10n.intimacyTimer), centerTitle: true),
-        body: Column(
-          children: [
-            // ── main timer area ──
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 24,
-                ),
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      if (sessionStart != null)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Text(
-                            '${l10n.intimacyTimerStartedAt} ${_formatDateTime(sessionStart)}',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.outline,
+        body: _TimerBody(
+          twoPane: twoPane,
+          timer:
+              // ── main timer area ──
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 24,
+                  ),
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (sessionStart != null)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Text(
+                              '${l10n.intimacyTimerStartedAt} ${_formatDateTime(sessionStart)}',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.outline,
+                              ),
                             ),
                           ),
-                        ),
 
-                      Text(
-                        _formatDuration(_elapsed),
-                        style: theme.textTheme.displayLarge?.copyWith(
-                          fontWeight: FontWeight.w300,
-                          fontFeatures: const [FontFeature.tabularFigures()],
-                        ),
-                      ),
-                      if (sessionStart != null || hasElapsed) ...[
-                        const SizedBox(height: 16),
                         Text(
-                          '${l10n.intimacyThrustCountShort}: $_thrustCountLabel',
-                          style: theme.textTheme.titleMedium?.copyWith(
+                          _formatDuration(_elapsed),
+                          style: theme.textTheme.displayLarge?.copyWith(
+                            fontWeight: FontWeight.w300,
                             fontFeatures: const [FontFeature.tabularFigures()],
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        if (sessionStart != null || hasElapsed) ...[
+                          const SizedBox(height: 16),
+                          Text(
+                            '${l10n.intimacyThrustCountShort}: $_thrustCountLabel',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            alignment: WrapAlignment.center,
+                            spacing: 12,
+                            runSpacing: 8,
+                            children: [
+                              OutlinedButton.icon(
+                                onPressed: _thrustCount > 0
+                                    ? () => _changeThrustCount(-100)
+                                    : null,
+                                icon: const Icon(Icons.remove),
+                                label: const Text('-100'),
+                              ),
+                              FilledButton.icon(
+                                onPressed: () => _changeThrustCount(100),
+                                icon: const Icon(Icons.add),
+                                label: const Text('+100'),
+                              ),
+                              FilledButton.tonalIcon(
+                                onPressed: () => _changeThrustCount(50),
+                                icon: const Icon(Icons.add),
+                                label: const Text('+50'),
+                              ),
+                              FilledButton.tonalIcon(
+                                onPressed: () => _changeThrustCount(10),
+                                icon: const Icon(Icons.add),
+                                label: const Text('+10'),
+                              ),
+                            ],
+                          ),
+                        ],
+                        const SizedBox(height: 16),
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 420),
+                          child: SwitchListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                            ),
+                            secondary: const Icon(Icons.lightbulb_outline),
+                            title: Text(l10n.intimacyTimerKeepScreenAwake),
+                            subtitle: Text(
+                              l10n.intimacyTimerKeepScreenAwakeDesc,
+                            ),
+                            value: _keepScreenAwake,
+                            onChanged: (value) {
+                              unawaited(_setKeepScreenAwake(value));
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+
                         Wrap(
                           alignment: WrapAlignment.center,
                           spacing: 12,
-                          runSpacing: 8,
+                          runSpacing: 12,
                           children: [
-                            OutlinedButton.icon(
-                              onPressed: _thrustCount > 0
-                                  ? () => _changeThrustCount(-100)
-                                  : null,
-                              icon: const Icon(Icons.remove),
-                              label: const Text('-100'),
-                            ),
-                            FilledButton.icon(
-                              onPressed: () => _changeThrustCount(100),
-                              icon: const Icon(Icons.add),
-                              label: const Text('+100'),
-                            ),
-                            FilledButton.tonalIcon(
-                              onPressed: () => _changeThrustCount(50),
-                              icon: const Icon(Icons.add),
-                              label: const Text('+50'),
-                            ),
-                            FilledButton.tonalIcon(
-                              onPressed: () => _changeThrustCount(10),
-                              icon: const Icon(Icons.add),
-                              label: const Text('+10'),
-                            ),
+                            if (!isRunning && !hasElapsed)
+                              FilledButton.icon(
+                                onPressed: () => _start(),
+                                icon: const Icon(Icons.play_arrow),
+                                label: Text(l10n.intimacyStart),
+                                style: FilledButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 32,
+                                    vertical: 16,
+                                  ),
+                                ),
+                              ),
+
+                            if (isRunning) ...[
+                              OutlinedButton.icon(
+                                onPressed: () => _pause(),
+                                icon: const Icon(Icons.pause),
+                                label: Text(l10n.intimacyPause),
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 24,
+                                    vertical: 16,
+                                  ),
+                                ),
+                              ),
+                              FilledButton.icon(
+                                onPressed: () => _saveRecord(),
+                                icon: const Icon(Icons.stop),
+                                label: Text(l10n.intimacyStopSave),
+                                style: FilledButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 24,
+                                    vertical: 16,
+                                  ),
+                                ),
+                              ),
+                            ],
+
+                            if (!isRunning && hasElapsed) ...[
+                              OutlinedButton.icon(
+                                onPressed: () => _start(),
+                                icon: const Icon(Icons.play_arrow),
+                                label: Text(l10n.intimacyResume),
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 24,
+                                    vertical: 16,
+                                  ),
+                                ),
+                              ),
+                              FilledButton.icon(
+                                onPressed: () => _saveRecord(),
+                                icon: const Icon(Icons.save),
+                                label: Text(l10n.commonSave),
+                                style: FilledButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 24,
+                                    vertical: 16,
+                                  ),
+                                ),
+                              ),
+                              TextButton.icon(
+                                onPressed: () => _reset(),
+                                icon: const Icon(Icons.refresh),
+                                label: Text(l10n.intimacyReset),
+                              ),
+                            ],
                           ],
                         ),
                       ],
-                      const SizedBox(height: 16),
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 420),
-                        child: SwitchListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                          ),
-                          secondary: const Icon(Icons.lightbulb_outline),
-                          title: Text(l10n.intimacyTimerKeepScreenAwake),
-                          subtitle: Text(l10n.intimacyTimerKeepScreenAwakeDesc),
-                          value: _keepScreenAwake,
-                          onChanged: (value) {
-                            unawaited(_setKeepScreenAwake(value));
-                          },
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-
-                      Wrap(
-                        alignment: WrapAlignment.center,
-                        spacing: 12,
-                        runSpacing: 12,
-                        children: [
-                          if (!isRunning && !hasElapsed)
-                            FilledButton.icon(
-                              onPressed: () => _start(),
-                              icon: const Icon(Icons.play_arrow),
-                              label: Text(l10n.intimacyStart),
-                              style: FilledButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 32,
-                                  vertical: 16,
-                                ),
-                              ),
-                            ),
-
-                          if (isRunning) ...[
-                            OutlinedButton.icon(
-                              onPressed: () => _pause(),
-                              icon: const Icon(Icons.pause),
-                              label: Text(l10n.intimacyPause),
-                              style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 24,
-                                  vertical: 16,
-                                ),
-                              ),
-                            ),
-                            FilledButton.icon(
-                              onPressed: () => _saveRecord(),
-                              icon: const Icon(Icons.stop),
-                              label: Text(l10n.intimacyStopSave),
-                              style: FilledButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 24,
-                                  vertical: 16,
-                                ),
-                              ),
-                            ),
-                          ],
-
-                          if (!isRunning && hasElapsed) ...[
-                            OutlinedButton.icon(
-                              onPressed: () => _start(),
-                              icon: const Icon(Icons.play_arrow),
-                              label: Text(l10n.intimacyResume),
-                              style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 24,
-                                  vertical: 16,
-                                ),
-                              ),
-                            ),
-                            FilledButton.icon(
-                              onPressed: () => _saveRecord(),
-                              icon: const Icon(Icons.save),
-                              label: Text(l10n.commonSave),
-                              style: FilledButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 24,
-                                  vertical: 16,
-                                ),
-                              ),
-                            ),
-                            TextButton.icon(
-                              onPressed: () => _reset(),
-                              icon: const Icon(Icons.refresh),
-                              label: Text(l10n.intimacyReset),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),
-            ),
-
+          history: [
             // ── history section ──
             if (_history.isNotEmpty) ...[
               const Divider(height: 1),
@@ -871,6 +883,51 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
         padding: EdgeInsets.zero,
         labelPadding: const EdgeInsets.symmetric(horizontal: 4),
       ),
+    );
+  }
+}
+
+class _TimerBody extends StatelessWidget {
+  final bool twoPane;
+  final Widget timer;
+  final List<Widget> history;
+
+  /// Purpose: Create a timer body instance.
+  /// Inputs: `twoPane`, `timer`, `history`.
+  /// Returns: A new `_TimerBody` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. The two content slots
+  /// are built once by the page and arranged two ways here.
+  const _TimerBody({
+    required this.twoPane,
+    required this.timer,
+    required this.history,
+  });
+
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: Stacked, a long session history pushes the stopwatch itself up and
+  /// eventually off the top of the screen, which is the one thing this page
+  /// must always show. Side by side, the stopwatch keeps the middle of its own
+  /// pane and the history scrolls beside it. `timer` arrives already wrapped in
+  /// an `Expanded`, so both arrangements put it in a `Flex`.
+  @override
+  Widget build(BuildContext context) {
+    if (!twoPane || history.isEmpty) {
+      return Column(children: [timer, ...history]);
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(child: Column(children: [timer])),
+        const VerticalDivider(width: 1),
+        SizedBox(
+          width: timerHistoryPaneWidth,
+          child: ListView(children: history),
+        ),
+      ],
     );
   }
 }

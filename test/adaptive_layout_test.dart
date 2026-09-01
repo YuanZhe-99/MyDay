@@ -367,4 +367,214 @@ void main() {
       );
     });
   });
+
+  group('cappedContentWidth', () {
+    test('leaves a narrow page exactly as it was', () {
+      // Width only and no gate, so this can never change what a phone renders.
+      expect(cappedContentWidth(412, formMaxContentWidth), 412);
+      expect(cappedContentWidth(704, formMaxContentWidth), 704);
+      expect(cappedContentWidth(720, formMaxContentWidth), 720);
+    });
+
+    test('caps a desktop window at the reading measure', () {
+      expect(cappedContentWidth(721, formMaxContentWidth), formMaxContentWidth);
+      expect(cappedContentWidth(1440, formMaxContentWidth), 720);
+      expect(cappedContentWidth(1440, readingMaxContentWidth), 840);
+    });
+
+    test('prose is allowed more width than a form', () {
+      // A form's controls have to stay within one glance of their labels;
+      // prose has no controls whose separation matters.
+      expect(readingMaxContentWidth, greaterThan(formMaxContentWidth));
+    });
+  });
+
+  group('usePieChartSideBySide', () {
+    test('holds at n - 1 and n', () {
+      const gate = pieChartMinWidth + pieLegendMinWidth + listTileGap; // 612
+      expect(usePieChartSideBySide(gate - 1), isFalse);
+      expect(usePieChartSideBySide(gate), isTrue);
+    });
+
+    test('a phone keeps the legend under the chart', () {
+      expect(usePieChartSideBySide(412), isFalse);
+      // And the shape rule refuses anyway, which is the other half of the gate.
+      expect(canSplitLayout(412, 915), isFalse);
+    });
+
+    test('an unfolded foldable passes both halves of the gate', () {
+      expect(canSplitLayout(932, 704), isTrue);
+      expect(usePieChartSideBySide(932), isTrue);
+    });
+  });
+
+  group('useTodoCalendarSideBySide', () {
+    test('holds at n - 1 and n', () {
+      const gate =
+          calendarCardMinWidth + scoreTrendMinWidth + listTileGap; // 712
+      expect(useTodoCalendarSideBySide(gate - 1), isFalse);
+      expect(useTodoCalendarSideBySide(gate), isTrue);
+    });
+
+    test('a Z Fold 5 in portrait splits but has no room for both blocks', () {
+      // The shape rule alone would put a 340 calendar beside a 323 chart.
+      expect(canSplitLayout(675, 810), isTrue);
+      expect(useTodoCalendarSideBySide(675), isFalse);
+    });
+
+    test('the chart always clears its floor from the gate up', () {
+      for (var width = 712.0; width <= 2000; width += 1) {
+        final pane = todoCalendarPaneWidth(width);
+        expect(
+          width - pane - listTileGap,
+          greaterThanOrEqualTo(scoreTrendMinWidth),
+          reason: 'content width $width',
+        );
+      }
+    });
+
+    test('the calendar pane honours both its clamps', () {
+      expect(todoCalendarPaneWidth(712), calendarCardMinWidth); // 0.4 x 712
+      expect(todoCalendarPaneWidth(1000), closeTo(400, 0.01));
+      expect(todoCalendarPaneWidth(2000), 480); // ceiling
+    });
+  });
+
+  group('dialogHorizontalInset', () {
+    test('a phone dialog keeps Flutter own default inset', () {
+      expect(dialogHorizontalInset(412), dialogMinHorizontalInset);
+      expect(dialogHorizontalInset(704), dialogMinHorizontalInset);
+      // 640 content plus 40 on each side is where the default stops binding.
+      expect(dialogHorizontalInset(720), dialogMinHorizontalInset);
+    });
+
+    test('a wide window centres the dialog instead of stretching it', () {
+      expect(dialogHorizontalInset(1440), (1440 - 640) / 2);
+      expect(1440 - 2 * dialogHorizontalInset(1440), dialogMaxContentWidth);
+    });
+
+    test('the content never grows past its cap on any window', () {
+      for (var width = 300.0; width <= 3000; width += 1) {
+        final content = width - 2 * dialogHorizontalInset(width);
+        expect(
+          content,
+          lessThanOrEqualTo(dialogMaxContentWidth),
+          reason: 'screen width $width',
+        );
+      }
+    });
+  });
+
+  group('picker cells', () {
+    test(
+      'a narrow phone gets fewer, larger cells than the old fixed eight',
+      () {
+        // A 320 dp dialog body at eight columns gave each cell about 36 dp,
+        // under Material's 44 dp minimum touch target.
+        final columns = columnCapacity(
+          320,
+          minItemWidth: pickerCellMinWidth,
+          gap: 4,
+          maxColumns: pickerMaxColumns,
+        );
+        expect(columns, lessThan(8));
+        expect((320 - (columns - 1) * 4) / columns, greaterThanOrEqualTo(44));
+      },
+    );
+
+    test('a capped dialog fills out to the ceiling', () {
+      expect(
+        columnCapacity(
+          dialogMaxContentWidth,
+          minItemWidth: pickerCellMinWidth,
+          gap: 4,
+          maxColumns: pickerMaxColumns,
+        ),
+        pickerMaxColumns,
+      );
+    });
+
+    test('every cell clears the touch target at every width', () {
+      for (var width = 200.0; width <= dialogMaxContentWidth; width += 1) {
+        final columns = columnCapacity(
+          width,
+          minItemWidth: pickerCellMinWidth,
+          gap: 4,
+          maxColumns: pickerMaxColumns,
+        );
+        expect(
+          (width - (columns - 1) * 4) / columns,
+          greaterThanOrEqualTo(pickerCellMinWidth),
+          reason: 'width $width',
+        );
+      }
+    });
+  });
+
+  group('sub-page minimums', () {
+    /// Purpose: Resolve a pushed page's column count the way its build does.
+    /// Inputs: `width`, `height` — the whole screen; `minItemWidth`, `max`.
+    /// Returns: `int`.
+    /// Side effects: None.
+    /// Notes: No `shellContentWidth` here, deliberately — a page reached with
+    /// `Navigator.push` has no navigation rail to subtract.
+    int pushedColumns(
+      double width,
+      double height,
+      double minItemWidth,
+      int max,
+    ) => listColumnCount(
+      screenWidth: width,
+      screenHeight: height,
+      contentWidth: width,
+      minItemWidth: minItemWidth,
+      preference: listColumnsAuto,
+      maxColumns: max,
+    );
+
+    test('a phone stays on one column for every sub-page surface', () {
+      for (final min in [
+        accountCardMinWidth,
+        categoryTileMinWidth,
+        exchangeRateTileMinWidth,
+      ]) {
+        expect(pushedColumns(412, 915, min, 4), 1);
+        expect(pushedColumns(915, 412, min, 4), 1); // gated on height
+      }
+    });
+
+    test('a pushed page measures the whole width, rail included', () {
+      // The rail belongs to the shell underneath; this page covers it. Taking
+      // shellContentWidth here would silently lose 81 dp.
+      expect(
+        pushedColumns(932, 704, accountCardMinWidth, accountMaxColumns),
+        2,
+      );
+      expect(shellContentWidth(932), lessThan(932));
+    });
+
+    test('a desktop window fills each surface to its own ceiling', () {
+      expect(
+        pushedColumns(1920, 1080, accountCardMinWidth, accountMaxColumns),
+        accountMaxColumns,
+      );
+      expect(
+        pushedColumns(1920, 1080, categoryTileMinWidth, listMaxColumns),
+        listMaxColumns,
+      );
+      expect(
+        pushedColumns(1920, 1080, metricCardMinWidth, metricMaxColumns),
+        metricMaxColumns,
+      );
+    });
+
+    test('a metric grid packs more per row than a tile list, as intended', () {
+      // A stat label above a value needs far less width than a list tile.
+      expect(metricCardMinWidth, lessThan(categoryTileMinWidth));
+      expect(
+        pushedColumns(1000, 800, metricCardMinWidth, metricMaxColumns),
+        greaterThan(pushedColumns(1000, 800, accountCardMinWidth, 4)),
+      );
+    });
+  });
 }

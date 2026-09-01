@@ -7,6 +7,8 @@ import '../services/backup_service.dart';
 import '../services/reminder_service.dart';
 import '../services/sync_wake_lock.dart';
 import '../services/webdav_service.dart';
+import '../utils/adaptive_layout.dart';
+import '../widgets/adaptive_tile_grid.dart';
 
 class BackupPage extends StatefulWidget {
   /// Purpose: Create a backup page instance.
@@ -72,14 +74,14 @@ class _BackupPageState extends State<BackupPage> {
     final file = await BackupService.createBackup();
     if (!mounted) return;
     if (file != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.backupCreated)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.backupCreated)));
       _load();
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.backupFailed)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.backupFailed)));
     }
   }
 
@@ -152,17 +154,16 @@ class _BackupPageState extends State<BackupPage> {
     final availableModules = await BackupService.getBackupModules(info.file);
     if (!mounted) return;
     if (availableModules.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.backupRestoreFailed)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.backupRestoreFailed)));
       return;
     }
 
     final selected = await showDialog<Set<String>>(
       context: context,
-      builder: (ctx) => _RestoreModuleDialog(
-        availableModules: availableModules,
-      ),
+      builder: (ctx) =>
+          _RestoreModuleDialog(availableModules: availableModules),
     );
     if (selected == null || selected.isEmpty) return;
 
@@ -207,9 +208,9 @@ class _BackupPageState extends State<BackupPage> {
         await WebDAVService.saveConfig(config.copyWith(autoSync: true));
       }
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.backupRestoreFailed)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.backupRestoreFailed)));
       return;
     }
 
@@ -220,9 +221,7 @@ class _BackupPageState extends State<BackupPage> {
     if (result.missingImages > 0 && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            l10n.backupRestoreMissingImages(result.missingImages),
-          ),
+          content: Text(l10n.backupRestoreMissingImages(result.missingImages)),
         ),
       );
     }
@@ -247,9 +246,9 @@ class _BackupPageState extends State<BackupPage> {
     final l10n = AppLocalizations.of(context)!;
 
     if (config == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.backupRestoreSuccess)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.backupRestoreSuccess)));
       return;
     }
 
@@ -307,129 +306,134 @@ class _BackupPageState extends State<BackupPage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.backupTitle),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: Text(l10n.backupTitle), centerTitle: true),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              children: [
-                // Local-only note
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                  child: Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Row(
-                        children: [
-                          Icon(Icons.info_outline,
-                              color: theme.colorScheme.primary, size: 20),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              l10n.backupLocalOnlyNote,
-                              style: theme.textTheme.bodySmall,
+          : AdaptiveContentWidth(
+              maxWidth: formMaxContentWidth,
+              child: ListView(
+                children: [
+                  // Local-only note
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                    child: Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              color: theme.colorScheme.primary,
+                              size: 20,
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                l10n.backupLocalOnlyNote,
+                                style: theme.textTheme.bodySmall,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
 
-                // Settings section
-                _buildSection(context, l10n.backupSettings, [
-                  SwitchListTile(
-                    secondary: const Icon(Icons.schedule),
-                    title: Text(l10n.backupAutoDaily),
-                    subtitle: Text(l10n.backupAutoDailyDesc),
-                    value: _autoBackup,
-                    onChanged: _toggleAutoBackup,
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.auto_delete),
-                    title: Text(l10n.backupRetention),
-                    trailing: DropdownButton<int>(
-                      value: _retentionDays,
-                      underline: const SizedBox.shrink(),
-                      items: _retentionOptions.map((d) {
-                        final label = d == 0
-                            ? l10n.backupRetentionForever
-                            : l10n.backupRetentionDays(d);
-                        return DropdownMenuItem(value: d, child: Text(label));
-                      }).toList(),
-                      onChanged: (v) {
-                        if (v != null) _setRetention(v);
-                      },
+                  // Settings section
+                  _buildSection(context, l10n.backupSettings, [
+                    SwitchListTile(
+                      secondary: const Icon(Icons.schedule),
+                      title: Text(l10n.backupAutoDaily),
+                      subtitle: Text(l10n.backupAutoDailyDesc),
+                      value: _autoBackup,
+                      onChanged: _toggleAutoBackup,
                     ),
-                  ),
-                ]),
+                    ListTile(
+                      leading: const Icon(Icons.auto_delete),
+                      title: Text(l10n.backupRetention),
+                      trailing: DropdownButton<int>(
+                        value: _retentionDays,
+                        underline: const SizedBox.shrink(),
+                        items: _retentionOptions.map((d) {
+                          final label = d == 0
+                              ? l10n.backupRetentionForever
+                              : l10n.backupRetentionDays(d);
+                          return DropdownMenuItem(value: d, child: Text(label));
+                        }).toList(),
+                        onChanged: (v) {
+                          if (v != null) _setRetention(v);
+                        },
+                      ),
+                    ),
+                  ]),
 
-                // Manual backup
-                _buildSection(context, l10n.backupManual, [
-                  ListTile(
-                    leading: const Icon(Icons.backup),
-                    title: Text(l10n.backupCreateNow),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: _createBackup,
-                  ),
-                ]),
+                  // Manual backup
+                  _buildSection(context, l10n.backupManual, [
+                    ListTile(
+                      leading: const Icon(Icons.backup),
+                      title: Text(l10n.backupCreateNow),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: _createBackup,
+                    ),
+                  ]),
 
-                // Backup list
-                _buildSection(
-                  context,
-                  l10n.backupHistory(_backups.length),
-                  _backups.isEmpty
-                      ? [
-                          Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Text(
-                              l10n.backupEmpty,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
+                  // Backup list
+                  _buildSection(
+                    context,
+                    l10n.backupHistory(_backups.length),
+                    _backups.isEmpty
+                        ? [
+                            Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Text(
+                                l10n.backupEmpty,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
                               ),
                             ),
-                          ),
-                        ]
-                      : _backups.map((b) {
-                          final dateStr = DateFormat('yyyy-MM-dd HH:mm').format(b.date);
-                          return ListTile(
-                            leading: Icon(
-                              b.corrupt
-                                  ? Icons.error_outline
-                                  : Icons.inventory_2_outlined,
-                              color: b.corrupt
-                                  ? theme.colorScheme.error
-                                  : null,
-                            ),
-                            title: Text(dateStr),
-                            subtitle: Text(
-                              b.corrupt
-                                  ? '${b.displaySize} · ${l10n.backupCorrupt}'
-                                  : b.displaySize,
-                            ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.restore),
-                                  tooltip: l10n.backupRestore,
-                                  onPressed: b.corrupt
-                                      ? null
-                                      : () => _restoreBackup(b),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.delete_outline),
-                                  tooltip: l10n.commonDelete,
-                                  onPressed: () => _deleteBackup(b),
-                                ),
-                              ],
-                            ),
-                          );
-                        }).toList(),
-                ),
-              ],
+                          ]
+                        : _backups.map((b) {
+                            final dateStr = DateFormat(
+                              'yyyy-MM-dd HH:mm',
+                            ).format(b.date);
+                            return ListTile(
+                              leading: Icon(
+                                b.corrupt
+                                    ? Icons.error_outline
+                                    : Icons.inventory_2_outlined,
+                                color: b.corrupt
+                                    ? theme.colorScheme.error
+                                    : null,
+                              ),
+                              title: Text(dateStr),
+                              subtitle: Text(
+                                b.corrupt
+                                    ? '${b.displaySize} · ${l10n.backupCorrupt}'
+                                    : b.displaySize,
+                              ),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.restore),
+                                    tooltip: l10n.backupRestore,
+                                    onPressed: b.corrupt
+                                        ? null
+                                        : () => _restoreBackup(b),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete_outline),
+                                    tooltip: l10n.commonDelete,
+                                    onPressed: () => _deleteBackup(b),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                  ),
+                ],
+              ),
             ),
     );
   }
@@ -440,7 +444,10 @@ class _BackupPageState extends State<BackupPage> {
   /// Side effects: May update UI state or trigger user-facing flows.
   /// Notes: Internal helper used within this file only.
   Widget _buildSection(
-      BuildContext context, String title, List<Widget> children) {
+    BuildContext context,
+    String title,
+    List<Widget> children,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -449,8 +456,8 @@ class _BackupPageState extends State<BackupPage> {
           child: Text(
             title,
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+              color: Theme.of(context).colorScheme.primary,
+            ),
           ),
         ),
         ...children,
@@ -462,6 +469,7 @@ class _BackupPageState extends State<BackupPage> {
 /// Dialog to pick which modules to restore.
 class _RestoreModuleDialog extends StatefulWidget {
   final List<String> availableModules;
+
   /// Purpose: Create a restore module dialog instance.
   /// Inputs: `availableModules`.
   /// Returns: A new `_RestoreModuleDialog` instance.
@@ -544,7 +552,8 @@ class _RestoreModuleDialogState extends State<_RestoreModuleDialog> {
                   } else {
                     _selected.remove(m);
                   }
-                  _selectAll = _selected.length == widget.availableModules.length;
+                  _selectAll =
+                      _selected.length == widget.availableModules.length;
                 });
               },
             );
@@ -557,7 +566,9 @@ class _RestoreModuleDialogState extends State<_RestoreModuleDialog> {
           child: Text(l10n.commonCancel),
         ),
         FilledButton(
-          onPressed: _selected.isEmpty ? null : () => Navigator.pop(context, _selected),
+          onPressed: _selected.isEmpty
+              ? null
+              : () => Navigator.pop(context, _selected),
           child: Text(l10n.backupRestore),
         ),
       ],
