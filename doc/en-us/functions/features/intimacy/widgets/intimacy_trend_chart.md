@@ -44,7 +44,7 @@ public `IntimacyChartRange` enum declared here.
 | [`_toggleMetric`](#togglemetric) | method (`IntimacyTrendChart`) | A | Toggle one metric and report the new selection. |
 | [`_dateInterval`](#dateinterval) | method (`IntimacyTrendChart`) | A | Return the bottom-axis date-label interval for the plotted span. |
 | [`IntimacyTrendChart.build`](#build) | method (widget) | A | Prepare every selected metric's series and lay out the card. |
-| `_rangeChips` | method (widget helper) | B | Build the six compact time-range choice chips. |
+| `_rangeChips` | method (widget helper) | B | Build the six compact time-range choice chips, unpadded so the hosting `Wrap` can space and wrap them. |
 | [`_buildMetricSelector`](#buildmetricselector) | method (widget helper) | A | Build the metric filter chips, which double as the legend. |
 | [`_buildChart`](#buildchart) | method (widget helper) | A | Build the multi-metric `LineChart` itself. |
 | `_axisTitles` | method (widget helper) | B | Build side titles that relabel the 0-1 plot space in real units. |
@@ -237,6 +237,10 @@ replaced, so existing charts look unchanged; `thrustRate` is the only new entry.
 - **Purpose:** Build the current widget subtree for the active UI state.
 - **Inputs:** `context`.
 - **Returns:** The widget tree: title + range chips row, metric selector, and a 220px chart area.
+  Since v1.4.3 the range chips sit in a right-aligned `Wrap` inside an `Expanded` rather than
+  after a `Spacer`: on one line they render exactly as before, and in a pane too narrow for six
+  chips beside the title — the intimacy page's 320 dp calendar pane — they wrap to a second line
+  instead of overflowing.
 - **Side effects:** Creates UI widgets from the current state.
 - **Algorithm:**
   1. Sort a copy of `records` ascending and compute the range cutoff.

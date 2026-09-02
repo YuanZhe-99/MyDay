@@ -119,6 +119,7 @@
 | EWMA (smoothed curve) | EWMA（平滑曲线） | 指数加权移动平均，趋势图的虚线 |
 | thrust count | 抽插次数 | Intimacy record field; stored as a count times a x1/x100 unit |
 | thrust rate | 抽插速率 | thrusts per minute, derived per entry; 不用「频率」，那是 frequency（记录次数/周） |
+| subscription overview | 订阅概览 | 财务主页双栏时的订阅统计与进行中订阅区块（v1.4.3） |
 
 ## 6. 复查清单（提交中文页面之前运行）
 

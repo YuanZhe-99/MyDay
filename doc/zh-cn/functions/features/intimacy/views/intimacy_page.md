@@ -186,7 +186,7 @@
 | `_DatePickerTile.new` | 构造函数 | B | 平凡转发构造函数。 |
 | `_DatePickerTile.build` | 方法（组件） | B | 渲染带标签可点击日期字段。 |
 | `_IntimacyBody({...})` | 构造函数（`_IntimacyBody`） | B | 创建亲密主体排布器。 |
-| [`build`](#intimacybody-build) | 方法（`_IntimacyBody`） | A | 把日历堆叠在记录之上，或放进它们旁边的窗格里。 |
+| [`build`](#intimacybody-build) | 方法（`_IntimacyBody`） | A | 堆叠日历、图表和记录，或把日历和图表放进记录旁边的窗格里。 |
 
 **行数对账：** 上面 177 行，与 `grep -c '/// Purpose:'` = 177 精确匹配（54 个 Tier A、123 个 Tier B）。v1.3.2 在记录指标图移入 [`intimacy_trend_chart.dart`](../widgets/intimacy_trend_chart.md) 时移除了 27 行（17 个 Tier A、10 个 Tier B），并添加了一个（`_saveChartSettings`，Tier A）。重名声明（同一辅助名在多个类中重新实现，如 `_IntimacyPageState` 和 `_FilteredRecordsPageState` 中都有 `_filteredRecords`）如何在锚点中消歧见本页末尾说明。
 
@@ -1032,12 +1032,12 @@
 ### `Widget build(BuildContext context)`（`_IntimacyBody`） <a id="intimacybody-build"></a>
 - **种类：** `_IntimacyBody` 的方法
 - **来源：** `lib/features/intimacy/views/intimacy_page.dart`（约第 1105 行）
-- **用途：** 把月历和记录历史排成堆叠布局或双栏布局。
-- **输入：** `context`；以及组件自己的 `twoPane`、`leftPaneWidth`、`leftBlocks` 和 `rightBlocks` 字段。
+- **用途：** 把月历、趋势图和记录历史排成堆叠布局或双栏布局。
+- **输入：** `context`；以及组件自己的 `twoPane`、`leftPaneWidth`、`calendarBlocks`、`chartBlocks` 和 `recordBlocks` 字段。
 - **返回：** 堆叠时为 `ListView`，分栏时为两个 `ListView` 组成的 `Row`。
 - **副作用：** 除构建组件外无。
 - **算法：**
-  1. `!twoPane` → 一个 `ListView`，依次是 `leftBlocks`、`Divider(height: 1)`、`rightBlocks`——与 v1.4.1 之前页面的主体完全相同。
-  2. 否则是由 `SizedBox(width: leftPaneWidth, child: ListView(leftBlocks))`、`VerticalDivider(width: 1)` 和 `Expanded(child: ListView(rightBlocks))` 组成的 `Row`。
-- **用法：** 在分栏决策和窗格宽度解析完成后由 `_IntimacyPageState.build` 构建。
-- **备注：** 堆叠时日历本身就占掉手机的大部分高度，因此选中一个日期会把它所选出的记录滚出视野；分栏时日历留在原位，趋势图和历史拿走其余空间。两个窗格各自独立滚动，因为日历加上几个人的周期行可能超出紧凑高度。见 [../../../adaptive-layout.md](../../../adaptive-layout.md)。
+  1. `!twoPane` → 一个 `ListView`，依次是 `calendarBlocks`、`Divider(height: 1)`、`chartBlocks`、`recordBlocks`——与 v1.4.1 之前页面的主体完全相同。
+  2. 否则是由 `SizedBox(width: leftPaneWidth, child: ListView([...calendarBlocks, Divider, ...chartBlocks]))`（仅在有图表时放分隔线）、`VerticalDivider(width: 1)` 和 `Expanded(child: ListView(recordBlocks))` 组成的 `Row`。
+- **用法：** 在分栏决策和窗格宽度解析完成后由 `_IntimacyPageState.build` 构建；记录少于两条时 `chartBlocks` 为空，因为那时图表什么都不渲染。
+- **备注：** 堆叠时日历本身就占掉手机的大部分高度，因此选中一个日期会把它所选出的记录滚出视野；分栏时日历**和图表**共用左窗格，历史拿走其余空间。图表在 v1.4.3 移到了左边：日历下方的窗格原本空着，而图表在记录上方则把第一周的历史往下推。两个窗格各自独立滚动，因为日历、几个人的周期行加上一张图表可能超出紧凑高度。见 [../../../adaptive-layout.md](../../../adaptive-layout.md)。

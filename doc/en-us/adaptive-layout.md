@@ -190,6 +190,9 @@ decision is recorded here.
 | Licence, privacy policy, toy-cost overview | Width cap, no gate | v1.4.2 |
 | Every form dialog — inset instead of stretch | Width only, no gate | v1.4.2 |
 | Emoji and icon pickers — cell columns | C, at the touch-target minimum | v1.4.2 |
+| Finance — subscription overview in the summary pane | A, plus C for the stat cards; two-pane only | v1.4.3 |
+| Todo — sections fill columns in reading order | A + C, dealt by `columnMajorFill` | v1.4.3 |
+| Intimacy — trend chart in the calendar pane | A; pane 0.42 of content, clamped 320–480 | v1.4.3 |
 
 **No inline breakpoint remains.** As of v1.4.2 the whole tree is clean, and this is the check that
 says so — run it over `lib/` entire, not just the files a change touched, because the last time a
@@ -214,7 +217,22 @@ grep -rnE "maxWidth *[<>]=? *[0-9]|size\.width *[<>]=? *[0-9]" lib/
 3. **Task sections keep one tile column.** `TaskSectionWidget` wraps a shrink-wrapped
    `ReorderableListView`, and dragging a task between columns of one section is not meaningful. The
    Todo page's column rule therefore counts **sections per row**, not tiles per row, and its
-   `taskSectionMaxColumns` is 3 because there are only three sections to deal out.
+   `taskSectionMaxColumns` is 3 because there are only three sections to deal out. Since v1.4.3
+   they are dealt **column-major** (`columnMajorFill`), so two columns read 每日 + 日常 beside
+   工作 + the score card and three read one section each with the score card under 工作;
+   round-robin had put 日常 beside 每日 and 工作 underneath it, separating the two one-time lists a
+   user reads together.
+5. **The finance subscription overview exists in one arrangement only.** Every other split page
+   builds its blocks once and arranges them two ways, so the layouts cannot show different
+   content. The overview breaks that rule on purpose: split, it fills a pane that would otherwise
+   sit empty below the month summary; stacked, it would push the first transaction further down a
+   phone, which is the very cost the split exists to remove. It is also absent when there is no
+   active subscription — whenever a block can render to nothing, it belongs in the gate.
+6. **The intimacy pane's floor did not move when its chart did.** Moving the trend chart into the
+   calendar pane raised the pane's proportion and ceiling, because a chart keeps gaining from width
+   where a calendar does not. The 320 floor stayed, because it is the calendar's and the narrowest
+   splittable foldables have nothing to spare; the chart's range chips wrap instead, and
+   `test/intimacy_layout_ui_test.dart` renders the pane at that floor to prove they do.
 4. **The Weight page's summary/chart split is gated three ways, not two.** The shape rule and a
    width floor are the guide's double gate; the third condition — that there are at least two
    records — is there because the chart renders nothing below that, and a summary card alone in a

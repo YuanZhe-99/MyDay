@@ -537,7 +537,13 @@ class IntimacyTrendChart extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // The chips sit in a right-aligned Wrap rather than after a Spacer:
+          // on one line they render exactly as a Spacer would place them, and
+          // in a pane too narrow for six chips beside the title — the intimacy
+          // page's 320 dp calendar pane — they wrap onto a second line instead
+          // of overflowing.
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 l10n.intimacyTrend,
@@ -545,8 +551,15 @@ class IntimacyTrendChart extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              const Spacer(),
-              ..._rangeChips(l10n),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Wrap(
+                  alignment: WrapAlignment.end,
+                  spacing: 4,
+                  runSpacing: 4,
+                  children: _rangeChips(l10n),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -576,7 +589,8 @@ class IntimacyTrendChart extends StatelessWidget {
   /// Returns: `List<Widget>`.
   /// Side effects: None.
   /// Notes: Range labels stay unlocalized abbreviations except `All`, matching
-  /// the weight module's chips.
+  /// the weight module's chips. The chips carry no padding of their own; the
+  /// `Wrap` that hosts them supplies the spacing so it can also wrap them.
   List<Widget> _rangeChips(AppLocalizations l10n) {
     const labels = {
       IntimacyChartRange.oneWeek: '1W',
@@ -588,17 +602,14 @@ class IntimacyTrendChart extends StatelessWidget {
     final current = _range;
     return IntimacyChartRange.values.map((range) {
       final label = labels[range] ?? l10n.weightAll;
-      return Padding(
-        padding: const EdgeInsets.only(left: 4),
-        child: ChoiceChip(
-          label: Text(label, style: const TextStyle(fontSize: 11)),
-          selected: current == range,
-          onSelected: (_) =>
-              onSettingsChanged(settings.copyWith(range: range.id)),
-          visualDensity: VisualDensity.compact,
-          padding: EdgeInsets.zero,
-          labelPadding: const EdgeInsets.symmetric(horizontal: 6),
-        ),
+      return ChoiceChip(
+        label: Text(label, style: const TextStyle(fontSize: 11)),
+        selected: current == range,
+        onSelected: (_) =>
+            onSettingsChanged(settings.copyWith(range: range.id)),
+        visualDensity: VisualDensity.compact,
+        padding: EdgeInsets.zero,
+        labelPadding: const EdgeInsets.symmetric(horizontal: 6),
       );
     }).toList();
   }

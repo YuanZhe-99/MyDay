@@ -220,10 +220,95 @@ void main() {
     });
 
     test('the intimacy left pane never drops below seven calendar columns', () {
-      // Every splittable width leaves the calendar its 320 floor.
+      // Every splittable width leaves the calendar its 320 floor, and the
+      // chart it has carried since v1.4.3 never takes the pane past 480.
       for (var width = 600.0; width <= 2000; width += 1) {
         expect(intimacyLeftPaneWidth(width), greaterThanOrEqualTo(320));
-        expect(intimacyLeftPaneWidth(width), lessThanOrEqualTo(440));
+        expect(intimacyLeftPaneWidth(width), lessThanOrEqualTo(480));
+      }
+    });
+
+    test('the intimacy pane widened only where there was room to widen', () {
+      // The narrowest splittable foldables sit on the unchanged floor, so a
+      // Z Fold 5 or 7 in portrait renders exactly as it did before v1.4.3.
+      expect(intimacyLeftPaneWidth(578), 320); // Z Fold 5 portrait, content
+      expect(intimacyLeftPaneWidth(672), 320); // 0.42 x 672 = 282, floored
+      // The proportion clears the floor from 762 of content.
+      expect(intimacyLeftPaneWidth(761), 320);
+      expect(intimacyLeftPaneWidth(762), closeTo(320.04, 0.01));
+      // An unfolded Fold 8 in landscape is the device that gains.
+      expect(intimacyLeftPaneWidth(851), closeTo(357.42, 0.01));
+      expect(intimacyLeftPaneWidth(2000), 480); // ceiling
+    });
+
+    test('the widened intimacy pane costs the record list no columns', () {
+      // At a 1440 desktop the right pane still carries two record columns,
+      // as it did with the 440 ceiling.
+      final content = shellContentWidth(1440);
+      final right = content - intimacyLeftPaneWidth(content) - 1;
+      expect(
+        columnCapacity(
+          right,
+          minItemWidth: intimacyRecordMinWidth,
+          maxColumns: intimacyRecordMaxColumns,
+        ),
+        2,
+      );
+    });
+
+    test('subscription stat cards go two-up then three-up in the pane', () {
+      // Three cards need 3 x 110 plus two 8 dp gaps: 346 inside the padding.
+      int cards(double inner) => columnCapacity(
+        inner,
+        minItemWidth: subscriptionStatMinWidth,
+        gap: summaryCardGap,
+        maxColumns: 3,
+      );
+      expect(cards(345), 2);
+      expect(cards(346), 3);
+      // The finance pane's whole clamp range, less its 16 dp padding each side.
+      expect(cards(financeLeftPaneWidth(672) - 32), 2); // floor: 280
+      expect(cards(financeLeftPaneWidth(851) - 32), 2); // Fold 8: ~306
+      expect(cards(financeLeftPaneWidth(2000) - 32), 3); // ceiling: 420
+    });
+  });
+
+  group('columnMajorFill', () {
+    test('fills each column before starting the next', () {
+      expect(columnMajorFill(3, 1), [
+        [0, 1, 2],
+      ]);
+      // The Todo page at two columns: Daily + Routine, then Work.
+      expect(columnMajorFill(3, 2), [
+        [0, 1],
+        [2],
+      ]);
+      expect(columnMajorFill(3, 3), [
+        [0],
+        [1],
+        [2],
+      ]);
+    });
+
+    test('always returns exactly the requested number of columns', () {
+      expect(columnMajorFill(4, 3), [
+        [0, 1],
+        [2, 3],
+        <int>[],
+      ]);
+      expect(columnMajorFill(0, 2), [<int>[], <int>[]]);
+      expect(columnMajorFill(2, 0).length, 1);
+      expect(columnMajorFill(2, -1), [
+        [0, 1],
+      ]);
+    });
+
+    test('every index appears exactly once, in order', () {
+      for (var items = 0; items <= 12; items++) {
+        for (var columns = 1; columns <= 5; columns++) {
+          final flat = columnMajorFill(items, columns).expand((c) => c);
+          expect(flat, List.generate(items, (i) => i), reason: '$items/$columns');
+        }
       }
     });
 

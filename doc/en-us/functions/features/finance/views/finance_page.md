@@ -2,7 +2,10 @@
 
 The Finance tab's home page: a month-selectable summary (expense/income/total assets, with a
 currency-conversion-fallback warning), an upcoming-renewals strip, and the grouped list of the
-selected month's transactions, with swipe-to-edit/delete and a floating add button. The app bar's
+selected month's transactions, with swipe-to-edit/delete and a floating add button. Since v1.4.3
+the two-pane arrangement also fills the summary pane with a subscription overview — the three
+subscription statistics and the active list — drawn from
+[`subscription_summary.dart`](../services/subscription_summary.md). The app bar's
 overflow actions are the entry points into every other Finance sub-page (accounts, analysis,
 subscriptions, categories, exchange rates, default currency). See
 [Finance](../../../../features/finance.md#views-and-analysis-page) for how this page fits into the
@@ -18,7 +21,6 @@ selectable-month home summaries and grouped monthly transactions described there
 | `dispose` | method (`_FinancePageState`) | B | Unregister the renewal and auto-sync listeners. |
 | [`_loadData`](#_loaddata) | method (`_FinancePageState`) | A | Load finance and exchange-rate data from disk into state, or record a load error. |
 | [`_processSubscriptions`](#_processsubscriptions) | method (`_FinancePageState`) | A | Auto-generate transactions for subscriptions with overdue billing dates. |
-| [`_getUpcomingSubs`](#_getupcomingsubs) | method (`_FinancePageState`) | A | List subscriptions billing within N days, sorted by billing date. |
 | [`_saveData`](#_savedata) | method (`_FinancePageState`) | A | Persist finance state to disk, refusing to save while the loaded file is unreadable. |
 | `_updateReminderService` | method (`_FinancePageState`) | B | Push current subscription/reminder-time state to `ReminderService`. |
 | `_addTransaction` | method (`_FinancePageState`) | B | Open the add-transaction dialog and insert the result at the front of the list. |
@@ -30,6 +32,7 @@ selectable-month home summaries and grouped monthly transactions described there
 | `_openAccounts` | method (`_FinancePageState`) | B | Push the accounts page, wiring its change/sort callbacks back into state. |
 | `_openAnalysis` | method (`_FinancePageState`) | B | Push the analysis page. |
 | `_openSubscriptions` | method (`_FinancePageState`) | B | Push the subscriptions page, wiring its change/reminder/sort callbacks back into state. |
+| `_openSubscriptionDetail` | method (`_FinancePageState`) | B | Push one subscription's detail page from the home overview, exactly as the subscriptions page does. |
 | `_showFinanceMenu` | method (`_FinancePageState`) | B | Show the bottom-sheet menu for categories, exchange rates, and default currency. |
 | `_FinanceDataError({...})` | constructor (`_FinanceDataError`) | B | Create a finance-data-error view instance. |
 | `build` | method (`_FinanceDataError`) | B | Render the blocking "finance data unreadable" error view with a retry button. |
@@ -43,12 +46,16 @@ selectable-month home summaries and grouped monthly transactions described there
 | `defaultAvatar` (nested in `_buildLeading`) | local function (widget helper) | B | Build the fallback finance transaction avatar. |
 | `_FinanceBody({...})` | constructor (`_FinanceBody`) | B | Create the finance body arranger. |
 | [`build`](#financebody-build) | method (`_FinanceBody`) | A | Stack the summary above the transactions, or put it in a pane beside them. |
+| `_SubscriptionOverview({...})` | constructor (`_SubscriptionOverview`) | B | Create the summary pane's subscription overview. |
+| [`build`](#subscriptionoverview-build) | method (`_SubscriptionOverview`) | A | Render the three subscription statistics and the active list inside the summary pane. |
+| `_SubscriptionOverviewTile({...})` | constructor (`_SubscriptionOverviewTile`) | B | Create one read-only row of the subscription overview. |
+| `build` | method (`_SubscriptionOverviewTile`) | B | Render a dense subscription row: avatar, name, cycle and next billing, amount. |
 
-**Reconciliation:** `grep -c 'Purpose:' lib/features/finance/views/finance_page.dart` returns 31,
-matching the 29 rows above exactly — every block sits immediately above its real declaration (a
+**Reconciliation:** `grep -c 'Purpose:' lib/features/finance/views/finance_page.dart` returns 35,
+matching the 35 rows above exactly — every block sits immediately above its real declaration (a
 constructor, `createState`, a lifecycle method, a private method, a `build` override, or the nested
 local function inside `_buildLeading`); none were found misattached above a call-site statement,
-and no undocumented real declaration was found. The four classes' plain widget fields (e.g.
+and no undocumented real declaration was found. The six classes' plain widget fields (e.g.
 `_FinancePageState`'s `_accounts`/`_categories`/`_transactions`/... state fields, and the
 `StatelessWidget` subclasses' constructor parameters) carry no `/// Purpose:` block, consistent with
 this codebase's convention of documenting callable members rather than data fields.
@@ -121,33 +128,6 @@ this codebase's convention of documenting callable members rather than data fiel
   immediately rather than waiting for the next load.
 - **Notes:** Safe to call repeatedly — `SubscriptionProcessor.process` recognizes both random-id
   (legacy) and stable-id (current) billing transactions, so re-running it never double-bills a day.
-
-### `List<(Subscription, DateTime)> _getUpcomingSubs(int days)` <a id="_getupcomingsubs"></a>
-- **Kind:** method of `_FinancePageState`
-- **Source:** `lib/features/finance/views/finance_page.dart` (lines 162-180)
-- **Purpose:** Return subscriptions whose next billing date falls within `days` days from today,
-  oldest first, for the home page's "upcoming renewals" strip.
-- **Inputs:** `days` — the look-ahead window size.
-- **Returns:** `List<(Subscription, DateTime)>` — each tuple pairs a subscription with its
-  `nextBillingDate`.
-- **Side effects:** None.
-- **Algorithm:**
-  1. Compute `today` (date-only, from `DateTime.now()`) and `limit = today + Duration(days: days)`.
-  2. For each subscription: skip it if `cancelType == CancelType.atExpiry` (at-expiry cancellations
-     keep appearing in subscription lists but are excluded from renewal reminders); also skip it if
-     `!isActive && cancelType == CancelType.immediate`.
-  3. If the subscription's `nextBillingDate` is non-null and its date-only form is not after
-     `limit`, add `(sub, next)` to the result.
-  4. Sort the result ascending by billing date and return it.
-- **Usage:**
-  ```dart
-  // Upcoming renewals (within 3 days)
-  final upcomingSubs = _getUpcomingSubs(3);
-  ```
-  (called inside `build`, feeding the horizontal `Chip` strip shown above the transaction list).
-- **Notes:** An identically-named, independently implemented `_getUpcomingSubs` exists in
-  `subscriptions_page.dart` with the same exclusion rules but a longer look-ahead window used for
-  that page's own upcoming-renewals section — the two are not shared code.
 
 ### `Future<void> _saveData()` <a id="_savedata"></a>
 - **Kind:** method of `_FinancePageState`
@@ -247,7 +227,11 @@ this codebase's convention of documenting callable members rather than data fiel
      _rateData)` ([`balance_util.md#accountbalance`](../services/balance_util.md#accountbalance))
      and converting it to `_defaultCurrency` using **today's** `currentRates` — unlike the
      per-transaction snapshot rates used for `monthExpense`/`monthIncome`.
-  7. Compute `upcomingSubs = _getUpcomingSubs(3)`.
+  7. Compute `upcomingSubs = upcomingSubscriptions(_subscriptions, days: 3)`, then `activeSubs`
+     through `sortSubscriptions` with the stored sort mode and custom order, and
+     `subscriptionSummary` through `summarizeSubscriptions` — all from
+     [`subscription_summary.md`](../services/subscription_summary.md). When `twoPane` and
+     `activeSubs` is non-empty, a `_SubscriptionOverview` is appended to `summaryBlocks`.
   8. Build a `Scaffold` with an `AppBar` (accounts/analysis/subscriptions/overflow-menu actions,
      all disabled when `_loadError != null`) and a body that is: a spinner while `!_loaded`; the
      `_FinanceDataError` view while `_loadError != null`; otherwise a `Column` of
@@ -288,6 +272,13 @@ this codebase's convention of documenting callable members rather than data fiel
   [`build`](#build).
 - [`add_transaction_dialog.dart`](../widgets/add_transaction_dialog.md) — the dialog shown by
   `_addTransaction` and `_editTransaction`.
+- [`subscription_summary.dart`](../services/subscription_summary.md) — `upcomingSubscriptions`,
+  `sortSubscriptions`, `summarizeSubscriptions`, used by [`build`](#build) for the renewal strip
+  and the subscription overview.
+- [`subscription_avatar.dart`](../widgets/subscription_avatar.md) — the avatar in
+  `_SubscriptionOverviewTile`.
+- [`subscription_detail_page.dart`](subscription_detail_page.md) — pushed by
+  `_openSubscriptionDetail`.
 - [`reminder_service.md`](../../../shared/services/reminder_service.md) — `updateSubscriptionData`,
   kept in sync by `_updateReminderService`.
 - [`auto_sync_service.md`](../../../shared/services/auto_sync_service.md) —
@@ -309,9 +300,38 @@ this codebase's convention of documenting callable members rather than data fiel
 - **Usage:** Built by `_FinancePageState.build` once the split decision and the pane width are
   resolved.
 - **Notes:** The three content slots are built once by the page and arranged two ways here, so the
-  two layouts can never show different content. Stacked, the month summary spends up to a third of
-  a phone's height before the first transaction appears; split, the transaction list — the thing
-  the user actually reads — takes everything the summary does not. The left pane is a `ListView` in
-  its own right because a long renewal strip plus the summary can outgrow a compact height, which
-  the split rule still admits at 480. See
+  two layouts can never show different content — with one deliberate exception the page itself
+  makes: since v1.4.3 the subscription overview is added to `summaryBlocks` only in the two-pane
+  arrangement, because it fills a pane that would otherwise sit empty, while stacked it would push
+  the first transaction further down a phone. Stacked, the month summary already spends up to a
+  third of a phone's height before the first transaction appears; split, the transaction list —
+  the thing the user actually reads — takes everything the summary does not. The left pane is a
+  `ListView` in its own right because a long renewal strip plus the summary can outgrow a compact
+  height, which the split rule still admits at 480. See
   [../../../adaptive-layout.md](../../../adaptive-layout.md).
+
+### `Widget build(BuildContext context)` (`_SubscriptionOverview`) <a id="subscriptionoverview-build"></a>
+- **Kind:** method of `_SubscriptionOverview`
+- **Source:** `lib/features/finance/views/finance_page.dart` (approx. line 1290)
+- **Purpose:** Render the subscriptions page's three statistics and its active list inside the
+  finance summary pane.
+- **Inputs:** `context`; the widget's `paneWidth`, `summary`, `active`, `categories`, `accounts`,
+  `currencyCode`, `onOpenAll` and `onOpenDetail` fields.
+- **Returns:** A `Column`.
+- **Side effects:** None beyond building widgets; the two callbacks push pages when tapped.
+- **Algorithm:**
+  1. A header row styled like the upcoming-renewals header (`Icons.repeat`, `financeSubscriptions`)
+     with a trailing chevron `IconButton` that calls `onOpenAll`.
+  2. `statColumns = columnCapacity(paneWidth - 32, minItemWidth: subscriptionStatMinWidth, gap:
+     summaryCardGap, maxColumns: 3)`; the three `_SummaryCard`s (monthly due, monthly average,
+     yearly average) are packed into rows with `adaptiveTileRows` — two-up across the pane's whole
+     clamp range, three-up once the pane passes about 378.
+  3. A `financeActiveSubscriptions` sub-header, then one `_SubscriptionOverviewTile` per active
+     subscription with the resolved category and account, tapping through to `onOpenDetail`.
+- **Usage:** Appended to `summaryBlocks` by `_FinancePageState.build` when `twoPane` and there is
+  at least one active subscription — whenever a block can render to nothing, it belongs in the
+  gate.
+- **Notes:** Deliberately not the subscriptions page's reminder controls, its historical list, or
+  its own upcoming strip — the home page shows an upcoming strip directly above this block. The
+  tiles are read-only: editing, cancelling and restoring stay on the subscriptions page so the
+  home page does not grow a second copy of those flows.

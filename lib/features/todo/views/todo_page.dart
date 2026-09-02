@@ -1430,22 +1430,29 @@ class _TodoPageState extends ConsumerState<TodoPage> {
   /// `ReorderableListView`, and dragging a task between columns of one section
   /// is not a thing, so the sections themselves are what go side by side. At
   /// one column this is exactly the list the page has always built. Above it,
-  /// the blocks are dealt round-robin into independently scrolling columns, so
-  /// a long Daily list cannot push Work off the bottom of the window.
+  /// the sections fill the independently scrolling columns in reading order
+  /// through `columnMajorFill` — Daily and Routine in the first column, Work in
+  /// the second — and the score card follows the last section, as it does when
+  /// stacked. Round-robin dealing, used before v1.4.3, put Routine beside Daily
+  /// and Work underneath it, separating the two one-time lists a user reads
+  /// together; column-major fill keeps a long Daily list from pushing Work off
+  /// the bottom just as well.
   Widget _buildTaskArea(ThemeData theme, AppLocalizations l10n, int columns) {
-    final blocks = _taskAreaBlocks(theme, l10n);
+    final sections = _taskSections(theme, l10n);
+    final scoreCard = _buildDailyScoreCard(theme, l10n);
     if (columns <= 1) {
       return ListView(
         children: [
-          for (var i = 0; i < blocks.length; i++) ...[
-            if (i > 0 && i < blocks.length - 1)
-              const Divider(indent: 16, endIndent: 16),
-            blocks[i],
+          for (var i = 0; i < sections.length; i++) ...[
+            if (i > 0) const Divider(indent: 16, endIndent: 16),
+            sections[i],
           ],
+          scoreCard,
           const SizedBox(height: 80),
         ],
       );
     }
+    final fill = columnMajorFill(sections.length, columns);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1454,10 +1461,11 @@ class _TodoPageState extends ConsumerState<TodoPage> {
           Expanded(
             child: ListView(
               children: [
-                for (var i = column; i < blocks.length; i += columns) ...[
-                  if (i > column) const Divider(indent: 16, endIndent: 16),
-                  blocks[i],
+                for (var j = 0; j < fill[column].length; j++) ...[
+                  if (j > 0) const Divider(indent: 16, endIndent: 16),
+                  sections[fill[column][j]],
                 ],
+                if (column == columns - 1) scoreCard,
                 const SizedBox(height: 80),
               ],
             ),
@@ -1467,14 +1475,15 @@ class _TodoPageState extends ConsumerState<TodoPage> {
     );
   }
 
-  /// Purpose: Return the task area's blocks in their fixed display order.
+  /// Purpose: Return the three task sections in their fixed display order.
   /// Inputs: `theme`, `l10n`.
-  /// Returns: `List<Widget>` — the three task sections then the score card.
+  /// Returns: `List<Widget>` — Daily, Routine, Work.
   /// Side effects: May update UI state or trigger user-facing flows.
   /// Notes: Internal helper used within this file only. Extracted so the single
   /// and multi-column layouts are two arrangements of one list rather than two
-  /// copies of the same four blocks.
-  List<Widget> _taskAreaBlocks(ThemeData theme, AppLocalizations l10n) {
+  /// copies of the same three sections. The score card is not one of them: it
+  /// is placed by `_buildTaskArea`, after whichever section comes last.
+  List<Widget> _taskSections(ThemeData theme, AppLocalizations l10n) {
     return [
       TaskSectionWidget(
         title: l10n.todoSectionDaily,
@@ -1524,7 +1533,6 @@ class _TodoPageState extends ConsumerState<TodoPage> {
         onEdit: _editTask,
         onSubtaskToggle: _toggleSubtask,
       ),
-      _buildDailyScoreCard(theme, l10n),
     ];
   }
 }

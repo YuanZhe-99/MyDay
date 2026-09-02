@@ -601,7 +601,7 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
           : _IntimacyBody(
               twoPane: twoPane,
               leftPaneWidth: intimacyLeftPaneWidth(contentWidth),
-              leftBlocks: [
+              calendarBlocks: [
                 // Calendar
                 _CalendarWidget(
                   focusedMonth: _focusedMonth,
@@ -622,7 +622,7 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
                 ),
                 ..._buildCycleCalendarExtras(theme, l10n),
               ],
-              rightBlocks: [
+              chartBlocks: [
                 // Consolidated trend chart
                 if (_records.length >= 2)
                   IntimacyTrendChart(
@@ -630,7 +630,8 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
                     settings: _chartSettings,
                     onSettingsChanged: _saveChartSettings,
                   ),
-
+              ],
+              recordBlocks: [
                 // Records header
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
@@ -1123,39 +1124,52 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
 class _IntimacyBody extends StatelessWidget {
   final bool twoPane;
   final double leftPaneWidth;
-  final List<Widget> leftBlocks;
-  final List<Widget> rightBlocks;
+  final List<Widget> calendarBlocks;
+  final List<Widget> chartBlocks;
+  final List<Widget> recordBlocks;
 
   /// Purpose: Create an intimacy body instance.
-  /// Inputs: `twoPane`, `leftPaneWidth`, `leftBlocks`, `rightBlocks`.
+  /// Inputs: `twoPane`, `leftPaneWidth`, `calendarBlocks`, `chartBlocks`,
+  /// `recordBlocks`.
   /// Returns: A new `_IntimacyBody` instance.
   /// Side effects: None.
-  /// Notes: Internal helper used within this file only. The two content groups
-  /// are built once by the page and arranged two ways here, so the layouts can
-  /// never show different content.
+  /// Notes: Internal helper used within this file only. The three content
+  /// groups are built once by the page and arranged two ways here, so the
+  /// layouts can never show different content. `chartBlocks` is empty below
+  /// two records, because the chart renders nothing there.
   const _IntimacyBody({
     required this.twoPane,
     required this.leftPaneWidth,
-    required this.leftBlocks,
-    required this.rightBlocks,
+    required this.calendarBlocks,
+    required this.chartBlocks,
+    required this.recordBlocks,
   });
 
   /// Purpose: Build the current widget subtree for the active UI state.
   /// Inputs: `context`.
   /// Returns: The widget tree for the current state.
   /// Side effects: Creates UI widgets from the current state.
-  /// Notes: On a window the app-wide split rule allows, the month calendar and
-  /// its cycle strips keep a fixed pane on the left while the trend chart and
-  /// the record history take the rest. Stacked, the calendar alone is most of a
-  /// phone's height, so selecting a date scrolls the records it selected out of
-  /// view. Both panes scroll independently: the left one because a calendar
-  /// plus several people's cycle rows can outgrow a compact height, which the
-  /// split rule still admits at 480.
+  /// Notes: Stacked, the order is calendar, cycle strips, a divider, the trend
+  /// chart, then the records — unchanged since the chart was consolidated. On
+  /// a window the app-wide split rule allows, the calendar **and the chart**
+  /// share the fixed left pane while the record history takes the rest: the
+  /// chart moved left in v1.4.3 because below the calendar the pane sat empty,
+  /// while above the records the chart pushed the first week of history down.
+  /// Stacked, the calendar alone is most of a phone's height, so selecting a
+  /// date scrolls the records it selected out of view. Both panes scroll
+  /// independently: the left one because a calendar, several people's cycle
+  /// rows and a chart can outgrow a compact height, which the split rule still
+  /// admits at 480.
   @override
   Widget build(BuildContext context) {
     if (!twoPane) {
       return ListView(
-        children: [...leftBlocks, const Divider(height: 1), ...rightBlocks],
+        children: [
+          ...calendarBlocks,
+          const Divider(height: 1),
+          ...chartBlocks,
+          ...recordBlocks,
+        ],
       );
     }
     return Row(
@@ -1163,10 +1177,16 @@ class _IntimacyBody extends StatelessWidget {
       children: [
         SizedBox(
           width: leftPaneWidth,
-          child: ListView(children: leftBlocks),
+          child: ListView(
+            children: [
+              ...calendarBlocks,
+              if (chartBlocks.isNotEmpty) const Divider(height: 1),
+              ...chartBlocks,
+            ],
+          ),
         ),
         const VerticalDivider(width: 1),
-        Expanded(child: ListView(children: rightBlocks)),
+        Expanded(child: ListView(children: recordBlocks)),
       ],
     );
   }

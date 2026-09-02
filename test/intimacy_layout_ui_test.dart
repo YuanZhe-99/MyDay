@@ -18,6 +18,81 @@ import 'layout_test_helpers.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  /// Purpose: Return an intimacy data file with `count` records.
+  /// Inputs: `count`.
+  /// Returns: `Map<String, Object>`.
+  /// Side effects: None.
+  /// Notes: Two records is the threshold below which the trend chart renders
+  /// nothing. The records are dated within the chart's default one-month
+  /// range as of any plausible test date, by being recent relative to now.
+  Map<String, Object> intimacyData(int count) {
+    final now = DateTime.now();
+    return {
+      'intimacy_data.json': {
+        'records': [
+          for (var i = 0; i < count; i++)
+            {
+              'id': 'r$i',
+              'type': 'Solo',
+              'isSolo': true,
+              'pleasureLevel': 3 + (i % 3),
+              'duration': 600 + 60 * i,
+              'datetime': now
+                  .subtract(Duration(days: 2 * (count - i)))
+                  .toIso8601String(),
+            },
+        ],
+      },
+    };
+  }
+
+  testWidgets('an unfolded Fold 8 keeps the chart in the calendar pane', (
+    tester,
+  ) async {
+    final dir = await seedAppDir(tester, intimacyData(4));
+    addTearDown(() => deleteQuietly(dir));
+
+    await pumpAdaptivePage(tester, const IntimacyPage(), const Size(932, 704));
+
+    final divider = tester.getTopLeft(find.byType(VerticalDivider)).dx;
+    expect(find.text('趋势'), findsOneWidget);
+    expect(tester.getTopLeft(find.text('趋势')).dx, lessThan(divider));
+    expect(tester.getTopLeft(find.text('所有记录')).dx, greaterThan(divider));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a Z Fold 5 in portrait renders the chart at the pane floor', (
+    tester,
+  ) async {
+    final dir = await seedAppDir(tester, intimacyData(4));
+    addTearDown(() => deleteQuietly(dir));
+
+    // 675 x 810 passes the split rule but leaves the pane its 320 floor, so
+    // the chart gets 288: the range chips must wrap rather than overflow.
+    await pumpAdaptivePage(tester, const IntimacyPage(), const Size(675, 810));
+
+    expect(find.byType(VerticalDivider), findsOneWidget);
+    expect(find.text('趋势'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a phone keeps calendar, chart, records in that order', (
+    tester,
+  ) async {
+    final dir = await seedAppDir(tester, intimacyData(4));
+    addTearDown(() => deleteQuietly(dir));
+
+    await pumpAdaptivePage(tester, const IntimacyPage(), const Size(412, 915));
+
+    final chart = tester.getTopLeft(find.text('趋势')).dy;
+    final records = tester.getTopLeft(find.text('所有记录')).dy;
+    // The month header sits above the chart, the chart above the records.
+    expect(chart, greaterThan(0));
+    expect(records, greaterThan(chart));
+    expect(find.byType(VerticalDivider), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('a phone stacks the calendar above the records', (tester) async {
     final dir = await seedAppDir(tester, const {});
     addTearDown(() => deleteQuietly(dir));

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:my_day/features/todo/models/task.dart';
 import 'package:my_day/features/todo/views/todo_page.dart';
 import 'package:my_day/features/todo/widgets/task_section.dart';
 
@@ -75,6 +76,68 @@ void main() {
     await pumpAdaptivePage(tester, const TodoPage(), const Size(704, 932));
 
     expect(sectionColumns(tester).length, 1);
+    expect(tester.takeException(), isNull);
+  });
+
+  /// Purpose: The x offset of the section holding one task type.
+  /// Inputs: `tester`, `type`.
+  /// Returns: `double`.
+  /// Side effects: None.
+  /// Notes: Found by type rather than by title text, so a label change cannot
+  /// break a layout assertion.
+  double sectionX(WidgetTester tester, TaskType type) => tester
+      .getTopLeft(
+        find.byWidgetPredicate(
+          (w) => w is TaskSectionWidget && w.taskType == type,
+        ),
+      )
+      .dx;
+
+  /// Purpose: The x offset of the daily score card.
+  /// Inputs: `tester`.
+  /// Returns: `double`.
+  /// Side effects: None.
+  /// Notes: Simplified Chinese label, per the locale the harness pins.
+  double scoreCardX(WidgetTester tester) =>
+      tester.getTopLeft(find.text('本日评分')).dx;
+
+  testWidgets('two columns read Daily + Routine, then Work + score', (
+    tester,
+  ) async {
+    final dir = await seedAppDir(tester, const {});
+    addTearDown(() => deleteQuietly(dir));
+
+    // Fold 8 landscape: two section columns. Column-major fill puts the first
+    // two sections in the left column and the last one — with the score card
+    // under it — in the right, rather than dealing them round-robin.
+    await pumpAdaptivePage(tester, const TodoPage(), const Size(932, 704));
+
+    expect(sectionColumns(tester).length, 2);
+    final daily = sectionX(tester, TaskType.daily);
+    final routine = sectionX(tester, TaskType.routineOnce);
+    final work = sectionX(tester, TaskType.workOnce);
+    expect(routine, daily);
+    expect(work, greaterThan(daily));
+    expect(scoreCardX(tester), greaterThanOrEqualTo(work));
+    expect(scoreCardX(tester), lessThan(work + 100));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('three columns keep one section each and the score under Work', (
+    tester,
+  ) async {
+    final dir = await seedAppDir(tester, const {});
+    addTearDown(() => deleteQuietly(dir));
+
+    await pumpAdaptivePage(tester, const TodoPage(), const Size(1440, 900));
+
+    expect(sectionColumns(tester).length, 3);
+    final daily = sectionX(tester, TaskType.daily);
+    final routine = sectionX(tester, TaskType.routineOnce);
+    final work = sectionX(tester, TaskType.workOnce);
+    expect(daily, lessThan(routine));
+    expect(routine, lessThan(work));
+    expect(scoreCardX(tester), greaterThanOrEqualTo(work));
     expect(tester.takeException(), isNull);
   });
 

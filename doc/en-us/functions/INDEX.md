@@ -8,14 +8,14 @@ mirroring the `lib/` tree (with `.dart` replaced by `.md`).
 
 | Measure | Count |
 |---|---|
-| `grep -r '/// Purpose:' lib --include=*.dart` | **1419** |
-| Declarations-table rows across all 75 pages | **1450** |
+| `grep -r '/// Purpose:' lib --include=*.dart` | **1423** |
+| Declarations-table rows across all 77 pages | **1460** |
 | — of those rows, Tier A (full entry) | 813 |
-| — of those rows, Tier B (index row only) | 637 |
+| — of those rows, Tier B (index row only) | 647 |
 
 The **Declarations** and **Tier A** columns below count **rows in each page's Declarations
 table**, which is the mechanically checkable figure. A row is not always one `/// Purpose:` block,
-and the 31-row net excess of the table count over the grep count is fully itemized — every page whose row count
+and the 37-row net excess of the table count over the grep count is fully itemized — every page whose row count
 differs from its own `grep` carries a `**Reconciliation:**` note saying exactly why. There are
 three recurring reasons:
 
@@ -61,18 +61,20 @@ drifted from the per-file rows.)
 | `lib/features/finance/services/exchange_rate_storage.dart` | [features/finance/services/exchange_rate_storage.md](features/finance/services/exchange_rate_storage.md) | 16 | 16 |
 | `lib/features/finance/services/finance_storage.dart` | [features/finance/services/finance_storage.md](features/finance/services/finance_storage.md) | 11 | 10 |
 | `lib/features/finance/services/subscription_processor.dart` | [features/finance/services/subscription_processor.md](features/finance/services/subscription_processor.md) | 7 | 5 |
+| `lib/features/finance/services/subscription_summary.dart` | [features/finance/services/subscription_summary.md](features/finance/services/subscription_summary.md) | 7 | 3 |
 | `lib/features/finance/views/accounts_page.dart` | [features/finance/views/accounts_page.md](features/finance/views/accounts_page.md) | 64 | 23 |
 | `lib/features/finance/views/analysis_page.dart` | [features/finance/views/analysis_page.md](features/finance/views/analysis_page.md) | 34 | 18 |
 | `lib/features/finance/views/categories_page.dart` | [features/finance/views/categories_page.md](features/finance/views/categories_page.md) | 22 | 5 |
 | `lib/features/finance/views/category_detail_page.dart` | [features/finance/views/category_detail_page.md](features/finance/views/category_detail_page.md) | 14 | 4 |
 | `lib/features/finance/views/exchange_rates_page.dart` | [features/finance/views/exchange_rates_page.md](features/finance/views/exchange_rates_page.md) | 18 | 9 |
-| `lib/features/finance/views/finance_page.dart` | [features/finance/views/finance_page.md](features/finance/views/finance_page.md) | 31 | 7 |
+| `lib/features/finance/views/finance_page.dart` | [features/finance/views/finance_page.md](features/finance/views/finance_page.md) | 35 | 7 |
 | `lib/features/finance/views/subscription_detail_page.dart` | [features/finance/views/subscription_detail_page.md](features/finance/views/subscription_detail_page.md) | 12 | 3 |
-| `lib/features/finance/views/subscriptions_page.dart` | [features/finance/views/subscriptions_page.md](features/finance/views/subscriptions_page.md) | 35 | 19 |
+| `lib/features/finance/views/subscriptions_page.dart` | [features/finance/views/subscriptions_page.md](features/finance/views/subscriptions_page.md) | 27 | 14 |
 | `lib/features/finance/widgets/add_subscription_dialog.dart` | [features/finance/widgets/add_subscription_dialog.md](features/finance/widgets/add_subscription_dialog.md) | 13 | 4 |
 | `lib/features/finance/widgets/add_transaction_dialog.dart` | [features/finance/widgets/add_transaction_dialog.md](features/finance/widgets/add_transaction_dialog.md) | 39 | 15 |
 | `lib/features/finance/widgets/bank_preset_picker.dart` | [features/finance/widgets/bank_preset_picker.md](features/finance/widgets/bank_preset_picker.md) | 11 | 1 |
 | `lib/features/finance/widgets/grouped_transaction_list.dart` | [features/finance/widgets/grouped_transaction_list.md](features/finance/widgets/grouped_transaction_list.md) | 2 | 2 |
+| `lib/features/finance/widgets/subscription_avatar.dart` | [features/finance/widgets/subscription_avatar.md](features/finance/widgets/subscription_avatar.md) | 4 | 1 |
 
 ## features/intimacy/
 
@@ -142,7 +144,7 @@ the 1436/1435 hand-documented declarations above).
 | `lib/shared/services/sync_wake_lock.dart` | [shared/services/sync_wake_lock.md](shared/services/sync_wake_lock.md) | 0 | 0 |
 | `lib/shared/services/tray_service.dart` | [shared/services/tray_service.md](shared/services/tray_service.md) | 16 | 13 |
 | `lib/shared/services/webdav_service.dart` | [shared/services/webdav_service.md](shared/services/webdav_service.md) | 12 | 12 |
-| `lib/shared/utils/adaptive_layout.dart` | [shared/utils/adaptive_layout.md](shared/utils/adaptive_layout.md) | 53 | 16 |
+| `lib/shared/utils/adaptive_layout.dart` | [shared/utils/adaptive_layout.md](shared/utils/adaptive_layout.md) | 56 | 17 |
 | `lib/shared/utils/json_preservation.dart` | [shared/utils/json_preservation.md](shared/utils/json_preservation.md) | 3 | 2 |
 | `lib/shared/utils/week_grouping.dart` | [shared/utils/week_grouping.md](shared/utils/week_grouping.md) | 16 | 16 |
 | `lib/shared/views/backup_page.dart` | [shared/views/backup_page.md](shared/views/backup_page.md) | 17 | 2 |
@@ -160,14 +162,14 @@ the 1436/1435 hand-documented declarations above).
 |---|---|---|---|---|
 | Root (`lib/`) | 1 | 1 | 1 | 0 |
 | `app/` | 4 | 17 | 14 | 3 |
-| `features/finance/` | 20 | 388 | 192 | 196 |
+| `features/finance/` | 22 | 395 | 191 | 204 |
 | `features/intimacy/` | 11 | 367 | 177 | 190 |
 | `features/settings/` | 3 | 33 | 8 | 25 |
 | `features/todo/` | 7 | 198 | 122 | 76 |
 | `features/weight/` | 3 | 86 | 49 | 37 |
-| `shared/` | 26 | 360 | 250 | 110 |
-| **Total** | **75** | **1450** | **813** | **637** |
+| `shared/` | 26 | 363 | 251 | 112 |
+| **Total** | **77** | **1460** | **813** | **647** |
 
-Every row here is the arithmetic sum of the per-file rows above, re-derived in v1.4.2. The file
+Every row here is the arithmetic sum of the per-file rows above, re-derived in v1.4.3. The file
 counts also match `find lib -name '*.dart' -not -path 'lib/l10n/*'` exactly — 75 source files, 75
 pages, no file without a page and no page without a file.

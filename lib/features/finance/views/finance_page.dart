@@ -17,12 +17,15 @@ import '../services/balance_util.dart';
 import '../services/exchange_rate_storage.dart';
 import '../services/finance_storage.dart';
 import '../services/subscription_processor.dart';
+import '../services/subscription_summary.dart';
 import '../widgets/add_transaction_dialog.dart';
 import '../widgets/grouped_transaction_list.dart';
+import '../widgets/subscription_avatar.dart';
 import 'accounts_page.dart';
 import 'analysis_page.dart';
 import 'categories_page.dart';
 import 'exchange_rates_page.dart';
+import 'subscription_detail_page.dart';
 import 'subscriptions_page.dart';
 
 class FinancePage extends ConsumerStatefulWidget {
@@ -155,32 +158,6 @@ class _FinancePageState extends ConsumerState<FinancePage> {
       });
       _saveData();
     }
-  }
-
-  /// Subscriptions whose next billing date is within [days] days from now.
-  /// Purpose: Provide the internal get upcoming subs helper for this file.
-  /// Inputs: `days`.
-  /// Returns: `List<(Subscription, DateTime)>`.
-  /// Side effects: None.
-  /// Notes: At-expiry cancellations keep showing in subscription lists but are excluded from renewal reminders.
-  List<(Subscription, DateTime)> _getUpcomingSubs(int days) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final limit = today.add(Duration(days: days));
-    final result = <(Subscription, DateTime)>[];
-    for (final sub in _subscriptions) {
-      if (sub.cancelType == CancelType.atExpiry) continue;
-      if (!sub.isActive && sub.cancelType == CancelType.immediate) continue;
-      final next = sub.nextBillingDate;
-      if (next != null) {
-        final nextDay = DateTime(next.year, next.month, next.day);
-        if (!nextDay.isAfter(limit)) {
-          result.add((sub, next));
-        }
-      }
-    }
-    result.sort((a, b) => a.$2.compareTo(b.$2));
-    return result;
   }
 
   /// Purpose: Provide the internal save data helper for this file.
@@ -452,7 +429,21 @@ class _FinancePageState extends ConsumerState<FinancePage> {
           });
 
     // Upcoming renewals (within 3 days)
-    final upcomingSubs = _getUpcomingSubs(3);
+    final upcomingSubs = upcomingSubscriptions(_subscriptions, days: 3);
+
+    // Active subscriptions in the same order the subscriptions page uses, and
+    // the same three figures it shows, for the two-pane overview.
+    final activeSubs = sortSubscriptions(
+      _subscriptions.where((s) => s.isActive).toList(),
+      mode: _subscriptionSortMode ?? subscriptionSortNextRenewal,
+      customOrder: _subscriptionCustomOrder ?? const [],
+    );
+    final subscriptionSummary = summarizeSubscriptions(
+      subscriptions: _subscriptions,
+      transactions: _transactions,
+      rateData: _rateData,
+      defaultCurrency: _defaultCurrency,
+    );
 
     // The gate reads the whole screen's shape; the capacity reads the width the
     // transaction list actually gets, which is the screen less the navigation
@@ -461,9 +452,8 @@ class _FinancePageState extends ConsumerState<FinancePage> {
     final screen = MediaQuery.sizeOf(context);
     final twoPane = canSplitLayout(screen.width, screen.height);
     final contentWidth = shellContentWidth(screen.width);
-    final listWidth = twoPane
-        ? contentWidth - financeLeftPaneWidth(contentWidth) - 1
-        : contentWidth;
+    final leftPaneWidth = financeLeftPaneWidth(contentWidth);
+    final listWidth = twoPane ? contentWidth - leftPaneWidth - 1 : contentWidth;
     final listCapacity = twoPane
         ? columnCapacity(
             listWidth,
@@ -527,7 +517,7 @@ class _FinancePageState extends ConsumerState<FinancePage> {
           ? _FinanceDataError(message: _loadError!, onRetry: _loadData)
           : _FinanceBody(
               twoPane: twoPane,
-              leftPaneWidth: financeLeftPaneWidth(contentWidth),
+              leftPaneWidth: leftPaneWidth,
               summaryBlocks: [
                 // L1: Summary cards
                 _SummaryHeader(
@@ -615,6 +605,22 @@ class _FinancePageState extends ConsumerState<FinancePage> {
                     ),
                   ),
                 if (upcomingSubs.isNotEmpty) const Divider(height: 1),
+
+                // Subscription overview — two-pane only. Stacked, this block
+                // would push the first transaction further down a phone, which
+                // is the very cost the split exists to remove; there the
+                // subscriptions page is one tap away instead.
+                if (twoPane && activeSubs.isNotEmpty)
+                  _SubscriptionOverview(
+                    paneWidth: leftPaneWidth,
+                    summary: subscriptionSummary,
+                    active: activeSubs,
+                    categories: _categories,
+                    accounts: _accounts,
+                    currencyCode: _defaultCurrency,
+                    onOpenAll: () => _openSubscriptions(context),
+                    onOpenDetail: _openSubscriptionDetail,
+                  ),
               ],
               transactionHeader: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
@@ -863,6 +869,34 @@ class _FinancePageState extends ConsumerState<FinancePage> {
     );
   }
 
+  /// Purpose: Open one subscription's detail page from the home overview.
+  /// Inputs: `sub`.
+  /// Returns: None.
+  /// Side effects: Pushes `SubscriptionDetailPage`; transaction edits made
+  /// there are written back through `_saveData`.
+  /// Notes: Wired exactly as the subscriptions page wires its own tile tap, so
+  /// a subscription behaves the same whichever list it was tapped in.
+  void _openSubscriptionDetail(Subscription sub) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SubscriptionDetailPage(
+          subscription: sub,
+          transactions: _transactions,
+          categories: _categories,
+          accounts: _accounts,
+          rateData: _rateData,
+          defaultCurrency: _defaultCurrency,
+          accountPickerSettings: _accountPickerSettings,
+          onTransactionsChanged: (t) {
+            setState(() => _transactions = t);
+            _saveData();
+          },
+        ),
+      ),
+    );
+  }
+
   /// Purpose: Provide the internal show finance menu helper for this file.
   /// Inputs: `context`.
   /// Returns: None.
@@ -944,7 +978,11 @@ class _FinanceBody extends StatelessWidget {
   /// Side effects: None.
   /// Notes: Internal helper used within this file only. The three content
   /// slots are built once by the page and arranged two ways here, so the two
-  /// layouts can never show different content.
+  /// layouts can never show different content — with one deliberate exception
+  /// the page itself makes: the subscription overview is added to
+  /// `summaryBlocks` only in the two-pane arrangement, because it fills a pane
+  /// that would otherwise sit empty, while stacked it would push the first
+  /// transaction further down a phone.
   const _FinanceBody({
     required this.twoPane,
     required this.leftPaneWidth,
@@ -1238,6 +1276,8 @@ class _SummaryCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
                 color: color,
@@ -1246,6 +1286,217 @@ class _SummaryCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _SubscriptionOverview extends StatelessWidget {
+  final double paneWidth;
+  final SubscriptionSummary summary;
+  final List<Subscription> active;
+  final List<Category> categories;
+  final List<Account> accounts;
+  final String currencyCode;
+  final VoidCallback onOpenAll;
+  final void Function(Subscription) onOpenDetail;
+
+  /// Purpose: Create the summary pane's subscription overview.
+  /// Inputs: `paneWidth` — the left pane's width, which decides how many
+  /// statistic cards share a row; `summary`; `active` — the active
+  /// subscriptions, already sorted; lookup lists; and the two tap callbacks.
+  /// Returns: A new `_SubscriptionOverview` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Shown only when the
+  /// finance page is split and there is at least one active subscription —
+  /// whenever a block can render to nothing, it belongs in the gate.
+  const _SubscriptionOverview({
+    required this.paneWidth,
+    required this.summary,
+    required this.active,
+    required this.categories,
+    required this.accounts,
+    required this.currencyCode,
+    required this.onOpenAll,
+    required this.onOpenDetail,
+  });
+
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: The subscriptions page's three statistics and its active list,
+  /// without its reminder controls, its historical list, or its own upcoming
+  /// strip — the home page already shows one directly above this block. The
+  /// statistic cards pack two or three to a row from the pane's own width
+  /// rather than always three, because at the pane's 280 floor three cards
+  /// would truncate every amount.
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final numberFormat = NumberFormat('#,##0.00');
+    final sym = currencySymbol(currencyCode);
+    final statColumns = columnCapacity(
+      paneWidth - 32,
+      minItemWidth: subscriptionStatMinWidth,
+      gap: summaryCardGap,
+      maxColumns: 3,
+    );
+    final stats = [
+      (
+        l10n.financeMonthlyDue,
+        summary.monthlyDue,
+        theme.colorScheme.error,
+        Icons.calendar_today,
+      ),
+      (
+        l10n.financeMonthlyAvg,
+        summary.monthlyAvg,
+        theme.colorScheme.primary,
+        Icons.trending_down,
+      ),
+      (l10n.financeYearlyAvg, summary.yearlyAvg, Colors.orange, Icons.date_range),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 8, 0),
+          child: Row(
+            children: [
+              Icon(Icons.repeat, size: 16, color: theme.colorScheme.primary),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  l10n.financeSubscriptions,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_right),
+                tooltip: l10n.financeSubscriptions,
+                visualDensity: VisualDensity.compact,
+                onPressed: onOpenAll,
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            children: adaptiveTileRows(
+              columns: statColumns,
+              itemCount: stats.length,
+              gap: summaryCardGap,
+              itemBuilder: (i) {
+                final (label, value, color, icon) = stats[i];
+                return _SummaryCard(
+                  label: label,
+                  value: '$sym${numberFormat.format(value)}',
+                  color: color,
+                  icon: icon,
+                );
+              },
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+          child: Text(
+            l10n.financeActiveSubscriptions,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        for (final sub in active)
+          _SubscriptionOverviewTile(
+            subscription: sub,
+            category: sub.categoryId != null
+                ? categories.where((c) => c.id == sub.categoryId).firstOrNull
+                : null,
+            account: accounts.where((a) => a.id == sub.accountId).firstOrNull,
+            onTap: () => onOpenDetail(sub),
+          ),
+        const SizedBox(height: 8),
+      ],
+    );
+  }
+}
+
+class _SubscriptionOverviewTile extends StatelessWidget {
+  final Subscription subscription;
+  final Category? category;
+  final Account? account;
+  final VoidCallback onTap;
+
+  /// Purpose: Create one read-only row of the subscription overview.
+  /// Inputs: `subscription`, the resolved `category` and `account`, `onTap`.
+  /// Returns: A new `_SubscriptionOverviewTile` instance.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Read-only on purpose:
+  /// editing, cancelling and restoring stay on the subscriptions page, so the
+  /// home page does not grow a second copy of those flows.
+  const _SubscriptionOverviewTile({
+    required this.subscription,
+    required this.category,
+    required this.account,
+    required this.onTap,
+  });
+
+  /// Purpose: Build the current widget subtree for the active UI state.
+  /// Inputs: `context`.
+  /// Returns: The widget tree for the current state.
+  /// Side effects: Creates UI widgets from the current state.
+  /// Notes: The subtitle carries the billing cycle and the next billing date —
+  /// or the expiry date for an at-expiry cancellation — and nothing else, so a
+  /// row stays one line in the narrow pane.
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final sub = subscription;
+    final cycleLabel = sub.billingCycleType == BillingCycleType.monthly
+        ? l10n.financeEveryXMonths(sub.billingInterval)
+        : l10n.financeEveryXYears(sub.billingInterval);
+    String? nextLabel;
+    if (sub.nextBillingDate != null) {
+      final date = DateFormat('yyyy-MM-dd').format(sub.nextBillingDate!);
+      nextLabel = sub.cancelType == CancelType.atExpiry
+          ? '${l10n.financeExpiryDate}: $date'
+          : '${l10n.financeNextBilling}: $date';
+    }
+    return ListTile(
+      dense: true,
+      leading: SubscriptionAvatar(
+        subscription: sub,
+        account: account,
+        category: category,
+      ),
+      title: Text(
+        sub.name.isNotEmpty ? sub.name : l10n.financeSubscription,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      subtitle: Text(
+        [cycleLabel, ?nextLabel].join('  •  '),
+        style: theme.textTheme.bodySmall,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      trailing: Text(
+        '${currencySymbol(sub.currency)}${sub.amount.toStringAsFixed(2)}',
+        style: theme.textTheme.bodyMedium?.copyWith(
+          fontWeight: FontWeight.w600,
+          color: theme.colorScheme.error,
+        ),
+      ),
+      onTap: onTap,
     );
   }
 }

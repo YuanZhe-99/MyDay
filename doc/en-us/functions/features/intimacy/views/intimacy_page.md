@@ -208,7 +208,7 @@ public `IntimacyChartRange` enum exported by the chart widget instead of a priva
 | `_DatePickerTile.new` | constructor | B | Trivial forwarding constructor. |
 | `_DatePickerTile.build` | method (widget) | B | Render a labeled tappable date field. |
 | `_IntimacyBody({...})` | constructor (`_IntimacyBody`) | B | Create the intimacy body arranger. |
-| [`build`](#intimacybody-build) | method (`_IntimacyBody`) | A | Stack the calendar above the records, or put it in a pane beside them. |
+| [`build`](#intimacybody-build) | method (`_IntimacyBody`) | A | Stack calendar, chart and records, or put the calendar and chart in a pane beside the records. |
 
 **Row count reconciliation:** 177 rows above, matching `grep -c '/// Purpose:'` = 177 exactly (54
 Tier A, 122 Tier B). v1.3.2 removed 27 rows (17 Tier A, 10 Tier B) when the record-metric charts
@@ -1302,20 +1302,23 @@ declarations
 ### `Widget build(BuildContext context)` (`_IntimacyBody`) <a id="intimacybody-build"></a>
 - **Kind:** method of `_IntimacyBody`
 - **Source:** `lib/features/intimacy/views/intimacy_page.dart` (approx. line 1105)
-- **Purpose:** Arrange the month calendar and the record history either stacked or in two panes.
-- **Inputs:** `context`; the widget's own `twoPane`, `leftPaneWidth`, `leftBlocks` and
-  `rightBlocks` fields.
+- **Purpose:** Arrange the month calendar, the trend chart and the record history either stacked
+  or in two panes.
+- **Inputs:** `context`; the widget's own `twoPane`, `leftPaneWidth`, `calendarBlocks`,
+  `chartBlocks` and `recordBlocks` fields.
 - **Returns:** A `ListView` when stacked, a `Row` of two `ListView`s when split.
 - **Side effects:** None beyond building widgets.
 - **Algorithm:**
-  1. `!twoPane` → one `ListView` of `leftBlocks`, a `Divider(height: 1)`, then `rightBlocks` —
-     exactly the body the page had before v1.4.1.
-  2. Otherwise `Row` of `SizedBox(width: leftPaneWidth, child: ListView(leftBlocks))`, a
-     `VerticalDivider(width: 1)`, and `Expanded(child: ListView(rightBlocks))`.
+  1. `!twoPane` → one `ListView` of `calendarBlocks`, a `Divider(height: 1)`, `chartBlocks`, then
+     `recordBlocks` — exactly the body the page had before v1.4.1.
+  2. Otherwise `Row` of `SizedBox(width: leftPaneWidth, child: ListView([...calendarBlocks,
+     Divider, ...chartBlocks]))` (the divider only when there is a chart), a
+     `VerticalDivider(width: 1)`, and `Expanded(child: ListView(recordBlocks))`.
 - **Usage:** Built by `_IntimacyPageState.build` once the split decision and the pane width are
-  resolved.
+  resolved; `chartBlocks` is empty below two records, because the chart renders nothing there.
 - **Notes:** Stacked, the calendar alone is most of a phone's height, so selecting a date scrolls
-  the records it selected out of view; split, the calendar keeps its place while the trend chart
-  and the history take the rest. Both panes scroll independently, because a calendar plus several
-  people's cycle rows can outgrow a compact height. See
-  [../../../adaptive-layout.md](../../../adaptive-layout.md).
+  the records it selected out of view; split, the calendar **and the chart** share the left pane
+  while the history takes the rest. The chart moved left in v1.4.3: below the calendar the pane
+  sat empty, while above the records the chart pushed the first week of history down. Both panes
+  scroll independently, because a calendar, several people's cycle rows and a chart can outgrow a
+  compact height. See [../../../adaptive-layout.md](../../../adaptive-layout.md).

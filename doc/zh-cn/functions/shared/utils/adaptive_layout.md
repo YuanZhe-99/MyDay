@@ -29,6 +29,8 @@
 | `settingsRightPaneMinWidth` | 顶层 `const double` | B | 设置详情窗格可获得的最小宽度（280）。 |
 | `weightSummaryPaneMinWidth` | 顶层 `const double` | B | 体重摘要卡片并排于图表旁时可占的最小宽度（280）。 |
 | `weightChartMinWidth` | 顶层 `const double` | B | 体重趋势图可获得的最小宽度（380）。 |
+| `subscriptionStatMinWidth` | 顶层 `const double` | B | 财务摘要窗格上一张订阅统计卡片可占的最小宽度（110）。 |
+| `summaryCardGap` | 顶层 `const double` | B | 财务摘要卡片之间的水平间距（8）。 |
 | `metricCardMinWidth` | 顶层 `const double` | B | 一张指标卡片可占的最小宽度（160）。 |
 | `metricMaxColumns` | 顶层 `const int` | B | 摘要卡片中指标列数的上限（4）。 |
 | `accountCardMinWidth` | 顶层 `const double` | B | 一张账户卡片可占的最小宽度（340）。 |
@@ -52,6 +54,7 @@
 | [`shellContentWidth`](#shellcontentwidth) | 顶层函数 | A | 返回外壳页面内容实际获得的宽度。 |
 | [`columnCapacity`](#columncapacity) | 顶层函数 | A | 返回给定最小宽度的列在内容框里能放下几个。 |
 | [`listRowCount`](#listrowcount) | 顶层函数 | A | 返回给定列数下一组条目需要几行。 |
+| [`columnMajorFill`](#columnmajorfill) | 顶层函数 | A | 把有序的一组块发到各列，先填满一列再填下一列。 |
 | [`listColumnCount`](#listcolumncount) | 顶层函数 | A | 返回列表实际应渲染的列数。 |
 | [`financeLeftPaneWidth`](#financeleftpanewidth) | 顶层函数 | A | 返回财务页固定左窗格的宽度。 |
 | [`intimacyLeftPaneWidth`](#intimacyleftpanewidth) | 顶层函数 | A | 返回亲密页固定左窗格的宽度。 |
@@ -64,11 +67,11 @@
 | [`todoCalendarPaneWidth`](#todocalendarpanewidth) | 顶层函数 | A | 返回待办日历页月历窗格的宽度。 |
 | [`dialogHorizontalInset`](#dialoghorizontalinset) | 顶层函数 | A | 返回限定对话框内容宽度的水平内缩值。 |
 
-**对账：** `grep -c 'Purpose:' lib/shared/utils/adaptive_layout.dart` 报告 16，对应 53 行。三十七个顶层 `const` 声明带的是说明其取值来源的散文文档注释而不是 `Purpose:` 块，与索引在别处处理顶层常量的方式一致；它们是文件表面的一部分，因此有对应行。十六个函数全部按 `shared/` 下顶层函数的通用规则为 Tier A。常量为 Tier B：它们的全部内容就是取值及其理由，而这两者下面的表格和 [../../../adaptive-layout.md](../../../adaptive-layout.md) 已经承载。
+**对账：** `grep -c 'Purpose:' lib/shared/utils/adaptive_layout.dart` 报告 17，对应 56 行。三十九个顶层 `const` 声明带的是说明其取值来源的散文文档注释而不是 `Purpose:` 块，与索引在别处处理顶层常量的方式一致；它们是文件表面的一部分，因此有对应行。十七个函数全部按 `shared/` 下顶层函数的通用规则为 Tier A。常量为 Tier B：它们的全部内容就是取值及其理由，而这两者下面的表格和 [../../../adaptive-layout.md](../../../adaptive-layout.md) 已经承载。
 
 ## 常量
 
-这三十七个数字构成 MyDay 布局策略的全部数值表面。前八个与兄弟应用共享，未先阅读 [../../../adaptive-layout.md](../../../adaptive-layout.md) 不得更改——尤其 `splitMinAspect` 是全应用范围的行为变更。其余是 MyDay 自己的逐内容最小值，每一个都说明它所度量的内容，因为一个没有说明内容的最小值是日后没人能安全更改的数字。
+这三十九个数字构成 MyDay 布局策略的全部数值表面。前八个与兄弟应用共享，未先阅读 [../../../adaptive-layout.md](../../../adaptive-layout.md) 不得更改——尤其 `splitMinAspect` 是全应用范围的行为变更。其余是 MyDay 自己的逐内容最小值，每一个都说明它所度量的内容，因为一个没有说明内容的最小值是日后没人能安全更改的数字。
 
 | 常量 | 取值 | 数字从何而来 |
 |---|---|---|
@@ -91,6 +94,8 @@
 | `settingsRightPaneMinWidth` | `280.0` | 被托管的二级页面仍然可用的最窄宽度——一个表单字段加它的标签。 |
 | `weightSummaryPaneMinWidth` | `280.0` | 卡片以 `displaySmall` 显示最新体重并在旁边放变化量，然后是一个各自被限制在 88–168 的统计标签 `Wrap`。 |
 | `weightChartMinWidth` | `380.0` | 图表为左轴保留约 40，每个日期标签需要约 48，因此这个宽度可以不拥挤地显示约七个带标签的点。 |
+| `subscriptionStatMinWidth` | `110.0` | 一个 12 dp 图标和「月應付」这样的短本地化标签，下方是 `titleMedium` 的 $1,234.56 这样的金额。在财务窗格钳制范围内的任何宽度下都能并排两张卡片；窗格超过约 378 时第三张加入同一行（3 x 110 加两个间隙，位于两侧各 16 dp 的内边距之内）。 |
+| `summaryCardGap` | `8.0` | 比 `listTileGap` 窄，因为这些卡片本就位于带内边距的窗格之内，并且与上方支出卡和收入卡之间的间距一致。 |
 | `metricCardMinWidth` | `160.0` | 一个统计标签在其数值之上；低于此值「平均抽插速率」这样的本地化标签会折成三行。 |
 | `metricMaxColumns` | `4` | 一张摘要卡片最多承载四个指标，四个并排仍然一眼可扫。 |
 | `accountCardMinWidth` | `340.0` | 账户名称、其银行预设芯片，以及一行内同时以本币和默认货币显示的余额。 |
@@ -192,6 +197,17 @@
 - **用法：** 由 `adaptiveTileRows` 调用以驱动其行构建器——见 [../widgets/adaptive_tile_grid.md#adaptivetilerows](../widgets/adaptive_tile_grid.md#adaptivetilerows)。
 - **说明：** 最后一行可能不满；调用方用空单元格补齐，使剩余的图块保持自己的宽度而不是横跨整行拉伸。
 
+### `List<List<int>> columnMajorFill(int itemCount, int columns)` <a id="columnmajorfill"></a>
+- **种类：** 顶层函数
+- **源：** `lib/shared/utils/adaptive_layout.dart`（第 133 行）
+- **用途：** 把有序的一组块发到各列，先填满一列再开始下一列。
+- **输入：** `itemCount`、`columns`。
+- **返回：** `List<List<int>>`——恰好 `columns` 个列表（至少一个），每个按顺序持有该列中各块的索引。只有当 `itemCount` 小于 `columns` 时才会有空列表。
+- **副作用：** 无。
+- **算法：** `count = max(columns, 1)`；`perColumn = listRowCount(itemCount, count)`；第 `c` 列持有 `[c * perColumn, min((c + 1) * perColumn, itemCount))`。
+- **用法：** 待办页 `_buildTaskArea` 中的 `columnMajorFill(sections.length, columns)`——三个分区在两列时给出 `[[0, 1], [2]]`，三列时 `[[0], [1], [2]]`。
+- **说明：** 阅读顺序——先从上到下，再从左到右——这正是人对几个具名分区的期望。待办页在 v1.4.3 之前使用的轮流发牌把第二个分区放在第一个旁边、第三个放在下面，于是用户一起阅读的两个一次性清单落在不同的列里。数量不能整除时，靠前的列是更满的那些。
+
 ### `int listColumnCount({required double screenWidth, required double screenHeight, required double contentWidth, required double minItemWidth, required int preference, int maxColumns = listMaxColumns})` <a id="listcolumncount"></a>
 - **种类：** 顶层函数
 - **源：** `lib/shared/utils/adaptive_layout.dart`（第 136 行）
@@ -231,13 +247,13 @@
 ### `double intimacyLeftPaneWidth(double contentWidth)` <a id="intimacyleftpanewidth"></a>
 - **种类：** 顶层函数
 - **源：** `lib/shared/utils/adaptive_layout.dart`（第 228 行）
-- **用途：** 返回亲密页固定左窗格的宽度，该窗格容纳月历及其周期条。
+- **用途：** 返回亲密页固定左窗格的宽度，该窗格容纳月历、其周期条，以及自 v1.4.3 起的趋势图。
 - **输入：** `contentWidth`——两个窗格共享的宽度，以逻辑像素计。
-- **返回：** 介于 320 与 440 之间的 `double`。
+- **返回：** 介于 320 与 480 之间的 `double`。
 - **副作用：** 无。
-- **算法：** `(contentWidth * 0.36).clamp(320.0, 440.0)`。
+- **算法：** `(contentWidth * 0.42).clamp(320.0, 480.0)`。
 - **用法：** `SizedBox(width: intimacyLeftPaneWidth(contentWidth), child: calendarPane)`。
-- **说明：** 与财务页相同的 0.36 比例，但下限更高，而下限正是关键：这个窗格容纳一个月历，其七列加上卡片自己的内边距在约 320 以下放不下。硬挤会把日期数字挤成一团。
+- **说明：** 比例和上限都高于财务页的 0.36 / 420，因为这个窗格承载一张图表，而图表不像日历，宽度越大越受益。下限是日历的下限，并刻意保持 v1.4.1 时的值不变：七个日期列加上卡片自己的内边距在约 320 以下放不下，而最窄的可分栏折叠屏——竖持的 Z Fold 5 或 7，内容宽度约 580–670——没有余量可让，因此它们的渲染与之前完全一样。比例从内容宽度 762（约 843 屏幕宽度）起超过下限；横持展开的 Fold 8 约 851，得到约 357 而不是 320。`test/adaptive_layout_test.dart` 钉住了这些点，并断言 1440 的桌面仍给记录列表两列。
 
 ### `double settingsLeftPaneWidth(double contentWidth)` <a id="settingsleftpanewidth"></a>
 - **种类：** 顶层函数

@@ -30,7 +30,7 @@
 | [`_toggleMetric`](#togglemetric) | 方法（`IntimacyTrendChart`） | A | 切换一个指标并上报新选择。 |
 | [`_dateInterval`](#dateinterval) | 方法（`IntimacyTrendChart`） | A | 为绘制跨度返回底部轴日期标签间隔。 |
 | [`IntimacyTrendChart.build`](#build) | 方法（组件） | A | 准备每个所选指标的系列并布局卡片。 |
-| `_rangeChips` | 方法（组件辅助） | B | 构建六个紧凑时间范围选择 chip。 |
+| `_rangeChips` | 方法（组件辅助） | B | 构建六个紧凑时间范围选择 chip，不带内边距，由承载它们的 `Wrap` 负责间距和换行。 |
 | [`_buildMetricSelector`](#buildmetricselector) | 方法（组件辅助） | A | 构建指标过滤 chip，兼作图例。 |
 | [`_buildChart`](#buildchart) | 方法（组件辅助） | A | 构建多指标 `LineChart` 本身。 |
 | `_axisTitles` | 方法（组件辅助） | B | 构建以真实单位重新标注 0-1 绘图空间的侧标题。 |
@@ -180,7 +180,7 @@
 - **来源：** `lib/features/intimacy/widgets/intimacy_trend_chart.dart`（第 483 行）
 - **用途：** 为活动 UI 状态构建当前组件子树。
 - **输入：** `context`。
-- **返回：** 组件树：标题 + 范围 chip 行、指标选择器和 220px 图表区。
+- **返回：** 组件树：标题 + 范围 chip 行、指标选择器和 220px 图表区。自 v1.4.3 起，范围 chip 位于 `Expanded` 内一个右对齐的 `Wrap` 中而不是跟在 `Spacer` 之后：单行时渲染与之前完全相同，而在窄到放不下标题旁六个 chip 的窗格里——亲密页 320 dp 的日历窗格——它们会折到第二行而不是溢出。
 - **副作用：** 从当前状态创建 UI 组件。
 - **算法：**
   1. 排序 `records` 副本升序并计算范围截止。

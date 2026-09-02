@@ -119,6 +119,29 @@ int listRowCount(int itemCount, int columns) {
   return (itemCount + perRow - 1) ~/ perRow;
 }
 
+/// Purpose: Deal an ordered list of blocks into columns, filling each column
+/// before starting the next.
+/// Inputs: `itemCount`, `columns`.
+/// Returns: `List<List<int>>` — exactly `columns` lists (at least one), each
+/// holding the indices of the blocks in that column, in order. A list is empty
+/// only when `itemCount` is smaller than `columns`.
+/// Side effects: None.
+/// Notes: Reading order — top to bottom, then left to right — which is what a
+/// person expects of a few named sections. Round-robin dealing, which the Todo
+/// page used before v1.4.3, put its second section beside the first and its
+/// third underneath, so the two sections a user reads together sat in
+/// different columns. Each column gets [listRowCount] blocks, so the earlier
+/// columns are the fuller ones when the count does not divide evenly.
+List<List<int>> columnMajorFill(int itemCount, int columns) {
+  final count = columns < 1 ? 1 : columns;
+  final perColumn = listRowCount(itemCount, count);
+  return List.generate(count, (column) {
+    final start = column * perColumn;
+    final end = (start + perColumn).clamp(0, itemCount < 0 ? 0 : itemCount);
+    return [for (var i = start; i < end; i++) i];
+  });
+}
+
 /// Purpose: Return the number of columns a list should actually render.
 /// Inputs: `screenWidth`, `screenHeight` — the whole screen, which decides
 /// whether splitting is allowed at all; `contentWidth` — the width the list
@@ -218,15 +241,37 @@ const weightChartMinWidth = 380.0;
 double financeLeftPaneWidth(double contentWidth) =>
     (contentWidth * 0.36).clamp(280.0, 420.0);
 
+/// Minimum width, in logical pixels, one subscription statistic card may
+/// occupy on the finance home's summary pane.
+///
+/// A 12 dp icon and a short localized label such as 月應付 above an amount like
+/// $1,234.56 at `titleMedium`. Two cards fit across the finance pane at every
+/// width in its clamp range; the third joins the row once the pane passes
+/// about 378 (3 x 110 plus two 8 dp gaps, inside 16 dp of padding each side).
+const subscriptionStatMinWidth = 110.0;
+
+/// Horizontal gap, in logical pixels, between the finance summary cards.
+///
+/// Narrower than [listTileGap] because these cards already sit inside a padded
+/// pane, and it matches the gap between the expense and income cards above.
+const summaryCardGap = 8.0;
+
 /// Purpose: Return the width of the intimacy page's fixed left pane.
 /// Inputs: `contentWidth` — the width both panes share, in logical pixels.
 /// Returns: `double`.
 /// Side effects: None.
 /// Notes: The floor is higher than the finance page's because this pane holds a
 /// month calendar: seven columns plus the card's own padding do not fit below
-/// about 320, and squeezing them turns the day numbers into a smear.
+/// about 320, and squeezing them turns the day numbers into a smear. Since
+/// v1.4.3 the pane also carries the trend chart, which is why the proportion
+/// and the ceiling are higher than the finance pane's — a chart, unlike a
+/// calendar, keeps gaining from width. The floor is deliberately unchanged: it
+/// is the calendar's, and the narrowest splittable foldables (a Z Fold 5 or 7
+/// in portrait, roughly 580–670 of content) have nothing to spare, so they
+/// render exactly as before. The proportion clears the floor from 762 of
+/// content, about 843 of screen; an unfolded Fold 8 in landscape gets ~357.
 double intimacyLeftPaneWidth(double contentWidth) =>
-    (contentWidth * 0.36).clamp(320.0, 440.0);
+    (contentWidth * 0.42).clamp(320.0, 480.0);
 
 /// Purpose: Return the width of the settings page's fixed left pane.
 /// Inputs: `contentWidth` — the width both panes share, in logical pixels.

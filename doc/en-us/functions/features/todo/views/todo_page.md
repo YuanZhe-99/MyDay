@@ -86,8 +86,8 @@ across devices.
 | `build` | method (`_TodoCalendarPageState`) | B | Build the calendar page's widget subtree. |
 | `_CalendarLegendItem({...})` | constructor (`_CalendarLegendItem`) | B | Create a compact calendar legend item. |
 | `build` | method (`_CalendarLegendItem`) | B | Build the legend item's icon-plus-label row. |
-| [`_buildTaskArea`](#buildtaskarea) | method (`_TodoPageState`) | A | Arrange the task blocks in one column or several side by side. |
-| [`_taskAreaBlocks`](#taskareablocks) | method (`_TodoPageState`) | A | Return the three task sections and the score card in display order. |
+| [`_buildTaskArea`](#buildtaskarea) | method (`_TodoPageState`) | A | Arrange the task sections in one column or several side by side, in reading order. |
+| [`_taskSections`](#tasksections) | method (`_TodoPageState`) | A | Return the three task sections in display order. |
 
 ## Documentation
 
@@ -671,35 +671,43 @@ across devices.
 ### `Widget _buildTaskArea(ThemeData theme, AppLocalizations l10n, int columns)` <a id="buildtaskarea"></a>
 - **Kind:** method of `_TodoPageState`
 - **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 1435)
-- **Purpose:** Arrange the task blocks either in the single scrolling column the page has always
-  had, or in several independently scrolling columns side by side.
+- **Purpose:** Arrange the task sections either in the single scrolling column the page has always
+  had, or in several independently scrolling columns side by side, with the score card after the
+  last section.
 - **Inputs:** `theme`, `l10n`; `columns` — the resolved section-column count from
   `listColumnCount`.
 - **Returns:** `Widget`.
 - **Side effects:** None beyond building widgets.
 - **Algorithm:**
-  1. Get the blocks from `_taskAreaBlocks`.
-  2. `columns <= 1` → one `ListView` with a `Divider` between adjacent blocks and 80 dp of FAB
-     clearance at the end.
-  3. Otherwise a `Row` of `columns` `Expanded` children separated by `VerticalDivider`s; block `i`
-     goes to column `i % columns`, so the deal is round-robin.
+  1. Get the sections from `_taskSections` and the score card from `_buildDailyScoreCard`.
+  2. `columns <= 1` → one `ListView` with a `Divider` between adjacent sections, the score card,
+     and 80 dp of FAB clearance at the end.
+  3. Otherwise `fill = columnMajorFill(sections.length, columns)`
+     ([`adaptive_layout.md#columnmajorfill`](../../../shared/utils/adaptive_layout.md#columnmajorfill)),
+     then a `Row` of `columns` `Expanded` children separated by `VerticalDivider`s; column `c`
+     renders the sections `fill[c]` names, and the last column appends the score card. Two columns
+     therefore read Daily + Routine, then Work + score; three read one section each with the score
+     under Work.
 - **Usage:** `Expanded(child: _buildTaskArea(theme, l10n, sectionColumns))` in `build`.
 - **Notes:** The unit is the **section**, not the tile: each `TaskSectionWidget` wraps a
   shrink-wrapped `ReorderableListView`, and dragging a task between columns of one section is not
   meaningful, so the sections themselves are what go side by side. Each column scrolls on its own,
-  so a long Daily list cannot push Work off the bottom of the window. See
+  so a long Daily list cannot push Work off the bottom of the window. Before v1.4.3 the four blocks
+  were dealt round-robin, which put Routine beside Daily and Work underneath it — separating the
+  two one-time lists a user reads together; column-major fill keeps reading order. See
   [../../../adaptive-layout.md](../../../adaptive-layout.md) for the rule that produces `columns`.
 
-### `List<Widget> _taskAreaBlocks(ThemeData theme, AppLocalizations l10n)` <a id="taskareablocks"></a>
+### `List<Widget> _taskSections(ThemeData theme, AppLocalizations l10n)` <a id="tasksections"></a>
 - **Kind:** method of `_TodoPageState`
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 1477)
-- **Purpose:** Return the three task sections followed by the daily-score card, in display order.
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 1490)
+- **Purpose:** Return the three task sections in display order.
 - **Inputs:** `theme`, `l10n`.
-- **Returns:** `List<Widget>` of four blocks.
+- **Returns:** `List<Widget>` of three sections: Daily, Routine, Work.
 - **Side effects:** None beyond building widgets.
-- **Algorithm:** A list literal of `TaskSectionWidget(daily)`, `TaskSectionWidget(routineOnce)`,
-  `TaskSectionWidget(workOnce)` and `_buildDailyScoreCard`.
+- **Algorithm:** A list literal of `TaskSectionWidget(daily)`, `TaskSectionWidget(routineOnce)`
+  and `TaskSectionWidget(workOnce)`.
 - **Usage:** Called only by `_buildTaskArea`.
 - **Notes:** Extracted so the single- and multi-column layouts are two arrangements of one list
-  rather than two copies of the same four blocks — the same reason the shell builds its
-  destinations once.
+  rather than two copies of the same three sections — the same reason the shell builds its
+  destinations once. The score card is deliberately not one of them: `_buildTaskArea` places it
+  after whichever section comes last. (Named `_taskAreaBlocks` and four blocks long until v1.4.3.)

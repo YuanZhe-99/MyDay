@@ -19,6 +19,93 @@ import 'layout_test_helpers.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  /// Purpose: Return a finance data file with one active subscription.
+  /// Inputs: None.
+  /// Returns: `Map<String, Object>`.
+  /// Side effects: None.
+  /// Notes: The subscription starts and next bills in 2099, so the processor
+  /// that runs on load finds nothing overdue to write, and the upcoming-renewal
+  /// strip — which looks three days ahead — stays empty. What is left is the
+  /// subscription overview alone, which is what these tests look for.
+  Map<String, Object> financeData() => {
+    'finance_data.json': {
+      'accounts': <Object>[],
+      'categories': <Object>[],
+      'transactions': <Object>[],
+      'subscriptions': [
+        {
+          'id': 'sub1',
+          'name': '视频会员',
+          'startDate': '2099-01-01T00:00:00.000',
+          'billingCycleType': 'monthly',
+          'billingInterval': 1,
+          'amount': 15.0,
+          'currency': 'CNY',
+          'accountId': 'acc1',
+          'isActive': true,
+          'nextBillingDate': '2099-01-01T00:00:00.000',
+        },
+      ],
+      'defaultCurrency': 'CNY',
+    },
+  };
+
+  testWidgets('a phone keeps the subscription overview off the home page', (
+    tester,
+  ) async {
+    final dir = await seedAppDir(tester, financeData());
+    addTearDown(() => deleteQuietly(dir));
+
+    await pumpAdaptivePage(tester, const FinancePage(), const Size(412, 915));
+
+    // Stacked, the block would push the first transaction further down.
+    expect(find.text('月应付'), findsNothing);
+    expect(find.text('视频会员'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('an unfolded Fold 8 shows the overview in the summary pane', (
+    tester,
+  ) async {
+    final dir = await seedAppDir(tester, financeData());
+    addTearDown(() => deleteQuietly(dir));
+
+    await pumpAdaptivePage(tester, const FinancePage(), const Size(932, 704));
+
+    final divider = tester.getTopLeft(find.byType(VerticalDivider)).dx;
+    final due = find.text('月应付');
+    final yearly = find.text('年均花费');
+    expect(due, findsOneWidget);
+    expect(find.text('视频会员'), findsOneWidget);
+    expect(tester.getTopLeft(due).dx, lessThan(divider));
+    expect(tester.getTopLeft(find.text('视频会员')).dx, lessThan(divider));
+    // The pane is about 306 wide here, so the cards go two-up and the third
+    // wraps to a second row.
+    expect(
+      tester.getTopLeft(yearly).dy,
+      greaterThan(tester.getTopLeft(due).dy),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a desktop window fits the three stat cards on one row', (
+    tester,
+  ) async {
+    final dir = await seedAppDir(tester, financeData());
+    addTearDown(() => deleteQuietly(dir));
+
+    await pumpAdaptivePage(tester, const FinancePage(), const Size(1440, 900));
+
+    final due = tester.getTopLeft(find.text('月应付'));
+    final avg = tester.getTopLeft(find.text('月均花费'));
+    final yearly = tester.getTopLeft(find.text('年均花费'));
+    expect(avg.dy, due.dy);
+    expect(yearly.dy, due.dy);
+    expect(avg.dx, greaterThan(due.dx));
+    expect(yearly.dx, greaterThan(avg.dx));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('a phone stacks the summary above the transaction list', (
     tester,
   ) async {

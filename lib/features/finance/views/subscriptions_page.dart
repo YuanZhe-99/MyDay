@@ -1,10 +1,7 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../l10n/app_localizations.dart';
-import '../../../shared/services/image_service.dart';
 import '../../../shared/widgets/delete_confirm.dart';
 import '../models/finance.dart';
 import '../../../shared/utils/adaptive_layout.dart';
@@ -12,7 +9,9 @@ import '../../../shared/widgets/adaptive_tile_grid.dart';
 import '../services/balance_util.dart';
 import '../services/exchange_rate_storage.dart';
 import '../services/subscription_processor.dart';
+import '../services/subscription_summary.dart';
 import '../widgets/add_subscription_dialog.dart';
+import '../widgets/subscription_avatar.dart';
 import 'subscription_detail_page.dart';
 
 class SubscriptionsPage extends StatefulWidget {
@@ -90,16 +89,17 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     _customOrder = List.of(widget.customOrder ?? []);
   }
 
-  /// Purpose: Return active.
+  /// Purpose: Return the active subscriptions in the current sort order.
   /// Inputs: None.
   /// Returns: `List<Subscription>`.
   /// Side effects: None.
-  /// Notes: Internal helper used within this file only.
-  List<Subscription> get _active {
-    final list = _subscriptions.where((s) => s.isActive).toList();
-    _sortList(list);
-    return list;
-  }
+  /// Notes: Sorting goes through `sortSubscriptions` so this page and the
+  /// finance home's subscription overview list the same order.
+  List<Subscription> get _active => sortSubscriptions(
+    _subscriptions.where((s) => s.isActive).toList(),
+    mode: _sortMode,
+    customOrder: _customOrder,
+  );
 
   /// Purpose: Return historical.
   /// Inputs: None.
@@ -108,40 +108,6 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
   /// Notes: Internal helper used within this file only.
   List<Subscription> get _historical =>
       _subscriptions.where((s) => !s.isActive).toList();
-
-  /// Purpose: Provide the internal sort list helper for this file.
-  /// Inputs: `list`.
-  /// Returns: None.
-  /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
-  void _sortList(List<Subscription> list) {
-    switch (_sortMode) {
-      case 'name':
-        list.sort(
-          (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
-        );
-      case 'custom':
-        if (_customOrder.isNotEmpty) {
-          list.sort((a, b) {
-            final ai = _customOrder.indexOf(a.id);
-            final bi = _customOrder.indexOf(b.id);
-            // Items not in customOrder go to the end
-            final aIdx = ai == -1 ? _customOrder.length : ai;
-            final bIdx = bi == -1 ? _customOrder.length : bi;
-            return aIdx.compareTo(bIdx);
-          });
-        }
-      default: // 'nextRenewal'
-        list.sort((a, b) {
-          final aNext = a.nextBillingDate;
-          final bNext = b.nextBillingDate;
-          if (aNext == null && bNext == null) return 0;
-          if (aNext == null) return 1;
-          if (bNext == null) return -1;
-          return aNext.compareTo(bNext);
-        });
-    }
-  }
 
   /// Purpose: Provide the internal on sort mode changed helper for this file.
   /// Inputs: `mode`.
@@ -165,70 +131,6 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
       _sortMode == 'custom' ? _customOrder : null,
     );
   }
-
-  /// Purpose: Provide the internal monthly due helper for this file.
-  /// Inputs: None.
-  /// Returns: `double`.
-  /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
-  double _monthlyDue() {
-    double total = 0;
-    for (final s in _active) {
-      final rates = widget.rateData.currentRates;
-      double monthly;
-      if (s.billingCycleType == BillingCycleType.monthly) {
-        monthly = s.amount / s.billingInterval;
-      } else {
-        monthly = s.amount / (s.billingInterval * 12);
-      }
-      total += convertCurrency(
-        rates,
-        monthly,
-        s.currency,
-        widget.defaultCurrency,
-      );
-    }
-    return total;
-  }
-
-  /// Purpose: Provide the internal monthly avg helper for this file.
-  /// Inputs: None.
-  /// Returns: `double`.
-  /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
-  double _monthlyAvg() {
-    // Average monthly cost based on actual transactions; fall back to projected
-    // cost when there isn't at least 2 full months of history.
-    final subTxs = _transactions
-        .where((t) => t.subscriptionId != null)
-        .toList();
-    if (subTxs.isEmpty) return _monthlyDue();
-    final earliest = subTxs
-        .map((t) => t.date)
-        .reduce((a, b) => a.isBefore(b) ? a : b);
-    final now = DateTime.now();
-    final months = (now.year - earliest.year) * 12 + now.month - earliest.month;
-    if (months < 2) return _monthlyDue();
-    final total = subTxs.fold(
-      0.0,
-      (sum, t) =>
-          sum +
-          convertCurrency(
-            widget.rateData.ratesAt(t.rateSnapshotId),
-            t.amount,
-            t.currency,
-            widget.defaultCurrency,
-          ),
-    );
-    return total / months;
-  }
-
-  /// Purpose: Provide the internal yearly avg helper for this file.
-  /// Inputs: None.
-  /// Returns: `double`.
-  /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
-  double _yearlyAvg() => _monthlyDue() * 12;
 
   /// Purpose: Provide the internal add subscription helper for this file.
   /// Inputs: None.
@@ -599,31 +501,6 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     );
   }
 
-  /// Purpose: Provide the internal get upcoming subs helper for this file.
-  /// Inputs: `days`.
-  /// Returns: `List<(Subscription, DateTime)>`.
-  /// Side effects: None.
-  /// Notes: At-expiry cancellations keep showing in subscription lists but are excluded from renewal reminders.
-  List<(Subscription, DateTime)> _getUpcomingSubs(int days) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final limit = today.add(Duration(days: days));
-    final result = <(Subscription, DateTime)>[];
-    for (final sub in _subscriptions) {
-      if (sub.cancelType == CancelType.atExpiry) continue;
-      if (!sub.isActive && sub.cancelType == CancelType.immediate) continue;
-      final next = sub.nextBillingDate;
-      if (next != null) {
-        final nextDay = DateTime(next.year, next.month, next.day);
-        if (!nextDay.isAfter(limit)) {
-          result.add((sub, next));
-        }
-      }
-    }
-    result.sort((a, b) => a.$2.compareTo(b.$2));
-    return result;
-  }
-
   /// Purpose: Provide the internal build reorder body helper for this file.
   /// Inputs: `theme`, `l10n`, `active`.
   /// Returns: `Widget`.
@@ -679,7 +556,13 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     final numberFormat = NumberFormat('#,##0.00');
     final active = _active;
     final historical = _historical;
-    final upcomingSubs = _getUpcomingSubs(3);
+    final upcomingSubs = upcomingSubscriptions(_subscriptions, days: 3);
+    final summary = summarizeSubscriptions(
+      subscriptions: _subscriptions,
+      transactions: _transactions,
+      rateData: widget.rateData,
+      defaultCurrency: widget.defaultCurrency,
+    );
     final reminderEnabled = _reminderHour != null;
 
     return Scaffold(
@@ -763,7 +646,8 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                         Expanded(
                           child: _SummaryCard(
                             label: l10n.financeMonthlyDue,
-                            value: '$sym${numberFormat.format(_monthlyDue())}',
+                            value:
+                                '$sym${numberFormat.format(summary.monthlyDue)}',
                             color: theme.colorScheme.error,
                             icon: Icons.calendar_today,
                           ),
@@ -772,7 +656,8 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                         Expanded(
                           child: _SummaryCard(
                             label: l10n.financeMonthlyAvg,
-                            value: '$sym${numberFormat.format(_monthlyAvg())}',
+                            value:
+                                '$sym${numberFormat.format(summary.monthlyAvg)}',
                             color: theme.colorScheme.primary,
                             icon: Icons.trending_down,
                           ),
@@ -781,7 +666,8 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                         Expanded(
                           child: _SummaryCard(
                             label: l10n.financeYearlyAvg,
-                            value: '$sym${numberFormat.format(_yearlyAvg())}',
+                            value:
+                                '$sym${numberFormat.format(summary.yearlyAvg)}',
                             color: Colors.orange,
                             icon: Icons.date_range,
                           ),
@@ -1261,7 +1147,11 @@ class _SubscriptionTile extends StatelessWidget {
     ];
 
     return ListTile(
-      leading: _buildLeading(sub, account, cat, theme),
+      leading: SubscriptionAvatar(
+        subscription: sub,
+        account: account,
+        category: cat,
+      ),
       title: Text(sub.name.isNotEmpty ? sub.name : l10n.financeSubscription),
       subtitle: Text(
         subtitleParts.join('  •  '),
@@ -1340,76 +1230,4 @@ class _SubscriptionTile extends StatelessWidget {
     );
   }
 
-  /// Purpose: Provide the internal build leading helper for this file.
-  /// Inputs: `sub`, `account`, `cat`, `theme`.
-  /// Returns: `Widget`.
-  /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
-  Widget _buildLeading(
-    Subscription sub,
-    Account? account,
-    Category? cat,
-    ThemeData theme,
-  ) {
-    final color = theme.colorScheme.error;
-
-    /// Purpose: Build a subscription emoji avatar.
-    /// Inputs: `emoji`.
-    /// Returns: `Widget`.
-    /// Side effects: None.
-    /// Notes: Internal helper used within this function only.
-    Widget emojiAvatar(String emoji) => CircleAvatar(
-      backgroundColor: color.withValues(alpha: 0.1),
-      child: Text(emoji, style: const TextStyle(fontSize: 18)),
-    );
-
-    /// Purpose: Build the default subscription icon avatar.
-    /// Inputs: None.
-    /// Returns: `Widget`.
-    /// Side effects: None.
-    /// Notes: Internal helper used within this function only.
-    Widget defaultIcon() => CircleAvatar(
-      backgroundColor: color.withValues(alpha: 0.1),
-      child: Icon(Icons.repeat, color: color, size: 20),
-    );
-
-    // 1. Subscription has its own image → use it
-    if (sub.imagePath != null) {
-      return FutureBuilder<File>(
-        future: ImageService.resolve(sub.imagePath!),
-        builder: (context, snap) {
-          if (snap.hasData && snap.data!.existsSync()) {
-            return CircleAvatar(
-              backgroundImage: FileImage(snap.data!),
-              backgroundColor: color.withValues(alpha: 0.1),
-            );
-          }
-          return sub.emoji != null ? emojiAvatar(sub.emoji!) : defaultIcon();
-        },
-      );
-    }
-
-    // 2. Subscription has an emoji → use it
-    if (sub.emoji != null) return emojiAvatar(sub.emoji!);
-
-    // 3. Fall back to account image
-    if (account?.imagePath != null) {
-      return FutureBuilder<File>(
-        future: ImageService.resolve(account!.imagePath!),
-        builder: (context, snap) {
-          if (snap.hasData && snap.data!.existsSync()) {
-            return CircleAvatar(
-              backgroundImage: FileImage(snap.data!),
-              backgroundColor: color.withValues(alpha: 0.1),
-            );
-          }
-          return cat?.emoji != null ? emojiAvatar(cat!.emoji!) : defaultIcon();
-        },
-      );
-    }
-
-    // 4. Category emoji → default icon
-    if (cat?.emoji != null) return emojiAvatar(cat!.emoji!);
-    return defaultIcon();
-  }
 }

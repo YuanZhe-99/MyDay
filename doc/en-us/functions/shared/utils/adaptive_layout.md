@@ -38,6 +38,8 @@ named predicate.
 | `settingsRightPaneMinWidth` | top-level `const double` | B | Smallest width the settings detail pane may be given (280). |
 | `weightSummaryPaneMinWidth` | top-level `const double` | B | Smallest width the weight summary card may occupy beside the chart (280). |
 | `weightChartMinWidth` | top-level `const double` | B | Smallest width the weight trend chart may be given (380). |
+| `subscriptionStatMinWidth` | top-level `const double` | B | Minimum width one subscription statistic card may occupy on the finance summary pane (110). |
+| `summaryCardGap` | top-level `const double` | B | Horizontal gap between the finance summary cards (8). |
 | `metricCardMinWidth` | top-level `const double` | B | Minimum width one metric card may occupy (160). |
 | `metricMaxColumns` | top-level `const int` | B | Ceiling on metric columns in a summary card (4). |
 | `accountCardMinWidth` | top-level `const double` | B | Minimum width one account card may occupy (340). |
@@ -61,6 +63,7 @@ named predicate.
 | [`shellContentWidth`](#shellcontentwidth) | top-level function | A | Return the width a shell page's content actually receives. |
 | [`columnCapacity`](#columncapacity) | top-level function | A | Return how many columns of a given minimum width fit a content box. |
 | [`listRowCount`](#listrowcount) | top-level function | A | Return how many rows a list of items needs at a column count. |
+| [`columnMajorFill`](#columnmajorfill) | top-level function | A | Deal an ordered list of blocks into columns, filling each column before the next. |
 | [`listColumnCount`](#listcolumncount) | top-level function | A | Return the number of columns a list should actually render. |
 | [`financeLeftPaneWidth`](#financeleftpanewidth) | top-level function | A | Return the width of the finance page's fixed left pane. |
 | [`intimacyLeftPaneWidth`](#intimacyleftpanewidth) | top-level function | A | Return the width of the intimacy page's fixed left pane. |
@@ -73,17 +76,17 @@ named predicate.
 | [`todoCalendarPaneWidth`](#todocalendarpanewidth) | top-level function | A | Return the width of the Todo calendar page's month-grid pane. |
 | [`dialogHorizontalInset`](#dialoghorizontalinset) | top-level function | A | Return the horizontal inset that caps a dialog's content width. |
 
-**Reconciliation:** `grep -c 'Purpose:' lib/shared/utils/adaptive_layout.dart` reports 16 against 53
-rows. The thirty-seven top-level `const` declarations carry a prose doc comment stating where their
+**Reconciliation:** `grep -c 'Purpose:' lib/shared/utils/adaptive_layout.dart` reports 17 against 56
+rows. The thirty-nine top-level `const` declarations carry a prose doc comment stating where their
 value came from rather than a `Purpose:` block, matching how the index treats top-level constants
-elsewhere; they are part of the file's surface and therefore get rows. All sixteen functions are
+elsewhere; they are part of the file's surface and therefore get rows. All seventeen functions are
 Tier A per the blanket rule for top-level functions under `shared/`. The constants are Tier B:
 their whole content is the value and the reason for it, both of which the tables below and
 [../../../adaptive-layout.md](../../../adaptive-layout.md) already carry.
 
 ## Constants
 
-These thirty-seven numbers are the whole numeric surface of MyDay's layout policy. The first eight are
+These thirty-nine numbers are the whole numeric surface of MyDay's layout policy. The first eight are
 shared with the sibling apps and must not be changed without reading
 [../../../adaptive-layout.md](../../../adaptive-layout.md) first — `splitMinAspect` in particular
 is a whole-app behavior change. The rest are MyDay's own per-content minimums, and each one states
@@ -111,6 +114,8 @@ safely change later.
 | `settingsRightPaneMinWidth` | `280.0` | The narrowest a hosted second-level page stays usable at — a form field plus its label. |
 | `weightSummaryPaneMinWidth` | `280.0` | The card carries the latest weight at `displaySmall` beside a change figure, then a `Wrap` of stat labels each constrained to 88–168. |
 | `weightChartMinWidth` | `380.0` | The chart reserves about 40 for its left axis and needs roughly 48 per date label, so this shows about seven labelled points without crowding. |
+| `subscriptionStatMinWidth` | `110.0` | A 12 dp icon and a short localized label such as 月應付 above an amount like $1,234.56 at `titleMedium`. Two cards fit across the finance pane at every width in its clamp range; the third joins the row once the pane passes about 378 (3 x 110 plus two gaps, inside 16 dp of padding each side). |
+| `summaryCardGap` | `8.0` | Narrower than `listTileGap` because the cards already sit inside a padded pane, and it matches the gap between the expense and income cards above them. |
 | `metricCardMinWidth` | `160.0` | A stat label above its value; below this a localized label such as "平均抽插速率" wraps to three lines. |
 | `metricMaxColumns` | `4` | A summary card carries at most four metrics, and four across is still scannable at a glance. |
 | `accountCardMinWidth` | `340.0` | An account name, its bank-preset chip, and a balance shown in both its native and the default currency on one line. |
@@ -242,6 +247,26 @@ safely change later.
 - **Notes:** The last row may be short; callers pad it with empty cells so the remaining tiles keep
   their width instead of stretching across the row.
 
+### `List<List<int>> columnMajorFill(int itemCount, int columns)` <a id="columnmajorfill"></a>
+- **Kind:** top-level function
+- **Source:** `lib/shared/utils/adaptive_layout.dart` (line 133)
+- **Purpose:** Deal an ordered list of blocks into columns, filling each column before starting the
+  next.
+- **Inputs:** `itemCount`, `columns`.
+- **Returns:** `List<List<int>>` — exactly `columns` lists (at least one), each holding the indices
+  of the blocks in that column, in order. A list is empty only when `itemCount` is smaller than
+  `columns`.
+- **Side effects:** None.
+- **Algorithm:** `count = max(columns, 1)`; `perColumn = listRowCount(itemCount, count)`; column
+  `c` holds `[c * perColumn, min((c + 1) * perColumn, itemCount))`.
+- **Usage:** `columnMajorFill(sections.length, columns)` in the Todo page's `_buildTaskArea` —
+  three sections at two columns give `[[0, 1], [2]]`, at three `[[0], [1], [2]]`.
+- **Notes:** Reading order — top to bottom, then left to right — which is what a person expects of
+  a few named sections. Round-robin dealing, which the Todo page used before v1.4.3, put its second
+  section beside the first and its third underneath, so the two one-time lists a user reads
+  together sat in different columns. Earlier columns are the fuller ones when the count does not
+  divide evenly.
+
 ### `int listColumnCount({required double screenWidth, required double screenHeight, required double contentWidth, required double minItemWidth, required int preference, int maxColumns = listMaxColumns})` <a id="listcolumncount"></a>
 - **Kind:** top-level function
 - **Source:** `lib/shared/utils/adaptive_layout.dart` (line 136)
@@ -294,15 +319,20 @@ safely change later.
 - **Kind:** top-level function
 - **Source:** `lib/shared/utils/adaptive_layout.dart` (line 228)
 - **Purpose:** Return the width of the intimacy page's fixed left pane, which holds the month
-  calendar and its cycle strips.
+  calendar, its cycle strips and, since v1.4.3, the trend chart.
 - **Inputs:** `contentWidth` — the width both panes share, in logical pixels.
-- **Returns:** `double` between 320 and 440.
+- **Returns:** `double` between 320 and 480.
 - **Side effects:** None.
-- **Algorithm:** `(contentWidth * 0.36).clamp(320.0, 440.0)`.
+- **Algorithm:** `(contentWidth * 0.42).clamp(320.0, 480.0)`.
 - **Usage:** `SizedBox(width: intimacyLeftPaneWidth(contentWidth), child: calendarPane)`.
-- **Notes:** The same 0.36 proportion as the finance page, but a higher floor, and the floor is the
-  point: this pane holds a month calendar, whose seven columns plus the card's own padding do not
-  fit below about 320. Squeezing them turns the day numbers into a smear.
+- **Notes:** A higher proportion and ceiling than the finance page's 0.36 / 420 because the pane
+  carries a chart, and a chart, unlike a calendar, keeps gaining from width. The floor is the
+  calendar's and is deliberately unchanged from v1.4.1: seven day columns plus the card's own
+  padding do not fit below about 320, and the narrowest splittable foldables — a Z Fold 5 or 7 in
+  portrait, roughly 580–670 of content — have nothing to spare, so they render exactly as before.
+  The proportion clears the floor from 762 of content (about 843 of screen); an unfolded Fold 8 in
+  landscape, at about 851, gets ~357 rather than 320. `test/adaptive_layout_test.dart` pins those
+  points and asserts a 1440 desktop still gives the record list two columns.
 
 ### `double settingsLeftPaneWidth(double contentWidth)` <a id="settingsleftpanewidth"></a>
 - **Kind:** top-level function

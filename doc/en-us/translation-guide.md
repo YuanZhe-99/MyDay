@@ -143,6 +143,7 @@ Not copied to the other repos — no other app has these.
 | EWMA (smoothed curve) | EWMA（平滑曲线） | 指数加权移动平均，趋势图的虚线 |
 | thrust count | 抽插次数 | Intimacy record field; stored as a count times a x1/x100 unit |
 | thrust rate | 抽插速率 | thrusts per minute, derived per entry; 不用「频率」，那是 frequency（记录次数/周） |
+| subscription overview | 订阅概览 | the finance home's two-pane block of subscription statistics and active subscriptions (v1.4.3) |
 
 ## 6. Review checklist (run before committing a Chinese page)
 

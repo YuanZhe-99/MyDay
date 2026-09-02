@@ -22,9 +22,12 @@ historical (inactive) subscription restores by copying its settings into a **new
 rather than mutating the old one. Most of the methods implementing that state machine
 (`_restoreSubscription`, `_undoAtExpiryCancellation`, `_copyRestoreSubscription`,
 `_doCancelSubscription`, `_insertNewSubscription`, `_editSubscription`) are classified Tier A, along
-with the billing-stat computations (`_monthlyDue`, `_monthlyAvg`), the sort/reorder logic, the
-upcoming-renewals filter, the historical-transaction importer, and `_SubscriptionTile`'s status-label
-computation (which directly reflects the subscription's current cancellation state).
+with the reorder logic, the historical-transaction importer, and `_SubscriptionTile`'s status-label
+computation (which directly reflects the subscription's current cancellation state). Since v1.4.3
+the three summary statistics, the sort, and the upcoming-renewals filter live in
+[`subscription_summary.dart`](../services/subscription_summary.md), and the tile's avatar in
+[`subscription_avatar.dart`](../widgets/subscription_avatar.md), because the finance home's
+two-pane subscription overview shows the same figures and the same avatars.
 
 ## Declarations
 
@@ -33,13 +36,9 @@ computation (which directly reflects the subscription's current cancellation sta
 | `SubscriptionsPage` (constructor) | constructor (`SubscriptionsPage`) | B | Create a subscriptions page instance. |
 | `SubscriptionsPage.createState` | method (`SubscriptionsPage`) | B | Create the `_SubscriptionsPageState`. |
 | `_SubscriptionsPageState.initState` | method (`_SubscriptionsPageState`) | B | Copy initial subscription/transaction/reminder/sort state from the widget. |
-| [`_active`](#_active) | getter (`_SubscriptionsPageState`) | A | Return active subscriptions, sorted by the current sort mode. |
+| [`_active`](#_active) | getter (`_SubscriptionsPageState`) | A | Return active subscriptions, sorted by the current sort mode through `sortSubscriptions`. |
 | [`_historical`](#_historical) | getter (`_SubscriptionsPageState`) | A | Return inactive (cancelled/expired) subscriptions. |
-| [`_sortList`](#_sortlist) | method (`_SubscriptionsPageState`) | A | Sort a subscription list in place by name, custom order, or next renewal date. |
 | [`_onSortModeChanged`](#_onsortmodechanged) | method (`_SubscriptionsPageState`) | A | Switch sort mode, seeding custom order from the active list when first entering custom mode. |
-| [`_monthlyDue`](#_monthlydue) | method (`_SubscriptionsPageState`) | A | Sum each active subscription's amount normalized to a monthly cost in the default currency. |
-| [`_monthlyAvg`](#_monthlyavg) | method (`_SubscriptionsPageState`) | A | Compute average monthly subscription spend from actual billed transactions, falling back to the projected due amount. |
-| `_yearlyAvg` | method (`_SubscriptionsPageState`) | B | Return `_monthlyDue() * 12`. |
 | `_addSubscription` | method (`_SubscriptionsPageState`) | B | Open the add-subscription dialog and insert the result. |
 | [`_insertNewSubscription`](#_insertnewsubscription) | method (`_SubscriptionsPageState`) | A | Add a new subscription, computing its initial `nextBillingDate` and optionally importing billing history. |
 | [`_editSubscription`](#_editsubscription) | method (`_SubscriptionsPageState`) | A | Open the edit dialog and, on save, recompute `nextBillingDate` if billing parameters changed. |
@@ -52,7 +51,6 @@ computation (which directly reflects the subscription's current cancellation sta
 | [`_doCancelSubscription`](#_docancelsubscription) | method (`_SubscriptionsPageState`) | A | Apply the chosen cancellation type, computing `isActive` and stamping `cancelledAt`. |
 | [`_importHistoricalTransactions`](#_importhistoricaltransactions) | method (`_SubscriptionsPageState`) | A | Generate historical billing transactions for a newly added subscription, skipping already-billed days. |
 | `_openDetail` | method (`_SubscriptionsPageState`) | B | Push `SubscriptionDetailPage` and sync back any transaction edits. |
-| [`_getUpcomingSubs`](#_getupcomingsubs) | method (`_SubscriptionsPageState`) | A | Collect subscriptions due within N days, excluding at-expiry-cancelled and immediate-cancelled-inactive ones. |
 | [`_buildReorderBody`](#_buildreorderbody) | method (widget helper) | A | Render the drag-to-reorder list and persist the new custom order on drop. |
 | `build` | method (`_SubscriptionsPageState`) | B | Build the scaffold: app bar with sort menu, summary cards, upcoming renewals, reminder setting, active/historical lists, add FAB. |
 | `_SectionHeader` (constructor) | constructor (`_SectionHeader`) | B | Create a section header instance. |
@@ -62,17 +60,16 @@ computation (which directly reflects the subscription's current cancellation sta
 | `_SubscriptionTile` (constructor) | constructor (`_SubscriptionTile`) | B | Create a subscription tile instance. |
 | [`_SubscriptionTile.build`](#build) | method (`_SubscriptionTile`) | A | Render the subscription row, computing category/account/cycle/next-billing/cancelled labels from current state. |
 | `_showActions` | method (`_SubscriptionTile`) | B | Show the edit/cancel/restore/delete action sheet for long-press. |
-| [`_buildLeading`](#_buildleading) | method (`_SubscriptionTile`) | A | Resolve the tile's leading avatar through a subscription-image / emoji / account-image / category-emoji fallback chain. |
-| `emojiAvatar` | local function (nested in `_buildLeading`) | B | Build a circular emoji avatar. |
-| `defaultIcon` | local function (nested in `_buildLeading`) | B | Build the default repeat-icon avatar. |
 
-`grep -c 'Purpose:' lib/features/finance/views/subscriptions_page.dart` reports 35, matching all 35
-real declarations counted above exactly (19 Tier A, 16 Tier B). Every `/// Purpose:` block sits
+`grep -c 'Purpose:' lib/features/finance/views/subscriptions_page.dart` reports 27, matching all 27
+real declarations counted above exactly (14 Tier A, 13 Tier B). Every `/// Purpose:` block sits
 directly above the real declaration it documents — no misattached blocks (blocks documenting a call
 site instead of a declaration) were found, and no undocumented real declaration exists either. Unlike
 `analysis_page.dart` (documented alongside this file, which has one undocumented method), this file's
-doc comments are fully in sync with its declarations, including the two nested local functions
-(`emojiAvatar`, `defaultIcon`) inside `_buildLeading`, which each carry their own `/// Purpose:` block.
+doc comments are fully in sync with its declarations. Eight declarations left this file in v1.4.3:
+`_sortList`, `_monthlyDue`, `_monthlyAvg`, `_yearlyAvg` and `_getUpcomingSubs` became the public
+functions of `subscription_summary.dart`, and `_buildLeading` with its two nested helpers became
+`SubscriptionAvatar`.
 
 ## Documentation
 
@@ -80,17 +77,17 @@ doc comments are fully in sync with its declarations, including the two nested l
 - **Kind:** getter of `_SubscriptionsPageState`
 - **Source:** `lib/features/finance/views/subscriptions_page.dart` (line 96)
 - **Purpose:** Return the currently active subscriptions, sorted according to the selected sort mode.
-- **Inputs:** None (reads `_subscriptions`, `_sortMode`/`_customOrder` via `_sortList`).
+- **Inputs:** None (reads `_subscriptions`, `_sortMode`, `_customOrder`).
 - **Returns:** `List<Subscription>`.
-- **Side effects:** None (the list passed to `_sortList` is a fresh copy from `.toList()`, so sorting
-  it doesn't mutate `_subscriptions`).
-- **Algorithm:** `_subscriptions.where((s) => s.isActive).toList()`, then `_sortList(list)` sorts it
-  in place per the current `_sortMode` before returning.
-- **Usage:** `final active = _active;` (`build`, line 678, also read directly inside `_monthlyDue`'s
-  `for (final s in _active)` loop, line 174).
-- **Notes:** Every read of `_active` re-filters and re-sorts `_subscriptions` from scratch; there is
-  no caching, so calling it multiple times per `build` (as `build`, `_monthlyDue`, and `_monthlyAvg`
-  indirectly all do) repeats the work.
+- **Side effects:** None — `sortSubscriptions` returns a new list, so `_subscriptions` is never
+  reordered.
+- **Algorithm:** `sortSubscriptions(_subscriptions.where((s) => s.isActive).toList(), mode:
+  _sortMode, customOrder: _customOrder)` —
+  [`subscription_summary.md#sortsubscriptions`](../services/subscription_summary.md#sortsubscriptions).
+- **Usage:** `final active = _active;` (`build`).
+- **Notes:** Since v1.4.3 the finance home's subscription overview sorts with the same function and
+  the same stored mode, so the two lists always agree on order. Every read re-filters and re-sorts
+  from scratch; there is no caching.
 
 ### `List<Subscription> get _historical` <a id="_historical"></a>
 - **Kind:** getter of `_SubscriptionsPageState`
@@ -106,22 +103,6 @@ doc comments are fully in sync with its declarations, including the two nested l
 - **Notes:** This is the getter that determines which subscriptions show a "Restore" action instead
   of "Cancel" in the tile's swipe/long-press menus (see `build`, lines 983-1045) — the `isActive` split
   here is the same boundary `_restoreSubscription` dispatches on.
-
-### `void _sortList(List<Subscription> list)` <a id="_sortlist"></a>
-- **Kind:** method of `_SubscriptionsPageState`
-- **Source:** `lib/features/finance/views/subscriptions_page.dart` (line 115)
-- **Purpose:** Sort a subscription list in place according to `_sortMode`.
-- **Inputs:** `list` — mutated in place.
-- **Returns:** None.
-- **Side effects:** Sorts `list` in place (a copy, when called from `_active`).
-- **Algorithm:** `switch (_sortMode)`: `'name'` → case-insensitive alphabetical; `'custom'` → sort by
-  each item's index in `_customOrder` (items not present in `_customOrder` sort to the end, via a
-  sentinel index of `_customOrder.length`); default (`'nextRenewal'`) → sort by `nextBillingDate`
-  ascending, with `null` dates sorted after all non-null dates (both-`null` compares equal).
-- **Usage:** `_sortList(list);` (`_active` getter, line 98 — the only call site).
-- **Notes:** The `'custom'` branch is a no-op if `_customOrder` is empty (leaves `list` in whatever
-  order `.where(...).toList()` produced) — `_onSortModeChanged` is what actually seeds `_customOrder`
-  the first time the user switches into custom mode.
 
 ### `void _onSortModeChanged(String mode)` <a id="_onsortmodechanged"></a>
 - **Kind:** method of `_SubscriptionsPageState`
@@ -142,52 +123,6 @@ doc comments are fully in sync with its declarations, including the two nested l
 - **Notes:** Re-entering custom mode after it already has a `_customOrder` does *not* reseed it —
   the existing order (including any subscriptions added/removed since) is kept, so switching sort
   modes back and forth doesn't lose a previously arranged custom order.
-
-### `double _monthlyDue()` <a id="_monthlydue"></a>
-- **Kind:** method of `_SubscriptionsPageState`
-- **Source:** `lib/features/finance/views/subscriptions_page.dart` (line 172)
-- **Purpose:** Compute the projected monthly cost of all active subscriptions, normalized to a
-  per-month figure and converted into the default currency.
-- **Inputs:** None (reads `_active`, `widget.rateData.currentRates`, `widget.defaultCurrency`).
-- **Returns:** `double`.
-- **Side effects:** None.
-- **Algorithm:** For each active subscription: if `billingCycleType == BillingCycleType.monthly`,
-  `monthly = amount / billingInterval` (an every-N-months subscription's per-month share); otherwise
-  (yearly), `monthly = amount / (billingInterval * 12)`. Convert each `monthly` value via
-  [`convertCurrency`](../services/balance_util.md#convertcurrency) using **current** rates (not a
-  historical snapshot — there is no per-subscription rate snapshot) into `widget.defaultCurrency`, and
-  sum.
-- **Usage:** `'$sym${numberFormat.format(_monthlyDue())}'` (`build`, line 762, the "Monthly Due"
-  summary card); also the fallback return value inside `_monthlyAvg` and the basis for `_yearlyAvg`.
-- **Notes:** This is a *projection* from each subscription's billing parameters, not a sum of actual
-  past transactions — contrast with `_monthlyAvg`, which prefers real transaction history when enough
-  of it exists.
-
-### `double _monthlyAvg()` <a id="_monthlyavg"></a>
-- **Kind:** method of `_SubscriptionsPageState`
-- **Source:** `lib/features/finance/views/subscriptions_page.dart` (line 197)
-- **Purpose:** Compute the average monthly subscription spend from actual billed transactions,
-  falling back to the projected `_monthlyDue()` figure when there isn't enough transaction history
-  yet.
-- **Inputs:** None (reads `_transactions`, `widget.rateData.ratesAt`, `widget.defaultCurrency`).
-- **Returns:** `double`.
-- **Side effects:** None.
-- **Algorithm:**
-  1. Filter `_transactions` to those with a non-null `subscriptionId`. If none exist, return
-     `_monthlyDue()`.
-  2. Find the earliest such transaction's `date`.
-  3. Compute `months = (now.year - earliest.year) * 12 + now.month - earliest.month` (whole
-     calendar-month span). If `months < 2`, return `_monthlyDue()` (not enough history to average
-     meaningfully).
-  4. Otherwise, sum every subscription transaction's amount converted via `convertCurrency` using
-     **that transaction's own historical rate snapshot** (`widget.rateData.ratesAt(t.rateSnapshotId)`)
-     into `widget.defaultCurrency`, and divide by `months`.
-- **Usage:** `'$sym${numberFormat.format(_monthlyAvg())}'` (`build`, line 771, the "Monthly Avg"
-  summary card).
-- **Notes:** Unlike `_monthlyDue` (which always uses current rates since there's no historical
-  snapshot to project from), `_monthlyAvg`'s transaction-based path uses each transaction's own
-  historical rate — the two summary cards can diverge not just in method (projection vs. actual
-  average) but also in which exchange rate vintage they use.
 
 ### `void _insertNewSubscription(({Subscription sub, bool importHistory}) result)` <a id="_insertnewsubscription"></a>
 - **Kind:** method of `_SubscriptionsPageState`
@@ -421,32 +356,6 @@ doc comments are fully in sync with its declarations, including the two nested l
   if both somehow ran against overlapping date ranges — the dedup is keyed on
   `'$subscriptionId|yyyy-MM-dd'`, not on transaction id origin.
 
-### `List<(Subscription, DateTime)> _getUpcomingSubs(int days)` <a id="_getupcomingsubs"></a>
-- **Kind:** method of `_SubscriptionsPageState`
-- **Source:** `lib/features/finance/views/subscriptions_page.dart` (line 605)
-- **Purpose:** Collect subscriptions whose next billing day falls within the next `days` days, for
-  the "Upcoming renewals" chip row — deliberately excluding subscriptions whose next charge won't
-  actually happen.
-- **Inputs:** `days` — the look-ahead window.
-- **Returns:** `List<(Subscription, DateTime)>`, sorted ascending by billing date.
-- **Side effects:** None.
-- **Algorithm:**
-  1. `limit = today + days`.
-  2. For each subscription in `_subscriptions`: skip if `cancelType == CancelType.atExpiry`
-     (regardless of `isActive` — an at-expiry-pending subscription is excluded from renewal reminders
-     even while it's still nominally active and billing); skip if `!isActive &&
-     cancelType == CancelType.immediate` (an already-cancelled subscription obviously won't renew).
-  3. If the subscription has a `nextBillingDate` and its calendar day is on/before `limit`, add
-     `(sub, next)` to the result.
-  4. Sort the result ascending by billing date.
-- **Usage:** `final upcomingSubs = _getUpcomingSubs(3);` (`build`, line 680 — a fixed 3-day look-ahead
-  window for the chip row).
-- **Notes:** The doc comment's own note captures the key subtlety: "At-expiry cancellations keep
-  showing in subscription lists but are excluded from renewal reminders" — i.e. this filter is
-  stricter than the `_active`/`_historical` split (which only looks at `isActive`), because an
-  at-expiry subscription is still `isActive == true` yet shouldn't generate a renewal reminder for a
-  charge that, from the user's perspective, is about to stop.
-
 ### `Widget _buildReorderBody(ThemeData theme, AppLocalizations l10n, List<Subscription> active)` <a id="_buildreorderbody"></a>
 - **Kind:** method of `_SubscriptionsPageState`
 - **Source:** `lib/features/finance/views/subscriptions_page.dart` (line 630)
@@ -467,7 +376,7 @@ doc comments are fully in sync with its declarations, including the two nested l
   751 — swaps the entire body for the reorder list while `_reordering` is true).
 - **Notes:** Reordering only ever operates on `active` subscriptions (historical ones aren't
   reorderable), and the persisted `_customOrder` list is exactly the sequence of active subscription
-  ids — `_sortList`'s `'custom'` branch is what turns that persisted order back into a sorted `_active`
+  ids — `sortSubscriptions`' `'custom'` branch is what turns that persisted order back into a sorted `_active`
   list on the next non-reorder render.
 
 ### `Widget build(BuildContext context)` <a id="build"></a>
@@ -493,7 +402,7 @@ doc comments are fully in sync with its declarations, including the two nested l
      `nextLabel` as the expiry date, so it isn't repeated here).
   5. Assemble `subtitleParts` from the non-null labels plus `cycleLabel` (always present), plus
      `cancelLabel` only when `!isActive`; join with `"  •  "`.
-  6. Render a `ListTile` with `_buildLeading` as the leading avatar, name/placeholder title, the
+  6. Render a `ListTile` with `SubscriptionAvatar` as the leading avatar, name/placeholder title, the
      amount as trailing text (styled with the theme's error color), `onTap`/`onLongPress` wired to the
      passed-in callbacks / `_showActions`.
 - **Usage:**
@@ -516,35 +425,6 @@ doc comments are fully in sync with its declarations, including the two nested l
   (not "Next billing"), which is the tile-level signal that distinguishes it from an ordinary active
   subscription even before the user opens the long-press menu to see the Restore action.
 
-### `Widget _buildLeading(Subscription sub, Account? account, Category? cat, ThemeData theme)` <a id="_buildleading"></a>
-- **Kind:** method of `_SubscriptionTile`
-- **Source:** `lib/features/finance/views/subscriptions_page.dart` (line 1335)
-- **Purpose:** Resolve the tile's leading avatar through a four-tier fallback chain: the
-  subscription's own image, then its own emoji, then the linked account's image, then the linked
-  category's emoji, finally a generic repeat icon.
-- **Inputs:** `sub`; `account`; `cat`; `theme` (only `theme.colorScheme.error` is used, as the avatar
-  background/foreground tint).
-- **Returns:** `Widget`.
-- **Side effects:** None (the `FutureBuilder` branches read from disk via `ImageService.resolve`, but
-  that is encapsulated inside the returned widget's own build, not a side effect of this call itself).
-- **Algorithm:**
-  1. Two nested local helpers: `emojiAvatar(String emoji)` (a tinted `CircleAvatar` with the emoji as
-     text) and `defaultIcon()` (a tinted `CircleAvatar` with `Icons.repeat`).
-  2. If `sub.imagePath != null`: return a `FutureBuilder<File>` resolving
-     `ImageService.resolve(sub.imagePath!)`; if the resolved file exists, show it as a
-     `CircleAvatar.backgroundImage`; otherwise fall back to `sub.emoji` (via `emojiAvatar`) or
-     `defaultIcon()`.
-  3. Else if `sub.emoji != null`: return `emojiAvatar(sub.emoji!)` directly (no image to resolve).
-  4. Else if `account?.imagePath != null`: same `FutureBuilder` pattern as step 2, but falling back
-     (if the image doesn't resolve) to `cat?.emoji` via `emojiAvatar` or `defaultIcon()`.
-  5. Else if `cat?.emoji != null`: return `emojiAvatar(cat!.emoji!)`.
-  6. Otherwise: `defaultIcon()`.
-- **Usage:** `leading: _buildLeading(sub, account, cat, theme)` (`_SubscriptionTile.build`, line 1251).
-- **Notes:** The fallback order strictly prioritizes the subscription's own branding (image, then
-  emoji) over the linked account's or category's — an account image is only ever consulted if the
-  subscription itself has neither an image nor an emoji, and a category emoji is the last resort
-  before the generic icon.
-
 ## Related pages
 
 - [Finance](../../../../features/finance.md#views-and-analysis-page) — concept-level description of
@@ -557,7 +437,9 @@ doc comments are fully in sync with its declarations, including the two nested l
   cancel/restore/edit flows.
 - [`SubscriptionProcessor.billingDateKey`/`transactionIdForBilling`](../services/subscription_processor.md) —
   the idempotency key/id scheme `_importHistoricalTransactions` reuses.
-- [`convertCurrency`/`currencySymbol`](../services/balance_util.md) — currency conversion used by
-  `_monthlyDue`/`_monthlyAvg`.
-- [`ExchangeRateData.ratesAt`/`currentRates`](../services/exchange_rate_storage.md) — historical vs.
-  current rate lookup, whose distinction underlies the Notes on `_monthlyDue`/`_monthlyAvg`.
+- [`subscription_summary.dart`](../services/subscription_summary.md) — `summarizeSubscriptions`,
+  `sortSubscriptions` and `upcomingSubscriptions`, the statistics, sort and renewal filter this
+  page shares with the finance home since v1.4.3.
+- [`subscription_avatar.dart`](../widgets/subscription_avatar.md) — `SubscriptionAvatar`, the
+  tile's leading widget.
+- [`currencySymbol`](../services/balance_util.md) — the symbol on the summary cards and tiles.
