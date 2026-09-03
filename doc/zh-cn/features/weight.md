@@ -52,6 +52,8 @@ static bool shouldSkipWeightReminderAt({
 
 体重页包括增/删记录、可选胸/腰/臀测量录入、图表范围选择、原始和 EWMA 体重趋势显示、单独的原始/EWMA 胸-腰-臀趋势图、带紧凑颜色条的 BMI/测量/腰臀比摘要卡片、跟随全局周起始日设置的周分组历史、"显示全部"历史视图和提醒设置。
 
+在足够宽、可以分栏的窗口上——横持展开的折叠屏、平板、桌面窗口——摘要卡片展平成一条全宽横幅，数字在左、统计在右，两张趋势图各占下方一列，共用一个范围选择器。闸门参见 [adaptive-layout.md](../adaptive-layout.md)。
+
 ## 相关页面
 
 - [数据格式](../data-formats.md) — `WeightRecord`/`WeightData` 的精确 JSON 形态。

@@ -39,14 +39,14 @@ branching or computation beyond widget composition, per the tiering rule.
 | [`_recentRange`](#_recentrange) | getter (`_WeightPageState`) | A | Compute the min/max weight over the 7 most recent records. |
 | `build` | method (`_WeightPageState`) | B | Build the scaffold: app bar, loading/error/empty/content body, add FAB. |
 | `_buildEmptyState` | method (widget helper) | B | Render the "no records yet" placeholder with a set-height shortcut. |
-| `_buildContent` | method (widget helper) | B | Compose the summary card, chart section, and records list. |
-| `_buildSummaryCard` | method (widget helper) | B | Render the weight/BMI/measurement/waist-hip-ratio summary card. |
+| `_buildContent` | method (widget helper) | B | Compose the summary card, chart section, and records list, in one order. |
+| `_buildSummaryCard` | method (widget helper) | B | Render the summary card, stacked or flattened into a wide strip. |
 | [`_latestMeasurementStats`](#_latestmeasurementstats) | method (`_WeightPageState`) | A | Turn effective bust/waist/hip values into display label/value pairs. |
 | `_buildStatLabel` | method (widget helper) | B | Render one label-over-value stat cell, with optional trailing widget. |
 | [`_buildBMIBar`](#_buildbmibar) | method (`_WeightPageState`) | A | Build the BMI category bar (underweight/normal/overweight/obese). |
 | [`_buildWaistHipRatioBar`](#_buildwaisthipratiobar) | method (`_WeightPageState`) | A | Build the waist-hip-ratio category bar. |
 | `_buildSegmentedScaleBar` | method (widget helper) | B | Render a generic colored-segment bar with a position marker. |
-| `_buildChartSection` | method (widget helper) | B | Render the range-picker chips, legends, and both trend charts. |
+| `_buildChartSection` | method (widget helper) | B | Render the range chips, legends, and both trend charts, stacked or paired. |
 | `_buildChartLegendItem` | method (widget helper) | B | Render one solid/dashed line-color legend entry. |
 | [`_chartRecords`](#_chartrecords) | getter (`_WeightPageState`) | A | Filter and sort records to those within the selected chart range. |
 | `_buildChart` | method (widget helper) | B | Render the raw + EWMA weight `LineChart`. |
@@ -90,11 +90,15 @@ branching or computation beyond widget composition, per the tiering rule.
 | [`_submit`](#_submit) | method (`_WeightRecordDialogState`) | A | Validate inputs, build the resulting `WeightRecord`, and pop with it. |
 | `_WeightDataError` (constructor) | constructor (`_WeightDataError`) | B | Create a blocking weight-data-read-error view. |
 | `_WeightDataError.build` | method (`_WeightDataError`) | B | Render the error message and a retry button. |
-| `weightSummaryKey` | top-level `const ValueKey` | B | Identify the summary card wherever the page places it. |
-| `weightChartKey` | top-level `const ValueKey` | B | Identify the chart section wherever the page places it. |
+| `weightSummaryKey` | top-level `const ValueKey` | B |Identify the summary card wherever the page places it.|
+| `weightChartKey` | top-level `const ValueKey` | B |Identify the chart section wherever the page places it.|
+| `weightTrendChartKey` | top-level `const ValueKey` | B | Identify the weight trend chart, in either arrangement. |
+| `weightMeasurementChartKey` | top-level `const ValueKey` | B | Identify the body-measurement trend chart, in either arrangement. |
+| `weightSummaryFigureKey` | top-level `const ValueKey` | B | Identify the summary card's figure block. |
+| `weightSummaryStatsKey` | top-level `const ValueKey` | B | Identify the summary card's stat cells. |
 
-`grep -c 'Purpose:' lib/features/weight/views/weight_page.dart` reports 65 against 67 rows: the two `const ValueKey` declarations added in v1.4.1 (`weightSummaryKey`, `weightChartKey`) carry a prose doc comment rather than a `Purpose:` block, but are part of the file surface and get rows. All 65 documented real
-declarations counted above exactly (31 Tier A, 34 Tier B). Every `/// Purpose:` block sits directly
+`grep -c 'Purpose:' lib/features/weight/views/weight_page.dart` reports 65 against 71 rows: the six `const ValueKey` declarations — two added in v1.4.1 (`weightSummaryKey`, `weightChartKey`) and four in v1.4.4 (`weightTrendChartKey`, `weightMeasurementChartKey`, `weightSummaryFigureKey`, `weightSummaryStatsKey`) — carry a prose doc comment rather than a `Purpose:` block, but are part of the file surface and get rows. All 65 documented real
+declarations counted above exactly (31 Tier A, 40 Tier B). Every `/// Purpose:` block sits directly
 above the real declaration it documents — no misattached blocks (blocks documenting a call site
 instead of a declaration) were found — and no undocumented real declaration exists either: the five
 top-level `const Color ...` chart-color constants (lines 20-24) and the `_ChartRange` enum (line 56)

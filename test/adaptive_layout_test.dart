@@ -346,43 +346,49 @@ void main() {
     });
   });
 
-  group('useWeightSummaryBesideChart', () {
+  group('useWeightChartsSideBySide', () {
     test('holds at n - 1 and n', () {
-      const gate =
-          weightSummaryPaneMinWidth + weightChartMinWidth + listTileGap; // 672
-      expect(useWeightSummaryBesideChart(gate - 1), isFalse);
-      expect(useWeightSummaryBesideChart(gate), isTrue);
+      const gate = 2 * weightPairedChartMinWidth + listTileGap; // 672
+      expect(useWeightChartsSideBySide(gate - 1), isFalse);
+      expect(useWeightChartsSideBySide(gate), isTrue);
+    });
+
+    test('the gate is where the summary-card split used to be', () {
+      // Deliberate: v1.4.4 rearranged what happens inside a splittable weight
+      // window, not which windows are splittable. 280 + 380 + 12 was the old
+      // arithmetic and 330 + 330 + 12 is the new one, both 672, so every
+      // viewport keeps the outcome it had.
+      expect(2 * weightPairedChartMinWidth + listTileGap, 672);
     });
 
     test('a Z Fold 5 in portrait passes the split rule but not this one', () {
-      // The split rule alone would leave the chart about 300 logical pixels.
+      // The split rule alone would leave each chart under 290 logical pixels.
       // This is why the page tests both, rather than the shape rule alone.
       expect(canSplitLayout(675, 810), isTrue);
-      expect(useWeightSummaryBesideChart(shellContentWidth(675) - 32), isFalse);
+      expect(useWeightChartsSideBySide(shellContentWidth(675) - 32), isFalse);
     });
 
     test('an unfolded Fold 8 in landscape passes both', () {
       expect(canSplitLayout(932, 704), isTrue);
-      expect(useWeightSummaryBesideChart(shellContentWidth(932) - 32), isTrue);
+      expect(useWeightChartsSideBySide(shellContentWidth(932) - 32), isTrue);
     });
 
-    test('the chart always clears its floor from the gate up', () {
-      // The invariant that makes a right-hand cap on the summary pane
-      // unnecessary: the pane grows at 0.34 while the chart grows at 0.66.
+    test('each chart always clears its floor from the gate up', () {
+      // The invariant that makes a pane width unnecessary: the two columns are
+      // equal flex, so each is half of what is left after the gap.
       for (var width = 672.0; width <= 2000; width += 1) {
-        final pane = weightSummaryPaneWidth(width);
         expect(
-          width - pane - listTileGap,
-          greaterThanOrEqualTo(weightChartMinWidth),
+          (width - listTileGap) / 2,
+          greaterThanOrEqualTo(weightPairedChartMinWidth),
           reason: 'content width $width',
         );
       }
     });
 
-    test('the summary pane honours both its clamps', () {
-      expect(weightSummaryPaneWidth(672), 280); // 0.34 x 672 = 228, floored
-      expect(weightSummaryPaneWidth(1000), closeTo(340, 0.01));
-      expect(weightSummaryPaneWidth(2000), 380); // ceiling
+    test('the summary figure block fits the narrowest strip', () {
+      // At the gate the card's own margins and padding take 64, so the stats
+      // beside the figure block still get 296 — two cells of up to 168.
+      expect(672 - 64 - weightSummaryFigureWidth - 32, 296);
     });
   });
 

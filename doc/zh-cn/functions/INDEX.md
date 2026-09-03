@@ -7,7 +7,7 @@
 | 度量 | 计数 |
 |---|---|
 | `grep -r '/// Purpose:' lib --include=*.dart` | **1423** |
-| 全部 77 页的声明表行 | **1460** |
+| 全部 77 页的声明表行 | **1463** |
 | ——其中 Tier A（完整条目） | 813 |
 | ——其中 Tier B（仅索引行） | 647 |
 
@@ -103,7 +103,7 @@
 |---|---|---|---|
 | `lib/features/weight/models/weight_record.dart` | [features/weight/models/weight_record.md](features/weight/models/weight_record.md) | 13 | 13 |
 | `lib/features/weight/services/weight_storage.dart` | [features/weight/services/weight_storage.md](features/weight/services/weight_storage.md) | 6 | 5 |
-| `lib/features/weight/views/weight_page.dart` | [features/weight/views/weight_page.md](features/weight/views/weight_page.md) | 67 | 31 |
+| `lib/features/weight/views/weight_page.dart` | [features/weight/views/weight_page.md](features/weight/views/weight_page.md) | 71 | 31 |
 
 ## l10n/
 
@@ -128,7 +128,7 @@
 | `lib/shared/services/sync_wake_lock.dart` | [shared/services/sync_wake_lock.md](shared/services/sync_wake_lock.md) | 0 | 0 |
 | `lib/shared/services/tray_service.dart` | [shared/services/tray_service.md](shared/services/tray_service.md) | 16 | 13 |
 | `lib/shared/services/webdav_service.dart` | [shared/services/webdav_service.md](shared/services/webdav_service.md) | 12 | 12 |
-| `lib/shared/utils/adaptive_layout.dart` | [shared/utils/adaptive_layout.md](shared/utils/adaptive_layout.md) | 56 | 17 |
+| `lib/shared/utils/adaptive_layout.dart` | [shared/utils/adaptive_layout.md](shared/utils/adaptive_layout.md) | 55 | 16 |
 | `lib/shared/utils/json_preservation.dart` | [shared/utils/json_preservation.md](shared/utils/json_preservation.md) | 3 | 2 |
 | `lib/shared/utils/week_grouping.dart` | [shared/utils/week_grouping.md](shared/utils/week_grouping.md) | 16 | 16 |
 | `lib/shared/views/backup_page.dart` | [shared/views/backup_page.md](shared/views/backup_page.md) | 17 | 2 |
@@ -150,8 +150,8 @@
 | `features/intimacy/` | 11 | 367 | 177 | 190 |
 | `features/settings/` | 3 | 33 | 8 | 25 |
 | `features/todo/` | 7 | 198 | 122 | 76 |
-| `features/weight/` | 3 | 86 | 49 | 37 |
-| `shared/` | 26 | 363 | 251 | 112 |
-| **总计** | **77** | **1460** | **813** | **647** |
+| `features/weight/` | 3 | 90 | 49 | 41 |
+| `shared/` | 26 | 362 | 250 | 112 |
+| **总计** | **77** | **1463** | **812** | **651** |
 
 这里的每行都是上面逐文件行的算术和，在 v1.4.3 中重新派生。文件计数也与 `find lib -name '*.dart' -not -path 'lib/l10n/*'` 完全匹配——75 个源文件、75 个页面，没有无页面的文件，也没有无文件的面。

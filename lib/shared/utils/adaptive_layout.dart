@@ -215,19 +215,22 @@ const intimacyRecordMaxColumns = 3;
 /// Smallest width, in logical pixels, the settings detail pane may be given.
 const settingsRightPaneMinWidth = 280.0;
 
-/// Smallest width, in logical pixels, the weight summary card may occupy when
-/// it sits beside the trend chart rather than above it.
+/// Smallest width, in logical pixels, one weight trend chart may be given when
+/// the two trend charts sit side by side rather than stacked.
 ///
-/// The card carries the latest weight at `displaySmall` beside a change figure,
-/// then a `Wrap` of stat labels each constrained to 88-168.
-const weightSummaryPaneMinWidth = 280.0;
+/// Each chart reserves about 42 for its left axis and needs roughly 48 per date
+/// label, so this shows about six labelled points without crowding.
+const weightPairedChartMinWidth = 330.0;
 
-/// Smallest width, in logical pixels, the weight trend chart may be given
-/// before the summary card stops sitting beside it.
+/// Width, in logical pixels, of the weight summary strip's figure block.
 ///
-/// The chart reserves about 40 for its left axis and needs roughly 48 per date
-/// label, so this shows about seven labelled points without crowding.
-const weightChartMinWidth = 380.0;
+/// The block is a `Row` of two flexible halves — the latest weight at
+/// `displaySmall` on the left, the change and day count on the right — so it
+/// needs a bounded width before it can sit in another `Row`. At 280 each half
+/// gets about 140, comfortable for a three-digit weight; the old summary pane
+/// was 280 wide *including* the card's padding, leaving each half only 108. At
+/// the side-by-side gate the stats beside it still get 296, two cells per run.
+const weightSummaryFigureWidth = 280.0;
 
 /// Purpose: Return the width of the finance page's fixed left pane.
 /// Inputs: `contentWidth` — the width both panes share, in logical pixels.
@@ -289,31 +292,21 @@ double settingsLeftPaneWidth(double contentWidth) {
   return capped.clamp(240.0, 440.0);
 }
 
-/// Purpose: Report whether the weight summary card fits beside the trend chart.
+/// Purpose: Report whether the two weight trend charts fit side by side.
 /// Inputs: `contentWidth` — the width the weight body gets, in logical pixels.
 /// Returns: `bool`.
 /// Side effects: None.
 /// Notes: A width floor **on top of** [canSplitLayout], not instead of it. The
 /// split rule alone admits viewports the size of a Z Fold 5 in portrait, where
-/// the chart would be left about 300 logical pixels and show four date labels.
+/// each chart would be left under 290 logical pixels and show four date labels.
 /// Callers must test both, and must also test that there is a chart at all —
-/// it renders nothing below two records, and a summary card alone in a 280 pane
-/// beside a blank half is worse than the stacked layout it replaced.
-bool useWeightSummaryBesideChart(double contentWidth) =>
-    contentWidth >=
-    weightSummaryPaneMinWidth + weightChartMinWidth + listTileGap;
-
-/// Purpose: Return the width of the weight summary card when it sits beside
-/// the trend chart.
-/// Inputs: `contentWidth` — the width both blocks share, in logical pixels.
-/// Returns: `double`.
-/// Side effects: None.
-/// Notes: No right-hand cap, unlike [settingsLeftPaneWidth], because none can
-/// bind: under [useWeightSummaryBesideChart] the card grows at 0.34 of the
-/// width while the chart grows at 0.66, so [weightChartMinWidth] is met exactly
-/// at the gate and only more comfortably above it.
-double weightSummaryPaneWidth(double contentWidth) =>
-    (contentWidth * 0.34).clamp(weightSummaryPaneMinWidth, 380.0);
+/// neither renders below two records, and a summary strip above two blank
+/// halves is worse than the stacked layout it would replace. The floor is
+/// deliberately the same 672 the summary-card split used through v1.4.3, so
+/// every viewport keeps the outcome it had: what changed inside that width is
+/// the arrangement, not which windows get one.
+bool useWeightChartsSideBySide(double contentWidth) =>
+    contentWidth >= 2 * weightPairedChartMinWidth + listTileGap;
 
 /// Minimum width, in logical pixels, one metric card may occupy.
 ///

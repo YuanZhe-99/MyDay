@@ -9,7 +9,7 @@ mirroring the `lib/` tree (with `.dart` replaced by `.md`).
 | Measure | Count |
 |---|---|
 | `grep -r '/// Purpose:' lib --include=*.dart` | **1423** |
-| Declarations-table rows across all 77 pages | **1460** |
+| Declarations-table rows across all 77 pages | **1463** |
 | — of those rows, Tier A (full entry) | 813 |
 | — of those rows, Tier B (index row only) | 647 |
 
@@ -118,7 +118,7 @@ drifted from the per-file rows.)
 |---|---|---|---|
 | `lib/features/weight/models/weight_record.dart` | [features/weight/models/weight_record.md](features/weight/models/weight_record.md) | 13 | 13 |
 | `lib/features/weight/services/weight_storage.dart` | [features/weight/services/weight_storage.md](features/weight/services/weight_storage.md) | 6 | 5 |
-| `lib/features/weight/views/weight_page.dart` | [features/weight/views/weight_page.md](features/weight/views/weight_page.md) | 67 | 31 |
+| `lib/features/weight/views/weight_page.dart` | [features/weight/views/weight_page.md](features/weight/views/weight_page.md) | 71 | 31 |
 
 ## l10n/
 
@@ -144,7 +144,7 @@ the 1436/1435 hand-documented declarations above).
 | `lib/shared/services/sync_wake_lock.dart` | [shared/services/sync_wake_lock.md](shared/services/sync_wake_lock.md) | 0 | 0 |
 | `lib/shared/services/tray_service.dart` | [shared/services/tray_service.md](shared/services/tray_service.md) | 16 | 13 |
 | `lib/shared/services/webdav_service.dart` | [shared/services/webdav_service.md](shared/services/webdav_service.md) | 12 | 12 |
-| `lib/shared/utils/adaptive_layout.dart` | [shared/utils/adaptive_layout.md](shared/utils/adaptive_layout.md) | 56 | 17 |
+| `lib/shared/utils/adaptive_layout.dart` | [shared/utils/adaptive_layout.md](shared/utils/adaptive_layout.md) | 55 | 16 |
 | `lib/shared/utils/json_preservation.dart` | [shared/utils/json_preservation.md](shared/utils/json_preservation.md) | 3 | 2 |
 | `lib/shared/utils/week_grouping.dart` | [shared/utils/week_grouping.md](shared/utils/week_grouping.md) | 16 | 16 |
 | `lib/shared/views/backup_page.dart` | [shared/views/backup_page.md](shared/views/backup_page.md) | 17 | 2 |
@@ -166,9 +166,9 @@ the 1436/1435 hand-documented declarations above).
 | `features/intimacy/` | 11 | 367 | 177 | 190 |
 | `features/settings/` | 3 | 33 | 8 | 25 |
 | `features/todo/` | 7 | 198 | 122 | 76 |
-| `features/weight/` | 3 | 86 | 49 | 37 |
-| `shared/` | 26 | 363 | 251 | 112 |
-| **Total** | **77** | **1460** | **813** | **647** |
+| `features/weight/` | 3 | 90 | 49 | 41 |
+| `shared/` | 26 | 362 | 250 | 112 |
+| **Total** | **77** | **1463** | **812** | **651** |
 
 Every row here is the arithmetic sum of the per-file rows above, re-derived in v1.4.3. The file
 counts also match `find lib -name '*.dart' -not -path 'lib/l10n/*'` exactly — 75 source files, 75

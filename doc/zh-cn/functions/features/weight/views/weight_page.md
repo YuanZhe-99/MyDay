@@ -22,14 +22,14 @@
 | [`_recentRange`](#_recentrange) | getter（`_WeightPageState`） | A | 计算最近 7 条记录上的最小/最大体重。 |
 | `build` | 方法（`_WeightPageState`） | B | 构建脚手架：应用栏、加载/错误/空/内容主体、添加 FAB。 |
 | `_buildEmptyState` | 方法（组件辅助） | B | 渲染带设身高捷径的"尚无记录"占位。 |
-| `_buildContent` | 方法（组件辅助） | B | 组合摘要卡片、图表小节和记录列表。 |
-| `_buildSummaryCard` | 方法（组件辅助） | B | 渲染体重/BMI/测量/腰臀比摘要卡片。 |
+| `_buildContent` | 方法（组件辅助） | B | 以同一顺序组合摘要卡片、图表小节和记录列表。 |
+| `_buildSummaryCard` | 方法（组件辅助） | B | 渲染摘要卡片，堆叠或展平成宽横幅。 |
 | [`_latestMeasurementStats`](#_latestmeasurementstats) | 方法（`_WeightPageState`） | A | 把有效胸/腰/臀值变成显示标签/值对。 |
 | `_buildStatLabel` | 方法（组件辅助） | B | 渲染一个标签在上值在下的统计格，带可选尾部组件。 |
 | [`_buildBMIBar`](#_buildbmibar) | 方法（`_WeightPageState`） | A | 构建 BMI 类别条（偏瘦/正常/超重/肥胖）。 |
 | [`_buildWaistHipRatioBar`](#_buildwaisthipratiobar) | 方法（`_WeightPageState`） | A | 构建腰臀比类别条。 |
 | `_buildSegmentedScaleBar` | 方法（组件辅助） | B | 渲染带位置标记的通用彩色分段条。 |
-| `_buildChartSection` | 方法（组件辅助） | B | 渲染范围选择 chip、图例和两个趋势图。 |
+| `_buildChartSection` | 方法（组件辅助） | B | 渲染范围 chip、图例和两个趋势图，堆叠或并排。 |
 | `_buildChartLegendItem` | 方法（组件辅助） | B | 渲染一个实线/虚线线色图例条目。 |
 | [`_chartRecords`](#_chartrecords) | getter（`_WeightPageState`） | A | 过滤并排序记录到所选图表范围内。 |
 | `_buildChart` | 方法（组件辅助） | B | 渲染原始 + EWMA 体重 `LineChart`。 |
@@ -73,10 +73,14 @@
 | [`_submit`](#_submit) | 方法（`_WeightRecordDialogState`） | A | 验证输入、构建结果 `WeightRecord` 并带它弹出。 |
 | `_WeightDataError`（构造函数） | 构造函数（`_WeightDataError`） | B | 创建阻塞体重数据读取错误视图。 |
 | `_WeightDataError.build` | 方法（`_WeightDataError`） | B | 渲染错误消息和重试按钮。 |
-| `weightSummaryKey` | 顶层 `const ValueKey` | B | 无论页面把摘要卡片放在哪里都能标识它。 |
-| `weightChartKey` | 顶层 `const ValueKey` | B | 无论页面把图表区放在哪里都能标识它。 |
+| `weightSummaryKey` | 顶层 `const ValueKey` | B |无论页面把摘要卡片放在哪里都能标识它。|
+| `weightChartKey` | 顶层 `const ValueKey` | B |无论页面把图表区放在哪里都能标识它。|
+| `weightTrendChartKey` | 顶层 `const ValueKey` | B | 在任一排布中标识体重趋势图。 |
+| `weightMeasurementChartKey` | 顶层 `const ValueKey` | B | 在任一排布中标识三围趋势图。 |
+| `weightSummaryFigureKey` | 顶层 `const ValueKey` | B | 标识摘要卡片的数字块。 |
+| `weightSummaryStatsKey` | 顶层 `const ValueKey` | B | 标识摘要卡片的统计格。 |
 
-`grep -c 'Purpose:' lib/features/weight/views/weight_page.dart` 报告 65，对应 67 行：v1.4.1 新增的两个顶层 `const ValueKey`（`weightSummaryKey`、`weightChartKey`）带的是散文文档注释而不是 `Purpose:` 块，但它们是文件表面的一部分因而有对应行（31 个 Tier A、36 个 Tier B）。每个 `/// Purpose:` 块都恰好位于其文档化的真实声明正上方——未发现错附块（记录调用点而非声明的块）——也不存在未文档化真实声明：五个顶层 `const Color ...` 图表颜色常量（第 20-24 行）和 `_ChartRange` 枚举（第 56 行）是无行为的普通数据/类型声明，因此与 [`weight_record.md`](../models/weight_record.md) 处理普通类型别名的方式一致，刻意不给表格行。唯一嵌套本地函数 `_setHeight` 内的 `saveHeight`（第 1817 行）确实带自己的 `/// Purpose:` 块并被计为真实声明。
+`grep -c 'Purpose:' lib/features/weight/views/weight_page.dart` 报告 65，对应 71 行：六个顶层 `const ValueKey`——v1.4.1 新增的两个（`weightSummaryKey`、`weightChartKey`）和 v1.4.4 新增的四个（`weightTrendChartKey`、`weightMeasurementChartKey`、`weightSummaryFigureKey`、`weightSummaryStatsKey`）——带的是散文文档注释而不是 `Purpose:` 块，但它们是文件表面的一部分因而有对应行（31 个 Tier A、40 个 Tier B）。每个 `/// Purpose:` 块都恰好位于其文档化的真实声明正上方——未发现错附块（记录调用点而非声明的块）——也不存在未文档化真实声明：五个顶层 `const Color ...` 图表颜色常量（第 20-24 行）和 `_ChartRange` 枚举（第 56 行）是无行为的普通数据/类型声明，因此与 [`weight_record.md`](../models/weight_record.md) 处理普通类型别名的方式一致，刻意不给表格行。唯一嵌套本地函数 `_setHeight` 内的 `saveHeight`（第 1817 行）确实带自己的 `/// Purpose:` 块并被计为真实声明。
 
 ## 文档
 

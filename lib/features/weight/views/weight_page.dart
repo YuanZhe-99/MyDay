@@ -29,6 +29,26 @@ const weightSummaryKey = ValueKey('weightSummaryCard');
 /// Identifies the weight chart section wherever the page places it.
 const weightChartKey = ValueKey('weightChartSection');
 
+/// Identifies the weight trend chart, in either arrangement.
+///
+/// Side by side, the two charts share a `Table` row, so a layout test can
+/// assert they align by comparing these two keys' offsets.
+const weightTrendChartKey = ValueKey('weightTrendChart');
+
+/// Identifies the body-measurement trend chart, in either arrangement.
+const weightMeasurementChartKey = ValueKey('weightMeasurementChart');
+
+/// Identifies the summary card's figure block — the latest weight, the time
+/// since it was recorded, and the change over the selected range.
+const weightSummaryFigureKey = ValueKey('weightSummaryFigure');
+
+/// Identifies the summary card's stat cells — recent range, BMI, the three
+/// measurements, and the waist-hip ratio.
+///
+/// Wide, these sit beside the figure block rather than under it, which is what
+/// the two keys let a layout test check without reaching into the card.
+const weightSummaryStatsKey = ValueKey('weightSummaryStats');
+
 const Color _weightChartColor = Color(0xFF1565C0);
 const Color _weightTrendChartColor = Color(0xFF2E7D32);
 const Color _bustChartColor = Color(0xFFD81B60);
@@ -295,13 +315,13 @@ class _WeightPageState extends ConsumerState<WeightPage> {
       preference: settings.weightListColumns,
       maxColumns: weightRecordMaxColumns,
     );
-    // The double gate: the window must have the shape, the body must have room
-    // for both blocks, and there must be a chart at all — it renders nothing
-    // below two records, and a summary card alone in a 280 pane beside a blank
-    // half is worse than the stacked layout it would replace.
-    final summaryBesideChart =
+    // The triple gate: the window must have the shape, the body must have room
+    // for two charts side by side, and there must be a chart at all — neither
+    // renders below two records, and a summary strip above two blank halves is
+    // worse than the stacked layout it would replace.
+    final chartsSideBySide =
         canSplitLayout(screen.width, screen.height) &&
-        useWeightSummaryBesideChart(contentWidth) &&
+        useWeightChartsSideBySide(contentWidth) &&
         _records.length >= 2;
 
     return Scaffold(
@@ -345,8 +365,7 @@ class _WeightPageState extends ConsumerState<WeightPage> {
               theme,
               l10n,
               settings.weekStartDay,
-              summaryBesideChart: summaryBesideChart,
-              summaryPaneWidth: weightSummaryPaneWidth(contentWidth),
+              chartsSideBySide: chartsSideBySide,
               recordColumns: recordColumns,
             ),
       floatingActionButton: FloatingActionButton(
@@ -390,21 +409,24 @@ class _WeightPageState extends ConsumerState<WeightPage> {
   }
 
   /// Purpose: Provide the internal build content helper for this file.
-  /// Inputs: `theme`, `l10n`, `weekStartDay`, `summaryBesideChart`,
-  /// `summaryPaneWidth`, `recordColumns`.
+  /// Inputs: `theme`, `l10n`, `weekStartDay`, `chartsSideBySide`,
+  /// `recordColumns`.
   /// Returns: `Widget`.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only. Stacked, the summary
-  /// card and the chart between them fill a phone before a single history row
-  /// appears; side by side they fit above the history on any window with room
-  /// for both. The record list stays full width in both arrangements, because
-  /// its week headers must span whatever columns the tiles use.
+  /// Notes: Internal helper used within this file only. The vertical order is
+  /// the same in both arrangements — summary, charts, history — and what the
+  /// flag changes is what happens *inside* the first two blocks: the summary
+  /// card flattens into a strip with its figures beside its stats, and the two
+  /// trend charts move from stacked to side by side. Through v1.4.3 the split
+  /// instead put the whole card in a fixed pane beside the whole chart section,
+  /// which left the pane empty below the card while both charts queued up in
+  /// the other half. The record list stays full width in both arrangements,
+  /// because its week headers must span whatever columns the tiles use.
   Widget _buildContent(
     ThemeData theme,
     AppLocalizations l10n,
     int weekStartDay, {
-    required bool summaryBesideChart,
-    required double summaryPaneWidth,
+    required bool chartsSideBySide,
     required int recordColumns,
   }) {
     final latest = _latestRecord!;
@@ -414,46 +436,36 @@ class _WeightPageState extends ConsumerState<WeightPage> {
     final range = _recentRange;
     final timeSince = _timeSinceLastRecord(latest.datetime, l10n);
 
-    final summaryCard = _buildSummaryCard(
-      theme,
-      l10n,
-      latest,
-      bmi,
-      change,
-      days,
-      range,
-      timeSince,
-    );
-    final chartSection = _buildChartSection(theme, l10n);
-
-    // Keys so the layout tests can assert where these two blocks land relative
-    // to each other rather than depending on either one's internal structure.
-
+    // Keys so the layout tests can assert where these blocks land relative to
+    // each other rather than depending on any one's internal structure.
     return ListView(
       children: [
-        if (summaryBesideChart)
-          // Deliberately not wrapped in IntrinsicHeight: the chart section
-          // scrolls horizontally, so asking it for an intrinsic width makes it
-          // report the whole series and overflow the row.
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                key: weightSummaryKey,
-                width: summaryPaneWidth,
-                child: summaryCard,
-              ),
-              Expanded(key: weightChartKey, child: chartSection),
-            ],
-          )
-        else ...[
-          // ── Summary card (like the reference UI) ──
-          KeyedSubtree(key: weightSummaryKey, child: summaryCard),
-          const SizedBox(height: 16),
+        // ── Summary card (like the reference UI) ──
+        KeyedSubtree(
+          key: weightSummaryKey,
+          child: _buildSummaryCard(
+            theme,
+            l10n,
+            latest,
+            bmi,
+            change,
+            days,
+            range,
+            timeSince,
+            wide: chartsSideBySide,
+          ),
+        ),
+        const SizedBox(height: 16),
 
-          // ── Chart section ──
-          KeyedSubtree(key: weightChartKey, child: chartSection),
-        ],
+        // ── Chart section ──
+        KeyedSubtree(
+          key: weightChartKey,
+          child: _buildChartSection(
+            theme,
+            l10n,
+            sideBySide: chartsSideBySide,
+          ),
+        ),
         const SizedBox(height: 16),
 
         // ── Today / Recent records ──
@@ -462,11 +474,13 @@ class _WeightPageState extends ConsumerState<WeightPage> {
     );
   }
 
-  /// Purpose: Provide the internal build summary card helper for this file.
-  /// Inputs: Key parameters such as `theme`, `l10n`, `latest`, `bmi`.
+  /// Purpose: Render the weight/BMI/measurement/waist-hip-ratio summary.
+  /// Inputs: Key parameters such as `theme`, `l10n`, `latest`, `bmi`; `wide`.
   /// Returns: `Widget`.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Internal helper used within this file only. `wide` flattens the
+  /// card into a strip — the figures beside the stats rather than above them —
+  /// which is what lets the two trend charts have the width below it.
   Widget _buildSummaryCard(
     ThemeData theme,
     AppLocalizations l10n,
@@ -475,8 +489,9 @@ class _WeightPageState extends ConsumerState<WeightPage> {
     double? change,
     int? days,
     (double, double)? range,
-    String timeSince,
-  ) {
+    String timeSince, {
+    required bool wide,
+  }) {
     final effectiveMeasurements = WeightData.effectiveMeasurementsUpTo(
       _records,
       latest.datetime,
@@ -511,113 +526,145 @@ class _WeightPageState extends ConsumerState<WeightPage> {
         ),
     ];
 
+    // Hoisted so the two arrangements cannot show different content, and keyed
+    // so the layout tests can ask where they landed relative to each other.
+    final figureBlock = Row(
+      key: weightSummaryFigureKey,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                timeSince,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Flexible(
+                    child: Text(
+                      latest.weight.toStringAsFixed(1),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.displaySmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    l10n.weightUnitKg,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        if (change != null && days != null) ...[
+          // Flexible, and the figure ellipsizes: the strip arrangement hands
+          // this block a fixed [weightSummaryFigureWidth], narrower than any
+          // phone gives it, and a fixed-size block here would overflow the row
+          // rather than give ground.
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '$days ${l10n.weightDays}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      change < 0
+                          ? Icons.arrow_downward
+                          : change > 0
+                          ? Icons.arrow_upward
+                          : Icons.remove,
+                      color: change < 0
+                          ? Colors.blue
+                          : change > 0
+                          ? Colors.red
+                          : theme.colorScheme.onSurfaceVariant,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        '${change.abs().toStringAsFixed(1)} ${l10n.weightUnitKg}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: change < 0
+                              ? Colors.blue
+                              : change > 0
+                              ? Colors.red
+                              : null,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+    final statsWrap = Wrap(
+      key: weightSummaryStatsKey,
+      spacing: 20,
+      runSpacing: 12,
+      children: stats,
+    );
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Time since & change row
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        timeSince,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          Flexible(
-                            child: Text(
-                              latest.weight.toStringAsFixed(1),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.displaySmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            l10n.weightUnitKg,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                if (change != null && days != null) ...[
-                  // Flexible, and the figure ellipsizes: the two-pane layout
-                  // hands this card a 280 dp pane, narrower than any phone
-                  // gives it, and a fixed-size block here would overflow the
-                  // row rather than give ground.
-                  Flexible(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          '$days ${l10n.weightDays}',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              change < 0
-                                  ? Icons.arrow_downward
-                                  : change > 0
-                                  ? Icons.arrow_upward
-                                  : Icons.remove,
-                              color: change < 0
-                                  ? Colors.blue
-                                  : change > 0
-                                  ? Colors.red
-                                  : theme.colorScheme.onSurfaceVariant,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 4),
-                            Flexible(
-                              child: Text(
-                                '${change.abs().toStringAsFixed(1)} ${l10n.weightUnitKg}',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.titleLarge?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: change < 0
-                                      ? Colors.blue
-                                      : change > 0
-                                      ? Colors.red
-                                      : null,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+        child: wide
+            ? IntrinsicHeight(
+                // The card is a `ListView` child, so its height is unbounded
+                // and a `VerticalDivider` would collapse to nothing. Bounding
+                // the row is what lets the divider fill it, and it is also what
+                // makes `stretch` legal here — a stretch `Row` handed an
+                // unbounded height throws instead. Everything inside is text
+                // and fixed-size bars, so the extra layout pass is cheap.
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // The figure block is two flexible halves, so it needs a
+                    // bounded width before it can sit in another row.
+                    SizedBox(
+                      width: weightSummaryFigureWidth,
+                      child: figureBlock,
                     ),
-                  ),
+                    const VerticalDivider(width: 32),
+                    Expanded(child: statsWrap),
+                  ],
+                ),
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  figureBlock,
+                  const Divider(height: 24),
+                  statsWrap,
                 ],
-              ],
-            ),
-            const Divider(height: 24),
-            Wrap(spacing: 20, runSpacing: 12, children: stats),
-          ],
-        ),
+              ),
       ),
     );
   }
@@ -778,11 +825,21 @@ class _WeightPageState extends ConsumerState<WeightPage> {
   // ── Chart ──
 
   /// Purpose: Provide the internal build chart section helper for this file.
-  /// Inputs: `theme`, `l10n`.
+  /// Inputs: `theme`, `l10n`, `sideBySide`.
   /// Returns: `Widget`.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Renders separate weight and measurement charts that share the range picker.
-  Widget _buildChartSection(ThemeData theme, AppLocalizations l10n) {
+  /// Notes: Renders separate weight and measurement charts that share the range
+  /// picker. Stacked, the two queue up vertically and the measurement chart is
+  /// the shorter of the two. Side by side they share a `Table` row, so they
+  /// align top and bottom however tall each column's header turns out — a
+  /// `Row` of `Expanded` columns would leave one chart higher than the other
+  /// whenever the range chips wrapped, and `IntrinsicHeight` cannot fix that
+  /// because a `LineChart` reports no intrinsic height of its own.
+  Widget _buildChartSection(
+    ThemeData theme,
+    AppLocalizations l10n, {
+    required bool sideBySide,
+  }) {
     final labels = {
       _ChartRange.oneWeek: '1W',
       _ChartRange.oneMonth: '1M',
@@ -792,78 +849,157 @@ class _WeightPageState extends ConsumerState<WeightPage> {
       _ChartRange.all: l10n.weightAll,
     };
 
+    // Every block is built once and arranged two ways, so the arrangements can
+    // never show different content.
+    final weightHeading = Text(
+      l10n.weightChart,
+      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+    );
+    final rangeChips = Wrap(
+      spacing: 4,
+      runSpacing: 4,
+      children: labels.entries.map((e) {
+        return ChoiceChip(
+          label: Text(e.value, style: const TextStyle(fontSize: 11)),
+          selected: _chartRange == e.key,
+          onSelected: (_) => setState(() => _chartRange = e.key),
+          visualDensity: VisualDensity.compact,
+          padding: EdgeInsets.zero,
+          labelPadding: const EdgeInsets.symmetric(horizontal: 6),
+        );
+      }).toList(),
+    );
+    final weightLegend = Wrap(
+      spacing: 12,
+      runSpacing: 6,
+      children: [
+        _buildChartLegendItem(
+          _weightChartColor,
+          theme.textTheme.labelSmall,
+          l10n.weightTitle,
+          trendColor: _weightTrendChartColor,
+        ),
+      ],
+    );
+    final measurementHeading = Text(
+      l10n.weightMeasurementTrend,
+      style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+    );
+    final measurementLegend = Wrap(
+      spacing: 12,
+      runSpacing: 6,
+      children: [
+        _buildChartLegendItem(
+          _bustChartColor,
+          theme.textTheme.labelSmall,
+          l10n.weightBust,
+        ),
+        _buildChartLegendItem(
+          _waistChartColor,
+          theme.textTheme.labelSmall,
+          l10n.weightWaist,
+        ),
+        _buildChartLegendItem(
+          _hipChartColor,
+          theme.textTheme.labelSmall,
+          l10n.weightHip,
+        ),
+      ],
+    );
+    final weightChart = _buildChart(theme, l10n);
+    final measurementChart = _buildMeasurementChart(theme, l10n);
+
+    if (!sideBySide) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            weightHeading,
+            const SizedBox(height: 8),
+            rangeChips,
+            const SizedBox(height: 8),
+            weightLegend,
+            const SizedBox(height: 8),
+            SizedBox(
+              key: weightTrendChartKey,
+              height: 220,
+              child: weightChart,
+            ),
+            const SizedBox(height: 16),
+            measurementHeading,
+            const SizedBox(height: 8),
+            measurementLegend,
+            const SizedBox(height: 8),
+            SizedBox(
+              key: weightMeasurementChartKey,
+              height: 190,
+              child: measurementChart,
+            ),
+          ],
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            l10n.weightChart,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 4,
-            runSpacing: 4,
-            children: labels.entries.map((e) {
-              return ChoiceChip(
-                label: Text(e.value, style: const TextStyle(fontSize: 11)),
-                selected: _chartRange == e.key,
-                onSelected: (_) => setState(() => _chartRange = e.key),
-                visualDensity: VisualDensity.compact,
-                padding: EdgeInsets.zero,
-                labelPadding: const EdgeInsets.symmetric(horizontal: 6),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 12,
-            runSpacing: 6,
+          // The chips pick the range for both charts and for the summary
+          // card's change figures, so side by side they belong above both
+          // columns rather than over one of them.
+          Row(
             children: [
-              _buildChartLegendItem(
-                _weightChartColor,
-                theme.textTheme.labelSmall,
-                l10n.weightTitle,
-                trendColor: _weightTrendChartColor,
+              weightHeading,
+              const SizedBox(width: 16),
+              Expanded(child: rangeChips),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Table(
+            columnWidths: const {
+              0: FlexColumnWidth(),
+              1: FixedColumnWidth(listTileGap),
+              2: FlexColumnWidth(),
+            },
+            defaultVerticalAlignment: TableCellVerticalAlignment.top,
+            children: [
+              TableRow(
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [weightLegend, const SizedBox(height: 8)],
+                  ),
+                  const SizedBox.shrink(),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      measurementHeading,
+                      const SizedBox(height: 8),
+                      measurementLegend,
+                      const SizedBox(height: 8),
+                    ],
+                  ),
+                ],
+              ),
+              TableRow(
+                children: [
+                  SizedBox(
+                    key: weightTrendChartKey,
+                    height: 220,
+                    child: weightChart,
+                  ),
+                  const SizedBox.shrink(),
+                  SizedBox(
+                    key: weightMeasurementChartKey,
+                    height: 220,
+                    child: measurementChart,
+                  ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          SizedBox(height: 220, child: _buildChart(theme, l10n)),
-          const SizedBox(height: 16),
-          Text(
-            l10n.weightMeasurementTrend,
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 12,
-            runSpacing: 6,
-            children: [
-              _buildChartLegendItem(
-                _bustChartColor,
-                theme.textTheme.labelSmall,
-                l10n.weightBust,
-              ),
-              _buildChartLegendItem(
-                _waistChartColor,
-                theme.textTheme.labelSmall,
-                l10n.weightWaist,
-              ),
-              _buildChartLegendItem(
-                _hipChartColor,
-                theme.textTheme.labelSmall,
-                l10n.weightHip,
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          SizedBox(height: 190, child: _buildMeasurementChart(theme, l10n)),
         ],
       ),
     );

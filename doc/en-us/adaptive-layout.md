@@ -177,7 +177,7 @@ decision is recorded here.
 | `ShellScaffold` — rail vs bottom bar | B (width only) | v1.4.0 |
 | Todo — three task sections per row | A + C (sections, not tiles) | v1.4.1 |
 | Finance — summary pane beside the transaction list | A, plus C for the tiles | v1.4.1 |
-| Weight — summary card beside the trend chart | A + width floor + "is there a chart" | v1.4.1 |
+| Weight — summary card beside the trend chart (superseded in v1.4.4) | A + width floor + "is there a chart" | v1.4.1 |
 | Weight / Intimacy — record columns | A + C | v1.4.1 |
 | Intimacy — calendar pane beside the records | A, plus C for the tiles | v1.4.1 |
 | Settings — section list beside a hosted detail page | A | v1.4.1 |
@@ -193,6 +193,7 @@ decision is recorded here.
 | Finance — subscription overview in the summary pane | A, plus C for the stat cards; two-pane only | v1.4.3 |
 | Todo — sections fill columns in reading order | A + C, dealt by `columnMajorFill` | v1.4.3 |
 | Intimacy — trend chart in the calendar pane | A; pane 0.42 of content, clamped 320–480 | v1.4.3 |
+| Weight — summary strip above the two trend charts, paired | A + width floor + "is there a chart" | v1.4.4 |
 
 **No inline breakpoint remains.** As of v1.4.2 the whole tree is clean, and this is the check that
 says so — run it over `lib/` entire, not just the files a change touched, because the last time a
@@ -233,10 +234,21 @@ grep -rnE "maxWidth *[<>]=? *[0-9]|size\.width *[<>]=? *[0-9]" lib/
    where a calendar does not. The 320 floor stayed, because it is the calendar's and the narrowest
    splittable foldables have nothing to spare; the chart's range chips wrap instead, and
    `test/intimacy_layout_ui_test.dart` renders the pane at that floor to prove they do.
-4. **The Weight page's summary/chart split is gated three ways, not two.** The shape rule and a
-   width floor are the guide's double gate; the third condition — that there are at least two
-   records — is there because the chart renders nothing below that, and a summary card alone in a
-   280 pane beside a blank half is worse than the stacked layout it would replace.
+4. **The Weight page's chart split is gated three ways, not two.** The shape rule and a width
+   floor are the guide's double gate; the third condition — that there are at least two records —
+   is there because neither chart renders below that, and a summary strip above two blank halves is
+   worse than the stacked layout it would replace.
+
+7. **The Weight page splits its own content rather than its window.** Every other split page puts
+   one block in a fixed pane beside another. Weight v1.4.1 did too, and the pane sat empty below
+   the summary card while both trend charts queued up in the other half. Since v1.4.4 the card
+   instead flattens into a full-width strip — figures beside stats — and the two charts take a
+   column each below it. The two charts share a `Table` row rather than sitting in a `Row` of
+   `Expanded` columns, so they align top and bottom however tall each column header turns out;
+   `IntrinsicHeight` cannot do that job here, because a `LineChart` reports no intrinsic height.
+   The gate arithmetic changed (330 + 330 + 12 rather than 280 + 380 + 12) and deliberately lands
+   on the same 672, so no viewport changed which layout it gets.
+
 ## Divergence from Google's guidance, stated on purpose
 
 Google's adaptive-layout guidance says window size classes are "explicitly not determined by the

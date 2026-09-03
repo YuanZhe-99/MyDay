@@ -36,8 +36,8 @@ named predicate.
 | `intimacyRecordMinWidth` | top-level `const double` | B | Minimum width one intimacy record tile may occupy (340). |
 | `intimacyRecordMaxColumns` | top-level `const int` | B | Ceiling on intimacy record columns (3). |
 | `settingsRightPaneMinWidth` | top-level `const double` | B | Smallest width the settings detail pane may be given (280). |
-| `weightSummaryPaneMinWidth` | top-level `const double` | B | Smallest width the weight summary card may occupy beside the chart (280). |
-| `weightChartMinWidth` | top-level `const double` | B | Smallest width the weight trend chart may be given (380). |
+| `weightPairedChartMinWidth` | top-level `const double` | B | Smallest width one weight trend chart may be given side by side (330). |
+| `weightSummaryFigureWidth` | top-level `const double` | B | Width of the weight summary strip's figure block (280). |
 | `subscriptionStatMinWidth` | top-level `const double` | B | Minimum width one subscription statistic card may occupy on the finance summary pane (110). |
 | `summaryCardGap` | top-level `const double` | B | Horizontal gap between the finance summary cards (8). |
 | `metricCardMinWidth` | top-level `const double` | B | Minimum width one metric card may occupy (160). |
@@ -68,8 +68,7 @@ named predicate.
 | [`financeLeftPaneWidth`](#financeleftpanewidth) | top-level function | A | Return the width of the finance page's fixed left pane. |
 | [`intimacyLeftPaneWidth`](#intimacyleftpanewidth) | top-level function | A | Return the width of the intimacy page's fixed left pane. |
 | [`settingsLeftPaneWidth`](#settingsleftpanewidth) | top-level function | A | Return the width of the settings page's fixed left pane. |
-| [`useWeightSummaryBesideChart`](#useweightsummarybesidechart) | top-level function | A | Report whether the weight summary card fits beside the trend chart. |
-| [`weightSummaryPaneWidth`](#weightsummarypanewidth) | top-level function | A | Return the width of the weight summary card when it sits beside the chart. |
+| [`useWeightChartsSideBySide`](#useweightchartssidebyside) | top-level function | A | Report whether the two weight trend charts fit side by side. |
 | [`cappedContentWidth`](#cappedcontentwidth) | top-level function | A | Return the width a page centres its content at, if any. |
 | [`usePieChartSideBySide`](#usepiechartsidebyside) | top-level function | A | Report whether the analysis legend fits beside the pie chart. |
 | [`useTodoCalendarSideBySide`](#usetodocalendarsidebyside) | top-level function | A | Report whether the Todo score trend fits beside the month calendar. |
@@ -112,8 +111,8 @@ safely change later.
 | `intimacyRecordMinWidth` | `340.0` | A date, partner and toy chips, duration, and the derived thrust rate — the widest tile in the app, because the chips wrap rather than truncate. |
 | `intimacyRecordMaxColumns` | `3` | As above; the chips need the width more than the list needs another column. |
 | `settingsRightPaneMinWidth` | `280.0` | The narrowest a hosted second-level page stays usable at — a form field plus its label. |
-| `weightSummaryPaneMinWidth` | `280.0` | The card carries the latest weight at `displaySmall` beside a change figure, then a `Wrap` of stat labels each constrained to 88–168. |
-| `weightChartMinWidth` | `380.0` | The chart reserves about 40 for its left axis and needs roughly 48 per date label, so this shows about seven labelled points without crowding. |
+| `weightPairedChartMinWidth` | `330.0` | Each chart reserves about 42 for its left axis and needs roughly 48 per date label, so this shows about six labelled points without crowding. |
+| `weightSummaryFigureWidth` | `280.0` | The figure block is two flexible halves — the latest weight at `displaySmall`, the change and day count — so each gets about 140, comfortable for a three-digit weight. The old summary pane was 280 wide *including* the card padding, leaving each half only 108. |
 | `subscriptionStatMinWidth` | `110.0` | A 12 dp icon and a short localized label such as 月應付 above an amount like $1,234.56 at `titleMedium`. Two cards fit across the finance pane at every width in its clamp range; the third joins the row once the pane passes about 378 (3 x 110 plus two gaps, inside 16 dp of padding each side). |
 | `summaryCardGap` | `8.0` | Narrower than `listTileGap` because the cards already sit inside a padded pane, and it matches the gap between the expense and income cards above them. |
 | `metricCardMinWidth` | `160.0` | A stat label above its value; below this a localized label such as "平均抽插速率" wraps to three lines. |
@@ -355,43 +354,34 @@ safely change later.
   window, not a second breakpoint. It is kept rather than deleted because this function takes a
   **pane** width, and a future caller could hand it one.
 
-### `bool useWeightSummaryBesideChart(double contentWidth)` <a id="useweightsummarybesidechart"></a>
+### `bool useWeightChartsSideBySide(double contentWidth)` <a id="useweightchartssidebyside"></a>
 - **Kind:** top-level function
-- **Source:** `lib/shared/utils/adaptive_layout.dart` (line 257)
-- **Purpose:** Report whether the weight summary card and the trend chart both have room to sit on
-  one row.
+- **Source:** `lib/shared/utils/adaptive_layout.dart` (line 295)
+- **Purpose:** Report whether the weight page's two trend charts both have room to sit on one row.
 - **Inputs:** `contentWidth` — the width the weight body gets, in logical pixels.
 - **Returns:** `bool`.
 - **Side effects:** None.
-- **Algorithm:** `contentWidth >= weightSummaryPaneMinWidth + weightChartMinWidth + listTileGap`
-  (280 + 380 + 12 = 672).
+- **Algorithm:** `contentWidth >= 2 * weightPairedChartMinWidth + listTileGap` (330 + 330 + 12 =
+  672).
 - **Usage:**
   ```dart
-  final summaryBesideChart = canSplitLayout(screen.width, screen.height) &&
-      useWeightSummaryBesideChart(contentWidth) &&
+  final chartsSideBySide = canSplitLayout(screen.width, screen.height) &&
+      useWeightChartsSideBySide(contentWidth) &&
       _records.length >= 2;
   ```
 - **Notes:** A width floor **on top of** `canSplitLayout`, not instead of it — the double gate. The
-  split rule alone admits viewports the size of a Z Fold 5 in portrait, where the chart would be
-  left about 300 logical pixels and show four date labels. Callers must test both, **and** must
-  test that there is a chart at all: it renders nothing below two records, and a summary card alone
-  in a 280 pane beside a blank half is worse than the stacked layout it would replace. Whenever a
-  block can render to nothing, it belongs in the gate.
+  split rule alone admits viewports the size of a Z Fold 5 in portrait, where each chart would be
+  left under 290 logical pixels and show four date labels. Callers must test both, **and** must
+  test that there is a chart at all: neither renders below two records, and a summary strip above
+  two blank halves is worse than the stacked layout it would replace. Whenever a block can render
+  to nothing, it belongs in the gate.
 
-### `double weightSummaryPaneWidth(double contentWidth)` <a id="weightsummarypanewidth"></a>
-- **Kind:** top-level function
-- **Source:** `lib/shared/utils/adaptive_layout.dart` (line 270)
-- **Purpose:** Return the width of the weight summary card when it sits beside the trend chart.
-- **Inputs:** `contentWidth` — the width both blocks share, in logical pixels.
-- **Returns:** `double` between 280 and 380.
-- **Side effects:** None.
-- **Algorithm:** `(contentWidth * 0.34).clamp(weightSummaryPaneMinWidth, 380.0)`.
-- **Usage:** `SizedBox(width: weightSummaryPaneWidth(contentWidth), child: summaryCard)`.
-- **Notes:** No right-hand cap, unlike `settingsLeftPaneWidth`, because none can bind: under
-  `useWeightSummaryBesideChart` the card grows at 0.34 of the width while the chart grows at 0.66,
-  so `weightChartMinWidth` is met exactly at the gate and only more comfortably above it. That is
-  an invariant asserted across the whole range in `test/adaptive_layout_test.dart` rather than
-  defended with arithmetic that never fires.
+  The floor is **deliberately the same 672** that `useWeightSummaryBesideChart` used through
+  v1.4.3, when the split put the summary card in a 280 pane beside a 380 chart. What v1.4.4
+  changed is the arrangement inside a splittable window, not which windows are splittable, so
+  every viewport keeps the outcome it had — a property `test/adaptive_layout_test.dart` pins
+  directly rather than leaving to coincidence. There is no pane-width function any more: the two
+  columns are equal flex, so each gets half of what the gap leaves.
 
 ### `double cappedContentWidth(double contentWidth, double maxWidth)` <a id="cappedcontentwidth"></a>
 - **Kind:** top-level function

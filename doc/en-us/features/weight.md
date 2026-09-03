@@ -93,6 +93,11 @@ selection, raw and EWMA weight trend display, a separate raw/EWMA bust-waist-hip
 BMI/measurement/waist-hip-ratio summary cards with compact color bars, weekly grouped history that
 follows the global week-start-day setting, a "show all" history view, and reminder settings.
 
+On a window wide enough to split — an unfolded foldable in landscape, a tablet, a desktop window —
+the summary card flattens into a full-width strip with its figures beside its stats, and the two
+trend charts take a column each below it, sharing one range picker. See
+[adaptive-layout.md](../adaptive-layout.md) for the gate.
+
 ## Related pages
 
 - [Data Formats](../data-formats.md) — exact JSON shape of `WeightRecord`/`WeightData`.

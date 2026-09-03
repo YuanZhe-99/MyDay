@@ -27,8 +27,8 @@
 | `intimacyRecordMinWidth` | 顶层 `const double` | B | 一条亲密记录图块可占的最小宽度（340）。 |
 | `intimacyRecordMaxColumns` | 顶层 `const int` | B | 亲密记录列数的上限（3）。 |
 | `settingsRightPaneMinWidth` | 顶层 `const double` | B | 设置详情窗格可获得的最小宽度（280）。 |
-| `weightSummaryPaneMinWidth` | 顶层 `const double` | B | 体重摘要卡片并排于图表旁时可占的最小宽度（280）。 |
-| `weightChartMinWidth` | 顶层 `const double` | B | 体重趋势图可获得的最小宽度（380）。 |
+| `weightPairedChartMinWidth` | 顶层 `const double` | B | 两图并排时一张体重趋势图可获得的最小宽度（330）。 |
+| `weightSummaryFigureWidth` | 顶层 `const double` | B | 体重摘要横幅中数字块的宽度（280）。 |
 | `subscriptionStatMinWidth` | 顶层 `const double` | B | 财务摘要窗格上一张订阅统计卡片可占的最小宽度（110）。 |
 | `summaryCardGap` | 顶层 `const double` | B | 财务摘要卡片之间的水平间距（8）。 |
 | `metricCardMinWidth` | 顶层 `const double` | B | 一张指标卡片可占的最小宽度（160）。 |
@@ -59,8 +59,7 @@
 | [`financeLeftPaneWidth`](#financeleftpanewidth) | 顶层函数 | A | 返回财务页固定左窗格的宽度。 |
 | [`intimacyLeftPaneWidth`](#intimacyleftpanewidth) | 顶层函数 | A | 返回亲密页固定左窗格的宽度。 |
 | [`settingsLeftPaneWidth`](#settingsleftpanewidth) | 顶层函数 | A | 返回设置页固定左窗格的宽度。 |
-| [`useWeightSummaryBesideChart`](#useweightsummarybesidechart) | 顶层函数 | A | 报告体重摘要卡片是否放得下在趋势图旁边。 |
-| [`weightSummaryPaneWidth`](#weightsummarypanewidth) | 顶层函数 | A | 返回体重摘要卡片并排于图表旁时的宽度。 |
+| [`useWeightChartsSideBySide`](#useweightchartssidebyside) | 顶层函数 | A | 报告两张体重趋势图是否放得下并排。 |
 | [`cappedContentWidth`](#cappedcontentwidth) | 顶层函数 | A | 返回页面把内容居中所用的宽度（若有）。 |
 | [`usePieChartSideBySide`](#usepiechartsidebyside) | 顶层函数 | A | 报告分析图例是否放得下在饼图旁边。 |
 | [`useTodoCalendarSideBySide`](#usetodocalendarsidebyside) | 顶层函数 | A | 报告待办评分趋势是否放得下在月历旁边。 |
@@ -92,8 +91,8 @@
 | `intimacyRecordMinWidth` | `340.0` | 日期、伴侣与玩具芯片、时长和派生的抽插速率——应用中最宽的图块，因为芯片是换行而不是截断。 |
 | `intimacyRecordMaxColumns` | `3` | 同上；芯片对宽度的需求超过列表对再加一列的需求。 |
 | `settingsRightPaneMinWidth` | `280.0` | 被托管的二级页面仍然可用的最窄宽度——一个表单字段加它的标签。 |
-| `weightSummaryPaneMinWidth` | `280.0` | 卡片以 `displaySmall` 显示最新体重并在旁边放变化量，然后是一个各自被限制在 88–168 的统计标签 `Wrap`。 |
-| `weightChartMinWidth` | `380.0` | 图表为左轴保留约 40，每个日期标签需要约 48，因此这个宽度可以不拥挤地显示约七个带标签的点。 |
+| `weightPairedChartMinWidth` | `330.0` | 每张图为左轴保留约 42，每个日期标签需要约 48，因此这个宽度可以不拥挤地显示约六个带标签的点。 |
+| `weightSummaryFigureWidth` | `280.0` | 数字块是两个弹性的半边——`displaySmall` 的最新体重，以及变化量和天数——因此各得约 140，放三位数体重很宽裕。旧的摘要窗格 280 是*含*卡片内边距的，每半只剩 108。 |
 | `subscriptionStatMinWidth` | `110.0` | 一个 12 dp 图标和「月應付」这样的短本地化标签，下方是 `titleMedium` 的 $1,234.56 这样的金额。在财务窗格钳制范围内的任何宽度下都能并排两张卡片；窗格超过约 378 时第三张加入同一行（3 x 110 加两个间隙，位于两侧各 16 dp 的内边距之内）。 |
 | `summaryCardGap` | `8.0` | 比 `listTileGap` 窄，因为这些卡片本就位于带内边距的窗格之内，并且与上方支出卡和收入卡之间的间距一致。 |
 | `metricCardMinWidth` | `160.0` | 一个统计标签在其数值之上；低于此值「平均抽插速率」这样的本地化标签会折成三行。 |
@@ -269,32 +268,23 @@
 - **用法：** `SizedBox(width: settingsLeftPaneWidth(constraints.maxWidth), child: sectionList)`。
 - **说明：** 比另外两个窗格更大的比例，因为这个列表承载的是带两行副标题和尾部 chevron 的完整 `ListTile`，而不是一个摘要块。在分栏规则允许的任何宽度上这个上限都不会真正生效——`test/adaptive_layout_test.dart` 在整个区间上正是这样断言的——因此它是给比任何真实窗口都更窄的窗格准备的保护，而不是第二个断点。保留而不删除，是因为本函数接受的是**窗格**宽度，未来的调用方可能真的交给它一个。
 
-### `bool useWeightSummaryBesideChart(double contentWidth)` <a id="useweightsummarybesidechart"></a>
+### `bool useWeightChartsSideBySide(double contentWidth)` <a id="useweightchartssidebyside"></a>
 - **种类：** 顶层函数
-- **源：** `lib/shared/utils/adaptive_layout.dart`（第 257 行）
-- **用途：** 报告体重摘要卡片和趋势图是否都有空间放在同一行上。
-- **输入：** `contentWidth`——体重页主体获得的宽度，以逻辑像素计。
+- **来源：** `lib/shared/utils/adaptive_layout.dart`（第 295 行）
+- **用途：** 报告体重页的两张趋势图是否都放得下在同一行上。
+- **输入：** `contentWidth`——体重主体获得的宽度，单位为逻辑像素。
 - **返回：** `bool`。
 - **副作用：** 无。
-- **算法：** `contentWidth >= weightSummaryPaneMinWidth + weightChartMinWidth + listTileGap`（280 + 380 + 12 = 672）。
+- **算法：** `contentWidth >= 2 * weightPairedChartMinWidth + listTileGap`（330 + 330 + 12 = 672）。
 - **用法：**
   ```dart
-  final summaryBesideChart = canSplitLayout(screen.width, screen.height) &&
-      useWeightSummaryBesideChart(contentWidth) &&
+  final chartsSideBySide = canSplitLayout(screen.width, screen.height) &&
+      useWeightChartsSideBySide(contentWidth) &&
       _records.length >= 2;
   ```
-- **说明：** 这是**叠加在** `canSplitLayout` 之上的宽度下限，而不是取代它——双重闸门。单靠分栏规则会放行 Z Fold 5 竖持大小的视口，那里图表只剩约 300 逻辑像素、只能显示四个日期标签。调用方必须同时检查两者，**并且**必须检查究竟有没有图表：低于两条记录时它什么都不渲染，而一张摘要卡片孤零零地待在 280 的窗格里、旁边是一片空白，比它所要取代的堆叠布局更糟。只要一个块可能渲染成空，它就属于闸门的一部分。
+- **说明：** 这是**叠加在** `canSplitLayout` 之上的宽度下限，而不是取代它——双重闸门。单靠分栏规则会放进 Z Fold 5 竖持那样大小的视口，那里每张图会只剩不到 290 逻辑像素、只显示四个日期标签。调用方必须同时检查两者，**并且**必须检查究竟有没有图表：低于两条记录时两张图都不渲染，而一条摘要横幅压在两片空白之上，比它所要取代的堆叠布局更糟。凡是可能渲染为空的块，都属于闸门。
 
-### `double weightSummaryPaneWidth(double contentWidth)` <a id="weightsummarypanewidth"></a>
-- **种类：** 顶层函数
-- **源：** `lib/shared/utils/adaptive_layout.dart`（第 270 行）
-- **用途：** 返回体重摘要卡片并排于趋势图旁时的宽度。
-- **输入：** `contentWidth`——两个块共享的宽度，以逻辑像素计。
-- **返回：** 介于 280 与 380 之间的 `double`。
-- **副作用：** 无。
-- **算法：** `(contentWidth * 0.34).clamp(weightSummaryPaneMinWidth, 380.0)`。
-- **用法：** `SizedBox(width: weightSummaryPaneWidth(contentWidth), child: summaryCard)`。
-- **说明：** 与 `settingsLeftPaneWidth` 不同，这里没有右侧上限，因为不可能有一个会生效：在 `useWeightSummaryBesideChart` 之上，卡片以宽度的 0.34 增长而图表以 0.66 增长，因此 `weightChartMinWidth` 在闸门处恰好被满足，往上只会更宽裕。这是在 `test/adaptive_layout_test.dart` 中跨整个区间断言的不变量，而不是用永远不触发的算术去防守。
+  这个下限**刻意与** `useWeightSummaryBesideChart` 在 v1.4.3 之前使用的 672 相同，那时的分栏是把摘要卡片放进 280 的窗格、旁边是 380 的图表。v1.4.4 改的是可分栏窗口*内部*的排布，而不是哪些窗口可分栏，因此每个视口都保持它原有的结论——这条性质由 `test/adaptive_layout_test.dart` 直接钉住，而不是留给巧合。窗格宽度函数已不复存在：两列是等分 flex，因此各得间隙之外的一半。
 
 ### `double cappedContentWidth(double contentWidth, double maxWidth)` <a id="cappedcontentwidth"></a>
 - **种类：** 顶层函数
