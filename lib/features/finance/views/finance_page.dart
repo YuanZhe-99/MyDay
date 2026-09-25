@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/services/auto_sync_service.dart';
 import '../../../shared/services/image_service.dart';
+import '../../../shared/widgets/stored_image.dart';
 import '../../../shared/providers/app_settings.dart';
 import '../../../shared/services/reminder_service.dart';
 import '../../../shared/utils/adaptive_layout.dart';
@@ -1355,7 +1356,12 @@ class _SubscriptionOverview extends StatelessWidget {
         theme.colorScheme.primary,
         Icons.trending_down,
       ),
-      (l10n.financeYearlyAvg, summary.yearlyAvg, Colors.orange, Icons.date_range),
+      (
+        l10n.financeYearlyAvg,
+        summary.yearlyAvg,
+        Colors.orange,
+        Icons.date_range,
+      ),
     ];
 
     return Column(
@@ -1619,8 +1625,8 @@ class _TransactionTile extends StatelessWidget {
         future: ImageService.resolve(account!.imagePath!),
         builder: (context, snap) {
           if (snap.hasData && snap.data!.existsSync()) {
-            return CircleAvatar(
-              backgroundImage: FileImage(snap.data!),
+            return StoredImageAvatar(
+              snap.data!,
               backgroundColor: color.withValues(alpha: 0.1),
             );
           }

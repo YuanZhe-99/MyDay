@@ -7,7 +7,14 @@ recurring one-time task — see [Todo](../../../../features/todo.md#model) on
 (`lib/shared/widgets/unsaved_changes_guard.dart`) so navigating away with unsaved edits prompts a
 discard confirmation; the guard's dirty-check is driven by a form "signature" string computed from
 every editable field. Recurrence editing is delegated to
-[`RecurrencePicker`](recurrence_picker.md), shown as a nested bottom sheet.
+[`RecurrencePicker`](recurrence_picker.md), shown as a nested bottom sheet. Since v1.4.5 the
+title field drives emoji suggestions: an [`EmojiSuggestionRow`](emoji_suggestion_row.md) under the
+title shows chips from [`suggestEmojis`](../utils/emoji_suggester.md#suggestemojis), and the icon
+auto-fills from the best suggestion until the user picks one (see
+[`_onTitleChanged`](#ontitlechanged) and
+[Todo — Emoji suggestions](../../../../features/todo.md#emoji-suggestions)). The picker grid reads
+the shared [`commonTaskEmojis`](../constants/task_emojis.md); the private `_commonEmojis` list this
+file used to carry was removed.
 
 ## Declarations
 
@@ -15,12 +22,14 @@ every editable field. Recurrence editing is delegated to
 |---|---|---|---|
 | `AddTaskDialog` (constructor) | constructor (`AddTaskDialog`) | B | Create an add-task dialog instance. |
 | `createState` | method (`AddTaskDialog`) | B | Create the mutable `_AddTaskDialogState`. |
-| `initState` | method (`_AddTaskDialogState`) | B | Pre-fill controllers/fields from `initialTask` (if editing a next-occurrence prompt) and capture the initial form signature. |
-| `dispose` | method (`_AddTaskDialogState`) | B | Dispose the title/note/subtask text controllers. |
-| `build` | method (`_AddTaskDialogState`) | B | Render the title/note fields, type selector, reminder/scheduled/due-date/recurrence pickers, subtask list, and Cancel/Add actions. |
+| `initState` | method (`_AddTaskDialogState`) | B | Pre-fill controllers/fields from `initialTask` (if editing a next-occurrence prompt), set `_emojiPickedManually` when a prefilled emoji exists, record the initial title in `_lastTitleText`, seed `_suggestedEmojis`, register the `_onTitleChanged` title listener, then capture the initial form signature. |
+| `dispose` | method (`_AddTaskDialogState`) | B | Remove the `_onTitleChanged` listener, then dispose the title/note/subtask text controllers. |
+| `build` | method (`_AddTaskDialogState`) | B | Render the emoji box and title field, the `EmojiSuggestionRow` under them (only while there are suggestions), the note field, type selector, reminder/scheduled/due-date/recurrence pickers, subtask list, and Cancel/Add actions. |
 | `_addSubtask` | method (`_AddTaskDialogState`) | B | Append the pending subtask-input text to `_subtaskTitles` and clear the field. |
-| `_showEmojiPicker` | method (widget helper, `_AddTaskDialogState`) | B | Show the emoji-grid bottom sheet for picking `_selectedEmoji`. |
-| `_showCustomEmojiInput` | method (widget helper, `_AddTaskDialogState`) | B | Show a dialog for typing a custom emoji/character. |
+| [`_onTitleChanged`](#ontitlechanged) | method (`_AddTaskDialogState`) | A | Recompute emoji suggestions when the title changes and auto-fill the icon. |
+| `_pickEmoji` | method (`_AddTaskDialogState`) | B | Apply a user-chosen emoji (grid, chip, custom input, or `null` for removal) and set `_emojiPickedManually`, stopping auto-fill. |
+| `_showEmojiPicker` | method (widget helper, `_AddTaskDialogState`) | B | Show the bottom sheet with a `commonTaskEmojis` grid (wrapped in `Flexible` so it scrolls), a custom-emoji cell, and Remove; every choice goes through `_pickEmoji`. |
+| `_showCustomEmojiInput` | method (widget helper, `_AddTaskDialogState`) | B | Show a dialog for typing a custom emoji/character; its first grapheme goes through `_pickEmoji`. |
 | [`_hasUnsavedChanges`](#hasunsavedchanges) | method (`_AddTaskDialogState`) | A | Report whether the form differs from its initial state. |
 | [`_signature`](#signature) | method (`_AddTaskDialogState`) | A | Build a comparable string snapshot of every editable field. |
 | [`_recurrenceSignature`](#recurrencesignature) | method (`_AddTaskDialogState`) | A | Build a comparable string snapshot of a `TaskRecurrence?`. |
@@ -31,9 +40,52 @@ every editable field. Recurrence editing is delegated to
 
 ## Documentation
 
+### `void _onTitleChanged()` <a id="ontitlechanged"></a>
+- **Kind:** method of `_AddTaskDialogState` (title-controller listener)
+- **Source:** `lib/features/todo/widgets/add_task_dialog.dart` (lines 426-436)
+- **Purpose:** Keep the suggestion chips in step with the title and, until the user makes a
+  choice, keep the icon on the best suggestion.
+- **Inputs:** None (reads `_titleController.text`, `_lastTitleText`, `_emojiPickedManually`,
+  `_selectedEmoji`, and `_suggestedEmojis`).
+- **Returns:** `None`.
+- **Side effects:** Updates `_lastTitleText` on every real text change; calls `setState` to replace
+  `_suggestedEmojis` and, while `_emojiPickedManually` is `false`, `_selectedEmoji`.
+- **Algorithm:**
+  1. If the title text equals `_lastTitleText`, return: the notification was selection-only (a
+     cursor move, or the cursor placed when the autofocused field gains focus). Otherwise record the
+     new text in `_lastTitleText`.
+  2. `next = suggestEmojis(_titleController.text)`.
+  3. The target emoji is the current `_selectedEmoji` if the user already picked one (or the dialog
+     opened with an emoji); otherwise it is `next.firstOrNull` — the best suggestion, or `null`
+     when nothing matches.
+  4. If `next` equals the current suggestions (`listEquals`) and the target equals
+     `_selectedEmoji`, return without calling `setState`.
+  5. Otherwise store both in one `setState`.
+- **Usage:**
+  ```dart
+  _emojiPickedManually = _selectedEmoji != null;
+  _lastTitleText = _titleController.text;
+  _suggestedEmojis = suggestEmojis(_titleController.text);
+  _titleController.addListener(_onTitleChanged);
+  _initialSignature = _signature();
+  ```
+  (registration in `initState`; `dispose` removes the listener before disposing the controller)
+- **Notes:**
+  - Auto-fill *clears* the icon when suggestions vanish, so an auto-filled emoji never outlives
+    the text that produced it. A manual choice, including Remove, is never overwritten: every
+    manual path calls `_pickEmoji`, which sets `_emojiPickedManually`.
+  - A dialog opened with an emoji already set (an `initialTask` that has one) starts with
+    `_emojiPickedManually = true` and never auto-fills. `initState` seeds the chips but does not
+    auto-fill; auto-fill starts with the first real edit of the title text.
+  - `TextEditingController` also notifies on selection-only changes. Step 1 ignores them, so
+    opening an untouched dialog never auto-fills the icon or marks the form dirty (`_signature()`
+    includes `_selectedEmoji`, so an auto-fill *after* a real edit does count as an unsaved change).
+    `test/task_emoji_suggestion_dialog_test.dart` covers this ("opening an untouched task never
+    auto-fills or dirties it").
+
 ### `bool _hasUnsavedChanges()` <a id="hasunsavedchanges"></a>
 - **Kind:** method of `_AddTaskDialogState`
-- **Source:** `lib/features/todo/widgets/add_task_dialog.dart` (line 550)
+- **Source:** `lib/features/todo/widgets/add_task_dialog.dart` (line 597)
 - **Purpose:** Tell `UnsavedChangesGuard` whether the form has diverged from its initial state, so
   it knows whether to prompt for confirmation before the dialog is dismissed.
 - **Inputs:** None (reads instance state only).
@@ -56,7 +108,7 @@ every editable field. Recurrence editing is delegated to
 
 ### `String _signature()` <a id="signature"></a>
 - **Kind:** method of `_AddTaskDialogState`
-- **Source:** `lib/features/todo/widgets/add_task_dialog.dart` (lines 557-568)
+- **Source:** `lib/features/todo/widgets/add_task_dialog.dart` (lines 604-615)
 - **Purpose:** Produce a single string that changes if and only if any editable field's value has
   changed, for use as the dirty-check baseline/comparison.
 - **Inputs:** None (reads instance state only).
@@ -82,7 +134,7 @@ every editable field. Recurrence editing is delegated to
 
 ### `String _recurrenceSignature(TaskRecurrence? recurrence)` <a id="recurrencesignature"></a>
 - **Kind:** method of `_AddTaskDialogState`
-- **Source:** `lib/features/todo/widgets/add_task_dialog.dart` (lines 575-583)
+- **Source:** `lib/features/todo/widgets/add_task_dialog.dart` (lines 622-630)
 - **Purpose:** Normalize a `TaskRecurrence?` into a comparable string for embedding inside
   [`_signature()`](#signature).
 - **Inputs:** `recurrence` — the current `TaskRecurrence?` selection, may be `null`.
@@ -108,7 +160,7 @@ every editable field. Recurrence editing is delegated to
 
 ### `void _submit(UnsavedChangesController guard)` <a id="submit"></a>
 - **Kind:** method of `_AddTaskDialogState`
-- **Source:** `lib/features/todo/widgets/add_task_dialog.dart` (lines 590-629)
+- **Source:** `lib/features/todo/widgets/add_task_dialog.dart` (lines 637-676)
 - **Purpose:** Validate the form and, if valid, construct the new `Task` and pop the dialog with it.
 - **Inputs:** `guard` — the `UnsavedChangesController` supplied by `UnsavedChangesGuard.builder`,
   used to pop the route with a result.
@@ -157,7 +209,7 @@ every editable field. Recurrence editing is delegated to
 
 ### `String _recurrenceLabel(TaskRecurrence r, AppLocalizations l10n)` <a id="recurrencelabel"></a>
 - **Kind:** method of `_AddTaskDialogState`
-- **Source:** `lib/features/todo/widgets/add_task_dialog.dart` (lines 644-653)
+- **Source:** `lib/features/todo/widgets/add_task_dialog.dart` (lines 691-700)
 - **Purpose:** Produce the localized one-line summary of a `TaskRecurrence` shown in the recurrence
   `ListTile`'s title when a recurrence is set.
 - **Inputs:** `r` — the `TaskRecurrence` to describe; `l10n` — the current `AppLocalizations`.

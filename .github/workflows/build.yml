@@ -50,20 +50,43 @@ jobs:
             "$STORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > android/key.properties
 
       - name: Build APK (full)
-        run: flutter build apk --release --no-tree-shake-icons --dart-define=FLAVOR=full
+        run: flutter build apk --release --no-tree-shake-icons --flavor full --dart-define=FLAVOR=full
+
+      # Store builds ship no bundled bank logos. The strip mutates this throwaway checkout, so it
+      # must run after the full build.
+      - name: Strip bundled bank logos (store)
+        run: |
+          dart run tool/strip_bank_logos.dart
+          dart run tool/strip_bank_logos.dart --verify
 
       - name: Build AAB (store)
-        run: flutter build appbundle --release --no-tree-shake-icons --dart-define=FLAVOR=store
+        run: flutter build appbundle --release --no-tree-shake-icons --flavor store --dart-define=FLAVOR=store
+
+      - name: Assert the store AAB has no bank logos
+        run: |
+          if unzip -l build/app/outputs/bundle/storeRelease/app-store-release.aab | grep -q bank_logos; then
+            echo "bank_logos found in the store AAB"; exit 1
+          fi
+
+      # Flavored outputs are app-full-release.apk / app-store-release.aab; keep the published
+      # release asset names unchanged.
+      - name: Keep release asset names
+        run: |
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-full-release.apk dist/app-release.apk
+          cp build/app/outputs/bundle/storeRelease/app-store-release.aab dist/app-release.aab
 
       - uses: actions/upload-artifact@v7
         with:
           name: android-apk-full
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: dist/app-release.apk
+          if-no-files-found: error
 
       - uses: actions/upload-artifact@v7
         with:
           name: android-aab-store
-          path: build/app/outputs/bundle/release/app-release.aab
+          path: dist/app-release.aab
+          if-no-files-found: error
 
   # ── Windows x64 installer (full) ──
   windows-x64:

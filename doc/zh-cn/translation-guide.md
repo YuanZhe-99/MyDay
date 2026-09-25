@@ -120,6 +120,17 @@
 | thrust count | 抽插次数 | Intimacy record field; stored as a count times a x1/x100 unit |
 | thrust rate | 抽插速率 | thrusts per minute, derived per entry; 不用「频率」，那是 frequency（记录次数/周） |
 | subscription overview | 订阅概览 | 财务主页双栏时的订阅统计与进行中订阅区块（v1.4.3） |
+| bundled bank logo | 内置银行标志 | `assets/bank_logos/` 下经过审核的标志，只随完整版构建发布（v1.4.5） |
+| Full build / Store build | 完整版构建 / 商店版构建 | 两种发行版；Android 构建风味 `full`/`store` 沿用 5.1 节的「构建风味」 |
+| strip step | 剥离步骤 | 商店版构建前移除内置银行标志的 CI 步骤（`tool/strip_bank_logos.dart`） |
+| logo manifest | 标志清单 | 生成的 `bank_logo_manifest.g.dart`，从预设键映射到标志资源 |
+| emoji suggestion | 表情建议 | Todo：根据任务标题提议的表情（`emoji_suggester.dart`） |
+| auto-fill | 自动填充 | Todo：在用户手动选择之前，用标题驱动的建议设置任务图标 |
+| keyword table | 关键词表 | Todo：表情建议背后的关键词 → 表情数据（`emoji_keywords.dart`） |
+| suggestion chip | 建议标签 | Todo：标题栏下方那一行中可点按的单个表情 |
+| token (word token) | 词元 | Todo：建议器整体匹配的一段拉丁字母/数字 |
+| inflection | 词形变化 | Todo：词元可在关键词后附加的封闭英文后缀集合（`-s`、`-ing`…） |
+| filler phrase | 填充语 | Todo：像 "don't forget" / 别忘了 这样刻意不收入关键词表的词语 |
 
 ## 6. 复查清单（提交中文页面之前运行）
 

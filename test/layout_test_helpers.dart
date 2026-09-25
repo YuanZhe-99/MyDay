@@ -103,10 +103,16 @@ Future<void> pumpAdaptivePage(
 /// Inputs: `tester`.
 /// Returns: `Future<void>`.
 /// Side effects: Renders frames.
-/// Notes: Twelve alternating turns; each page runs a multi-step load chain.
+/// Notes: Sixteen alternating turns; each page runs a multi-step load chain.
+/// Each real-async turn waits a few real milliseconds rather than a bare event-loop
+/// turn: under a loaded parallel `flutter test` run a real file read can take longer
+/// than a dozen zero-length turns, which made the layout tests intermittently find
+/// no chart (seen from v1.4.5 once the suite grew).
 Future<void> settleAdaptivePage(WidgetTester tester) async {
-  for (var i = 0; i < 12; i++) {
-    await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+  for (var i = 0; i < 16; i++) {
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 5)),
+    );
     await tester.pump(const Duration(milliseconds: 50));
   }
 }

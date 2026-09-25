@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/adaptive_tile_grid.dart';
 import '../../../shared/services/image_service.dart';
+import '../../../shared/widgets/stored_image.dart';
 import '../../../shared/widgets/app_date_picker.dart';
 import '../../../shared/widgets/unsaved_changes_guard.dart';
 import '../models/finance.dart';
@@ -606,7 +607,7 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: Image.file(
+                      child: StoredImage(
                         snap.data!,
                         width: 48,
                         height: 48,

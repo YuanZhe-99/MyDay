@@ -201,7 +201,7 @@ platform app documents directory on mobile; desktop users can choose a custom st
 | Weight | `weight_data.json` | Yes | Height, records including optional bust/waist/hip cm fields, reminders, grace window |
 | WebDAV config | `webdav_config.json` | No | User server config and credentials; moved with custom storage path |
 | Sync base | `.sync_base/*.json` | No | Last-synced snapshots for three-way merge |
-| Images | `images/*` | Yes | Referenced finance/intimacy images sync; backups include images |
+| Images | `images/*` | Yes | Referenced finance/intimacy images sync; backups include images. Files are `<uuid><ext>` in any image format, including `.svg` (bundled bank logos copied on preset pick, v1.4.5); no format change |
 | Backups | `backups/backup_*.json` | No | Local recovery bundles; v2 bundles reference deduplicated image blobs |
 | Backup image blobs | `backups/blobs/` | No | Content-addressed (`sha256`), shared across backups, reference-counted GC |
 

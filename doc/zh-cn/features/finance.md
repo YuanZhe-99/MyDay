@@ -30,6 +30,22 @@
 
 从 `assets/banks.json` 加载 250+ 银行预设（`rootBundle.loadString('assets/banks.json')`）、国家币种默认值、搜索/分组和多个 logo URL 来源。
 
+**内置银行标志（v1.4.5）。** 完整版构建在 `assets/bank_logos/` 下为 267 个唯一预设中的 219 个附带经过审核的标志（键为 `<country>/<id>`；`assets/banks.json` 有 269 行，因为 `gb/revolut` 和 `gb/wise` 各出现两次）：165 个 SVG 和 54 个 PNG，约 2.7 MB。选择这些预设不再需要网络；其余 48 个照旧使用网络链。
+
+- **查找顺序：内置 → 网络。** 在账户对话框中选择预设时，`_fetchBankIcon` 先把该预设的内置标志复制进 `images/`（`ImageService.copyAssetImage`）；没有内置标志或加载失败时，照旧遍历 `BankPreset.logoUrls` 网络链。银行预设选择器通过 `BankLogoImage` 在每一行按同样顺序显示（内置标志 → Clearbit 预览 → 首字母）。
+- **商店版构建不含任何标志。** 当 `bundledBankLogosEnabled` 为 false（`lib/app/build_flavor.dart`）时，`BankPreset.bundledLogoAsset` 返回 null；CI 在构建商店版 AAB 之前剥离标志文件、pubspec 资源行和清单条目。商店版构建只用网络链。见 [架构](../architecture.md) 和 [CI/CD](../ci-cd.md)。
+- **清单键。** 生成的标志清单 `lib/features/finance/services/bank_logo_manifest.g.dart` 把 `BankPreset.key`（`<country>/<id>`）映射到 `assets/bank_logos/<country>_<id>.<svg|png>`。键带国家限定，因为预设 id 会在不同国家重复（`icbc`、`hsbc`、`vtb`……）。
+- **SVG 渲染。** 内置标志可能是 SVG，因此存储的账户或订阅图像现在可能是 `images/<uuid>.svg`。财务模块的每个显示位置都通过 `StoredImage` / `StoredImageAvatar`（`lib/shared/widgets/stored_image.dart`）渲染存储图像，它们按扩展名选择 SVG 或位图解码器；SVG 标志总是以 `contain` 放在白色圆底上，使文字标志在深色模式下保持完整、清晰。亲密模块仍使用 `FileImage`——它的图像只来自文件选择器。
+- **商标。** 这些标志是各机构自己的商标，内置它们只是为了让用户认出自己的账户。商店版构建不含任何标志。`tool/bank_logo_choices.json` 记录每一个审核决定（`"c0.svg"`、`"s1.png"`、`"c0.svg@png"` 或 `"reject"`），因此任何单个标志都可以被移除（设为 `"reject"`）并重建整套标志。没有条目的预设与被拒绝的预设一样，不会得到内置标志。
+
+添加或替换标志：
+
+1. **获取候选**到临时目录（从不写入 `assets/`）：`dart run tool/fetch_bank_logos.dart --out <scratch dir> [--only <country_id,...>] [--infobox]`。第 1 阶段从 Wikidata 解析 Commons 文件名——官方网站与预设域名匹配的实体的小标志/图标（P8972/P2910）和标志（P154），否则按名称逐个搜索实体——并缓存到 `<out>/plan.json`。第 2 阶段通过 Commons API 以每批 50 个解析直接文件 URL，并缓慢下载每个文件（间隔 900 ms，遇到 HTTP 429 时遵守 `Retry-After`）；它避开受限流的 `Special:FilePath` 重定向。两个阶段都能从缓存续跑。`--infobox` 为 Wikidata 中没有标志的预设读取英文和当地语言 Wikipedia 信息框中的标志（许多标志是本地的非 Commons 文件）。`--site --only <country_id,...>` 从银行自己的主页追加候选 `s0`、`s1`……（标志 `<img>`、SVG 图标、apple-touch-icon、`og:image`）。每个键可选的直接 URL 写在 `tool/bank_logo_overrides.json` 中。
+2. **审核**：`dart run tool/bank_logo_sheet.dart --dir <scratch dir> [--only <country_id,...>]` 生成每页 12 个预设的 HTML 联系表（`sheet_<country>_<n>.html`），每个候选以文件名标注，并以头像尺寸和大尺寸在浅色和深色背景上显示。
+3. **记录决定**到 `tool/bank_logo_choices.json`：候选文件名；对 flutter_svg 无法绘制的 SVG，在文件名后加 `@png`；或 `"reject"`。
+4. **安装**：`dart run tool/apply_bank_logo_choices.dart --dir <scratch dir>` 从零重建 `assets/bank_logos/` 并重新生成清单。SVG 的 `<style>` 规则被内联进 `style` 属性（flutter_svg 忽略样式表，否则大多数 Illustrator 导出会渲染成黑色）。`@png` 改为安装 Wikimedia 对该 SVG 的 500 px PNG 渲染（Wikimedia 只提供标准缩略图宽度；512 会返回 HTTP 400）——用于内联后 flutter_svg 仍无法绘制的文件，如 `foreignObject` 或某些裁剪/渐变组合。位图（PNG、JPEG、WebP、GIF）居中放在带边距的白色正方形上，并缩放为正好 256 px。`dart run tool/gen_bank_logo_manifest.dart` 只根据 `assets/bank_logos/` 中现有的文件重新生成清单。
+5. **在 flutter_svg 中验证，而不是在浏览器中。** 浏览器能渲染不代表 flutter_svg 能绘制，因此每个已安装的 SVG 都经 flutter_svg 本身（`vg.loadPicture`）渲染，并与浏览器渲染并排比较（`dart run tool/bank_logo_sheet.dart --final` 提供浏览器一侧）。然后运行 `flutter test test/bank_logo_manifest_test.dart`，它检查清单与目录完全一致、每个 SVG 都能被 flutter_svg 解析，以及每个 PNG 都是正方形且至少 128 px。
+
 ## 订阅处理
 
 **`SubscriptionProcessor`**（完整算法见 [订阅计费](../algorithms/subscription-billing.md)）提供：

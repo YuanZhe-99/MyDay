@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/adaptive_tile_grid.dart';
 import '../../../shared/services/image_service.dart';
+import '../../../shared/widgets/stored_image.dart';
 import '../../../shared/widgets/app_date_picker.dart';
 import '../../../shared/widgets/unsaved_changes_guard.dart';
 import '../models/finance.dart';
@@ -433,10 +434,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
           if (snap.hasData && snap.data!.existsSync()) {
             return Row(
               children: [
-                CircleAvatar(
-                  backgroundImage: FileImage(snap.data!),
-                  radius: 12,
-                ),
+                StoredImageAvatar(snap.data!, radius: 12),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(

@@ -6,7 +6,9 @@ The bank/fintech-preset picker bottom sheet used when adding or editing a Financ
 search results, and resolves to the selected `BankPreset` (from
 `lib/features/finance/services/bank_preset_service.dart`) or `null` if dismissed. See
 [Finance](../../../../features/finance.md#bankpresetservice) for the `BankPresetService` that
-supplies the 250+ presets this widget renders.
+supplies the 250+ presets this widget renders. Each row's logo comes from
+[`BankLogoImage`](bank_logo_image.md): the bundled logo in Full builds, otherwise the Clearbit
+network preview, otherwise the bank's initial letter.
 
 ## Declarations
 
@@ -21,7 +23,7 @@ supplies the 250+ presets this widget renders.
 | `dispose` | method (`_BankPickerSheetState`) | B | Dispose the search text controller. |
 | `build` | method (`_BankPickerSheetState`) | B | Render the handle, title, search field, and either the country tabs or search results. |
 | `_BankTile` (constructor) | constructor (`_BankTile`) | B | Create a bank tile instance for one preset. |
-| `build` | method (`_BankTile`) | B | Render one bank/fintech row with logo, titles, and accent-color dot. |
+| `build` | method (`_BankTile`) | B | Render one bank/fintech row: logo via [`BankLogoImage`](bank_logo_image.md) (bundled logo → network preview → initial letter), titles, and accent-color dot. |
 | [`_parseColor`](#parsecolor) | static method (`_BankTile`) | A | Parse a bank preset's hex color string into a `Color`, defaulting to grey on failure. |
 
 `grep -c 'Purpose:' lib/features/finance/widgets/bank_preset_picker.dart` reports 11, matching all
@@ -31,7 +33,7 @@ eleven real declarations in this file. No misattachment or undocumented declarat
 
 ### `static Color _parseColor(String hex)` <a id="parsecolor"></a>
 - **Kind:** static method of `_BankTile`
-- **Source:** `lib/features/finance/widgets/bank_preset_picker.dart` (line 311)
+- **Source:** `lib/features/finance/widgets/bank_preset_picker.dart` (line 298)
 - **Purpose:** Convert a `BankPreset.color` hex string (e.g. `'#4285F4'`, defaulted to `'#888888'`
   by `BankPresetService` when a preset has no color) into a Flutter `Color`, falling back to grey
   for any string that fails to parse.

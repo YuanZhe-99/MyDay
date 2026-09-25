@@ -88,9 +88,9 @@ mode.
 | `_AccountDialogState.build` | method (`_AccountDialogState`) | B | Build the add/edit account form (type, name, bank, currency, card, fee-waiver fields, icon, forced balance). |
 | [`_hasUnsavedChanges`](#hasunsavedchanges) | method (`_AccountDialogState`) | A | Report whether the form differs from its initial state. |
 | [`_signature`](#signature) | method (`_AccountDialogState`) | A | Build a comparable string snapshot of every editable field, including the optional fee-waiver fields. |
-| `_buildImagePreview` | method (`_AccountDialogState`, widget helper) | B | Render the selected image (with a remove button) plus the bank-preset/fetch-icon/pick-image action row. |
+| `_buildImagePreview` | method (`_AccountDialogState`, widget helper) | B | Render the selected image via `StoredImage` (with a remove button) plus the bank-preset/fetch-icon/pick-image action row; "Fetch Icon" shows when the selected preset has a domain or a bundled logo and no image is set yet. |
 | [`_pickBankPreset`](#pickbankpreset) | method (`_AccountDialogState`) | A | Open the bank preset picker, apply the chosen bank's name/currency, and auto-fetch its logo. |
-| [`_fetchBankIcon`](#fetchbankicon) | method (`_AccountDialogState`) | A | Try each of the selected bank's candidate logo URLs in order until one downloads successfully. |
+| [`_fetchBankIcon`](#fetchbankicon) | method (`_AccountDialogState`) | A | Store the selected preset's logo: copy the bundled logo (Full builds), else try each candidate logo URL until one downloads. |
 | `_parseOptionalMoney` | method (`_AccountDialogState`) | B | Parse an optional money field, treating blank/invalid text as absent. |
 | [`_submit`](#submit) | method (`_AccountDialogState`) | A | Validate required fields, parse optional balance/fee-waiver amounts, and pop the built `Account`. |
 
@@ -530,25 +530,27 @@ section — the other three `initState`/`build`/`createState` rows are Tier B wi
 
 ### `Widget _buildAccountAvatar(Account account, ThemeData theme)` <a id="buildaccountavatar"></a>
 - **Kind:** method of `_AccountsPageState` (widget helper)
-- **Source:** `lib/features/finance/views/accounts_page.dart` (lines 858-885)
+- **Source:** `lib/features/finance/views/accounts_page.dart` (lines 885-912)
 - **Purpose:** Render an account's avatar through an image → emoji → type-icon fallback chain.
 - **Inputs:** `account`; `theme`.
-- **Returns:** `Widget` — a `CircleAvatar`, possibly wrapped in a `FutureBuilder`.
+- **Returns:** `Widget` — a `CircleAvatar` or `StoredImageAvatar`, possibly wrapped in a
+  `FutureBuilder`.
 - **Side effects:** None directly; resolves `account.imagePath` asynchronously via
   [`ImageService.resolve`](../../../shared/services/image_service.md) when present.
 - **Algorithm:**
   1. Resolve `color` via `_accountTypeColor(account.type)`.
   2. If `account.imagePath != null`, wrap a `FutureBuilder<File>` around
      `ImageService.resolve(account.imagePath!)`: once the file resolves *and* exists on disk, show
-     it as the `CircleAvatar`'s `backgroundImage`; otherwise fall through to the emoji/icon branch
-     below.
+     it as a [`StoredImageAvatar`](../../../shared/widgets/stored_image.md#storedimageavatar-build)
+     over the same tint (a raster fills the circle; an `.svg` logo sits whole on a white disc);
+     otherwise fall through to the emoji/icon branch below.
   3. If no image (or the image branch fell through), show `account.emoji` as text if set, otherwise
      `Icon(_accountTypeIcon(account.type), color: color)`.
 - **Usage:**
   ```dart
   leading: _buildAccountAvatar(entry.value, theme),
   ```
-  (`lib/features/finance/views/accounts_page.dart:597`, the account list tile's `ListTile.leading`.)
+  (`lib/features/finance/views/accounts_page.dart:618`, the account list tile's `ListTile.leading`.)
 - **Notes:** The `snap.data!.existsSync()` check guards against a stale `imagePath` pointing at a
   file that's since been deleted from app storage — in that case the avatar silently falls back to
   emoji/icon rather than showing a broken image or throwing.
@@ -685,7 +687,7 @@ section — the other three `initState`/`build`/`createState` rows are Tier B wi
 
 ### `Future<void> _pickBankPreset()` <a id="pickbankpreset"></a>
 - **Kind:** method of `_AccountDialogState`
-- **Source:** `lib/features/finance/views/accounts_page.dart` (lines 1977-1991)
+- **Source:** `lib/features/finance/views/accounts_page.dart` (lines 2017-2031)
 - **Purpose:** Let the user choose a bank/app preset, apply its name and default currency, and kick
   off an automatic logo download.
 - **Inputs:** None (reads `context`).
@@ -698,8 +700,8 @@ section — the other three `initState`/`build`/`createState` rows are Tier B wi
   2. If the result is `null` or the widget is no longer mounted, return.
   3. Otherwise `setState`: set `_bankController.text = bank.localTitle`, `_selectedBank = bank`, and
      if `bank.defaultCurrency` is non-null, switch `_currency` to it.
-  4. Call `_fetchBankIcon()` (not awaited) to auto-download the bank's logo; if that download fails,
-     the "Fetch Icon" button simply remains visible for a manual retry.
+  4. Call `_fetchBankIcon()` (not awaited) to store the bank's logo (bundled copy or download); if
+     that fails, the "Fetch Icon" button simply remains visible for a manual retry.
 - **Usage:**
   ```dart
   OutlinedButton.icon(
@@ -708,46 +710,56 @@ section — the other three `initState`/`build`/`createState` rows are Tier B wi
     onPressed: _pickBankPreset,
   ),
   ```
-  (`lib/features/finance/views/accounts_page.dart:1935-1939`, in `_buildImagePreview`.)
+  (`lib/features/finance/views/accounts_page.dart:1974-1978`, in `_buildImagePreview`.)
 - **Notes:** The logo fetch is intentionally fire-and-forget from here — the dialog remains usable
   (and submittable) while the download is in flight; `_downloadingLogo` drives a progress indicator
   elsewhere in `build`.
 
 ### `Future<void> _fetchBankIcon()` <a id="fetchbankicon"></a>
 - **Kind:** method of `_AccountDialogState`
-- **Source:** `lib/features/finance/views/accounts_page.dart` (lines 1998-2017)
-- **Purpose:** Download the selected bank's logo, trying each of its candidate URLs in priority order
-  until one succeeds.
+- **Source:** `lib/features/finance/views/accounts_page.dart` (lines 2040-2064)
+- **Purpose:** Store the selected preset's logo as the account image: the bundled logo first (Full
+  builds, no network), otherwise the first candidate logo URL that downloads.
 - **Inputs:** None (reads `_selectedBank`).
 - **Returns:** `Future<void>`.
-- **Side effects:** Sets `_downloadingLogo` true then false; on success, sets `_imagePath` and clears
-  `_selectedEmoji`.
+- **Side effects:** Writes a file into `images/`; sets `_downloadingLogo` true then false; on
+  success, sets `_imagePath` and clears `_selectedEmoji`.
 - **Algorithm:**
-  1. Bail out if there is no `_selectedBank` or its
-     [`logoUrls`](../services/bank_preset_service.md#logourls) list is empty.
+  1. Bail out if there is no `_selectedBank`, or if it has neither a
+     [`bundledLogoAsset`](../services/bank_preset_service.md#bundledlogoasset) nor any
+     [`logoUrls`](../services/bank_preset_service.md#logourls).
   2. `setState(() => _downloadingLogo = true)`.
-  3. Iterate `bank.logoUrls` in order, calling
+  3. If a bundled asset is listed, copy it with
+     [`ImageService.copyAssetImage`](../../../shared/services/image_service.md#copyassetimage).
+  4. If that produced no path (no bundled logo, or it failed to load), iterate `bank.logoUrls` in
+     order, calling
      [`ImageService.downloadAndSave(url)`](../../../shared/services/image_service.md#downloadandsave)
      for each and stopping at the first non-null path.
-  4. If still `mounted`, `setState`: clear `_downloadingLogo`, and if a `path` was obtained, set
+  5. If still `mounted`, `setState`: clear `_downloadingLogo`, and if a `path` was obtained, set
      `_imagePath = path` and `_selectedEmoji = null`.
 - **Usage:**
   ```dart
-  if (bank == null || bank.logoUrls.isEmpty) return;
+  final asset = bank.bundledLogoAsset;
+  if (asset == null && bank.logoUrls.isEmpty) return;
   ...
-  for (final url in bank.logoUrls) {
-    path = await ImageService.downloadAndSave(url);
-    if (path != null) break;
+  if (asset != null) path = await ImageService.copyAssetImage(asset);
+  if (path == null) {
+    for (final url in bank.logoUrls) {
+      path = await ImageService.downloadAndSave(url);
+      if (path != null) break;
+    }
   }
   ```
-  (`lib/features/finance/views/accounts_page.dart:2000-2007`; also called from
+  (`lib/features/finance/views/accounts_page.dart:2043-2054`; also called from
   [`_pickBankPreset`](#pickbankpreset) right after a bank is chosen, and from a manual "Fetch Icon"
   button in `_buildImagePreview`.)
-- **Notes:** This is the concrete implementation of the multi-source logo fallback chain described in
-  [Finance — BankPresetService](../../../../features/finance.md#bankpresetservice) and documented in
-  detail on [`BankPreset.logoUrls`](../services/bank_preset_service.md#logourls) (Clearbit, logo.dev,
-  Brandfetch, icon.horse, Favicone, two Google favicon endpoints, DuckDuckGo) — if every source
-  fails, `_imagePath` is simply never set and the manual "Fetch Icon" button stays available.
+- **Notes:** This is the concrete implementation of the logo lookup order described in
+  [Finance — BankPresetService](../../../../features/finance.md#bankpresetservice): bundled logo,
+  then the multi-source network chain documented on
+  [`BankPreset.logoUrls`](../services/bank_preset_service.md#logourls) (Clearbit, logo.dev,
+  Brandfetch, icon.horse, Favicone, two Google favicon endpoints, DuckDuckGo). Store builds always
+  take the network path because `bundledLogoAsset` is null there. If every source fails,
+  `_imagePath` is simply never set and the manual "Fetch Icon" button stays available.
 
 ### `void _submit(UnsavedChangesController guard)` <a id="submit"></a>
 - **Kind:** method of `_AccountDialogState`
@@ -795,8 +807,8 @@ section — the other three `initState`/`build`/`createState` rows are Tier B wi
 - [`account_picker_util.dart`](../services/account_picker_util.md) — `normalizedAccountPickerOrder`,
   `normalizedAccountPickerSettings`, `sortAccountsForPicker`, used throughout the
   `_AccountPickerSettingsPage` "More settings" sub-page.
-- [`bank_preset_service.dart`](../services/bank_preset_service.md) — `BankPreset.logoUrls`, the
-  fallback chain [`_fetchBankIcon`](#fetchbankicon) walks.
+- [`bank_preset_service.dart`](../services/bank_preset_service.md) — `BankPreset.bundledLogoAsset`
+  and `BankPreset.logoUrls`, the lookup order [`_fetchBankIcon`](#fetchbankicon) walks.
 - [`bank_preset_picker.dart`](../widgets/bank_preset_picker.md) — `showBankPresetPicker`, opened by
   [`_pickBankPreset`](#pickbankpreset).
 - [`add_transaction_dialog.dart`](../widgets/add_transaction_dialog.md) — the dialog opened by
@@ -806,6 +818,8 @@ section — the other three `initState`/`build`/`createState` rows are Tier B wi
 - [`grouped_transaction_list.dart`](../widgets/grouped_transaction_list.md) —
   `buildGroupedTransactionList`, used by `_AccountTransactionsPageState.build`.
 - [`image_service.dart`](../../../shared/services/image_service.md) — `resolve`,
-  `pickAndSaveImage`, `downloadAndSave`, used for account avatars and bank logos.
+  `pickAndSaveImage`, `copyAssetImage`, `downloadAndSave`, used for account avatars and bank logos.
+- [`stored_image.dart`](../../../shared/widgets/stored_image.md) — `StoredImage` and
+  `StoredImageAvatar`, which render the stored account image (raster or SVG).
 - [`unsaved_changes_guard.dart`](../../../shared/widgets/unsaved_changes_guard.md) —
   `UnsavedChangesGuard`, `UnsavedChangesController`, `formSignature`, used by `_AccountDialog`.

@@ -53,6 +53,7 @@
   "todoSetDueDate": "Set due date (optional)",
   "todoCustomEmoji": "Custom Emoji",
   "todoCustomEmojiHint": "Enter an emoji",
+  "todoSuggestedIcons": "Suggested icons",
   "todoEditSubtask": "Edit Subtask",
   "todoSubtasksProgress": "Subtasks: {done}/{total}",
   "@todoSubtasksProgress": {

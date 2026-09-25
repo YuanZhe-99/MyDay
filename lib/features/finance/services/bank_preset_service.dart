@@ -2,6 +2,9 @@ import 'dart:convert';
 
 import 'package:flutter/services.dart' show rootBundle;
 
+import '../../../app/build_flavor.dart';
+import 'bank_logo_manifest.g.dart';
+
 /// A single bank / fintech preset entry.
 class BankPreset {
   final String id;
@@ -38,6 +41,22 @@ class BankPreset {
         color: json['color'] as String? ?? '#888888',
         domain: json['domain'] as String? ?? '',
       );
+
+  /// Purpose: Return the unique preset key used by the bundled-logo manifest.
+  /// Inputs: None.
+  /// Returns: `String` `<country>/<id>`.
+  /// Side effects: None.
+  /// Notes: `id` alone is not unique (`icbc`, `hsbc`, `vtb`… exist in several countries).
+  String get key => '$country/$id';
+
+  /// Purpose: Return the bundled logo asset for this preset, if this build ships one.
+  /// Inputs: None.
+  /// Returns: `String?` — `assets/bank_logos/<country>_<id>.<svg|png>`, or null.
+  /// Side effects: None.
+  /// Notes: Null in Store builds (`bundledBankLogosEnabled` is false) and for presets without a
+  /// verified logo. A listed asset can still fail to load, so callers fall back to `logoUrls`.
+  String? get bundledLogoAsset =>
+      bundledBankLogosEnabled ? bankLogoAssets[key] : null;
 
   /// Logo URLs to try in priority order — higher quality sources first.
   /// Purpose: Return logo urls.

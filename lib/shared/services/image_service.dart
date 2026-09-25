@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
@@ -68,6 +69,28 @@ class ImageService {
     final file = await resolve(relativePath);
     if (await file.exists()) {
       await file.delete();
+    }
+  }
+
+  /// Purpose: Copy a bundled asset image into app storage so it behaves like any user image.
+  /// Inputs: `assetKey` — for example `assets/bank_logos/us_chase.svg`.
+  /// Returns: `Future<String?>` — `images/<uuid><ext>` (extension taken from the asset key), or
+  /// null when the asset is missing or unreadable.
+  /// Side effects: Reads the asset bundle; writes a new file into `<appDir>/images/`.
+  /// Notes: Catches every error — a manifest entry whose file was stripped or never shipped
+  /// throws from the asset bundle — so callers can fall through to the network chain. The copy
+  /// syncs and backs up exactly like a downloaded logo.
+  static Future<String?> copyAssetImage(String assetKey) async {
+    try {
+      final data = await rootBundle.load(assetKey);
+      final bytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+      if (bytes.isEmpty) return null;
+      final imgDir = await _getImageDir();
+      final newName = '${const Uuid().v4()}${p.extension(assetKey).toLowerCase()}';
+      await File(p.join(imgDir.path, newName)).writeAsBytes(bytes, flush: true);
+      return 'images/$newName';
+    } catch (_) {
+      return null;
     }
   }
 

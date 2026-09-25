@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../services/bank_preset_service.dart';
+import 'bank_logo_image.dart';
 
 /// Country code → display label.
 const _countryLabels = {
@@ -263,32 +264,18 @@ class _BankTile extends StatelessWidget {
     final theme = Theme.of(context);
     final color = _parseColor(bank.color);
 
+    final initial = Text(
+      bank.engTitle.isNotEmpty ? bank.engTitle[0].toUpperCase() : '?',
+      style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 16),
+    );
+
     return ListTile(
       leading: CircleAvatar(
         backgroundColor: color.withValues(alpha: 0.15),
-        child: bank.logoUrl.isNotEmpty
-            ? ClipOval(
-                child: Image.network(
-                  bank.logoUrl,
-                  width: 32,
-                  height: 32,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, e, st) => Text(
-                    bank.engTitle.isNotEmpty
-                        ? bank.engTitle[0].toUpperCase()
-                        : '?',
-                    style: TextStyle(
-                        color: color, fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                ),
-              )
-            : Text(
-                bank.engTitle.isNotEmpty
-                    ? bank.engTitle[0].toUpperCase()
-                    : '?',
-                style: TextStyle(
-                    color: color, fontWeight: FontWeight.bold, fontSize: 16),
-              ),
+        // Bundled logo (Full builds) → Clearbit preview → initial letter.
+        child: ClipOval(
+          child: BankLogoImage(bank: bank, size: 40, fallback: initial),
+        ),
       ),
       title: Text(bank.localTitle),
       subtitle: bank.localTitle != bank.engTitle

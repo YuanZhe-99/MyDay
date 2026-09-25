@@ -67,9 +67,9 @@
 | `_AccountDialogState.build` | 方法（`_AccountDialogState`） | B | 构建增/改账户表单（类型、名称、银行、币种、卡、免手续费字段、图标、强制余额）。 |
 | [`_hasUnsavedChanges`](#hasunsavedchanges) | 方法（`_AccountDialogState`） | A | 报告表单是否与其初始状态不同。 |
 | [`_signature`](#signature) | 方法（`_AccountDialogState`） | A | 构建每个可编辑字段（含可选免手续费字段）的可比较字符串快照。 |
-| `_buildImagePreview` | 方法（`_AccountDialogState`，组件辅助） | B | 渲染所选图像（带移除按钮）加银行预设/获取图标/选择图像操作行。 |
+| `_buildImagePreview` | 方法（`_AccountDialogState`，组件辅助） | B | 经 `StoredImage` 渲染所选图像（带移除按钮）加银行预设/获取图标/选择图像操作行；所选预设有域名或内置标志且尚未设置图像时显示"获取图标"。 |
 | [`_pickBankPreset`](#pickbankpreset) | 方法（`_AccountDialogState`） | A | 打开银行预设选择器，应用所选银行的名称/币种，并自动获取其 logo。 |
-| [`_fetchBankIcon`](#fetchbankicon) | 方法（`_AccountDialogState`） | A | 按顺序尝试所选银行的候选 logo URL，直到一个下载成功。 |
+| [`_fetchBankIcon`](#fetchbankicon) | 方法（`_AccountDialogState`） | A | 存储所选预设的标志：复制内置标志（完整版构建），否则逐个尝试候选 logo URL 直到一个下载成功。 |
 | `_parseOptionalMoney` | 方法（`_AccountDialogState`） | B | 解析可选金额字段，空白/无效文本当作缺席。 |
 | [`_submit`](#submit) | 方法（`_AccountDialogState`） | A | 校验必填字段、解析可选余额/免手续费金额，并弹出构建的 `Account`。 |
 
@@ -374,20 +374,20 @@
 
 ### `Widget _buildAccountAvatar(Account account, ThemeData theme)` <a id="buildaccountavatar"></a>
 - **种类：** `_AccountsPageState` 的方法（组件辅助）
-- **来源：** `lib/features/finance/views/accounts_page.dart`（第 858-885 行）
+- **来源：** `lib/features/finance/views/accounts_page.dart`（第 885-912 行）
 - **用途：** 经图像 → emoji → 类型图标回退链渲染账户头像。
 - **输入：** `account`；`theme`。
-- **返回：** `Widget` — 一个 `CircleAvatar`，可能包在 `FutureBuilder` 中。
+- **返回：** `Widget` — 一个 `CircleAvatar` 或 `StoredImageAvatar`，可能包在 `FutureBuilder` 中。
 - **副作用：** 无直接；存在时经 [`ImageService.resolve`](../../../shared/services/image_service.md) 异步解析 `account.imagePath`。
 - **算法：**
   1. 经 `_accountTypeColor(account.type)` 解析 `color`。
-  2. `account.imagePath != null` 时，在 `ImageService.resolve(account.imagePath!)` 周围包 `FutureBuilder<File>`：文件解析*且*在磁盘上存在时把它显示为 `CircleAvatar` 的 `backgroundImage`；否则落入下方 emoji/图标分支。
+  2. `account.imagePath != null` 时，在 `ImageService.resolve(account.imagePath!)` 周围包 `FutureBuilder<File>`：文件解析*且*在磁盘上存在时把它显示为同样着色底上的 [`StoredImageAvatar`](../../../shared/widgets/stored_image.md#storedimageavatar-build)（位图铺满圆形；`.svg` 标志完整地放在白色圆底上）；否则落入下方 emoji/图标分支。
   3. 无图像（或图像分支落入）时，`account.emoji` 已设置则作为文本显示，否则 `Icon(_accountTypeIcon(account.type), color: color)`。
 - **用法：**
   ```dart
   leading: _buildAccountAvatar(entry.value, theme),
   ```
-  （`lib/features/finance/views/accounts_page.dart:597`，账户列表块的 `ListTile.leading`。）
+  （`lib/features/finance/views/accounts_page.dart:618`，账户列表块的 `ListTile.leading`。）
 - **备注：** `snap.data!.existsSync()` 检查防护指向自那以后已从应用存储删除的文件的过期 `imagePath`——那种情况头像静默回退 emoji/图标，而不是显示破图或抛出。
 
 ### `List<Account> get _orderedAccounts` <a id="orderedaccounts"></a>
@@ -484,7 +484,7 @@
 
 ### `Future<void> _pickBankPreset()` <a id="pickbankpreset"></a>
 - **种类：** `_AccountDialogState` 的方法
-- **来源：** `lib/features/finance/views/accounts_page.dart`（第 1977-1991 行）
+- **来源：** `lib/features/finance/views/accounts_page.dart`（第 2017-2031 行）
 - **用途：** 让用户选择银行/应用预设，应用其名称和默认币种，并启动自动 logo 下载。
 - **输入：** 无（读取 `context`）。
 - **返回：** `Future<void>`。
@@ -493,7 +493,7 @@
   1. Await [`showBankPresetPicker(context)`](../widgets/bank_preset_picker.md#showbankpresetpicker)。
   2. 结果 `null` 或组件不再 mounted 时返回。
   3. 否则 `setState`：设 `_bankController.text = bank.localTitle`、`_selectedBank = bank`，`bank.defaultCurrency` 非 null 时把 `_currency` 切换到它。
-  4. 调用 `_fetchBankIcon()`（不 await）自动下载银行 logo；下载失败时"获取图标"按钮只是保持可见供手动重试。
+  4. 调用 `_fetchBankIcon()`（不 await）存储银行标志（内置副本或下载）；失败时"获取图标"按钮只是保持可见供手动重试。
 - **用法：**
   ```dart
   OutlinedButton.icon(
@@ -502,32 +502,37 @@
     onPressed: _pickBankPreset,
   ),
   ```
-  （`lib/features/finance/views/accounts_page.dart:1935-1939`，`_buildImagePreview` 中。）
+  （`lib/features/finance/views/accounts_page.dart:1974-1978`，`_buildImagePreview` 中。）
 - **备注：** logo 获取从这里故意即发即忘——下载在途时对话框保持可用（可提交）；`_downloadingLogo` 驱动 `build` 别处的进度指示器。
 
 ### `Future<void> _fetchBankIcon()` <a id="fetchbankicon"></a>
 - **种类：** `_AccountDialogState` 的方法
-- **来源：** `lib/features/finance/views/accounts_page.dart`（第 1998-2017 行）
-- **用途：** 下载所选银行的 logo，按优先级顺序尝试其每个候选 URL 直到一个成功。
+- **来源：** `lib/features/finance/views/accounts_page.dart`（第 2040-2064 行）
+- **用途：** 把所选预设的标志存为账户图像：先用内置标志（完整版构建，无需网络），否则用第一个下载成功的候选 logo URL。
 - **输入：** 无（读取 `_selectedBank`）。
 - **返回：** `Future<void>`。
-- **副作用：** 设 `_downloadingLogo` true 再 false；成功时设 `_imagePath` 并清除 `_selectedEmoji`。
+- **副作用：** 向 `images/` 写入文件；设 `_downloadingLogo` true 再 false；成功时设 `_imagePath` 并清除 `_selectedEmoji`。
 - **算法：**
-  1. 没有 `_selectedBank` 或其 [`logoUrls`](../services/bank_preset_service.md#logourls) 列表为空时退出。
+  1. 没有 `_selectedBank`，或它既没有 [`bundledLogoAsset`](../services/bank_preset_service.md#bundledlogoasset) 也没有任何 [`logoUrls`](../services/bank_preset_service.md#logourls) 时退出。
   2. `setState(() => _downloadingLogo = true)`。
-  3. 按顺序遍历 `bank.logoUrls`，对每个调用 [`ImageService.downloadAndSave(url)`](../../../shared/services/image_service.md#downloadandsave)，在第一个非 null 路径停止。
-  4. 仍 `mounted` 时 `setState`：清除 `_downloadingLogo`，得到 `path` 时设 `_imagePath = path` 和 `_selectedEmoji = null`。
+  3. 列出了内置资源时，用 [`ImageService.copyAssetImage`](../../../shared/services/image_service.md#copyassetimage) 复制它。
+  4. 若这一步没有得到路径（没有内置标志或加载失败），按顺序遍历 `bank.logoUrls`，对每个调用 [`ImageService.downloadAndSave(url)`](../../../shared/services/image_service.md#downloadandsave)，在第一个非 null 路径停止。
+  5. 仍 `mounted` 时 `setState`：清除 `_downloadingLogo`，得到 `path` 时设 `_imagePath = path` 和 `_selectedEmoji = null`。
 - **用法：**
   ```dart
-  if (bank == null || bank.logoUrls.isEmpty) return;
+  final asset = bank.bundledLogoAsset;
+  if (asset == null && bank.logoUrls.isEmpty) return;
   ...
-  for (final url in bank.logoUrls) {
-    path = await ImageService.downloadAndSave(url);
-    if (path != null) break;
+  if (asset != null) path = await ImageService.copyAssetImage(asset);
+  if (path == null) {
+    for (final url in bank.logoUrls) {
+      path = await ImageService.downloadAndSave(url);
+      if (path != null) break;
+    }
   }
   ```
-  （`lib/features/finance/views/accounts_page.dart:2000-2007`；[`_pickBankPreset`](#pickbankpreset) 选择银行后立即调用，`_buildImagePreview` 中手动"获取图标"按钮也调用。）
-- **备注：** 这是 [财务 — BankPresetService](../../../../features/finance.md#bankpresetservice) 描述、[`BankPreset.logoUrls`](../services/bank_preset_service.md#logourls) 详细记录的多来源 logo 回退链的具体实现（Clearbit、logo.dev、Brandfetch、icon.horse、Favicone、两个 Google favicon 端点、DuckDuckGo）——每个来源都失败时 `_imagePath` 只是不被设置，手动"获取图标"按钮保持可用。
+  （`lib/features/finance/views/accounts_page.dart:2043-2054`；[`_pickBankPreset`](#pickbankpreset) 选择银行后立即调用，`_buildImagePreview` 中手动"获取图标"按钮也调用。）
+- **备注：** 这是 [财务 — BankPresetService](../../../../features/finance.md#bankpresetservice) 描述的标志查找顺序的具体实现：先内置标志，再 [`BankPreset.logoUrls`](../services/bank_preset_service.md#logourls) 详细记录的多来源网络链（Clearbit、logo.dev、Brandfetch、icon.horse、Favicone、两个 Google favicon 端点、DuckDuckGo）。商店版构建总是走网络路径，因为那里 `bundledLogoAsset` 为 null。每个来源都失败时 `_imagePath` 只是不被设置，手动"获取图标"按钮保持可用。
 
 ### `void _submit(UnsavedChangesController guard)` <a id="submit"></a>
 - **种类：** `_AccountDialogState` 的方法
@@ -557,9 +562,10 @@
 - [财务](../../../../features/finance.md) — `Account`/`Transaction`/`AccountPickerSettings` 模型字段、本页对话框实现的强制余额迁移，以及本页在其他财务视图中的位置。
 - [`balance_util.dart`](../services/balance_util.md) — `accountBalance`、`currencySymbol`、`hasForcedBalanceSentinel`、`accountWithForcedBalanceSentinel` 和 `migrateForcedBalances`（本文件逐编辑 [`_balanceAdjustmentTransaction`](#balanceadjustmenttransaction) 的一次性批量对应物）。
 - [`account_picker_util.dart`](../services/account_picker_util.md) — `normalizedAccountPickerOrder`、`normalizedAccountPickerSettings`、`sortAccountsForPicker`，贯穿 `_AccountPickerSettingsPage`"更多设置"子页使用。
-- [`bank_preset_service.dart`](../services/bank_preset_service.md) — `BankPreset.logoUrls`，[`_fetchBankIcon`](#fetchbankicon) 走的回退链。
+- [`bank_preset_service.dart`](../services/bank_preset_service.md) — `BankPreset.bundledLogoAsset` 和 `BankPreset.logoUrls`，[`_fetchBankIcon`](#fetchbankicon) 走的查找顺序。
 - [`bank_preset_picker.dart`](../widgets/bank_preset_picker.md) — `showBankPresetPicker`，由 [`_pickBankPreset`](#pickbankpreset) 打开。
 - [`add_transaction_dialog.dart`](../widgets/add_transaction_dialog.md) — `_AccountTransactionsPageState._handleAdd`/`_handleEdit` 打开的对话框，经 `initialAccountId` 预选聚焦账户，并消费本文件"更多设置"页编辑的同一 `AccountPickerSettings`。
 - [`grouped_transaction_list.dart`](../widgets/grouped_transaction_list.md) — `buildGroupedTransactionList`，由 `_AccountTransactionsPageState.build` 使用。
-- [`image_service.dart`](../../../shared/services/image_service.md) — `resolve`、`pickAndSaveImage`、`downloadAndSave`，用于账户头像和银行 logo。
+- [`image_service.dart`](../../../shared/services/image_service.md) — `resolve`、`pickAndSaveImage`、`copyAssetImage`、`downloadAndSave`，用于账户头像和银行 logo。
+- [`stored_image.dart`](../../../shared/widgets/stored_image.md) — `StoredImage` 和 `StoredImageAvatar`，渲染存储的账户图像（位图或 SVG）。
 - [`unsaved_changes_guard.dart`](../../../shared/widgets/unsaved_changes_guard.md) — `UnsavedChangesGuard`、`UnsavedChangesController`、`formSignature`，由 `_AccountDialog` 使用。

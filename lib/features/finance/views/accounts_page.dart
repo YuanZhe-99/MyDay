@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/services/image_service.dart';
+import '../../../shared/widgets/stored_image.dart';
 import '../../../shared/utils/adaptive_layout.dart';
 import '../../../shared/widgets/adaptive_tile_grid.dart';
 import '../../../shared/widgets/app_date_picker.dart';
@@ -889,8 +890,8 @@ class _AccountsPageState extends State<AccountsPage> {
         future: ImageService.resolve(account.imagePath!),
         builder: (context, snap) {
           if (snap.hasData && snap.data!.existsSync()) {
-            return CircleAvatar(
-              backgroundImage: FileImage(snap.data!),
+            return StoredImageAvatar(
+              snap.data!,
               backgroundColor: color.withValues(alpha: 0.15),
             );
           }
@@ -1935,7 +1936,7 @@ class _AccountDialogState extends State<_AccountDialog> {
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: Image.file(
+                      child: StoredImage(
                         snap.data!,
                         width: 48,
                         height: 48,
@@ -1976,7 +1977,8 @@ class _AccountDialogState extends State<_AccountDialog> {
               onPressed: _pickBankPreset,
             ),
             if (_selectedBank != null &&
-                _selectedBank!.domain.isNotEmpty &&
+                (_selectedBank!.domain.isNotEmpty ||
+                    _selectedBank!.bundledLogoAsset != null) &&
                 _imagePath == null &&
                 !_downloadingLogo)
               OutlinedButton.icon(
@@ -2028,20 +2030,27 @@ class _AccountDialogState extends State<_AccountDialog> {
     _fetchBankIcon();
   }
 
-  /// Purpose: Provide the internal fetch bank icon helper for this file.
-  /// Inputs: None.
+  /// Purpose: Store the selected preset's logo as the account image.
+  /// Inputs: None (reads `_selectedBank`).
   /// Returns: `Future<void>`.
-  /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
+  /// Side effects: Writes a file into `images/`; updates `_imagePath`, `_selectedEmoji` and
+  /// `_downloadingLogo`.
+  /// Notes: Full builds copy the bundled logo first (no network); when there is none, or it
+  /// fails to load, and always in Store builds, the `logoUrls` network chain runs as before.
   Future<void> _fetchBankIcon() async {
     final bank = _selectedBank;
-    if (bank == null || bank.logoUrls.isEmpty) return;
+    if (bank == null) return;
+    final asset = bank.bundledLogoAsset;
+    if (asset == null && bank.logoUrls.isEmpty) return;
 
     setState(() => _downloadingLogo = true);
     String? path;
-    for (final url in bank.logoUrls) {
-      path = await ImageService.downloadAndSave(url);
-      if (path != null) break;
+    if (asset != null) path = await ImageService.copyAssetImage(asset);
+    if (path == null) {
+      for (final url in bank.logoUrls) {
+        path = await ImageService.downloadAndSave(url);
+        if (path != null) break;
+      }
     }
     if (mounted) {
       setState(() {

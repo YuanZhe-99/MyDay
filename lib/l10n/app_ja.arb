@@ -50,6 +50,7 @@
   "todoSetDueDate": "期限を設定（任意）",
   "todoCustomEmoji": "カスタム絵文字",
   "todoCustomEmojiHint": "絵文字を入力",
+  "todoSuggestedIcons": "おすすめのアイコン",
   "todoEditSubtask": "サブタスクを編集",
   "todoSubtasksProgress": "サブタスク：{done}/{total}",
   "@todoSubtasksProgress": {

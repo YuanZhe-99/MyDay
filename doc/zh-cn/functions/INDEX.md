@@ -6,12 +6,12 @@
 
 | 度量 | 计数 |
 |---|---|
-| `grep -r '/// Purpose:' lib --include=*.dart` | **1423** |
-| 全部 77 页的声明表行 | **1463** |
-| ——其中 Tier A（完整条目） | 813 |
-| ——其中 Tier B（仅索引行） | 647 |
+| `grep -r '/// Purpose:' lib --include=*.dart` | **1456** |
+| 全部 85 页的声明表行 | **1502** |
+| ——其中 Tier A（完整条目） | 831 |
+| ——其中 Tier B（仅索引行） | 671 |
 
-下面的 **Declarations** 和 **Tier A** 列统计**每页声明表中的行**，这是可机械检查的数字。一行不总是一个 `/// Purpose:` 块，表行数超出 grep 计数的 37 行净差额被完整逐项列出——行数与自己的 `grep` 不同的每页都带一条 `**Reconciliation:**` 说明确切原因。有三个反复出现的原因：
+下面的 **Declarations** 和 **Tier A** 列统计**每页声明表中的行**，这是可机械检查的数字。一行不总是一个 `/// Purpose:` 块，表行数超出 grep 计数的 46 行净差额被完整逐项列出——行数与自己的 `grep` 不同的每页都带一条 `**Reconciliation:**` 说明确切原因。有三个反复出现的原因：
 
 - **文件级库注释**（`backup_service.dart`、`webdav_service.dart`、`import_export_service.dart`、`json_preservation.dart`、`sync_progress.dart`、`sync_wake_lock.dart`）：`import` 块上方的一个 `/// Purpose:` 块记录文件，不记录声明，因此被 `grep` 计数但得不到行。
 - **没有 `Purpose:` 块的真实声明**（枚举、顶层 `const`、Riverpod provider、`appRouter`）：无 `grep` 命中，但有一行，因为它们是文件表面的一部分。
@@ -30,8 +30,9 @@
 | 源文件 | 页面 | 声明数 | Tier A |
 |---|---|---|---|
 | `lib/app/app.dart` | [app/app.md](app/app.md) | 2 | 0 |
-| `lib/app/router.dart` | [app/router.md](app/router.md) | 1 | 1 |
+| `lib/app/build_flavor.dart` | [app/build_flavor.md](app/build_flavor.md) | 3 | 1 |
 | `lib/app/data_modules.dart` | [app/data_modules.md](app/data_modules.md) | 11 | 11 |
+| `lib/app/router.dart` | [app/router.md](app/router.md) | 1 | 1 |
 | `lib/app/theme.dart` | [app/theme.md](app/theme.md) | 3 | 2 |
 
 ## features/finance/
@@ -41,7 +42,8 @@
 | `lib/features/finance/models/finance.dart` | [features/finance/models/finance.md](features/finance/models/finance.md) | 28 | 24 |
 | `lib/features/finance/services/account_picker_util.dart` | [features/finance/services/account_picker_util.md](features/finance/services/account_picker_util.md) | 4 | 4 |
 | `lib/features/finance/services/balance_util.dart` | [features/finance/services/balance_util.md](features/finance/services/balance_util.md) | 14 | 14 |
-| `lib/features/finance/services/bank_preset_service.dart` | [features/finance/services/bank_preset_service.md](features/finance/services/bank_preset_service.md) | 10 | 6 |
+| `lib/features/finance/services/bank_logo_manifest.g.dart` | [features/finance/services/bank_logo_manifest.g.md](features/finance/services/bank_logo_manifest.g.md) | 1 | 1 |
+| `lib/features/finance/services/bank_preset_service.dart` | [features/finance/services/bank_preset_service.md](features/finance/services/bank_preset_service.md) | 12 | 7 |
 | `lib/features/finance/services/exchange_rate_api.dart` | [features/finance/services/exchange_rate_api.md](features/finance/services/exchange_rate_api.md) | 3 | 3 |
 | `lib/features/finance/services/exchange_rate_storage.dart` | [features/finance/services/exchange_rate_storage.md](features/finance/services/exchange_rate_storage.md) | 16 | 16 |
 | `lib/features/finance/services/finance_storage.dart` | [features/finance/services/finance_storage.md](features/finance/services/finance_storage.md) | 11 | 10 |
@@ -57,6 +59,7 @@
 | `lib/features/finance/views/subscriptions_page.dart` | [features/finance/views/subscriptions_page.md](features/finance/views/subscriptions_page.md) | 27 | 14 |
 | `lib/features/finance/widgets/add_subscription_dialog.dart` | [features/finance/widgets/add_subscription_dialog.md](features/finance/widgets/add_subscription_dialog.md) | 13 | 4 |
 | `lib/features/finance/widgets/add_transaction_dialog.dart` | [features/finance/widgets/add_transaction_dialog.md](features/finance/widgets/add_transaction_dialog.md) | 39 | 15 |
+| `lib/features/finance/widgets/bank_logo_image.dart` | [features/finance/widgets/bank_logo_image.md](features/finance/widgets/bank_logo_image.md) | 7 | 2 |
 | `lib/features/finance/widgets/bank_preset_picker.dart` | [features/finance/widgets/bank_preset_picker.md](features/finance/widgets/bank_preset_picker.md) | 11 | 1 |
 | `lib/features/finance/widgets/grouped_transaction_list.dart` | [features/finance/widgets/grouped_transaction_list.md](features/finance/widgets/grouped_transaction_list.md) | 2 | 2 |
 | `lib/features/finance/widgets/subscription_avatar.dart` | [features/finance/widgets/subscription_avatar.md](features/finance/widgets/subscription_avatar.md) | 4 | 1 |
@@ -89,11 +92,15 @@
 
 | 源文件 | 页面 | 声明数 | Tier A |
 |---|---|---|---|
+| `lib/features/todo/constants/emoji_keywords.dart` | [features/todo/constants/emoji_keywords.md](features/todo/constants/emoji_keywords.md) | 3 | 2 |
+| `lib/features/todo/constants/task_emojis.dart` | [features/todo/constants/task_emojis.md](features/todo/constants/task_emojis.md) | 1 | 1 |
 | `lib/features/todo/models/task.dart` | [features/todo/models/task.md](features/todo/models/task.md) | 38 | 37 |
 | `lib/features/todo/services/todo_storage.dart` | [features/todo/services/todo_storage.md](features/todo/services/todo_storage.md) | 43 | 42 |
+| `lib/features/todo/utils/emoji_suggester.dart` | [features/todo/utils/emoji_suggester.md](features/todo/utils/emoji_suggester.md) | 9 | 5 |
 | `lib/features/todo/views/todo_page.dart` | [features/todo/views/todo_page.md](features/todo/views/todo_page.md) | 73 | 33 |
-| `lib/features/todo/widgets/add_task_dialog.dart` | [features/todo/widgets/add_task_dialog.md](features/todo/widgets/add_task_dialog.md) | 15 | 5 |
-| `lib/features/todo/widgets/edit_task_dialog.dart` | [features/todo/widgets/edit_task_dialog.md](features/todo/widgets/edit_task_dialog.md) | 16 | 5 |
+| `lib/features/todo/widgets/add_task_dialog.dart` | [features/todo/widgets/add_task_dialog.md](features/todo/widgets/add_task_dialog.md) | 17 | 6 |
+| `lib/features/todo/widgets/edit_task_dialog.dart` | [features/todo/widgets/edit_task_dialog.md](features/todo/widgets/edit_task_dialog.md) | 18 | 6 |
+| `lib/features/todo/widgets/emoji_suggestion_row.dart` | [features/todo/widgets/emoji_suggestion_row.md](features/todo/widgets/emoji_suggestion_row.md) | 3 | 1 |
 | `lib/features/todo/widgets/recurrence_picker.dart` | [features/todo/widgets/recurrence_picker.md](features/todo/widgets/recurrence_picker.md) | 4 | 0 |
 | `lib/features/todo/widgets/task_section.dart` | [features/todo/widgets/task_section.md](features/todo/widgets/task_section.md) | 9 | 0 |
 
@@ -118,7 +125,7 @@
 | `lib/shared/services/auto_sync_service.dart` | [shared/services/auto_sync_service.md](shared/services/auto_sync_service.md) | 11 | 11 |
 | `lib/shared/services/backup_service.dart` | [shared/services/backup_service.md](shared/services/backup_service.md) | 12 | 12 |
 | `lib/shared/services/data_file_safety.dart` | [shared/services/data_file_safety.md](shared/services/data_file_safety.md) | 6 | 6 |
-| `lib/shared/services/image_service.dart` | [shared/services/image_service.md](shared/services/image_service.md) | 5 | 5 |
+| `lib/shared/services/image_service.dart` | [shared/services/image_service.md](shared/services/image_service.md) | 6 | 6 |
 | `lib/shared/services/import_export_service.dart` | [shared/services/import_export_service.md](shared/services/import_export_service.md) | 2 | 2 |
 | `lib/shared/services/local_api_server.dart` | [shared/services/local_api_server.md](shared/services/local_api_server.md) | 63 | 58 |
 | `lib/shared/services/mobile_notification_service.dart` | [shared/services/mobile_notification_service.md](shared/services/mobile_notification_service.md) | 9 | 7 |
@@ -137,6 +144,7 @@
 | `lib/shared/widgets/app_date_picker.dart` | [shared/widgets/app_date_picker.md](shared/widgets/app_date_picker.md) | 23 | 13 |
 | `lib/shared/widgets/delete_confirm.dart` | [shared/widgets/delete_confirm.md](shared/widgets/delete_confirm.md) | 1 | 1 |
 | `lib/shared/widgets/shell_scaffold.dart` | [shared/widgets/shell_scaffold.md](shared/widgets/shell_scaffold.md) | 10 | 4 |
+| `lib/shared/widgets/stored_image.dart` | [shared/widgets/stored_image.md](shared/widgets/stored_image.md) | 5 | 2 |
 | `lib/shared/widgets/sync_conflict_dialog.dart` | [shared/widgets/sync_conflict_dialog.md](shared/widgets/sync_conflict_dialog.md) | 6 | 0 |
 | `lib/shared/widgets/unsaved_changes_guard.dart` | [shared/widgets/unsaved_changes_guard.md](shared/widgets/unsaved_changes_guard.md) | 10 | 5 |
 
@@ -145,13 +153,13 @@
 | 区域 | 文件 | 声明数 | Tier A | Tier B |
 |---|---|---|---|---|
 | 根（`lib/`） | 1 | 1 | 1 | 0 |
-| `app/` | 4 | 17 | 14 | 3 |
-| `features/finance/` | 22 | 395 | 191 | 204 |
+| `app/` | 5 | 20 | 15 | 5 |
+| `features/finance/` | 24 | 405 | 195 | 210 |
 | `features/intimacy/` | 11 | 367 | 177 | 190 |
 | `features/settings/` | 3 | 33 | 8 | 25 |
-| `features/todo/` | 7 | 198 | 122 | 76 |
+| `features/todo/` | 11 | 218 | 133 | 85 |
 | `features/weight/` | 3 | 90 | 49 | 41 |
-| `shared/` | 26 | 362 | 250 | 112 |
-| **总计** | **77** | **1463** | **812** | **651** |
+| `shared/` | 27 | 368 | 253 | 115 |
+| **总计** | **85** | **1502** | **831** | **671** |
 
-这里的每行都是上面逐文件行的算术和，在 v1.4.3 中重新派生。文件计数也与 `find lib -name '*.dart' -not -path 'lib/l10n/*'` 完全匹配——75 个源文件、75 个页面，没有无页面的文件，也没有无文件的面。
+这里的每行都是上面逐文件行的算术和，在 v1.4.5 中重新派生。文件计数也与 `find lib -name '*.dart' -not -path 'lib/l10n/*'` 完全匹配——85 个源文件、85 个页面，没有无页面的文件，也没有无文件的面。

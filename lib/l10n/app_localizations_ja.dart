@@ -131,6 +131,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get todoCustomEmojiHint => '絵文字を入力';
 
   @override
+  String get todoSuggestedIcons => 'おすすめのアイコン';
+
+  @override
   String get todoEditSubtask => 'サブタスクを編集';
 
   @override

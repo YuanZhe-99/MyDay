@@ -132,6 +132,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get todoCustomEmojiHint => 'Enter an emoji';
 
   @override
+  String get todoSuggestedIcons => 'Suggested icons';
+
+  @override
   String get todoEditSubtask => 'Edit Subtask';
 
   @override

@@ -329,6 +329,12 @@ abstract class AppLocalizations {
   /// **'Enter an emoji'**
   String get todoCustomEmojiHint;
 
+  /// No description provided for @todoSuggestedIcons.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggested icons'**
+  String get todoSuggestedIcons;
+
   /// No description provided for @todoEditSubtask.
   ///
   /// In en, this message translates to:

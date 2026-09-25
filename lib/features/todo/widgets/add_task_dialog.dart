@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
@@ -5,7 +6,10 @@ import '../../../shared/utils/adaptive_layout.dart';
 import '../../../shared/widgets/adaptive_tile_grid.dart';
 import '../../../shared/widgets/app_date_picker.dart';
 import '../../../shared/widgets/unsaved_changes_guard.dart';
+import '../constants/task_emojis.dart';
 import '../models/task.dart';
+import '../utils/emoji_suggester.dart';
+import 'emoji_suggestion_row.dart';
 import 'recurrence_picker.dart';
 
 class AddTaskDialog extends StatefulWidget {
@@ -49,6 +53,16 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   final List<String> _subtaskTitles = [];
   late final String _initialSignature;
 
+  /// Emojis suggested for the current title, best first.
+  List<String> _suggestedEmojis = const [];
+
+  /// True once the user chose or removed an emoji themselves, or the prefilled task already had
+  /// one; stops title-driven auto-fill for the rest of this dialog session.
+  bool _emojiPickedManually = false;
+
+  /// Title text last seen by `_onTitleChanged`, so selection-only notifications are ignored.
+  String _lastTitleText = '';
+
   /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
   /// Inputs: None.
   /// Returns: None.
@@ -73,6 +87,10 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
         _subtaskTitles.add(s.title);
       }
     }
+    _emojiPickedManually = _selectedEmoji != null;
+    _lastTitleText = _titleController.text;
+    _suggestedEmojis = suggestEmojis(_titleController.text);
+    _titleController.addListener(_onTitleChanged);
     _initialSignature = _signature();
   }
 
@@ -83,6 +101,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   /// Notes: Call the superclass implementation in the expected lifecycle order.
   @override
   void dispose() {
+    _titleController.removeListener(_onTitleChanged);
     _titleController.dispose();
     _noteController.dispose();
     _subtaskController.dispose();
@@ -155,6 +174,14 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                   ),
                 ],
               ),
+              if (_suggestedEmojis.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                EmojiSuggestionRow(
+                  suggestions: _suggestedEmojis,
+                  selected: _selectedEmoji,
+                  onSelected: _pickEmoji,
+                ),
+              ],
               const SizedBox(height: 16),
 
               TextField(
@@ -387,40 +414,39 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
     });
   }
 
-  static const _commonEmojis = [
-    '📝',
-    '🏃',
-    '📖',
-    '💪',
-    '🧘',
-    '🎯',
-    '📧',
-    '☎️',
-    '🛒',
-    '🧹',
-    '👨‍💻',
-    '✍️',
-    '📅',
-    '🔧',
-    '🎓',
-    '💼',
-    '🍳',
-    '🚗',
-    '💊',
-    '🐕',
-    '🏠',
-    '🎵',
-    '🎨',
-    '📸',
-    '💡',
-    '🔬',
-    '📊',
-    '🗂️',
-    '✈️',
-    '💤',
-    '🏋️',
-    '🧑‍🍳',
-  ];
+  /// Purpose: Recompute emoji suggestions when the title changes and auto-fill the icon.
+  /// Inputs: None (reads `_titleController.text`).
+  /// Returns: None.
+  /// Side effects: Calls `setState`; replaces `_selectedEmoji` while `_emojiPickedManually` is false.
+  /// Notes: Auto-fill follows the best suggestion and clears the icon when no suggestion is left,
+  /// so a stale auto-filled emoji never outlives the text that produced it. The controller also
+  /// notifies on selection changes (including the cursor placed when the autofocused field gains
+  /// focus), so only a real text change is acted on — opening an untouched task never auto-fills
+  /// or dirties the form.
+  void _onTitleChanged() {
+    final text = _titleController.text;
+    if (text == _lastTitleText) return;
+    _lastTitleText = text;
+    final next = suggestEmojis(_titleController.text);
+    final emoji = _emojiPickedManually ? _selectedEmoji : next.firstOrNull;
+    if (listEquals(next, _suggestedEmojis) && emoji == _selectedEmoji) return;
+    setState(() {
+      _suggestedEmojis = next;
+      _selectedEmoji = emoji;
+    });
+  }
+
+  /// Purpose: Apply an emoji the user chose themselves (grid, chip, custom input, or removal).
+  /// Inputs: `emoji` (null removes the icon).
+  /// Returns: None.
+  /// Side effects: Calls `setState`; sets `_selectedEmoji` and stops auto-fill for this dialog.
+  /// Notes: Every manual path goes through here so auto-fill can never overwrite a user choice.
+  void _pickEmoji(String? emoji) {
+    setState(() {
+      _selectedEmoji = emoji;
+      _emojiPickedManually = true;
+    });
+  }
 
   /// Purpose: Provide the internal show emoji picker helper for this file.
   /// Inputs: `context`.
@@ -442,63 +468,70 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 12),
-              LayoutBuilder(
-                builder: (context, constraints) => GridView.builder(
-                  shrinkWrap: true,
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    // Cells are square tap targets holding a single glyph, so
-                    // the tap target is the minimum. A fixed count made them
-                    // smaller than 44 dp on a narrow phone and wasted the room
-                    // a wide dialog gives them.
-                    crossAxisCount: columnCapacity(
-                      constraints.maxWidth,
-                      minItemWidth: pickerCellMinWidth,
-                      gap: 4,
-                      maxColumns: pickerMaxColumns,
+              // Flexible lets the grid scroll inside the sheet once the list
+              // outgrows it (the candidate list is far taller than 9/16 of a
+              // phone screen).
+              Flexible(
+                child: LayoutBuilder(
+                  builder: (context, constraints) => GridView.builder(
+                    shrinkWrap: true,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      // Cells are square tap targets holding a single glyph, so
+                      // the tap target is the minimum. A fixed count made them
+                      // smaller than 44 dp on a narrow phone and wasted the room
+                      // a wide dialog gives them.
+                      crossAxisCount: columnCapacity(
+                        constraints.maxWidth,
+                        minItemWidth: pickerCellMinWidth,
+                        gap: 4,
+                        maxColumns: pickerMaxColumns,
+                      ),
+                      mainAxisSpacing: 4,
+                      crossAxisSpacing: 4,
                     ),
-                    mainAxisSpacing: 4,
-                    crossAxisSpacing: 4,
-                  ),
-                  itemCount: _commonEmojis.length + 1,
-                  itemBuilder: (context, index) {
-                    if (index < _commonEmojis.length) {
-                      final emoji = _commonEmojis[index];
+                    itemCount: commonTaskEmojis.length + 1,
+                    itemBuilder: (context, index) {
+                      if (index < commonTaskEmojis.length) {
+                        final emoji = commonTaskEmojis[index];
+                        return InkWell(
+                          borderRadius: BorderRadius.circular(8),
+                          onTap: () {
+                            _pickEmoji(emoji);
+                            Navigator.pop(context);
+                          },
+                          child: Center(
+                            child: Text(
+                              emoji,
+                              style: const TextStyle(fontSize: 24),
+                            ),
+                          ),
+                        );
+                      }
                       return InkWell(
                         borderRadius: BorderRadius.circular(8),
                         onTap: () {
-                          setState(() => _selectedEmoji = emoji);
                           Navigator.pop(context);
+                          _showCustomEmojiInput(context);
                         },
                         child: Center(
-                          child: Text(
-                            emoji,
-                            style: const TextStyle(fontSize: 24),
+                          child: Icon(
+                            Icons.edit_outlined,
+                            size: 24,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       );
-                    }
-                    return InkWell(
-                      borderRadius: BorderRadius.circular(8),
-                      onTap: () {
-                        Navigator.pop(context);
-                        _showCustomEmojiInput(context);
-                      },
-                      child: Center(
-                        child: Icon(
-                          Icons.edit_outlined,
-                          size: 24,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    );
-                  },
+                    },
+                  ),
                 ),
               ),
               const SizedBox(height: 8),
               Center(
                 child: TextButton(
                   onPressed: () {
-                    setState(() => _selectedEmoji = null);
+                    _pickEmoji(null);
                     Navigator.pop(context);
                   },
                   child: Text(AppLocalizations.of(context)!.commonRemoveIcon),
@@ -531,7 +564,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
           onSubmitted: (value) {
             final text = value.trim();
             if (text.isNotEmpty) {
-              setState(() => _selectedEmoji = text.characters.first);
+              _pickEmoji(text.characters.first);
             }
             Navigator.pop(ctx);
           },
@@ -545,7 +578,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
             onPressed: () {
               final text = controller.text.trim();
               if (text.isNotEmpty) {
-                setState(() => _selectedEmoji = text.characters.first);
+                _pickEmoji(text.characters.first);
               }
               Navigator.pop(ctx);
             },

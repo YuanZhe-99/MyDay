@@ -110,6 +110,13 @@ the same change (per the project's maintenance rule).
   use a caret constraint. Its Dart API is `FilePicker.platform.*`.
 - Signing reads `android/key.properties` if present and falls back to debug signing locally;
   release signing secrets are injected in CI.
+- **Product flavors `full` and `store`** (`flavorDimensions += "distribution"`, v1.4.5). Both share
+  the same `applicationId` and the same signing config; they differ only in what the Flutter side
+  bundles — Store builds ship no bank logos (CI strips them before the store build, see
+  [CI/CD](ci-cd.md)). With flavors defined, every Android `flutter run` / `flutter build` must pass
+  `--flavor full` or `--flavor store`; the flavor reaches Dart as `appFlavor` and is read only by
+  `lib/app/build_flavor.dart` (see [Architecture](architecture.md)). Outputs are named
+  `app-full-release.apk` and `app-store-release.aab`.
 - Manifest permissions include internet, notification, and boot-related entries needed by scheduled
   notifications. `SCHEDULE_EXACT_ALARM` is intentionally not declared because all scheduling uses
   inexact modes.
@@ -155,6 +162,9 @@ the same change (per the project's maintenance rule).
 - `PrivilegesRequired=lowest`; do not introduce admin requirements without a clear reason.
 - App icon: `windows/runner/resources/app_icon.ico`.
 - MSIX config in `pubspec.yaml` uses `internetClient` and `install_certificate: false`.
+- Windows has no `--flavor`; the distribution flavor is carried by `--dart-define=FLAVOR=` alone
+  (CI builds pass `FLAVOR=full`, so Windows installers include the bundled bank logos). iOS and
+  macOS likewise use only `--dart-define=FLAVOR=full` and define no native flavors.
 
 ## Related pages
 

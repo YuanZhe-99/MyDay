@@ -35,6 +35,20 @@ android {
         versionName = flutter.versionName
     }
 
+    // Distribution flavors. Same applicationId and signing; the only difference is which
+    // assets the Flutter side bundles (Store builds ship no bank logos — CI runs
+    // tool/strip_bank_logos.dart before the store build). With flavors defined, every Android
+    // `flutter run` / `flutter build` must pass `--flavor full` or `--flavor store`.
+    flavorDimensions += "distribution"
+    productFlavors {
+        create("full") {
+            dimension = "distribution"
+        }
+        create("store") {
+            dimension = "distribution"
+        }
+    }
+
     signingConfigs {
         if (keystorePropertiesFile.exists()) {
             create("release") {

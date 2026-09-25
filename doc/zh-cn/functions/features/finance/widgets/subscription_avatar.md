@@ -17,14 +17,14 @@
 
 ### `Widget build(BuildContext context)` <a id="build"></a>
 - **种类：** `SubscriptionAvatar` 的方法
-- **来源：** `lib/features/finance/widgets/subscription_avatar.dart`（第 38 行）
+- **来源：** `lib/features/finance/widgets/subscription_avatar.dart`（第 39 行）
 - **用途：** 经四层回退链解析头像：订阅自己的图像，然后是它自己的 emoji，然后是关联账户的图像，然后是关联分类的 emoji，最后是通用的重复图标。
 - **输入：** `context`；组件的 `subscription`、`account`、`category` 字段。
 - **返回：** `Widget`。
 - **副作用：** `FutureBuilder` 分支在返回组件自己的构建中经 `ImageService.resolve` 解析图像文件。
 - **算法：**
   1. 两个嵌套本地辅助：`emojiAvatar(String emoji)`（以 emoji 为文本的着色 `CircleAvatar`）和 `defaultIcon()`（带 `Icons.repeat` 的着色 `CircleAvatar`）；着色为 10% 透明度的 `theme.colorScheme.error`。
-  2. `subscription.imagePath != null` → `FutureBuilder<File>`；解析出的文件存在时作为 `CircleAvatar.backgroundImage` 显示；否则落到订阅的 emoji 或 `defaultIcon()`。
+  2. `subscription.imagePath != null` → `FutureBuilder<File>`；解析出的文件存在时作为 [`StoredImageAvatar`](../../../shared/widgets/stored_image.md#storedimageavatar-build) 显示（位图或 SVG）；否则落到订阅的 emoji 或 `defaultIcon()`。
   3. 否则 `subscription.emoji != null` → `emojiAvatar`。
   4. 否则 `account?.imagePath != null` → 同样的 `FutureBuilder` 模式，回退到分类的 emoji 或 `defaultIcon()`。
   5. 否则 `category?.emoji != null` → `emojiAvatar`；再否则 `defaultIcon()`。
@@ -36,3 +36,4 @@
 - [`subscriptions_page.md`](../views/subscriptions_page.md) — `_SubscriptionTile`。
 - [`finance_page.md`](../views/finance_page.md) — `_SubscriptionOverviewTile`。
 - [`image_service.md`](../../../shared/services/image_service.md) — `resolve`。
+- [`stored_image.md`](../../../shared/widgets/stored_image.md) — `StoredImageAvatar`。

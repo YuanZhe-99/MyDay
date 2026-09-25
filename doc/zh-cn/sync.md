@@ -47,7 +47,7 @@ for (final c in recordConflicts) {
 | `exchange_rates.json` | `mergeExchangeRateJson()` | 快照并集；更新的有效当前快照胜出（解析不到快照的当前 id 被忽略）；更新的 `lastFetchedAt` 胜出 |
 | `intimacy_data.json` | `mergeIntimacyData()` | 伴侣/玩具/姿势/记录/周期记录按 id + `modifiedAt`（伴侣 `body` 搭其伴侣记录同行）；计时器历史按开始并集；计时器会话按 `timerSessionModifiedAt` LWW；`userBody` 按 `userBodyModifiedAt` LWW；设置 LWW（排序设置和 `chartSettings`） |
 | `weight_data.json` | `mergeWeightData()` | 记录按 id + `modifiedAt`；身高跟随设置 LWW（保存体重数据会 bump `settingsModifiedAt`，因此清空身高会同步）；提醒/设置 LWW |
-| `images/*` | `_syncImages()` | 添加式双向，但只针对引用的图像 |
+| `images/*` | `_syncImages()` | 添加式双向，但只针对引用的图像；与扩展名无关，因此 `.svg` 标志和其他图像一样同步 |
 
 由 `TodoStorage.setStoragePath()` 移动的文件是 `todo_data.json`、`finance_data.json`、`exchange_rates.json`、`intimacy_data.json`、`weight_data.json` 和 `webdav_config.json`。`storage_config.json` 总是留在默认应用目录。`images/`、`backups/` 和 `.sync_base/` 等目录不被那个文件列表移动。
 

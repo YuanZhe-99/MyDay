@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/services/image_service.dart';
+import '../../../shared/widgets/stored_image.dart';
 import '../../../shared/widgets/delete_confirm.dart';
 import '../models/finance.dart';
 import '../../../shared/utils/adaptive_layout.dart';
@@ -421,8 +422,8 @@ class _TxTile extends StatelessWidget {
         future: ImageService.resolve(account!.imagePath!),
         builder: (context, snap) {
           if (snap.hasData && snap.data!.existsSync()) {
-            return CircleAvatar(
-              backgroundImage: FileImage(snap.data!),
+            return StoredImageAvatar(
+              snap.data!,
               backgroundColor: color.withValues(alpha: 0.1),
             );
           }

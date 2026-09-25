@@ -205,9 +205,17 @@ committed. Fresh clones need `git clone --recurse-submodules` or `git submodule 
 - **Optional fields omitted, not null-written.** Optional/empty fields are usually left out of the
   JSON map entirely via conditional map entries (`if (x != null) 'x': x`) rather than serialized as
   explicit `null`.
-- **No app-side flavor gate.** CI passes `--dart-define=FLAVOR=full` or `store`, but there is
-  currently no flavor-based behavior gate inside `lib/` — don't assume store/full behavior differs
-  at runtime unless it is added and documented.
+- **One flavor gate, in one file.** `lib/app/build_flavor.dart` is the only place `lib/` reads the
+  distribution flavor: `isStoreBuild` is true when the platform flavor (`appFlavor`, Android
+  `--flavor store`) or the dart-define (`--dart-define=FLAVOR=store`) says `store`. It currently
+  gates exactly one behavior — bundled bank logos (`bundledBankLogosEnabled`, read by
+  `BankPreset.bundledLogoAsset`); Full and Store builds otherwise behave identically. Android builds
+  pass `--flavor full|store` (real product flavors in `android/app/build.gradle.kts`); Windows has
+  no `--flavor` and relies on the dart-define alone; iOS and macOS pass `FLAVOR=full`. The flag only
+  changes lookups — keeping the logo bytes out of the Store package is the CI strip step
+  (`tool/strip_bank_logos.dart`, see [CI/CD](ci-cd.md)), not the flag. New Store-only behavior must
+  read `isStoreBuild` from that file and be documented here. See
+  [`build_flavor.dart`](functions/app/build_flavor.md).
 
 ## Related pages
 

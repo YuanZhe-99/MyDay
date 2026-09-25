@@ -131,6 +131,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get todoCustomEmojiHint => '输入一个 emoji';
 
   @override
+  String get todoSuggestedIcons => '推荐图标';
+
+  @override
   String get todoEditSubtask => '编辑子任务';
 
   @override
@@ -2248,6 +2251,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get todoCustomEmojiHint => '輸入一個 emoji';
+
+  @override
+  String get todoSuggestedIcons => '建議圖示';
 
   @override
   String get todoEditSubtask => '編輯子任務';

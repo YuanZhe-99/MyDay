@@ -22,7 +22,7 @@ reports 4, matching the 4 rows above exactly (1 Tier A, 3 Tier B).
 
 ### `Widget build(BuildContext context)` <a id="build"></a>
 - **Kind:** method of `SubscriptionAvatar`
-- **Source:** `lib/features/finance/widgets/subscription_avatar.dart` (line 38)
+- **Source:** `lib/features/finance/widgets/subscription_avatar.dart` (line 39)
 - **Purpose:** Resolve the avatar through a four-tier fallback chain: the subscription's own image,
   then its own emoji, then the linked account's image, then the linked category's emoji, finally a
   generic repeat icon.
@@ -35,8 +35,8 @@ reports 4, matching the 4 rows above exactly (1 Tier A, 3 Tier B).
      as text) and `defaultIcon()` (a tinted `CircleAvatar` with `Icons.repeat`); the tint is
      `theme.colorScheme.error` at 10% alpha.
   2. `subscription.imagePath != null` → `FutureBuilder<File>`; if the resolved file exists, show it
-     as `CircleAvatar.backgroundImage`; otherwise fall through to the subscription's emoji or
-     `defaultIcon()`.
+     as a [`StoredImageAvatar`](../../../shared/widgets/stored_image.md#storedimageavatar-build)
+     (raster or SVG); otherwise fall through to the subscription's emoji or `defaultIcon()`.
   3. Else `subscription.emoji != null` → `emojiAvatar`.
   4. Else `account?.imagePath != null` → the same `FutureBuilder` pattern, falling back to the
      category's emoji or `defaultIcon()`.
@@ -51,3 +51,4 @@ reports 4, matching the 4 rows above exactly (1 Tier A, 3 Tier B).
 - [`subscriptions_page.md`](../views/subscriptions_page.md) — `_SubscriptionTile`.
 - [`finance_page.md`](../views/finance_page.md) — `_SubscriptionOverviewTile`.
 - [`image_service.md`](../../../shared/services/image_service.md) — `resolve`.
+- [`stored_image.md`](../../../shared/widgets/stored_image.md) — `StoredImageAvatar`.

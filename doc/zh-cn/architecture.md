@@ -133,7 +133,7 @@ WebDAV 同步引擎、备份引擎、ZIP 传输引擎、原子写入器和自动
 - **类型化存储异常和阻塞加载错误 UI 模式。** `load()` 只在数据文件不存在时返回 `null`。存在但不可读的文件抛出类型化异常——`FinanceStorageException` / `IntimacyStorageException` / `WeightStorageException` / `TodoStorageException`（底层是来自 `data_file_safety.dart` 的 `DataFileValidationException`）——因此损坏数据绝不静默当作空数据集。`DataFileSafety.validateDataJson` 对那个已知文件名用真实模型解析器解析 JSON，并把任何失败包装进 `DataFileValidationException`。每个主页都镜像 `finance_page.dart`：它显示阻塞加载错误视图、文件不可读时用 `<module>DataWriteBlocked` SnackBar 拒绝 `_saveData`，并在文件重新可读时自动恢复（`AutoSyncService` 重载监听器重新运行 `_loadData`）。只读的 Todo/Weight 提醒调用方捕获该异常并只跳过那一趟，而不是让提醒循环崩溃。
 - **UTC `modifiedAt` + `settingsModifiedAt` 供最后写入者胜出。** 记录模型用 `DateTime.now().toUtc()` 作为 `modifiedAt`。设置级合并用显式 `settingsModifiedAt` 字段（也是 UTC）做 LWW 设置解决。本地时间 `modifiedAt` 值会破坏跨时区的同步冲突检测；以本地时间写入的旧数据保持可解析兼容，但所有新写入必须是 UTC。这些时间戳如何驱动合并见 [数据格式](data-formats.md) 和 [WebDAV 同步](sync.md)。
 - **可选字段省略，不写 null。** 可选/空字段通常通过条件映射条目（`if (x != null) 'x': x`）完全留在 JSON 映射之外，而不是序列化为显式 `null`。
-- **无应用侧风味门。** CI 传 `--dart-define=FLAVOR=full` 或 `store`，但目前 `lib/` 内没有基于风味的运行时行为门——除非被添加并文档化，否则不要假设 store/full 行为在运行时不同。
+- **只有一个风味门，且只在一个文件里。** `lib/app/build_flavor.dart` 是 `lib/` 中唯一读取发行构建风味的地方：当平台风味（`appFlavor`，即 Android `--flavor store`）或 dart-define（`--dart-define=FLAVOR=store`）为 `store` 时，`isStoreBuild` 为真。它目前只控制一项行为——内置银行标志（`bundledBankLogosEnabled`，由 `BankPreset.bundledLogoAsset` 读取）；除此之外完整版构建与商店版构建行为完全相同。Android 构建传 `--flavor full|store`（`android/app/build.gradle.kts` 中真实的构建风味）；Windows 没有 `--flavor`，只靠 dart-define；iOS 和 macOS 传 `FLAVOR=full`。该标志只改变查找——把标志字节排除在商店版包之外靠的是 CI 剥离步骤（`tool/strip_bank_logos.dart`，见 [CI/CD](ci-cd.md)），而不是这个标志。新的商店版专属行为必须从该文件读取 `isStoreBuild`，并在此处文档化。见 [`build_flavor.dart`](functions/app/build_flavor.md)。
 
 ## 相关页面
 

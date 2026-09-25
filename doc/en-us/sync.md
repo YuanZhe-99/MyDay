@@ -83,7 +83,7 @@ Reproduced from `AGENTS.md`:
 | `exchange_rates.json` | `mergeExchangeRateJson()` | Snapshot union; newer valid current snapshot wins (a current id that does not resolve to a snapshot is ignored); newer `lastFetchedAt` wins |
 | `intimacy_data.json` | `mergeIntimacyData()` | Partners/toys/positions/records/cycleRecords by id + `modifiedAt` (partner `body` rides its partner record); timer history union by start; timer session LWW by `timerSessionModifiedAt`; `userBody` LWW by `userBodyModifiedAt`; settings LWW (sort settings and `chartSettings`) |
 | `weight_data.json` | `mergeWeightData()` | Records by id + `modifiedAt`; height follows settings LWW (saving weight data bumps `settingsModifiedAt`, so clearing height syncs); reminder/settings LWW |
-| `images/*` | `_syncImages()` | Additive bidirectional, but only for referenced images |
+| `images/*` | `_syncImages()` | Additive bidirectional, but only for referenced images; extension-agnostic, so `.svg` logos sync like any other image |
 
 Files moved by `TodoStorage.setStoragePath()` are `todo_data.json`, `finance_data.json`,
 `exchange_rates.json`, `intimacy_data.json`, `weight_data.json`, and `webdav_config.json`.

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../../../shared/services/image_service.dart';
+import '../../../shared/widgets/stored_image.dart';
 import '../models/finance.dart';
 
 /// The leading avatar for a subscription, shared by the subscriptions page's
@@ -65,8 +66,8 @@ class SubscriptionAvatar extends StatelessWidget {
         future: ImageService.resolve(sub.imagePath!),
         builder: (context, snap) {
           if (snap.hasData && snap.data!.existsSync()) {
-            return CircleAvatar(
-              backgroundImage: FileImage(snap.data!),
+            return StoredImageAvatar(
+              snap.data!,
               backgroundColor: color.withValues(alpha: 0.1),
             );
           }
@@ -82,8 +83,8 @@ class SubscriptionAvatar extends StatelessWidget {
         future: ImageService.resolve(account!.imagePath!),
         builder: (context, snap) {
           if (snap.hasData && snap.data!.existsSync()) {
-            return CircleAvatar(
-              backgroundImage: FileImage(snap.data!),
+            return StoredImageAvatar(
+              snap.data!,
               backgroundColor: color.withValues(alpha: 0.1),
             );
           }

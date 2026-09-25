@@ -83,9 +83,12 @@ files plus images (the older CSV/JSON-file import flows were removed in v1.1.1).
   import correctly), validated before anything is replaced (again via `DataFileSafety`), and written
   through tmp-then-rename.
 
-`ImageService` picks local images, downloads logos/photos, stores them under `images/` with UUID
-filenames, resolves relative paths, and rejects tiny placeholder downloads (a defense against
-broken/blank image URLs being saved as real images).
+`ImageService` picks local images, downloads logos/photos, copies bundled bank logos (Full builds),
+stores them under `images/` with UUID filenames, resolves relative paths, and rejects tiny
+placeholder downloads (a defense against broken/blank image URLs being saved as real images). A
+copied bundled logo is an ordinary `images/` file and may be an `.svg`; backup blobs keep each
+image's extension (`<sha256><ext>`) and ZIP export/import copy `images/` files by name, so SVGs
+back up and restore with no format change.
 
 ## Related pages
 

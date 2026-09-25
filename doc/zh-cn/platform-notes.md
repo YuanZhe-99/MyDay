@@ -53,6 +53,7 @@
 - **Kotlin 迁移状态（应用侧已迁移）：** Gradle wrapper `9.3.1`、AGP `9.1.1`；应用不再应用 `kotlin-android`。Kotlin `jvmTarget` 经顶层 `kotlin { compilerOptions { jvmTarget = JvmTarget.JVM_17 } }` 块设置（不用 `jvmToolchain`，它需要真实安装 JDK 17；不用已移除的 `kotlinOptions`）。`android/gradle.properties` 保留 Flutter 迁移器兼容标志 `android.builtInKotlin=false` 和 `android.newDsl=false`，因为多个插件仍应用 KGP——把 `builtInKotlin` 设为 `true` 会破坏每个应用 KGP 的插件（已验证）。`org.jetbrains.kotlin.android` 在 `settings.gradle.kts` 中保持声明（`apply false`），使应用 KGP 的插件能解析它。
 - **`file_picker` 精确固定为 `10.3.7`**：既自己应用 KGP（`builtInKotlin=false` 时需要）*又*能对照 `flutter.compileSdkVersion` 编译（AGP 9 AAR 元数据检查需要）的最后一个版本。`10.3.9`+ 和 `11.x` 依赖 AGP 内置 Kotlin，在兼容模式下无法编译；`10.3.2` 及更早固定 `compileSdk 34`，无法通过元数据检查。不要用 caret 约束。其 Dart API 是 `FilePicker.platform.*`。
 - 签名读取 `android/key.properties`（如存在）并在本地回退调试签名；发布签名秘密在 CI 中注入。
+- **构建风味 `full` 和 `store`**（`flavorDimensions += "distribution"`，v1.4.5）。两者共用同一个 `applicationId` 和同一套签名配置；区别只在 Flutter 侧打包的内容——商店版构建不含银行标志（CI 在商店版构建前剥离它们，见 [CI/CD](ci-cd.md)）。定义了风味之后，每次 Android `flutter run` / `flutter build` 都必须传 `--flavor full` 或 `--flavor store`；风味以 `appFlavor` 传到 Dart，只由 `lib/app/build_flavor.dart` 读取（见 [架构](architecture.md)）。输出名为 `app-full-release.apk` 和 `app-store-release.aab`。
 - 清单权限包括调度通知需要的 internet、notification 和 boot 相关条目。`SCHEDULE_EXACT_ALARM` 刻意不声明，因为所有调度使用非精确模式。
 - **activity 的 `configChanges` 必须保留 `screenLayout|screenSize|smallestScreenSize|density`。** 有了它们，窗口缩放时不重启 activity，因此所有读 `MediaQuery.sizeOf` 的地方都会在下一帧重新求值，折叠或展开的设备切换布局时不丢状态、不改路由。去掉其中任何一项，activity 都会在折叠过程中被重建，丢掉所有未持久化的页面状态。参见 [自适应布局](adaptive-layout.md)。
 - CI 仍为 `flutter_timezone`、`package_info_plus`、`shared_preferences_android`、`wakelock_plus`、`flutter_local_notifications` 和 `file_picker` 打印 Flutter 的"应用 KGP 的插件"警告——仅插件侧，截至 2026-07 即使它们的最新版本仍应用 KGP。彻底消除需要在每个插件都提供 Built-in Kotlin 支持后翻转为 `android.builtInKotlin=true`。
@@ -80,6 +81,7 @@
 - `PrivilegesRequired=lowest`；没有明确理由不要引入管理员要求。
 - 应用图标：`windows/runner/resources/app_icon.ico`。
 - `pubspec.yaml` 中的 MSIX 配置使用 `internetClient` 和 `install_certificate: false`。
+- Windows 没有 `--flavor`；发行构建风味只由 `--dart-define=FLAVOR=` 承载（CI 构建传 `FLAVOR=full`，因此 Windows 安装包包含内置银行标志）。iOS 和 macOS 同样只用 `--dart-define=FLAVOR=full`，不定义原生风味。
 
 ## 相关页面
 

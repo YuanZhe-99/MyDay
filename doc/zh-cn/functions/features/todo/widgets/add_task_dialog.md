@@ -1,6 +1,6 @@
 # lib/features/todo/widgets/add_task_dialog.dart
 
-创建新 [`Task`](../../../../features/todo.md#model) 的模态对话框（或提供 `initialTask` 时，提示用户创建已完重复一次性任务的*下一次出现*——见 [Todo](../../../../features/todo.md#model) 的 `TaskRecurrence`/`nextDate`）。把其表单包在 `UnsavedChangesGuard`（`lib/shared/widgets/unsaved_changes_guard.dart`）中，使带未保存编辑导航离开时提示丢弃确认；守卫的脏检查由从每个可编辑字段计算的表单"签名"字符串驱动。重复编辑委托给以嵌套底部面板显示的 [`RecurrencePicker`](recurrence_picker.md)。
+创建新 [`Task`](../../../../features/todo.md#model) 的模态对话框（或提供 `initialTask` 时，提示用户创建已完重复一次性任务的*下一次出现*——见 [Todo](../../../../features/todo.md#model) 的 `TaskRecurrence`/`nextDate`）。把其表单包在 `UnsavedChangesGuard`（`lib/shared/widgets/unsaved_changes_guard.dart`）中，使带未保存编辑导航离开时提示丢弃确认；守卫的脏检查由从每个可编辑字段计算的表单"签名"字符串驱动。重复编辑委托给以嵌套底部面板显示的 [`RecurrencePicker`](recurrence_picker.md)。自 v1.4.5 起，标题字段驱动表情建议：标题下方的 [`EmojiSuggestionRow`](emoji_suggestion_row.md) 显示来自 [`suggestEmojis`](../utils/emoji_suggester.md#suggestemojis) 的标签，图标在用户自行选择前从最佳建议自动填充（见 [`_onTitleChanged`](#ontitlechanged) 和 [待办——表情建议](../../../../features/todo.md#emoji-suggestions)）。选择器网格读取共享的 [`commonTaskEmojis`](../constants/task_emojis.md)；本文件原先自带的私有 `_commonEmojis` 列表已删除。
 
 ## 声明
 
@@ -8,12 +8,14 @@
 |---|---|---|---|
 | `AddTaskDialog`（构造函数） | 构造函数（`AddTaskDialog`） | B | 创建添加任务对话框实例。 |
 | `createState` | 方法（`AddTaskDialog`） | B | 创建可变 `_AddTaskDialogState`。 |
-| `initState` | 方法（`_AddTaskDialogState`） | B | 从 `initialTask` 预填控制器/字段（编辑下一次出现提示时）并捕获初始表单签名。 |
-| `dispose` | 方法（`_AddTaskDialogState`） | B | 释放标题/备注/子任务文本控制器。 |
-| `build` | 方法（`_AddTaskDialogState`） | B | 渲染标题/备注字段、类型选择器、提醒/安排/截止/重复选择器、子任务列表和取消/添加操作。 |
+| `initState` | 方法（`_AddTaskDialogState`） | B | 从 `initialTask` 预填控制器/字段（编辑下一次出现提示时），预填 emoji 存在时设置 `_emojiPickedManually`，把初始标题记入 `_lastTitleText`，初始化 `_suggestedEmojis`，注册 `_onTitleChanged` 标题监听器，然后捕获初始表单签名。 |
+| `dispose` | 方法（`_AddTaskDialogState`） | B | 移除 `_onTitleChanged` 监听器，然后释放标题/备注/子任务文本控制器。 |
+| `build` | 方法（`_AddTaskDialogState`） | B | 渲染 emoji 框和标题字段、其下方的 `EmojiSuggestionRow`（仅在有建议时）、备注字段、类型选择器、提醒/安排/截止/重复选择器、子任务列表和取消/添加操作。 |
 | `_addSubtask` | 方法（`_AddTaskDialogState`） | B | 把挂起子任务输入文本追加进 `_subtaskTitles` 并清除字段。 |
-| `_showEmojiPicker` | 方法（组件辅助，`_AddTaskDialogState`） | B | 显示用于挑选 `_selectedEmoji` 的 emoji 网格底部面板。 |
-| `_showCustomEmojiInput` | 方法（组件辅助，`_AddTaskDialogState`） | B | 显示用于输入自定义 emoji/字符的对话框。 |
+| [`_onTitleChanged`](#ontitlechanged) | 方法（`_AddTaskDialogState`） | A | 标题变化时重新计算表情建议并自动填充图标。 |
+| `_pickEmoji` | 方法（`_AddTaskDialogState`） | B | 应用用户自选的 emoji（网格、标签、自定义输入，或 `null` 表示移除）并设置 `_emojiPickedManually`，停止自动填充。 |
+| `_showEmojiPicker` | 方法（组件辅助，`_AddTaskDialogState`） | B | 显示底部面板，内含 `commonTaskEmojis` 网格（包在 `Flexible` 中以便滚动）、自定义 emoji 格和移除按钮；每个选择都经过 `_pickEmoji`。 |
+| `_showCustomEmojiInput` | 方法（组件辅助，`_AddTaskDialogState`） | B | 显示用于输入自定义 emoji/字符的对话框；其第一个字素经过 `_pickEmoji`。 |
 | [`_hasUnsavedChanges`](#hasunsavedchanges) | 方法（`_AddTaskDialogState`） | A | 报告表单是否不同于其初始状态。 |
 | [`_signature`](#signature) | 方法（`_AddTaskDialogState`） | A | 构建每个可编辑字段的可比较字符串快照。 |
 | [`_recurrenceSignature`](#recurrencesignature) | 方法（`_AddTaskDialogState`） | A | 构建 `TaskRecurrence?` 的可比较字符串快照。 |
@@ -24,9 +26,36 @@
 
 ## 文档
 
+### `void _onTitleChanged()` <a id="ontitlechanged"></a>
+- **种类：** `_AddTaskDialogState` 的方法（标题控制器监听器）
+- **来源：** `lib/features/todo/widgets/add_task_dialog.dart`（第 426-436 行）
+- **用途：** 让建议标签与标题保持同步，并在用户做出选择前让图标保持为最佳建议。
+- **输入：** 无（读取 `_titleController.text`、`_lastTitleText`、`_emojiPickedManually`、`_selectedEmoji` 和 `_suggestedEmojis`）。
+- **返回：** `None`。
+- **副作用：** 每次真实文本变化时更新 `_lastTitleText`；调用 `setState` 替换 `_suggestedEmojis`，`_emojiPickedManually` 为 `false` 时还替换 `_selectedEmoji`。
+- **算法：**
+  1. 若标题文本等于 `_lastTitleText` 则返回：该通知仅涉及选区（光标移动，或自动聚焦字段获得焦点时放置的光标）。否则把新文本记入 `_lastTitleText`。
+  2. `next = suggestEmojis(_titleController.text)`。
+  3. 若用户已自选（或对话框打开时已带 emoji），目标 emoji 为当前 `_selectedEmoji`；否则为 `next.firstOrNull`——最佳建议，无匹配时为 `null`。
+  4. 若 `next` 等于当前建议（`listEquals`）且目标等于 `_selectedEmoji`，不调用 `setState` 直接返回。
+  5. 否则在一次 `setState` 中存入两者。
+- **用法：**
+  ```dart
+  _emojiPickedManually = _selectedEmoji != null;
+  _lastTitleText = _titleController.text;
+  _suggestedEmojis = suggestEmojis(_titleController.text);
+  _titleController.addListener(_onTitleChanged);
+  _initialSignature = _signature();
+  ```
+  （在 `initState` 中注册；`dispose` 在释放控制器前移除监听器）
+- **备注：**
+  - 建议消失时自动填充会*清除*图标，因此自动填充的 emoji 不会比产生它的文本存活更久。手动选择（包括移除）永不被覆盖：每条手动路径都调用 `_pickEmoji`，由它设置 `_emojiPickedManually`。
+  - 打开时已设置 emoji 的对话框（带 emoji 的 `initialTask`）以 `_emojiPickedManually = true` 开始，永不自动填充。`initState` 初始化标签但不自动填充；自动填充从标题文本的第一次真实编辑开始。
+  - `TextEditingController` 在仅选区变化时也会通知。第 1 步忽略这些通知，因此打开未改动的对话框永不自动填充图标，也不会把表单标为已修改（`_signature()` 包含 `_selectedEmoji`，所以真实编辑*之后*的自动填充确实算作未保存变更）。`test/task_emoji_suggestion_dialog_test.dart` 覆盖此行为（"opening an untouched task never auto-fills or dirties it"）。
+
 ### `bool _hasUnsavedChanges()` <a id="hasunsavedchanges"></a>
 - **种类：** `_AddTaskDialogState` 的方法
-- **来源：** `lib/features/todo/widgets/add_task_dialog.dart`（第 550 行）
+- **来源：** `lib/features/todo/widgets/add_task_dialog.dart`（第 597 行）
 - **用途：** 告诉 `UnsavedChangesGuard` 表单是否已偏离初始状态，使它知道对话框被关闭前是否提示确认。
 - **输入：** 无（只读实例状态）。
 - **返回：** `bool` — 当前表单签名不同于 `_initialSignature` 时 `true`。
@@ -46,7 +75,7 @@
 
 ### `String _signature()` <a id="signature"></a>
 - **种类：** `_AddTaskDialogState` 的方法
-- **来源：** `lib/features/todo/widgets/add_task_dialog.dart`（第 557-568 行）
+- **来源：** `lib/features/todo/widgets/add_task_dialog.dart`（第 604-615 行）
 - **用途：** 产生任何可编辑字段值变化时且仅此时变化的单个字符串，用作脏检查基线/比较。
 - **输入：** 无（只读实例状态）。
 - **返回：** `String` — 来自 `formSignature`（`lib/shared/widgets/unsaved_changes_guard.dart`）的连接签名。
@@ -64,7 +93,7 @@
 
 ### `String _recurrenceSignature(TaskRecurrence? recurrence)` <a id="recurrencesignature"></a>
 - **种类：** `_AddTaskDialogState` 的方法
-- **来源：** `lib/features/todo/widgets/add_task_dialog.dart`（第 575-583 行）
+- **来源：** `lib/features/todo/widgets/add_task_dialog.dart`（第 622-630 行）
 - **用途：** 把 `TaskRecurrence?` 规范化为可比较字符串以嵌入 [`_signature()`](#signature) 内。
 - **输入：** `recurrence` — 当前 `TaskRecurrence?` 选择，可为 `null`。
 - **返回：** `String` — `recurrence` 为 `null` 时 `''`，否则对重复规则的 `type.name`、`intervalDays`、`dayOfMonth` 和 `monthOfYear` 做 `formSignature`。
@@ -84,7 +113,7 @@
 
 ### `void _submit(UnsavedChangesController guard)` <a id="submit"></a>
 - **种类：** `_AddTaskDialogState` 的方法
-- **来源：** `lib/features/todo/widgets/add_task_dialog.dart`（第 590-629 行）
+- **来源：** `lib/features/todo/widgets/add_task_dialog.dart`（第 637-676 行）
 - **用途：** 验证表单，有效时构造新 `Task` 并带它弹出对话框。
 - **输入：** `guard` — `UnsavedChangesGuard.builder` 提供的 `UnsavedChangesController`，用于带结果弹出路由。
 - **返回：** `None`。
@@ -120,7 +149,7 @@
 
 ### `String _recurrenceLabel(TaskRecurrence r, AppLocalizations l10n)` <a id="recurrencelabel"></a>
 - **种类：** `_AddTaskDialogState` 的方法
-- **来源：** `lib/features/todo/widgets/add_task_dialog.dart`（第 644-653 行）
+- **来源：** `lib/features/todo/widgets/add_task_dialog.dart`（第 691-700 行）
 - **用途：** 产生设置了重复时显示在重复 `ListTile` 标题中的 `TaskRecurrence` 本地化单行摘要。
 - **输入：** `r` — 要描述的 `TaskRecurrence`；`l10n` — 当前 `AppLocalizations`。
 - **返回：** `String` — 取决于 `r.type` 的本地化短语，如"每 N 天"、"每月 N 日"或"每年 M/D"。

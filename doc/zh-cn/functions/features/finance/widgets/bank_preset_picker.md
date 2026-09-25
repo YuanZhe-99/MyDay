@@ -1,6 +1,6 @@
 # lib/features/finance/widgets/bank_preset_picker.dart
 
-添加或编辑财务 [`Account`](../../../../features/finance.md#model) 时使用的银行/金融科技预设选择器底部面板：`showBankPresetPicker` 打开一个 `DraggableScrollableSheet`，要么列出分入按国家标签的预设，要么显示实时搜索结果，解析为所选 `BankPreset`（来自 `lib/features/finance/services/bank_preset_service.dart`）或被关闭时为 `null`。提供此组件渲染的 250+ 预设的 `BankPresetService` 见 [财务](../../../../features/finance.md#bankpresetservice)。
+添加或编辑财务 [`Account`](../../../../features/finance.md#model) 时使用的银行/金融科技预设选择器底部面板：`showBankPresetPicker` 打开一个 `DraggableScrollableSheet`，要么列出分入按国家标签的预设，要么显示实时搜索结果，解析为所选 `BankPreset`（来自 `lib/features/finance/services/bank_preset_service.dart`）或被关闭时为 `null`。提供此组件渲染的 250+ 预设的 `BankPresetService` 见 [财务](../../../../features/finance.md#bankpresetservice)。每行的标志来自 [`BankLogoImage`](bank_logo_image.md)：完整版构建中为内置标志，否则为 Clearbit 网络预览，再否则为银行首字母。
 
 ## 声明
 
@@ -15,7 +15,7 @@
 | `dispose` | 方法（`_BankPickerSheetState`） | B | 释放搜索文本控制器。 |
 | `build` | 方法（`_BankPickerSheetState`） | B | 渲染手柄、标题、搜索字段，以及国家标签或搜索结果。 |
 | `_BankTile`（构造函数） | 构造函数（`_BankTile`） | B | 为一个预设创建银行块实例。 |
-| `build` | 方法（`_BankTile`） | B | 渲染一个银行/金融科技行，带 logo、标题和强调色点。 |
+| `build` | 方法（`_BankTile`） | B | 渲染一个银行/金融科技行：经 [`BankLogoImage`](bank_logo_image.md) 显示标志（内置标志 → 网络预览 → 首字母）、标题和强调色点。 |
 | [`_parseColor`](#parsecolor) | 静态方法（`_BankTile`） | A | 把银行预设的十六进制颜色字符串解析为 `Color`，失败默认灰色。 |
 
 `grep -c 'Purpose:' lib/features/finance/widgets/bank_preset_picker.dart` 报告 11，与本文件全部十一个真实声明匹配。未发现错附或未文档化声明。
@@ -24,7 +24,7 @@
 
 ### `static Color _parseColor(String hex)` <a id="parsecolor"></a>
 - **种类：** `_BankTile` 的静态方法
-- **来源：** `lib/features/finance/widgets/bank_preset_picker.dart`（第 311 行）
+- **来源：** `lib/features/finance/widgets/bank_preset_picker.dart`（第 298 行）
 - **用途：** 把 `BankPreset.color` 十六进制字符串（如 `'#4285F4'`，`BankPresetService` 在预设无颜色时默认为 `'#888888'`）转换为 Flutter `Color`，任何解析失败字符串回退灰色。
 - **输入：** `hex` — 颜色字符串，预期 `'#RRGGBB'`（6 个十六进制数字）或已带前缀的 `'#AARRGGBB'`（8 个十六进制数字）；前导 `#` 可选。
 - **返回：** `Color` — 解析的颜色，解析抛出时为 `Colors.grey`。

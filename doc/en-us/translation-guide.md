@@ -144,6 +144,17 @@ Not copied to the other repos — no other app has these.
 | thrust count | 抽插次数 | Intimacy record field; stored as a count times a x1/x100 unit |
 | thrust rate | 抽插速率 | thrusts per minute, derived per entry; 不用「频率」，那是 frequency（记录次数/周） |
 | subscription overview | 订阅概览 | the finance home's two-pane block of subscription statistics and active subscriptions (v1.4.3) |
+| bundled bank logo | 内置银行标志 | a reviewed logo under `assets/bank_logos/`, shipped in Full builds only (v1.4.5) |
+| Full build / Store build | 完整版构建 / 商店版构建 | the two distributions; Android product flavors `full`/`store` reuse 构建风味 from Section 5.1 |
+| strip step | 剥离步骤 | the CI step (`tool/strip_bank_logos.dart`) that removes bundled bank logos before the Store build |
+| logo manifest | 标志清单 | the generated `bank_logo_manifest.g.dart` map from preset key to logo asset |
+| emoji suggestion | 表情建议 | Todo: emoji proposed from a task's title (`emoji_suggester.dart`) |
+| auto-fill | 自动填充 | Todo: setting the task icon from the title-driven suggestion until the user picks one manually |
+| keyword table | 关键词表 | Todo: the keyword → emoji data behind emoji suggestions (`emoji_keywords.dart`) |
+| suggestion chip | 建议标签 | Todo: one tappable emoji in the row under the title field |
+| token (word token) | 词元 | Todo: a Latin letter/digit run the suggester matches whole |
+| inflection | 词形变化 | Todo: the closed English suffix set (`-s`, `-ing`…) a token may add to a keyword |
+| filler phrase | 填充语 | Todo: words like "don't forget" / 别忘了 deliberately kept out of the keyword table |
 
 ## 6. Review checklist (run before committing a Chinese page)
 

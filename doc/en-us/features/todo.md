@@ -42,8 +42,58 @@ calendar page with inline year/month jumps, a globally configurable week start d
 daily-score trend chart, joyful-day and suffering-day lists (derived from the score log), daily/
 routine/work sections, calendar completion indicators, future scheduled one-time task markers, an
 editable whole-day score at the bottom of the Todo list, independent sort/custom drag order per
-section, notes, subtasks, task reminders, a recurrence picker, unsaved-change protection, and
-`AutoSyncService.instance.notifySaved()` after saves.
+section, notes, subtasks, task icons with title-driven emoji suggestions (see
+[Emoji suggestions](#emoji-suggestions)), task reminders, a recurrence picker, unsaved-change
+protection, and `AutoSyncService.instance.notifySaved()` after saves.
+
+<a id="emoji-suggestions"></a>
+## Emoji suggestions
+
+A task's optional `emoji` is its icon. The add and edit dialogs offer it three ways, all built on
+two shared constants and one pure function:
+
+| Piece | Source | Role |
+|---|---|---|
+| [`commonTaskEmojis`](../functions/features/todo/constants/task_emojis.md) | `lib/features/todo/constants/task_emojis.dart` | The picker grid's 98 candidates: the original 32 first, then everyday groups. One list for both dialogs. |
+| [`emojiKeywordTable`](../functions/features/todo/constants/emoji_keywords.md) | `lib/features/todo/constants/emoji_keywords.dart` | 188 curated entries, each an emoji with English, Simplified Chinese, Traditional Chinese, and Japanese keywords. |
+| [`suggestEmojis`](../functions/features/todo/utils/emoji_suggester.md#suggestemojis) | `lib/features/todo/utils/emoji_suggester.dart` | Ranks the table against a title and returns up to 8 distinct emojis. |
+| [`EmojiSuggestionRow`](../functions/features/todo/widgets/emoji_suggestion_row.md) | `lib/features/todo/widgets/emoji_suggestion_row.dart` | The wrapping row of chips under the title field. |
+
+**Matching.** Suggestions work like an IME emoji search: every language's keywords are matched
+regardless of the UI locale, so a Chinese title suggests emojis in an English UI. The title is
+lowercased, full-width ASCII is folded to half-width, and whitespace is collapsed. CJK keywords
+match as substrings; Latin keywords match whole words or phrases, plain English inflections
+(`emails`, `cooking`), and — for the last word only, while it is still being typed — a prefix of at
+least 3 letters. Longer matches score higher, and ties keep table order. There is no bonus for
+position, because titles tend to start with a verb and the object that follows is the better icon.
+The full rules are in the [`_scoreKeyword`](../functions/features/todo/utils/emoji_suggester.md#scorekeyword)
+entry.
+
+**Auto-fill and manual choice.** While the user has not chosen an icon, the icon follows the best
+suggestion as the title changes and clears when no suggestion is left. Choosing an icon any other
+way — tapping a chip, picking from the grid, entering a custom emoji, or Remove — is a manual
+choice and stops auto-fill for the rest of that dialog. A dialog that opens with an emoji already
+set (editing a task that has one, or a next-occurrence prompt prefilled with one) never
+auto-fills; its chips still appear and can be tapped. Only real edits of the title text trigger
+auto-fill — cursor moves and the autofocused field gaining focus do not — so opening a task and
+closing it untouched never changes its icon or triggers the unsaved-changes prompt. Suggestions are computed on the fly and
+nothing about them is stored: only the chosen `emoji` is saved on the `Task`.
+
+**Extending the table.** Add keywords to an existing `EmojiKeywordEntry`, or add a new entry to the
+matching themed group in `emoji_keywords.dart`. To offer the emoji in the picker grid as well,
+also append it to a group in `commonTaskEmojis`. Keep in mind:
+
+- Keywords are lowercase, trimmed, and non-empty, and every entry has keywords in all four
+  languages.
+- Each emoji appears once in the table; every picker emoji must have an entry; picker entries are
+  distinct single graphemes, and the original 32 stay first.
+- Put the more common reading of a shared keyword in the earlier entry — table order breaks ties.
+- Leave out filler that opens many titles without naming an object ("don't forget", 别忘了,
+  忘れずに); it would outrank the object that follows.
+
+`test/emoji_suggester_test.dart` enforces the first two rules and pins expected suggestions for
+sample titles in every language; `test/task_emoji_suggestion_dialog_test.dart` covers the dialog
+behavior. Run both after changing the table.
 
 ## Reminders
 

@@ -50,6 +50,7 @@
   "todoSetDueDate": "设置截止日期（可选）",
   "todoCustomEmoji": "自定义图标",
   "todoCustomEmojiHint": "输入一个 emoji",
+  "todoSuggestedIcons": "推荐图标",
   "todoEditSubtask": "编辑子任务",
   "todoSubtasksProgress": "子任务：{done}/{total}",
   "@todoSubtasksProgress": {
