@@ -47,6 +47,7 @@ flutter test test/strip_bank_logos_test.dart
 flutter test test/stored_image_test.dart
 dart run tool/fetch_bank_logos.dart --out <scratch dir> --infobox
 dart run tool/fetch_bank_logos.dart --out <scratch dir> --site --only <country_id,...>
+dart run tool/fetch_bank_logos.dart --out <scratch dir> --icons --only <country_id,...>
 dart run tool/bank_logo_sheet.dart --dir <scratch dir>
 dart run tool/apply_bank_logo_choices.dart --dir <scratch dir>
 dart run tool/bank_logo_sheet.dart --final

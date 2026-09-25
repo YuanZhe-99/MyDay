@@ -1,7 +1,7 @@
 // Fetch candidate bank logos for every preset in assets/banks.json into a scratch directory.
 //
 // Run: dart run tool/fetch_bank_logos.dart --out <scratch dir> [--only <country_id,...>]
-//          [--infobox]
+//          [--infobox] [--site | --icons]
 //
 // Phase 1 (resolve) picks Wikimedia Commons file names per preset: the Wikidata "small logo or
 // icon" (P8972/P2910) and "logo image" (P154) of the institution whose official website (P856)
@@ -98,7 +98,7 @@ String commonsName(String value) {
 }
 
 /// Purpose: GET a URL with the tool's user agent, pacing and retrying politely.
-/// Inputs: `url`, `accept` header, `timeout`.
+/// Inputs: `url`, `accept` header, `timeout`, `attempts` (bank sites use fewer).
 /// Returns: `Future<http.Response?>`, null when every attempt failed.
 /// Side effects: Network request; sleeps between requests.
 /// Notes: Wikimedia rate-limits bursts (HTTP 429): every request waits `_gap` first and a 429
@@ -107,8 +107,9 @@ Future<http.Response?> _get(
   String url, {
   String accept = '*/*',
   Duration timeout = const Duration(seconds: 40),
+  int attempts = 4,
 }) async {
-  for (var attempt = 0; attempt < 4; attempt++) {
+  for (var attempt = 0; attempt < attempts; attempt++) {
     await Future<void>.delayed(_gap);
     try {
       final r = await http
@@ -165,7 +166,9 @@ const _classes =
 /// Side effects: Two Wikidata API requests.
 /// Notes: Items whose website matches the domain come first; the rest are labelled NAME-ONLY
 /// so the reviewer checks they are the right institution.
-Future<List<({String file, String source})>> _searchByName(_Preset preset) async {
+Future<List<({String file, String source})>> _searchByName(
+  _Preset preset,
+) async {
   final search = await _get(
     'https://www.wikidata.org/w/api.php?action=wbsearchentities'
     '&format=json&language=en&type=item&limit=6'
@@ -173,7 +176,8 @@ Future<List<({String file, String source})>> _searchByName(_Preset preset) async
   );
   if (search == null || search.statusCode != 200) return [];
   final ids = [
-    for (final e in (jsonDecode(search.body)['search'] as List)) e['id'] as String,
+    for (final e in (jsonDecode(search.body)['search'] as List))
+      e['id'] as String,
   ];
   if (ids.isEmpty) return [];
   final ents = await _get(
@@ -181,7 +185,8 @@ Future<List<({String file, String source})>> _searchByName(_Preset preset) async
     '&props=claims&ids=${ids.join('|')}',
   );
   if (ents == null || ents.statusCode != 200) return [];
-  final entities = (jsonDecode(ents.body)['entities'] as Map).cast<String, dynamic>();
+  final entities = (jsonDecode(ents.body)['entities'] as Map)
+      .cast<String, dynamic>();
   final domain = hostOf(preset.domain);
   final matched = <({String file, String source})>[];
   final nameOnly = <({String file, String source})>[];
@@ -192,10 +197,10 @@ Future<List<({String file, String source})>> _searchByName(_Preset preset) async
   /// Side effects: None.
   /// Notes: None.
   List<String> values(Map<String, dynamic> claims, String prop) => [
-        for (final c in (claims[prop] as List? ?? const []))
-          if (c['mainsnak']?['datavalue']?['value'] is String)
-            c['mainsnak']['datavalue']['value'] as String,
-      ];
+    for (final c in (claims[prop] as List? ?? const []))
+      if (c['mainsnak']?['datavalue']?['value'] is String)
+        c['mainsnak']['datavalue']['value'] as String,
+  ];
 
   for (final id in ids) {
     final claims =
@@ -206,8 +211,10 @@ Future<List<({String file, String source})>> _searchByName(_Preset preset) async
       ...values(claims, 'P154'),
     ];
     if (files.isEmpty) continue;
-    final siteMatch =
-        values(claims, 'P856').map(hostOf).any((s) => sameSite(s, domain));
+    final siteMatch = values(
+      claims,
+      'P856',
+    ).map(hostOf).any((s) => sameSite(s, domain));
     for (final f in files) {
       (siteMatch ? matched : nameOnly).add((
         file: f,
@@ -229,7 +236,10 @@ Future<Map<String, ({String url, String mime, int size})>> _resolveCommons(
 ) async {
   final out = <String, ({String url, String mime, int size})>{};
   for (var i = 0; i < names.length; i += 50) {
-    final batch = names.sublist(i, i + 50 > names.length ? names.length : i + 50);
+    final batch = names.sublist(
+      i,
+      i + 50 > names.length ? names.length : i + 50,
+    );
     final titles = batch.map((n) => 'File:$n').join('|');
     final r = await _get(
       'https://commons.wikimedia.org/w/api.php?action=query&format=json&formatversion=2'
@@ -259,9 +269,27 @@ Future<Map<String, ({String url, String mime, int size})>> _resolveCommons(
 
 /// Wikipedia language used for a preset's home country (English is always tried first).
 const _localWiki = {
-  'ar': 'es', 'be': 'nl', 'by': 'ru', 'cn': 'zh', 'cy': 'el', 'cz': 'cs', 'de': 'de', //
-  'dk': 'da', 'fi': 'fi', 'fr': 'fr', 'ir': 'fa', 'jp': 'ja', 'kg': 'ru', 'kz': 'ru', //
-  'nl': 'nl', 'pl': 'pl', 'pt': 'pt', 'rs': 'sr', 'ru': 'ru', 'tr': 'tr', 'tw': 'zh', //
+  'ar': 'es',
+  'be': 'nl',
+  'by': 'ru',
+  'cn': 'zh',
+  'cy': 'el',
+  'cz': 'cs',
+  'de': 'de', //
+  'dk': 'da',
+  'fi': 'fi',
+  'fr': 'fr',
+  'ir': 'fa',
+  'jp': 'ja',
+  'kg': 'ru',
+  'kz': 'ru', //
+  'nl': 'nl',
+  'pl': 'pl',
+  'pt': 'pt',
+  'rs': 'sr',
+  'ru': 'ru',
+  'tr': 'tr',
+  'tw': 'zh', //
   'ua': 'uk', 'uy': 'es',
 };
 
@@ -287,7 +315,10 @@ Future<List<Map<String, String>>> _infoboxLogos(
   final local = _localWiki[preset.country];
   final domain = hostOf(preset.domain);
   final ids = <String>[];
-  for (final (text, lang) in [(preset.engTitle, 'en'), (localTitle, local ?? 'en')]) {
+  for (final (text, lang) in [
+    (preset.engTitle, 'en'),
+    (localTitle, local ?? 'en'),
+  ]) {
     final search = await _get(
       'https://www.wikidata.org/w/api.php?action=wbsearchentities'
       '&format=json&language=$lang&uselang=$lang&type=item&limit=5'
@@ -304,12 +335,14 @@ Future<List<Map<String, String>>> _infoboxLogos(
     '&props=claims|sitelinks&ids=${ids.take(10).join('|')}',
   );
   if (ents == null || ents.statusCode != 200) return [];
-  final entities = (jsonDecode(ents.body)['entities'] as Map).cast<String, dynamic>();
+  final entities = (jsonDecode(ents.body)['entities'] as Map)
+      .cast<String, dynamic>();
 
   String? chosen;
   var siteMatch = false;
   for (final id in ids.take(10)) {
-    final claims = (entities[id]?['claims'] as Map?)?.cast<String, dynamic>() ?? {};
+    final claims =
+        (entities[id]?['claims'] as Map?)?.cast<String, dynamic>() ?? {};
     final sites = [
       for (final c in (claims['P856'] as List? ?? const []))
         if (c['mainsnak']?['datavalue']?['value'] is String)
@@ -335,10 +368,13 @@ Future<List<Map<String, String>>> _infoboxLogos(
       '&rvslots=main&rvsection=0&redirects=1&titles=${Uri.encodeQueryComponent(title)}',
     );
     if (page == null || page.statusCode != 200) continue;
-    final pages = (jsonDecode(utf8.decode(page.bodyBytes))['query']?['pages'] as List?) ?? [];
+    final pages =
+        (jsonDecode(utf8.decode(page.bodyBytes))['query']?['pages'] as List?) ??
+        [];
     final content = pages.isEmpty
         ? null
-        : (pages.first['revisions'] as List?)?.firstOrNull?['slots']?['main']?['content'];
+        : (pages.first['revisions'] as List?)
+              ?.firstOrNull?['slots']?['main']?['content'];
     if (content is! String) continue;
     for (final m in _logoParam.allMatches(content).take(2)) {
       final file = m[1]!.trim();
@@ -348,10 +384,13 @@ Future<List<Map<String, String>>> _infoboxLogos(
       );
       if (info == null || info.statusCode != 200) continue;
       final ipages =
-          (jsonDecode(utf8.decode(info.bodyBytes))['query']?['pages'] as List?) ?? [];
+          (jsonDecode(utf8.decode(info.bodyBytes))['query']?['pages']
+              as List?) ??
+          [];
       final url = ipages.isEmpty
           ? null
-          : (ipages.first['imageinfo'] as List?)?.firstOrNull?['url'] as String?;
+          : (ipages.first['imageinfo'] as List?)?.firstOrNull?['url']
+                as String?;
       if (url != null) {
         out.add({
           'url': url,
@@ -366,18 +405,30 @@ Future<List<Map<String, String>>> _infoboxLogos(
 /// Logo-looking references in a bank's own homepage, most specific first.
 final List<RegExp> _sitePatterns = [
   // <img ... class/id/alt containing "logo" ... src="...svg|png">, either attribute order.
-  RegExp(r'''<img[^>]*(?:logo)[^>]*\ssrc\s*=\s*["']([^"']+\.(?:svg|png)(?:\?[^"']*)?)["']''',
-      caseSensitive: false),
-  RegExp(r'''<img[^>]*\ssrc\s*=\s*["']([^"']*logo[^"']*\.(?:svg|png)(?:\?[^"']*)?)["']''',
-      caseSensitive: false),
-  RegExp(r'''<link[^>]*rel\s*=\s*["'](?:mask-)?icon["'][^>]*href\s*=\s*["']([^"']+\.svg[^"']*)["']''',
-      caseSensitive: false),
-  RegExp(r'''<link[^>]*rel\s*=\s*["']apple-touch-icon[^"']*["'][^>]*href\s*=\s*["']([^"']+)["']''',
-      caseSensitive: false),
-  RegExp(r'''<link[^>]*href\s*=\s*["']([^"']+)["'][^>]*rel\s*=\s*["']apple-touch-icon''',
-      caseSensitive: false),
-  RegExp(r'''<meta[^>]*property\s*=\s*["']og:image["'][^>]*content\s*=\s*["']([^"']+)["']''',
-      caseSensitive: false),
+  RegExp(
+    r'''<img[^>]*(?:logo)[^>]*\ssrc\s*=\s*["']([^"']+\.(?:svg|png)(?:\?[^"']*)?)["']''',
+    caseSensitive: false,
+  ),
+  RegExp(
+    r'''<img[^>]*\ssrc\s*=\s*["']([^"']*logo[^"']*\.(?:svg|png)(?:\?[^"']*)?)["']''',
+    caseSensitive: false,
+  ),
+  RegExp(
+    r'''<link[^>]*rel\s*=\s*["'](?:mask-)?icon["'][^>]*href\s*=\s*["']([^"']+\.svg[^"']*)["']''',
+    caseSensitive: false,
+  ),
+  RegExp(
+    r'''<link[^>]*rel\s*=\s*["']apple-touch-icon[^"']*["'][^>]*href\s*=\s*["']([^"']+)["']''',
+    caseSensitive: false,
+  ),
+  RegExp(
+    r'''<link[^>]*href\s*=\s*["']([^"']+)["'][^>]*rel\s*=\s*["']apple-touch-icon''',
+    caseSensitive: false,
+  ),
+  RegExp(
+    r'''<meta[^>]*property\s*=\s*["']og:image["'][^>]*content\s*=\s*["']([^"']+)["']''',
+    caseSensitive: false,
+  ),
 ];
 
 /// Purpose: Find logo image URLs on the institution's own homepage.
@@ -406,12 +457,132 @@ Future<List<Map<String, String>>> _siteLogos(_Preset preset) async {
   return out.take(4).toList();
 }
 
+final RegExp _linkTag = RegExp(r'<link\b[^>]*>', caseSensitive: false);
+
+/// Purpose: Read one attribute from an HTML tag.
+/// Inputs: `tag`, `name`.
+/// Returns: `String?` attribute value, entity-decoded for `&amp;`.
+/// Side effects: None.
+/// Notes: Handles single and double quotes.
+String? _attr(String tag, String name) {
+  final m = RegExp(
+    '\\b$name\\s*=\\s*["\']([^"\']*)["\']',
+    caseSensitive: false,
+  ).firstMatch(tag);
+  return m?[1]?.replaceAll('&amp;', '&').trim();
+}
+
+/// Purpose: Largest edge declared in a `sizes` attribute or manifest entry.
+/// Inputs: `sizes` (e.g. "180x180", "192x192 512x512", "any").
+/// Returns: `int` — 0 when unknown, 4096 for "any" (vector).
+/// Side effects: None.
+/// Notes: None.
+int _declaredEdge(String? sizes) {
+  if (sizes == null) return 0;
+  if (sizes.toLowerCase().contains('any')) return 4096;
+  var best = 0;
+  for (final m in RegExp(r'(\d+)x(\d+)').allMatches(sizes)) {
+    final v = int.parse(m[1]!);
+    if (v > best) best = v;
+  }
+  return best;
+}
+
+/// Purpose: Find the institution's official square icons on its own website.
+/// Inputs: `preset`.
+/// Returns: `Future<List<Map<String, String>>>` entries with an absolute `url` and a `source`,
+/// best first (SVG icon, largest manifest/touch icon, then the conventional touch-icon path).
+/// Side effects: Homepage and web-manifest requests.
+/// Notes: Icons are the symbol a bank itself chose for small square spaces (home-screen icons,
+/// pinned tabs), which is exactly the avatar use case; wordmark logos are not collected here.
+Future<List<Map<String, String>>> _siteIcons(_Preset preset) async {
+  if (preset.domain.isEmpty) return [];
+  final home = Uri.parse('https://${preset.domain}/');
+  final r = await _get(
+    home.toString(),
+    accept: 'text/html',
+    timeout: const Duration(seconds: 15),
+    attempts: 2,
+  );
+  if (r == null || r.statusCode != 200) return [];
+  final html = utf8.decode(r.bodyBytes, allowMalformed: true);
+  final base = r.request?.url ?? home;
+  final found = <({String url, int score, String source})>[];
+
+  for (final m in _linkTag.allMatches(html)) {
+    final tag = m[0]!;
+    final rel = (_attr(tag, 'rel') ?? '').toLowerCase();
+    final href = _attr(tag, 'href');
+    if (href == null || href.isEmpty || href.startsWith('data:')) continue;
+    final url = base.resolve(href).toString();
+    final svg =
+        href.toLowerCase().split('?').first.endsWith('.svg') ||
+        (_attr(tag, 'type') ?? '').contains('svg');
+    if (rel.split(RegExp(r'\s+')).contains('manifest')) {
+      final man = await _get(
+        url,
+        timeout: const Duration(seconds: 15),
+        attempts: 2,
+      );
+      if (man == null || man.statusCode != 200) continue;
+      try {
+        final icons =
+            (jsonDecode(utf8.decode(man.bodyBytes)) as Map)['icons'] as List? ??
+            [];
+        final mBase = man.request?.url ?? Uri.parse(url);
+        for (final i in icons.cast<Map>()) {
+          final src = i['src'] as String?;
+          if (src == null) continue;
+          final edge = _declaredEdge(i['sizes'] as String?);
+          if (edge < 128) continue;
+          found.add((
+            url: mBase.resolve(src).toString(),
+            score: edge,
+            source: 'site-manifest $edge',
+          ));
+        }
+      } catch (_) {}
+    } else if (rel.contains('apple-touch-icon')) {
+      final edge = _declaredEdge(_attr(tag, 'sizes'));
+      found.add((
+        url: url,
+        score: edge == 0 ? 180 : edge,
+        source: 'site-touch-icon',
+      ));
+    } else if ((rel.contains('icon') || rel.contains('mask-icon')) && svg) {
+      found.add((url: url, score: 5000, source: 'site-svg-icon'));
+    } else if (rel.contains('icon')) {
+      final edge = _declaredEdge(_attr(tag, 'sizes'));
+      if (edge >= 128) {
+        found.add((url: url, score: edge, source: 'site-icon $edge'));
+      }
+    }
+  }
+  // The conventional path is served by many sites that never declare it.
+  found.add((
+    url: base.resolve('/apple-touch-icon.png').toString(),
+    score: 1,
+    source: 'site-touch-icon default',
+  ));
+
+  found.sort((a, b) => b.score.compareTo(a.score));
+  final seen = <String>{};
+  return [
+    for (final f in found)
+      if (seen.add(f.url)) {'url': f.url, 'source': f.source},
+  ].take(4).toList();
+}
+
 /// Purpose: Download one candidate file and validate its type and size.
 /// Inputs: `url`, `dir`, `name` (file stem).
 /// Returns: `Future<Map<String, Object?>?>` candidate metadata, or null when rejected.
 /// Side effects: Writes the file into `dir`.
 /// Notes: Accepts SVG (must contain `<svg`, ≤ 400 KB), PNG, JPEG, WebP and GIF (≤ 2 MB).
-Future<Map<String, Object?>?> _download(String url, Directory dir, String name) async {
+Future<Map<String, Object?>?> _download(
+  String url,
+  Directory dir,
+  String name,
+) async {
   final r = await _get(url);
   if (r == null || r.statusCode != 200) {
     stderr.writeln('  download ${r?.statusCode ?? 'failed'}: $url');
@@ -441,7 +612,12 @@ Future<Map<String, Object?>?> _download(String url, Directory dir, String name) 
   }
   final file = File(p.join(dir.path, '$name.$ext'));
   await file.writeAsBytes(bytes);
-  return {'file': p.basename(file.path), 'url': url, 'bytes': bytes.length, 'ext': ext};
+  return {
+    'file': p.basename(file.path),
+    'url': url,
+    'bytes': bytes.length,
+    'ext': ext,
+  };
 }
 
 /// Purpose: Fetch candidates for every preset and write per-preset `candidates.json` files.
@@ -486,33 +662,53 @@ Future<void> main(List<String> args) async {
 
   final overridesFile = File('tool/bank_logo_overrides.json');
   final overrides = overridesFile.existsSync()
-      ? (jsonDecode(overridesFile.readAsStringSync()) as Map).cast<String, dynamic>()
+      ? (jsonDecode(overridesFile.readAsStringSync()) as Map)
+            .cast<String, dynamic>()
       : <String, dynamic>{};
 
-  // ── --site: append candidates from each bank's own homepage, then stop ──
-  if (args.contains('--site')) {
-    for (final pr in presets) {
-      final dir = Directory(p.join(outDir.path, pr.stem))..createSync(recursive: true);
-      final index = File(p.join(dir.path, 'candidates.json'));
-      final json = index.existsSync()
-          ? jsonDecode(index.readAsStringSync()) as Map<String, dynamic>
-          : <String, dynamic>{
-              'key': pr.key,
-              'engTitle': pr.engTitle,
-              'domain': pr.domain,
-              'candidates': <dynamic>[],
-            };
-      final candidates = (json['candidates'] as List).cast<Map<String, dynamic>>()
-        ..removeWhere((c) => (c['file'] as String).startsWith('s'));
-      var n = 0;
-      for (final e in await _siteLogos(pr)) {
-        final c = await _download(e['url']!, dir, 's${n++}');
-        if (c != null) candidates.add({...c, 'source': e['source']});
+  // ── --site / --icons: append candidates from each bank's own homepage, then stop ──
+  // --site collects logo images (files s0…); --icons collects official square icons (i0…).
+  final icons = args.contains('--icons');
+  if (args.contains('--site') || icons) {
+    final prefix = icons ? 'i' : 's';
+    final queue = List.of(presets);
+    // Bank sites are independent hosts, so several run at once; a preset already marked done
+    // for this mode is skipped, which makes the pass resumable.
+    Future<void> worker() async {
+      while (queue.isNotEmpty) {
+        final pr = queue.removeLast();
+        final dir = Directory(p.join(outDir.path, pr.stem))
+          ..createSync(recursive: true);
+        final index = File(p.join(dir.path, 'candidates.json'));
+        final json = index.existsSync()
+            ? jsonDecode(index.readAsStringSync()) as Map<String, dynamic>
+            : <String, dynamic>{
+                'key': pr.key,
+                'engTitle': pr.engTitle,
+                'domain': pr.domain,
+                'candidates': <dynamic>[],
+              };
+        if (json['${prefix}Done'] == true) continue;
+        final candidates =
+            (json['candidates'] as List).cast<Map<String, dynamic>>()
+              ..removeWhere((c) => (c['file'] as String).startsWith(prefix));
+        var n = 0;
+        for (final e in await (icons ? _siteIcons(pr) : _siteLogos(pr))) {
+          final c = await _download(e['url']!, dir, '$prefix${n++}');
+          if (c != null) candidates.add({...c, 'source': e['source']});
+        }
+        json['candidates'] = candidates;
+        json['${prefix}Done'] = true;
+        index.writeAsStringSync(
+          const JsonEncoder.withIndent('  ').convert(json),
+        );
+        stdout.writeln(
+          '${pr.stem.padRight(34)} ${n > 0 ? '' : 'no '}${icons ? 'icon' : 'site'} candidates',
+        );
       }
-      json['candidates'] = candidates;
-      index.writeAsStringSync(const JsonEncoder.withIndent('  ').convert(json));
-      stdout.writeln('${pr.stem.padRight(34)} ${n > 0 ? '' : 'no '}site candidates');
     }
+
+    await Future.wait([for (var i = 0; i < 6; i++) worker()]);
     return;
   }
 
@@ -523,20 +719,27 @@ Future<void> main(List<String> args) async {
       : <String, dynamic>{};
   // --infobox revisits presets whose plan came back empty.
   final todo = presets
-      .where((pr) =>
-          !plan.containsKey(pr.key) || (infobox && (plan[pr.key] as List).isEmpty))
+      .where(
+        (pr) =>
+            !plan.containsKey(pr.key) ||
+            (infobox && (plan[pr.key] as List).isEmpty),
+      )
       .toList();
   if (todo.isNotEmpty) {
     stdout.writeln('Resolving ${todo.length} presets…');
-    final logos = await _sparql('''
+    final logos = await _sparql(
+      '''
 SELECT ?item ?site ?logo WHERE { $_classes
   ?item wdt:P154 ?logo; wdt:P856 ?site. ?item wdt:P31/wdt:P279* ?cls. }''',
-        File(p.join(outDir.path, 'sparql.json')));
-    final icons = await _sparql('''
+      File(p.join(outDir.path, 'sparql.json')),
+    );
+    final icons = await _sparql(
+      '''
 SELECT ?item ?site ?logo WHERE { $_classes
   { ?item wdt:P8972 ?logo } UNION { ?item wdt:P2910 ?logo }
   ?item wdt:P856 ?site. ?item wdt:P31/wdt:P279* ?cls. }''',
-        File(p.join(outDir.path, 'sparql_icons.json')));
+      File(p.join(outDir.path, 'sparql_icons.json')),
+    );
     for (final pr in todo) {
       final domain = hostOf(pr.domain);
       final entries = <Map<String, String>>[
@@ -549,7 +752,10 @@ SELECT ?item ?site ?logo WHERE { $_classes
           if (value is! String) continue;
           if (sameSite(hostOf(row['site']['value'] as String), domain)) {
             final item = (row['item']['value'] as String).split('/').last;
-            entries.add({'file': commonsName(value), 'source': 'wikidata-site-$kind $item'});
+            entries.add({
+              'file': commonsName(value),
+              'source': 'wikidata-site-$kind $item',
+            });
           }
         }
       }
@@ -570,27 +776,35 @@ SELECT ?item ?site ?logo WHERE { $_classes
         for (final e in entries)
           if (unique.add(e['file'] ?? e['url']!)) e,
       ].take(_maxCandidates).toList();
-      stdout.writeln('  ${pr.stem.padRight(34)} ${(plan[pr.key] as List).length} source(s)');
-      planFile.writeAsStringSync(const JsonEncoder.withIndent('  ').convert(plan));
+      stdout.writeln(
+        '  ${pr.stem.padRight(34)} ${(plan[pr.key] as List).length} source(s)',
+      );
+      planFile.writeAsStringSync(
+        const JsonEncoder.withIndent('  ').convert(plan),
+      );
     }
   }
 
   // ── Phase 2: download ──
   final pending = [
     for (final pr in presets)
-      if (!File(p.join(outDir.path, pr.stem, 'candidates.json')).existsSync()) pr,
+      if (!File(p.join(outDir.path, pr.stem, 'candidates.json')).existsSync())
+        pr,
   ];
   final names = <String>{
     for (final pr in pending)
       for (final e in (plan[pr.key] as List).cast<Map<String, dynamic>>())
         if (e['file'] != null) e['file'] as String,
   }.toList();
-  stdout.writeln('Resolving ${names.length} Commons files for ${pending.length} presets…');
+  stdout.writeln(
+    'Resolving ${names.length} Commons files for ${pending.length} presets…',
+  );
   final urls = await _resolveCommons(names);
 
   var withCandidates = 0;
   for (final pr in pending) {
-    final dir = Directory(p.join(outDir.path, pr.stem))..createSync(recursive: true);
+    final dir = Directory(p.join(outDir.path, pr.stem))
+      ..createSync(recursive: true);
     final candidates = <Map<String, Object?>>[];
     var n = 0;
     for (final e in (plan[pr.key] as List).cast<Map<String, dynamic>>()) {
@@ -600,10 +814,14 @@ SELECT ?item ?site ?logo WHERE { $_classes
       if (file != null) {
         final info = urls[file]!;
         final svg = info.mime.contains('svg');
-        if (svg ? info.size > _maxSvgBytes : info.size > _maxRasterBytes) continue;
+        if (svg ? info.size > _maxSvgBytes : info.size > _maxRasterBytes) {
+          continue;
+        }
       }
       final c = await _download(url, dir, 'c${n++}');
-      if (c != null) candidates.add({...c, 'source': e['source'], 'commons': file});
+      if (c != null) {
+        candidates.add({...c, 'source': e['source'], 'commons': file});
+      }
     }
     File(p.join(dir.path, 'candidates.json')).writeAsStringSync(
       const JsonEncoder.withIndent('  ').convert({
@@ -616,5 +834,7 @@ SELECT ?item ?site ?logo WHERE { $_classes
     if (candidates.isNotEmpty) withCandidates++;
     stdout.writeln('${pr.stem.padRight(34)} ${candidates.length} candidate(s)');
   }
-  stdout.writeln('\n$withCandidates / ${pending.length} fetched presets have candidates.');
+  stdout.writeln(
+    '\n$withCandidates / ${pending.length} fetched presets have candidates.',
+  );
 }

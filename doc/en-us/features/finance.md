@@ -60,8 +60,16 @@ country currency defaults, search/grouping, and multiple logo URL sources.
 
 **Bundled bank logos (v1.4.5).** Full builds ship reviewed logos under `assets/bank_logos/` for 219
 of the 267 unique presets (`<country>/<id>` keys; `assets/banks.json` has 269 rows because
-`gb/revolut` and `gb/wise` appear twice): 165 SVG and 54 PNG, about 2.7 MB. Picking one of those
+`gb/revolut` and `gb/wise` appear twice): 126 SVG and 93 PNG, about 3.0 MB. Picking one of those
 presets no longer needs the network; the other 48 use the network chain as before.
+
+- **Symbol, not wordmark.** Logos appear in 24–40 px circles next to the bank's name, where a
+  wide "symbol + name" logo shrinks until neither part is legible and the name only repeats the
+  label beside it. So each bundled logo is the institution's symbol wherever one exists: first the
+  square icon the bank itself publishes on its website (web-app manifest icon, apple-touch-icon,
+  SVG favicon), otherwise the symbol cropped out of the full SVG logo by narrowing its `viewBox`
+  (no path is edited). Brands without a separate symbol (Chime, Santander, ICICI, Everbright,
+  Lloyds, TSB, …) keep their full logo.
 
 - **Lookup order: bundled → network.** When a preset is picked in the account dialog,
   `_fetchBankIcon` first copies the preset's bundled logo into `images/`
@@ -84,7 +92,8 @@ presets no longer needs the network; the other 48 use the network chain as befor
   the file picker.
 - **Trademarks.** The logos are the institutions' own marks, bundled only so users can recognize
   their own accounts. Store builds ship none. `tool/bank_logo_choices.json` records each review
-  decision (`"c0.svg"`, `"s1.png"`, `"c0.svg@png"`, or `"reject"`), so any single logo can be
+  decision (`"c0.svg"`, `"i0.png"`, `"c0.svg#crop=x,y,w,h"`, `"c0.svg@png"`, or `"reject"`), so
+  any single logo can be
   removed (set it to `"reject"`) and the set rebuilt. A preset with no entry gets no bundled logo,
   exactly like a rejected one.
 
@@ -100,17 +109,24 @@ To add or replace a logo:
    phases resume from their caches. `--infobox` reads the logo from the English and local-language
    Wikipedia infoboxes for presets Wikidata has nothing for (many logos are local, non-Commons
    files). `--site --only <country_id,...>` appends candidates `s0`, `s1`, … from the bank's own homepage
-   (logo `<img>`, SVG icon, apple-touch-icon, `og:image`). Optional direct URLs per key go in
-   `tool/bank_logo_overrides.json`.
+   (logo `<img>`, SVG icon, apple-touch-icon, `og:image`). `--icons --only <country_id,...>` appends
+   the bank's official square icons as `i0`, `i1`, … — the largest web-app manifest icons, declared
+   apple-touch-icons, SVG favicons, and the conventional `/apple-touch-icon.png` — six sites at a
+   time and resumable. Optional direct URLs per key go in `tool/bank_logo_overrides.json`.
 2. **Review** with `dart run tool/bank_logo_sheet.dart --dir <scratch dir> [--only <country_id,...>]`: HTML
    contact sheets of 12 presets per page (`sheet_<country>_<n>.html`), each candidate labelled by
-   its file name and shown at avatar and large size on light and dark backgrounds.
+   its file name and shown large and inside an avatar-sized circle. Prefer an official icon; for a
+   symbol-plus-wordmark SVG without one, measure the shapes' bounding boxes in a browser, take the
+   cluster that is the symbol, and record its square box as a crop.
 3. **Record the decision** in `tool/bank_logo_choices.json`: a candidate file name, a file name plus
-   `@png` for an SVG that flutter_svg cannot draw, or `"reject"`.
+   `#crop=x,y,w,h` (SVG user units) to keep only the symbol, a file name plus `@png` for an SVG that
+   flutter_svg cannot draw, or `"reject"`.
 4. **Install** with `dart run tool/apply_bank_logo_choices.dart --dir <scratch dir>`, which rebuilds
    `assets/bank_logos/` from scratch and regenerates the manifest. SVGs get their `<style>` rules
    inlined into `style` attributes (flutter_svg ignores style sheets, so most Illustrator exports
-   otherwise render black). `@png` installs Wikimedia's 500 px PNG rendering of the SVG instead
+   otherwise render black). `#crop=` then replaces the root `viewBox`/`width`/`height` with the
+   crop box (`cropSvg`); `SvgPicture` clips to its box by default, so content outside the crop
+   never shows. `@png` installs Wikimedia's 500 px PNG rendering of the SVG instead
    (Wikimedia serves only standard thumbnail widths; 512 returns HTTP 400) — for files flutter_svg
    cannot draw even after inlining, such as `foreignObject` or some clip/gradient combinations.
    Rasters (PNG, JPEG, WebP, GIF) are centered on a white square with a margin and scaled to exactly

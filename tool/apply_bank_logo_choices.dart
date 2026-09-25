@@ -2,7 +2,8 @@
 //
 // Run: dart run tool/apply_bank_logo_choices.dart --dir <scratch dir from fetch_bank_logos.dart>
 //
-// Reads tool/bank_logo_choices.json: { "<country>/<id>": "c0.svg" | "c0.svg@png" | "reject" }.
+// Reads tool/bank_logo_choices.json: { "<country>/<id>": "c0.svg" | "c0.svg#crop=x,y,w,h" |
+// "c0.svg@png" | "reject" }. "#crop=" keeps only the symbol of a symbol-plus-wordmark SVG.
 // SVGs have their <style> rules inlined (flutter_svg ignores style sheets); "@png" installs
 // Wikimedia's PNG rendering of that SVG instead. Rasters are
 // centred on a white square canvas with a margin and scaled to
@@ -117,6 +118,27 @@ String inlineSvgStyles(String svg) {
   return out;
 }
 
+/// Purpose: Crop an SVG to its symbol by replacing the root element's viewport.
+/// Inputs: `svg` source; `crop` — `"x,y,w,h"` in the SVG's user units.
+/// Returns: `String` SVG whose root `viewBox` is the crop and whose `width`/`height` are `w`/`h`.
+/// Side effects: None.
+/// Notes: Used to show only the symbol of a symbol-plus-wordmark logo in the circular avatar.
+/// No path is edited; content outside the viewBox is clipped by the root viewport. Crops come
+/// from measuring each shape's bounding box in a browser and are reviewed as rendered by
+/// flutter_svg.
+String cropSvg(String svg, String crop) {
+  final v = crop.split(',').map((s) => s.trim()).toList();
+  if (v.length != 4) throw FormatException('crop must be x,y,w,h: $crop');
+  return svg.replaceFirstMapped(RegExp(r'<svg\b([^>]*)>', caseSensitive: false), (m) {
+    final attrs = m[1]!.replaceAll(
+      RegExp(r'''\s(?:viewBox|width|height|preserveAspectRatio)\s*=\s*(?:"[^"]*"|'[^']*')''',
+          caseSensitive: false),
+      '',
+    );
+    return '<svg$attrs viewBox="${v.join(' ')}" width="${v[2]}" height="${v[3]}">';
+  });
+}
+
 /// Purpose: Build the Wikimedia PNG rendering URL for a Commons/Wikipedia SVG file URL.
 /// Inputs: `url` — `https://upload.wikimedia.org/wikipedia/<wiki>/<a>/<ab>/<Name>.svg`.
 /// Returns: `String?` thumbnail URL at 500 px (a width Wikimedia serves; arbitrary widths
@@ -158,8 +180,11 @@ Future<void> main(List<String> args) async {
   for (final entry in choices.entries) {
     if (entry.value == 'reject') continue;
     final stem = entry.key.replaceFirst('/', '_');
-    final asPng = entry.value.endsWith('@png');
-    final file = asPng ? entry.value.substring(0, entry.value.length - 4) : entry.value;
+    final cropAt = entry.value.indexOf('#crop=');
+    final crop = cropAt < 0 ? null : entry.value.substring(cropAt + 6);
+    final value = cropAt < 0 ? entry.value : entry.value.substring(0, cropAt);
+    final asPng = value.endsWith('@png');
+    final file = asPng ? value.substring(0, value.length - 4) : value;
     final src = File(p.join(dir.path, stem, file));
     if (!src.existsSync()) {
       problems.add('${entry.key}: missing $file');
@@ -167,8 +192,9 @@ Future<void> main(List<String> args) async {
     }
     final ext = p.extension(src.path).toLowerCase();
     if (ext == '.svg' && !asPng) {
-      File(p.join(assetDir.path, '$stem.svg'))
-          .writeAsStringSync(inlineSvgStyles(src.readAsStringSync()));
+      var svg = inlineSvgStyles(src.readAsStringSync());
+      if (crop != null) svg = cropSvg(svg, crop);
+      File(p.join(assetDir.path, '$stem.svg')).writeAsStringSync(svg);
     } else {
       var source = src;
       if (asPng) {
