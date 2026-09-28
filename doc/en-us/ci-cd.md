@@ -15,8 +15,8 @@ in CI, so the default `GITHUB_TOKEN` is sufficient.
 | `android` | `ubuntu-latest` | APK + AAB | Java 17, optional signing secrets, APK `--flavor full` + `FLAVOR=full`, then the bank-logo strip step, then AAB `--flavor store` + `FLAVOR=store`, asserted free of `bank_logos` |
 | `windows-x64` | `windows-latest` | Inno x64 installer | Stable Flutter `3.44.2`, `iscc installer.iss` |
 | `windows-arm64` | `windows-11-arm` | Inno ARM64 installer | Flutter master for ARM64 engine, `iscc /DARM64 installer.iss` |
-| `ios` | `macos-latest` | Sideload IPA | Release, no codesign |
-| `macos` | `macos-latest` | DMG | Uses `create-dmg` |
+| `ios` | `macos-latest` | Sideload IPA | Release, no codesign; then `tool/check_weak_link.sh` on `Runner.app` |
+| `macos` | `macos-latest` | DMG | `tool/check_weak_link.sh` on the built `.app`, then `create-dmg` |
 | `release` | `ubuntu-latest` | GitHub Release | Only on tag push, collects all artifacts |
 
 ## Workflow caveats
@@ -45,6 +45,15 @@ in CI, so the default `GITHUB_TOKEN` is sufficient.
   restore with
   `git checkout -- assets/bank_logos pubspec.yaml lib/features/finance/services/bank_logo_manifest.g.dart`.
   Windows, iOS, and macOS are Full builds and are never stripped.
+- **FoundationModels must stay weakly linked (1.5.0).** The on-device AI plugin links Apple's
+  FoundationModels, which exists only on iOS/macOS 26+. After the iOS and macOS builds,
+  `bash tool/check_weak_link.sh <app>` fails the job unless every binary that links it uses
+  `LC_LOAD_WEAK_DYLIB`, and also fails when nothing links it (the plugin did not make it into the
+  build, or the runner's Xcode lacks the 26 SDK — then fix the runner, not the code). The macOS
+  bundle name contains `!!!!!`, so its path is found with `find` and always quoted. See
+  [on-device-ai.md](on-device-ai.md#weak-linking).
+- Android builds need nothing new for on-device AI: ML Kit resolves from Google Maven, and both
+  flavors include it.
 - Action versions: `actions/checkout@v7`, `actions/setup-java@v5`, `actions/upload-artifact@v7`,
   `actions/download-artifact@v8`, `softprops/action-gh-release@v3` (bumped from the Node 20-based
   majors GitHub deprecated). Validate workflow changes with a `workflow_dispatch` run before the next
@@ -66,6 +75,8 @@ flutter test
 flutter test test/balance_util_test.dart
 flutter test test/json_preservation_test.dart
 flutter test test/widget_test.dart
+flutter test test/on_device_ai_test.dart test/insight_facts_test.dart test/insight_service_test.dart test/ai_insights_cache_test.dart test/ai_insight_card_ui_test.dart test/ai_settings_tiles_ui_test.dart
+bash tool/check_weak_link.sh build/ios/iphoneos/Runner.app
 flutter gen-l10n
 dart run tool/generate_ios_icons.dart
 dart run flutter_launcher_icons -f flutter_launcher_icons.yaml

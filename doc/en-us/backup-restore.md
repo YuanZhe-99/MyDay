@@ -16,6 +16,12 @@ deduplicated into the shared blob store, and the bundle records only `refs['imag
 Legacy v1 bundles that instead embed inline base64 `_images` remain restorable — restore checks
 `_imageRefs` (v2 blob references) first, then falls back to the legacy inline base64 path.
 
+**Not in a bundle or a ZIP export:** `storage_config.json`, `webdav_config.json`, `.sync_base/`,
+and `ai_insights.json` (the on-device AI insight cache, v1.5.0). Bundles and exports iterate the
+module registry only, and none of these is registered. A restore therefore never brings back
+generated insights; the cards regenerate from the restored data. See
+[on-device-ai.md](on-device-ai.md).
+
 ## Blob garbage collection
 
 - A blob is physically deleted only when **no remaining backup** references it.

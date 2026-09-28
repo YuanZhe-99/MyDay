@@ -23,6 +23,7 @@ MyDay!!!!! 是一款隐私优先的 Flutter 日常生活伴侣应用，覆盖待
 - [WebDAV 同步](sync.md) — 十步逐记录三方同步流程、重试/心跳/锁行为、同步数据参考表和自动同步触发。
 - [备份与恢复](backup-restore.md) — 备份格式 v2、blob 垃圾回收、恢复校验与安全，以及仅 ZIP 的导入/导出。
 - [平台说明](platform-notes.md) — Android/iOS/macOS/Windows 注意事项、本地 HTTP API、托盘行为和启动。
+- [端侧 AI](on-device-ai.md) — 可选的洞察卡片（1.5.0）：策略、模型层、每张卡片获得的内容、缓存与指纹，以及设备检查清单。
 - [CI/CD](ci-cd.md) — CI 任务和工作流注意事项、构建/校验命令集和全新克隆（子模块）步骤。
 - [版本历史](version-history.md) — 逐版本摘要。在改动一个看起来奇怪的行为前值得先查；多条记录是刻意的安全修复。
 

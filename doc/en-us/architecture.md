@@ -18,8 +18,12 @@ repository layout, and the core storage/concurrency rules that every feature mod
    tab is active.
 6. `AutoSyncService.instance.start()` — the auto-sync lifecycle observer (only syncs once the user
    has configured and enabled WebDAV).
-7. On desktop: `TrayService.instance.init()` — system tray icon/menu.
-8. `runApp(DevicePreview(enabled: kDebugMode, builder: (_) => const ProviderScope(child: MyDayApp())))`.
+7. `OnDeviceAiService.instance.start()` — registers the on-device AI lifecycle listener (1.5.0). It
+   calls nothing on the model; `AppSettingsNotifier` later pushes the persisted switch into the
+   service, and while the switch is off the method channel is never touched. See
+   [On-device AI](on-device-ai.md).
+8. On desktop: `TrayService.instance.init()` — system tray icon/menu.
+9. `runApp(DevicePreview(enabled: kDebugMode, builder: (_) => const ProviderScope(child: MyDayApp())))`.
 
 So the widget tree is `DevicePreview` → `ProviderScope` (Riverpod root) → `MyDayApp`
 (`lib/app/app.dart`, a `ConsumerWidget`).
@@ -76,8 +80,19 @@ lib/
     router.dart
     theme.dart
   features/
+    ai/
+      services/ai_insights_cache.dart
+      services/genai_backend.dart
+      services/insight_language.dart
+      services/insight_prompts.dart
+      services/insight_service.dart
+      services/on_device_ai_service.dart
+      services/output_validation.dart
+      widgets/ai_insight_card.dart
+      widgets/ai_settings_tiles.dart
     todo/
       models/task.dart
+      services/todo_insight_facts.dart
       services/todo_storage.dart
       views/todo_page.dart
       widgets/add_task_dialog.dart
@@ -90,6 +105,7 @@ lib/
       services/bank_preset_service.dart
       services/exchange_rate_api.dart
       services/exchange_rate_storage.dart
+      services/finance_insight_facts.dart
       services/finance_storage.dart
       services/subscription_processor.dart
       views/
@@ -98,6 +114,7 @@ lib/
       models/intimacy_record.dart
       services/body_metrics.dart
       services/cycle_predictor.dart
+      services/intimacy_insight_facts.dart
       services/intimacy_storage.dart
       views/body_page.dart
       views/intimacy_page.dart
@@ -107,6 +124,7 @@ lib/
       widgets/timer_page.dart
     weight/
       models/weight_record.dart
+      services/weight_insight_facts.dart
       services/weight_storage.dart
       views/weight_page.dart
     settings/views/
@@ -127,16 +145,23 @@ lib/
       tray_service.dart
       webdav_service.dart
     utils/adaptive_layout.dart
+    utils/chinese_convert.dart
+    utils/chinese_convert_data.dart
     utils/json_preservation.dart
     utils/week_grouping.dart
     views/
     widgets/
   l10n/
+packages/
+  myapps_data/          # shared engines (git submodule)
+  on_device_ai_apple/   # local plugin: Apple Foundation Models bridge (1.5.0)
 ```
 
 Each feature module (`todo`, `finance`, `intimacy`, `weight`) follows the same
 `models/ + services/ + views/ + widgets/` shape; `settings` is view-only (it reads/writes other
-modules' storage rather than owning a data file). `shared/` holds everything cross-cutting: sync,
+modules' storage rather than owning a data file). `ai` owns no data file either: it holds the
+on-device model layer and the insight card, and each module contributes a pure
+`*_insight_facts.dart` builder (see [On-device AI](on-device-ai.md)). `shared/` holds everything cross-cutting: sync,
 backup, notifications/reminders, the local API server, tray/startup glue, and small pure utilities.
 
 ## Shared package (`myapps_data`)
@@ -216,6 +241,12 @@ committed. Fresh clones need `git clone --recurse-submodules` or `git submodule 
   (`tool/strip_bank_logos.dart`, see [CI/CD](ci-cd.md)), not the flag. New Store-only behavior must
   read `isStoreBuild` from that file and be documented here. See
   [`build_flavor.dart`](functions/app/build_flavor.md).
+- **On-device AI is a gate, and its cache is device-local (1.5.0).** Nothing calls the model while
+  the Settings switch is off, and on platforms without a model the insight cards are never built.
+  Generated insights live only in `ai_insights.json`, which is not a registered data module (never
+  synced, backed up or exported) and, unlike data files, reads as empty when unreadable because it
+  is rebuildable. Only app-computed facts reach the model — never notes. See
+  [On-device AI](on-device-ai.md).
 
 ## Related pages
 

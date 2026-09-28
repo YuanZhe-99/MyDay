@@ -10,7 +10,11 @@ import '../../../shared/services/reminder_service.dart';
 import '../../../shared/utils/adaptive_layout.dart';
 import '../../../shared/utils/week_grouping.dart';
 import '../../../shared/widgets/adaptive_tile_grid.dart';
+import '../../ai/services/insight_prompts.dart';
+import '../../ai/services/insight_service.dart';
+import '../../ai/widgets/ai_insight_card.dart';
 import '../models/task.dart';
+import '../services/todo_insight_facts.dart';
 import '../services/todo_storage.dart';
 import '../widgets/add_task_dialog.dart';
 import '../widgets/edit_task_dialog.dart';
@@ -1421,6 +1425,29 @@ class _TodoPageState extends ConsumerState<TodoPage> {
     );
   }
 
+  /// Purpose: Build today's on-device AI insight card.
+  /// Inputs: None; reads the page's loaded task state.
+  /// Returns: `Widget` — empty while AI is off or unsupported.
+  /// Side effects: None directly; the card may run the model.
+  /// Notes: Internal helper used within this file only. Only built for
+  /// today; the card picks plan / progress / review by the time of day.
+  Widget _buildAiCard() => AiInsightCard(
+    module: InsightModule.todo,
+    margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+    buildRequest: (language, now) {
+      final facts = buildTodoInsightFacts(
+        now: now,
+        dailyTemplates: _dailyTemplates,
+        oneTimeTasks: _oneTimeTasks,
+        dailyLog: _dailyLog,
+        dailyScores: _dailyScores,
+      );
+      return facts == null
+          ? null
+          : AiInsightRequest(facts: facts, language: language, now: now);
+    },
+  );
+
   /// Purpose: Build the task area, in one column or several side by side.
   /// Inputs: `theme`, `l10n`, `columns` — the resolved section-column count.
   /// Returns: `Widget`.
@@ -1440,6 +1467,9 @@ class _TodoPageState extends ConsumerState<TodoPage> {
   Widget _buildTaskArea(ThemeData theme, AppLocalizations l10n, int columns) {
     final sections = _taskSections(theme, l10n);
     final scoreCard = _buildDailyScoreCard(theme, l10n);
+    // On-device AI insight about today (v1.5.0); renders nothing while AI is
+    // off, on Windows, or when another day is selected.
+    final aiCard = _isToday ? _buildAiCard() : null;
     if (columns <= 1) {
       return ListView(
         children: [
@@ -1448,6 +1478,7 @@ class _TodoPageState extends ConsumerState<TodoPage> {
             sections[i],
           ],
           scoreCard,
+          ?aiCard,
           const SizedBox(height: 80),
         ],
       );
@@ -1465,7 +1496,7 @@ class _TodoPageState extends ConsumerState<TodoPage> {
                   if (j > 0) const Divider(indent: 16, endIndent: 16),
                   sections[fill[column][j]],
                 ],
-                if (column == columns - 1) scoreCard,
+                if (column == columns - 1) ...[scoreCard, ?aiCard],
                 const SizedBox(height: 80),
               ],
             ),

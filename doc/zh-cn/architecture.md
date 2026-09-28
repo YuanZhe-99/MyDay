@@ -12,8 +12,9 @@
 4. 桌面上：`LocalApiServer.start()`——本地 HTTP API 服务器（仅桌面）。
 5. `ReminderService.instance.start()`——全局 30 秒提醒循环，与哪个标签激活无关。
 6. `AutoSyncService.instance.start()`——自动同步生命周期观察者（只在用户配置并启用 WebDAV 后同步）。
-7. 桌面上：`TrayService.instance.init()`——系统托盘图标/菜单。
-8. `runApp(DevicePreview(enabled: kDebugMode, builder: (_) => const ProviderScope(child: MyDayApp())))`。
+7. `OnDeviceAiService.instance.start()`——注册端侧 AI 生命周期监听器（1.5.0）。它不调用模型；随后由 `AppSettingsNotifier` 把持久化的开关推入该服务，开关关闭期间从不触碰方法通道。见 [端侧 AI](on-device-ai.md)。
+8. 桌面上：`TrayService.instance.init()`——系统托盘图标/菜单。
+9. `runApp(DevicePreview(enabled: kDebugMode, builder: (_) => const ProviderScope(child: MyDayApp())))`。
 
 因此组件树是 `DevicePreview` → `ProviderScope`（Riverpod 根）→ `MyDayApp`（`lib/app/app.dart`，一个 `ConsumerWidget`）。
 
@@ -53,8 +54,19 @@ lib/
     router.dart
     theme.dart
   features/
+    ai/
+      services/ai_insights_cache.dart
+      services/genai_backend.dart
+      services/insight_language.dart
+      services/insight_prompts.dart
+      services/insight_service.dart
+      services/on_device_ai_service.dart
+      services/output_validation.dart
+      widgets/ai_insight_card.dart
+      widgets/ai_settings_tiles.dart
     todo/
       models/task.dart
+      services/todo_insight_facts.dart
       services/todo_storage.dart
       views/todo_page.dart
       widgets/add_task_dialog.dart
@@ -67,6 +79,7 @@ lib/
       services/bank_preset_service.dart
       services/exchange_rate_api.dart
       services/exchange_rate_storage.dart
+      services/finance_insight_facts.dart
       services/finance_storage.dart
       services/subscription_processor.dart
       views/
@@ -75,6 +88,7 @@ lib/
       models/intimacy_record.dart
       services/body_metrics.dart
       services/cycle_predictor.dart
+      services/intimacy_insight_facts.dart
       services/intimacy_storage.dart
       views/body_page.dart
       views/intimacy_page.dart
@@ -84,6 +98,7 @@ lib/
       widgets/timer_page.dart
     weight/
       models/weight_record.dart
+      services/weight_insight_facts.dart
       services/weight_storage.dart
       views/weight_page.dart
     settings/views/
@@ -104,14 +119,19 @@ lib/
       tray_service.dart
       webdav_service.dart
     utils/adaptive_layout.dart
+    utils/chinese_convert.dart
+    utils/chinese_convert_data.dart
     utils/json_preservation.dart
     utils/week_grouping.dart
     views/
     widgets/
   l10n/
+packages/
+  myapps_data/          # 共享引擎（git 子模块）
+  on_device_ai_apple/   # 本地插件：Apple Foundation Models 桥接（1.5.0）
 ```
 
-每个功能模块（`todo`、`finance`、`intimacy`、`weight`）遵循相同的 `models/ + services/ + views/ + widgets/` 形态；`settings` 只有视图（它读写其他模块的存储，而不是拥有数据文件）。`shared/` 保存一切跨领域内容：同步、备份、通知/提醒、本地 API 服务器、托盘/启动胶水和小的纯工具。
+每个功能模块（`todo`、`finance`、`intimacy`、`weight`）遵循相同的 `models/ + services/ + views/ + widgets/` 形态；`settings` 只有视图（它读写其他模块的存储，而不是拥有数据文件）。`ai` 同样不拥有数据文件：它包含端侧模型层和洞察卡片，每个模块各贡献一个纯函数的 `*_insight_facts.dart` 构建器（见 [端侧 AI](on-device-ai.md)）。`shared/` 保存一切跨领域内容：同步、备份、通知/提醒、本地 API 服务器、托盘/启动胶水和小的纯工具。
 
 ## 共享包（`myapps_data`）
 
@@ -134,6 +154,7 @@ WebDAV 同步引擎、备份引擎、ZIP 传输引擎、原子写入器和自动
 - **UTC `modifiedAt` + `settingsModifiedAt` 供最后写入者胜出。** 记录模型用 `DateTime.now().toUtc()` 作为 `modifiedAt`。设置级合并用显式 `settingsModifiedAt` 字段（也是 UTC）做 LWW 设置解决。本地时间 `modifiedAt` 值会破坏跨时区的同步冲突检测；以本地时间写入的旧数据保持可解析兼容，但所有新写入必须是 UTC。这些时间戳如何驱动合并见 [数据格式](data-formats.md) 和 [WebDAV 同步](sync.md)。
 - **可选字段省略，不写 null。** 可选/空字段通常通过条件映射条目（`if (x != null) 'x': x`）完全留在 JSON 映射之外，而不是序列化为显式 `null`。
 - **只有一个风味门，且只在一个文件里。** `lib/app/build_flavor.dart` 是 `lib/` 中唯一读取发行构建风味的地方：当平台风味（`appFlavor`，即 Android `--flavor store`）或 dart-define（`--dart-define=FLAVOR=store`）为 `store` 时，`isStoreBuild` 为真。它目前只控制一项行为——内置银行标志（`bundledBankLogosEnabled`，由 `BankPreset.bundledLogoAsset` 读取）；除此之外完整版构建与商店版构建行为完全相同。Android 构建传 `--flavor full|store`（`android/app/build.gradle.kts` 中真实的构建风味）；Windows 没有 `--flavor`，只靠 dart-define；iOS 和 macOS 传 `FLAVOR=full`。该标志只改变查找——把标志字节排除在商店版包之外靠的是 CI 剥离步骤（`tool/strip_bank_logos.dart`，见 [CI/CD](ci-cd.md)），而不是这个标志。新的商店版专属行为必须从该文件读取 `isStoreBuild`，并在此处文档化。见 [`build_flavor.dart`](functions/app/build_flavor.md)。
+- **端侧 AI 是一道门，其缓存只存在于本设备（1.5.0）。** 设置中的开关关闭时，没有任何东西调用模型；在没有模型的平台上，洞察卡片从不构建。生成的洞察只存放在 `ai_insights.json` 中，它不是已登记的数据模块（从不同步、备份或导出），并且与数据文件不同，它不可读时读作空，因为它可以重建。只有应用计算出的事实会到达模型——备注绝不会。见 [端侧 AI](on-device-ai.md)。
 
 ## 相关页面
 

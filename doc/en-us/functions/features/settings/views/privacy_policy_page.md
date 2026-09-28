@@ -4,7 +4,13 @@ A single static page showing MyDay's in-app privacy policy, translated into Engl
 Chinese, Traditional Chinese, and Japanese, selected by the active app locale rather than by a
 language picker on the page itself. It should match `PRIVACY_POLICY.md` at the repo root per
 [Settings](../../../../features/settings.md). Like [`license_page.dart`](license_page.md), it has no
-services or external state — the only "logic" is picking which canned string to render.
+services or external state — the only "logic" is picking which canned string to render. Since
+1.5.0 each of the four strings carries an "On-Device AI" section (between the third-party services
+and Data Backup sections) stating that the feature is off by default, runs only on the device
+(Gemini Nano via Android AICore, or Apple Intelligence on iOS/macOS 26+; not on Windows), lists
+which computed figures each module hands the model and which fields never reach it, and says
+generated results are neither synced, backed up nor exported — see
+[On-device AI](../../../../on-device-ai.md).
 
 ## Declarations
 
@@ -33,3 +39,5 @@ the table above for each declaration's one-line purpose; this file has no Tier A
 
 - [Settings](../../../../features/settings.md) — the About section that links to this page, and the
   note that this text should track `PRIVACY_POLICY.md`.
+- [On-device AI](../../../../on-device-ai.md) — the feature the "On-Device AI" policy section
+  describes.

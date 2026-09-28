@@ -1,10 +1,12 @@
 # lib/features/intimacy/views/intimacy_page.dart
 
-亲密功能的主视图文件——整个应用迄今为止最大的源文件（5642 行）。它托管主页 `IntimacyPage`（日历、记录列表、趋势图、管理菜单）以及从它到达的每个管理/详情子页：伴侣管理、玩具管理、姿势管理、过滤的逐伴侣/逐玩具详情页（带记录/身体标签）、聚合玩具成本总览，以及跨它们使用的小型共享组件（`_CalendarWidget`、`_RecordTile`、`_DatePickerTile`）。模型来自 `../models/intimacy_record.dart`；存储是 `../services/intimacy_storage.dart`；周期数学是 `../services/cycle_predictor.dart`。完整功能描述见 [亲密](../../../../features/intimacy.md)，磁盘 JSON 形态见 [数据格式](../../../../data-formats.md#intimacy--intimacy_datajson)，这里经 `_buildCycleOverlays` 消费的周期预测细节见 [身体指标](../../../../algorithms/body-metrics.md)。
+亲密功能的主视图文件——整个应用迄今为止最大的源文件（5887 行）。它托管主页 `IntimacyPage`（日历、记录列表、趋势图、管理菜单）以及从它到达的每个管理/详情子页：伴侣管理、玩具管理、姿势管理、过滤的逐伴侣/逐玩具详情页（带记录/身体标签）、聚合玩具成本总览，以及跨它们使用的小型共享组件（`_CalendarWidget`、`_RecordTile`、`_DatePickerTile`）。模型来自 `../models/intimacy_record.dart`；存储是 `../services/intimacy_storage.dart`；周期数学是 `../services/cycle_predictor.dart`。完整功能描述见 [亲密](../../../../features/intimacy.md)，磁盘 JSON 形态见 [数据格式](../../../../data-formats.md#intimacy--intimacy_datajson)，这里经 `_buildCycleOverlays` 消费的周期预测细节见 [身体指标](../../../../algorithms/body-metrics.md)。
 
 结构上文件是一个主页（`IntimacyPage` / `_IntimacyPageState`）加十个支撑类，按源码顺序：`_IntimacyDataError`、`_CalendarWidget`、`_RecordTile`、`_PartnerManagementPage`（+ 状态）、`_ToyManagementPage`（+ 状态）、`_PositionManagementPage`（+ 状态）、`_FilteredRecordsPage`（+ 状态）、`_ToyCostOverviewPage`（+ 状态）、`_ToyCostTrendData` 和 `_DatePickerTile`。伴侣和玩具管理状态是近乎镜像的实现（自定义排序/重排、激活/非激活或激活/退役分组）。
 
 截至 v1.3.2，记录指标趋势图不再住在这里。主页的两个图表和 `_FilteredRecordsTrendSection` 的两个近乎逐字副本被单个 [`IntimacyTrendChart`](../widgets/intimacy_trend_chart.md) 组件取代，两个表面现在都嵌入它；27 个声明（点构建器、吸附辅助、图例项、日期间隔辅助和整个 `_FilteredRecordsTrendSection` 对）被删除，`_saveChartSettings` 被添加以持久化图表的共享选择。`_ToyCostOverviewPage` 上的玩具每日成本趋势图留在这里——它在对数刻度上把金额绘制在投影日期时间线上——并且现在共享图表组件导出的公共 `IntimacyChartRange` 枚举，而不是私有重复。
+
+自 v1.5.0 起，主页的图表小节还带有端侧 AI 洞察卡片（[`AiInsightCard`](../../ai/widgets/ai_insight_card.md#aiinsightcard-new)，`module: InsightModule.intimacy`），由 [`buildIntimacyInsightFacts`](../services/intimacy_insight_facts.md#buildintimacyinsightfacts) 提供事实。为了卡片的身体事实，`_loadData` 还会从 [`WeightStorage`](../../weight/services/weight_storage.md) 把用户自己的胸围/腰围/臀围记录读进 `_weightRecordsForInsight` 字段，但仅在可能有模型的平台上端侧 AI 开启时。见[端侧 AI](../../../../on-device-ai.md#insight-cards)。
 
 ## 声明
 
@@ -25,7 +27,7 @@
 | [`_addRecord`](#addrecord-main) | 方法（`_IntimacyPageState`） | A | 打开添加记录对话框（仅激活伴侣/玩具）并持久化结果。 |
 | [`_deleteRecord`](#deleterecord-main) | 方法（`_IntimacyPageState`） | A | 按 id 移除记录并持久化。 |
 | [`_editRecord`](#editrecord-main) | 方法（`_IntimacyPageState`） | A | 打开编辑记录对话框并持久化更新记录。 |
-| `_IntimacyPageState.build` | 方法（组件） | B | 构建主页：日历、图表小节和记录列表/摘要。 |
+| `_IntimacyPageState.build` | 方法（组件） | B | 构建主页：日历、图表小节（趋势图，以及自 v1.5.0 起的端侧 AI 洞察卡片）和记录列表/摘要。 |
 | `_showAllRecords` | 方法（组件辅助） | B | 在模态底部面板显示完整过滤记录列表。 |
 | `_buildRecordListWidgets` | 方法（组件辅助） | B | 构建周分组记录列表组件（主页）。 |
 | `_buildWeekHeader` | 方法（组件辅助） | B | 构建 ISO 周组页头行（主页）。 |
@@ -188,22 +190,23 @@
 | `_IntimacyBody({...})` | 构造函数（`_IntimacyBody`） | B | 创建亲密主体排布器。 |
 | [`build`](#intimacybody-build) | 方法（`_IntimacyBody`） | A | 堆叠日历、图表和记录，或把日历和图表放进记录旁边的窗格里。 |
 
-**行数对账：** 上面 177 行，与 `grep -c '/// Purpose:'` = 177 精确匹配（54 个 Tier A、123 个 Tier B）。v1.3.2 在记录指标图移入 [`intimacy_trend_chart.dart`](../widgets/intimacy_trend_chart.md) 时移除了 27 行（17 个 Tier A、10 个 Tier B），并添加了一个（`_saveChartSettings`，Tier A）。重名声明（同一辅助名在多个类中重新实现，如 `_IntimacyPageState` 和 `_FilteredRecordsPageState` 中都有 `_filteredRecords`）如何在锚点中消歧见本页末尾说明。
+**行数对账：** 上面 177 行，与 `grep -c '/// Purpose:'` = 177 精确匹配（54 个 Tier A、123 个 Tier B）。v1.3.2 在记录指标图移入 [`intimacy_trend_chart.dart`](../widgets/intimacy_trend_chart.md) 时移除了 27 行（17 个 Tier A、10 个 Tier B），并添加了一个（`_saveChartSettings`，Tier A）。重名声明（同一辅助名在多个类中重新实现，如 `_IntimacyPageState` 和 `_FilteredRecordsPageState` 中都有 `_filteredRecords`）如何在锚点中消歧见本页末尾说明。普通状态字段没有行，因此 v1.5.0 的 `_weightRecordsForInsight` 字段（第 84 行；一行 `///` 注释，没有 `Purpose:` 块）在 [`_loadData`](#loaddata) 中说明，而不在表格中。v1.5.0 没有改变行数。
 
 ## 文档
 
 ### `Future<void> _loadData()` <a id="loaddata"></a>
 - **种类：** `_IntimacyPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 172 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 127 行）
 - **用途：** 把 `intimacy_data.json` 加载进页面状态，或记录阻塞读取错误。
 - **输入：** 无（读取 `IntimacyStorage.load()`）。
 - **返回：** `Future<void>`。
-- **副作用：** 重载期间设 `_loaded = false`（已加载且 mounted 时），然后经 `setState` 填充每个亲密字段（`_partners`、`_toys`、`_positions`、`_records`、计时器历史/会话、用户身体、周期记录、保留、排序模式/自定义顺序、`_settingsModifiedAt`）。
+- **副作用：** 重载期间设 `_loaded = false`（已加载且 mounted 时），然后经 `setState` 填充每个亲密字段（`_partners`、`_toys`、`_positions`、`_records`、计时器历史/会话、用户身体、周期记录、保留、排序模式/自定义顺序、`_settingsModifiedAt`）。自 v1.5.0 起还可能经 `WeightStorage.load()` 读取 `weight_data.json`，并设置 `_weightRecordsForInsight`。
 - **算法：**
   1. 已加载且仍 mounted 时，先把 `_loaded` 翻转为 `false`，使 UI 能在重载期间显示加载/过期状态。
   2. 调用 `IntimacyStorage.load()`；异常时把 `e.toString()` 存进 `_loadError`、设 `_loaded = true` 并返回——不可读文件浮出为错误，绝不静默当作空数据。
-  3. 成功时清除 `_loadError` 并把加载的 `IntimacyData` 的每个字段复制出来（周期记录和自定义顺序的防御性列表/映射复制，使页面自有集合可变）。
-  4. 在 `setState` 块末尾无条件设 `_loaded = true`。
+  3. 自 v1.5.0 起，当 `platformMayHaveOnDeviceModel` 且 `ref.read(appSettingsProvider).onDeviceAiEnabled` 时，为 AI 卡片的身体事实读取 `(await WeightStorage.load())?.records`（没有文件时为空）。任何异常都被吞掉，列表保持为空；否则列表也保持为空。
+  4. 已不再 mounted 时返回；否则清除 `_loadError`、设置 `_weightRecordsForInsight`，并把加载的 `IntimacyData` 的每个字段复制出来（周期记录和自定义顺序的防御性列表/映射复制，使页面自有集合可变）。
+  5. 在 `setState` 块末尾无条件设 `_loaded = true`。
 - **用法：**
   ```dart
   @override
@@ -213,11 +216,11 @@
     AutoSyncService.instance.addOnLocalDataChanged(_loadData);
   }
   ```
-- **备注：** 注册为自动同步"本地数据变更"回调，因此后台同步拉取自动重载此页面的内存状态。
+- **备注：** 注册为自动同步"本地数据变更"回调，因此后台同步拉取自动重载此页面的内存状态。缺失或不可读的体重文件绝不会阻塞本页，只会让 AI 卡片缺少身体事实。体重记录只在这里读取，因此页面打开期间开启 AI 时，它们在下次加载前保持为空。`_weightRecordsForInsight` 只由 `build` 中 AI 卡片的 `buildRequest` 读取。见 [`weight_storage.md`](../../weight/services/weight_storage.md)。
 
 ### `Future<void> _saveData()` <a id="savedata"></a>
 - **种类：** `_IntimacyPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 220 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 187 行）
 - **用途：** 把当前内存亲密状态持久化到磁盘并通知自动同步。
 - **输入：** 无（读取所有 `_IntimacyPageState` 字段）。
 - **返回：** `Future<void>`。
@@ -238,7 +241,7 @@
 
 ### `Future<void> _saveTimerState({required List<TimerHistoryEntry> history, required IntimacyTimerSession? session, required bool historyChanged, required bool timerSessionChanged, required int? retentionDays, required bool retentionChanged})` <a id="savetimerstate"></a>
 - **种类：** `_IntimacyPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 262 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 244 行）
 - **用途：** 持久化从仍打开的 `TimerPage` 流回的计时器历史/会话/保留变更。
 - **输入：** `history`、`session`、`retentionDays`，加三个告诉哪些实际变化的 `bool` 标志。
 - **返回：** `Future<void>`。
@@ -253,7 +256,7 @@
 
 ### `Future<void> _saveChartSettings(IntimacyChartSettings settings)` <a id="savechartsettings"></a>
 - **种类：** `_IntimacyPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 257 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 231 行）
 - **用途：** 持久化新趋势图指标和范围选择。
 - **输入：** `settings` — `IntimacyTrendChart` 上报的完整新选择。
 - **返回：** `Future<void>`。
@@ -266,7 +269,7 @@
 
 ### `List<PersonCycleOverlay> _buildCycleOverlays(AppLocalizations l10n)` <a id="buildcycleoverlays"></a>
 - **种类：** `_IntimacyPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 303 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 285 行）
 - **用途：** 构建主页日历显示的逐人周期叠加列表。
 - **输入：** `l10n`（用于用户自己的显示标签）。
 - **返回：** `List<PersonCycleOverlay>` — 每个合格人一个条目（用户先，然后伴侣），各携带 `_focusedMonth` 周围两个月窗口的 `CyclePrediction`。
@@ -286,7 +289,7 @@
 
 ### `List<IntimacyRecord> get _filteredRecords`（`_IntimacyPageState` 中） <a id="filteredrecords-main"></a>
 - **种类：** `_IntimacyPageState` 的 getter
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 421 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 403 行）
 - **用途：** 对完整记录列表应用所选日历日期、类型过滤器和排序模式供主页显示。
 - **输入：** 无（读取 `_records`、`_selectedDate`、`_filterMode`、`_sortMode`）。
 - **返回：** `List<IntimacyRecord>` — 新的过滤/排序列表；`_records` 本身不动。
@@ -307,7 +310,7 @@
 
 ### `Future<void> _addRecord()`（`_IntimacyPageState` 中） <a id="addrecord-main"></a>
 - **种类：** `_IntimacyPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 468 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 450 行）
 - **用途：** 打开只提供激活伴侣/玩具的添加记录对话框，并持久化结果。
 - **输入：** 无。
 - **返回：** `Future<void>`。
@@ -321,7 +324,7 @@
 
 ### `void _deleteRecord(IntimacyRecord record)`（`_IntimacyPageState` 中） <a id="deleterecord-main"></a>
 - **种类：** `_IntimacyPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 490 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 472 行）
 - **用途：** 按 id 移除一条记录并持久化。
 - **输入：** `record` — 要删除的记录（按 id 匹配）。
 - **返回：** 无。
@@ -336,7 +339,7 @@
 
 ### `Future<void> _editRecord(IntimacyRecord record)`（`_IntimacyPageState` 中） <a id="editrecord-main"></a>
 - **种类：** `_IntimacyPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 500 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 482 行）
 - **用途：** 为既有记录打开编辑记录对话框并持久化更新。
 - **输入：** `record` — 被编辑的记录。
 - **返回：** `Future<void>`。
@@ -351,7 +354,7 @@
 
 ### `int _compareNullableDates(DateTime? a, DateTime? b)`（`_PartnerManagementPageState` 中） <a id="comparenullabledates-partner"></a>
 - **种类：** `_PartnerManagementPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 2609 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 1940 行）
 - **用途：** 比较两个可选日期，`null` 当作排在任何真实日期之后。
 - **输入：** `a`、`b`。
 - **返回：** `int` — 标准比较器契约。
@@ -367,7 +370,7 @@
 
 ### `List<String> _normalizedOrder(String statusKey)`（`_PartnerManagementPageState` 中） <a id="normalizedorder-partner"></a>
 - **种类：** `_PartnerManagementPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 2629 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 1960 行）
 - **用途：** 调和状态组存储的自定义顺序 id 列表与当前存在于该组的伴侣。
 - **输入：** `statusKey`（`_statusActive` 或 `_statusInactive`）。
 - **返回：** `List<String>` — 该组每个当前伴侣 id，按稳定顺序。
@@ -385,7 +388,7 @@
 
 ### `List<Partner> _sortPartners(String statusKey, List<Partner> partners)` <a id="sortpartners"></a>
 - **种类：** `_PartnerManagementPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 2652 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 1983 行）
 - **用途：** 按状态组当前排序模式排序伴侣列表。
 - **输入：** `statusKey`、`partners`（要排序的列表——做副本，输入不被修改）。
 - **返回：** `List<Partner>`。
@@ -406,7 +409,7 @@
 
 ### `void _setSortMode(String statusKey, String mode)`（`_PartnerManagementPageState` 中） <a id="setsortmode-partner"></a>
 - **种类：** `_PartnerManagementPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 2690 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 2021 行）
 - **用途：** 切换状态组的活动排序模式，首次选择自定义排序时播种其自定义顺序。
 - **输入：** `statusKey`、`mode`（`_sortDate`/`_sortCount`/`_sortName`/`_sortCustom` 之一）。
 - **返回：** 无。
@@ -425,7 +428,7 @@
 
 ### `void _appendPartnerToCustomOrderIfNeeded(Partner partner)` <a id="appendpartnertocustomorderifneeded"></a>
 - **种类：** `_PartnerManagementPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 2717 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 2048 行）
 - **用途：** 只在组实际使用自定义排序时把伴侣插入其状态组自定义顺序。
 - **输入：** `partner` — 用其 id 和当前激活/非激活状态。
 - **返回：** 无。
@@ -443,7 +446,7 @@
 
 ### `void _removePartnerFromCustomOrders(String partnerId)` <a id="removepartnerfromcustomorders"></a>
 - **种类：** `_PartnerManagementPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 2728 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 2059 行）
 - **用途：** 从每个存储自定义顺序（激活和非激活组都）移除伴侣 id。
 - **输入：** `partnerId`。
 - **返回：** 无。
@@ -454,7 +457,7 @@
 
 ### `void _reorderPartners(String statusKey, List<Partner> partners, int oldIndex, int newIndex)` <a id="reorderpartners"></a>
 - **种类：** `_PartnerManagementPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 2739 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 2070 行）
 - **用途：** 对状态组自定义顺序应用 `ReorderableListView` 拖拽手势。
 - **输入：** `statusKey`、`partners`（当前显示、已排序列表）、拖拽回调报告的 `oldIndex`/`newIndex`。
 - **返回：** 无。
@@ -473,7 +476,7 @@
 
 ### `void _deletePartner(Partner p)` <a id="deletepartner"></a>
 - **种类：** `_PartnerManagementPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 2784 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 2115 行）
 - **用途：** 永久删除伴侣及其周期记录，同时刻意保留历史活动记录不动。
 - **输入：** `p` — 要删除的伴侣。
 - **返回：** 无。
@@ -492,7 +495,7 @@
 
 ### `void _breakUpPartner(Partner p)` <a id="breakuppartner"></a>
 - **种类：** `_PartnerManagementPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 2801 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 2132 行）
 - **用途：** 标记伴侣分手而不删除：设置结束日期并禁用其日历周期叠加。
 - **输入：** `p` — 要分手的伴侣。
 - **返回：** 无。
@@ -511,7 +514,7 @@
 
 ### `int _compareNullableDates(DateTime? a, DateTime? b)`（`_ToyManagementPageState` 中） <a id="comparenullabledates-toy"></a>
 - **种类：** `_ToyManagementPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 3622 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 2964 行）
 - **用途：** 比较两个可选日期，`null` 当作排在任何真实日期之后。
 - **输入：** `a`、`b`。
 - **返回：** `int`。
@@ -522,7 +525,7 @@
 
 ### `double _totalToyCost(List<Toy> toys)`（`_ToyManagementPageState` 中） <a id="totaltoycost"></a>
 - **种类：** `_ToyManagementPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 3649 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 2991 行）
 - **用途：** 对玩具列表求和总记录成本。
 - **输入：** `toys`。
 - **返回：** `double` — 都没有价格时 `0.0`。
@@ -537,7 +540,7 @@
 
 ### `double? _totalDailyToyCost(List<Toy> toys)` <a id="totaldailytoycost"></a>
 - **种类：** `_ToyManagementPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 3657 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 2999 行）
 - **用途：** 至少一个玩具有足够数据计算时对玩具列表求和平均每日成本。
 - **输入：** `toys`。
 - **返回：** `double?` — 列表中没有玩具同时有价格和购买日期时为 `null`。
@@ -552,7 +555,7 @@
 
 ### `List<String> _normalizedOrder(String statusKey)`（`_ToyManagementPageState` 中） <a id="normalizedorder-toy"></a>
 - **种类：** `_ToyManagementPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 3674 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 3016 行）
 - **用途：** 调和状态组存储的自定义顺序 id 列表与当前存在于该组的玩具。
 - **输入：** `statusKey`（`_statusActive` 或 `_statusInactive`，后者在此类中意为"退役"）。
 - **返回：** `List<String>`。
@@ -563,7 +566,7 @@
 
 ### `List<Toy> _sortToys(String statusKey, List<Toy> toys)` <a id="sorttoys"></a>
 - **种类：** `_ToyManagementPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 3697 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 3039 行）
 - **用途：** 按状态组当前排序模式排序玩具列表。
 - **输入：** `statusKey`、`toys`。
 - **返回：** `List<Toy>`。
@@ -580,7 +583,7 @@
 
 ### `void _setSortMode(String statusKey, String mode)`（`_ToyManagementPageState` 中） <a id="setsortmode-toy"></a>
 - **种类：** `_ToyManagementPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 3733 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 3075 行）
 - **用途：** 切换状态组的活动排序模式，首次使用播种其自定义顺序。
 - **输入：** `statusKey`、`mode`。
 - **返回：** 无。
@@ -594,7 +597,7 @@
 
 ### `void _appendToyToCustomOrderIfNeeded(Toy toy)` <a id="appendtoytocustomorderifneeded"></a>
 - **种类：** `_ToyManagementPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 3760 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 3102 行）
 - **用途：** 只在组使用自定义排序时把玩具插入其状态组自定义顺序。
 - **输入：** `toy`。
 - **返回：** 无。
@@ -609,7 +612,7 @@
 
 ### `void _removeToyFromCustomOrders(String toyId)` <a id="removetoyfromcustomorders"></a>
 - **种类：** `_ToyManagementPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 3771 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 3113 行）
 - **用途：** 从每个存储自定义顺序移除玩具 id。
 - **输入：** `toyId`。
 - **返回：** 无。
@@ -620,7 +623,7 @@
 
 ### `void _reorderToys(String statusKey, List<Toy> toys, int oldIndex, int newIndex)` <a id="reordertoys"></a>
 - **种类：** `_ToyManagementPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 3782 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 3124 行）
 - **用途：** 对状态组自定义玩具顺序应用拖拽重排手势。
 - **输入：** `statusKey`、`toys`、`oldIndex`、`newIndex`。
 - **返回：** 无。
@@ -634,7 +637,7 @@
 
 ### `void _deleteToy(Toy t)` <a id="deletetoy"></a>
 - **种类：** `_ToyManagementPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 3825 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 3167 行）
 - **用途：** 永久删除玩具。
 - **输入：** `t`。
 - **返回：** 无。
@@ -649,7 +652,7 @@
 
 ### `void _retireToy(Toy t)` <a id="retiretoy"></a>
 - **种类：** `_ToyManagementPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 3837 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 3179 行）
 - **用途：** 标记玩具退役而不删除。
 - **输入：** `t`。
 - **返回：** 无。
@@ -667,7 +670,7 @@
 
 ### `void _importDefaults()` <a id="importdefaults"></a>
 - **种类：** `_PositionManagementPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 4746 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 4093 行）
 - **用途：** 添加应用内置默认姿势预设，跳过按名称已存在的。
 - **输入：** 无（用 `l10n` 的本地化预设名/emoji）。
 - **返回：** 无。
@@ -686,7 +689,7 @@
 
 ### `List<IntimacyRecord> get _filteredRecords`（`_FilteredRecordsPageState` 中） <a id="filteredrecords-filtered"></a>
 - **种类：** `_FilteredRecordsPageState` 的 getter
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 5099 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 4467 行）
 - **用途：** 返回此详情页的记录——引用限定伴侣或玩具的——最新优先。
 - **输入：** 无（读取 `_records`、`widget.partnerId`、`widget.toyId`）。
 - **返回：** `List<IntimacyRecord>`。
@@ -701,7 +704,7 @@
 
 ### `List<Partner> _dialogPartners({String? includePartnerId})` <a id="dialogpartners"></a>
 - **种类：** `_FilteredRecordsPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 5125 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 4493 行）
 - **用途：** 构建此详情页增/改记录对话框提供的伴侣选择器列表。
 - **输入：** `includePartnerId` — 即使非激活也必须出现的 id（通常是被编辑记录）。
 - **返回：** `List<Partner>`。
@@ -719,7 +722,7 @@
 
 ### `List<Toy> _dialogToys({Iterable<String> includeToyIds = const []})` <a id="dialogtoys"></a>
 - **种类：** `_FilteredRecordsPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 5141 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 4509 行）
 - **用途：** 构建此详情页增/改记录对话框提供的玩具选择器列表。
 - **输入：** `includeToyIds` — 即使退役也必须出现的 id（通常来自被编辑记录）。
 - **返回：** `List<Toy>`。
@@ -735,7 +738,7 @@
 
 ### `Future<void> _addRecord()`（`_FilteredRecordsPageState` 中） <a id="addrecord-filtered"></a>
 - **种类：** `_FilteredRecordsPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 5164 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 4532 行）
 - **用途：** 从伴侣/玩具详情页打开添加记录对话框，预选当前范围。
 - **输入：** 无。
 - **返回：** `Future<void>`。
@@ -748,7 +751,7 @@
 
 ### `Future<void> _editRecord(IntimacyRecord record)`（`_FilteredRecordsPageState` 中） <a id="editrecord-filtered"></a>
 - **种类：** `_FilteredRecordsPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 5187 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 4555 行）
 - **用途：** 从详情页为一条记录打开编辑记录对话框并更新本地状态。
 - **输入：** `record`。
 - **返回：** `Future<void>`。
@@ -763,7 +766,7 @@
 
 ### `void _deleteRecord(IntimacyRecord record)`（`_FilteredRecordsPageState` 中） <a id="deleterecord-filtered"></a>
 - **种类：** `_FilteredRecordsPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 5210 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 4578 行）
 - **用途：** 从本地状态移除记录并通知父级。
 - **输入：** `record`。
 - **返回：** 无。
@@ -777,7 +780,7 @@
 
 ### `String _formatDuration(Duration duration)` <a id="formatduration"></a>
 - **种类：** `_FilteredRecordsPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 5220 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 4588 行）
 - **用途：** 为详情页摘要指标格式化时长。
 - **输入：** `duration`。
 - **返回：** `String` — 至少一小时时 `"Xh Ym"`，否则 `"Ym"`。
@@ -788,7 +791,7 @@
 
 ### `_ToyCostTrendData _buildTrendData(List<DateTime> dates, DateTime today, List<Toy> toys)` <a id="buildtrenddata"></a>
 - **种类：** `_ToyCostOverviewPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 6072 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 5490 行）
 - **用途：** 计算聚合成本趋势图上绘制的历史/未来每日成本点列表和 y 轴边界。
 - **输入：** `dates`（来自 [`_timeline`](#timeline) 的采样时间线）、`today`、`toys`（当前范围内玩具）。
 - **返回：** `_ToyCostTrendData`（历史点、未来点、`minY`、`maxY`）。
@@ -807,7 +810,7 @@
 
 ### `double? _dailyCostAt(DateTime date, List<Toy> toys)` <a id="dailycostat"></a>
 - **种类：** `_ToyCostOverviewPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 6112 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 5530 行）
 - **用途：** 在某一天对玩具列表求和聚合平均每日成本。
 - **输入：** `date`、`toys`。
 - **返回：** `double?` — 直到至少一个包含玩具能在那天计费前为 `null`。
@@ -822,7 +825,7 @@
 
 ### `double? _toyDailyCostAt(Toy toy, DateTime date)` <a id="toydailycostat"></a>
 - **种类：** `_ToyCostOverviewPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 6129 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 5547 行）
 - **用途：** 计算一个玩具截至特定日期的平均每日成本，考虑退役。
 - **输入：** `toy`、`date`。
 - **返回：** `double?` — 玩具无成本数据、无购买日期或日期早于其购买时为 `null`。
@@ -842,7 +845,7 @@
 
 ### `DateTime _historyStart(DateTime today, List<Toy> toys)` <a id="historystart"></a>
 - **种类：** `_ToyCostOverviewPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 6151 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 5569 行）
 - **用途：** 返回所选范围成本趋势图显示的第一个日期。
 - **输入：** `today`、`toys`。
 - **返回：** `DateTime`。
@@ -857,7 +860,7 @@
 
 ### `DateTime _futureEnd(DateTime today, DateTime historyStart, List<Toy> toys)` <a id="futureend"></a>
 - **种类：** `_ToyCostOverviewPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 6186 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 5604 行）
 - **用途：** 返回成本趋势图未来/投影半边的投影结束日期。
 - **输入：** `today`、`historyStart`、`toys`。
 - **返回：** `DateTime`。
@@ -873,7 +876,7 @@
 
 ### `DateTime? _earliestPurchaseDate(List<Toy> toys)` <a id="earliestpurchasedate"></a>
 - **种类：** `_ToyCostOverviewPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 6205 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 5623 行）
 - **用途：** 返回玩具列表中最晚购买日期。
 - **输入：** `toys`。
 - **返回：** `DateTime?` — 无玩具有购买日期时为 `null`。
@@ -884,7 +887,7 @@
 
 ### `List<DateTime> _timeline(DateTime historyStart, DateTime today, DateTime futureEnd, List<Toy> toys)` <a id="timeline"></a>
 - **种类：** `_ToyCostOverviewPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 6221 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 5639 行）
 - **用途：** 构建沿成本趋势图 x 轴绘制的采样、去重日期列表。
 - **输入：** `historyStart`、`today`、`futureEnd`、`toys`。
 - **返回：** `List<DateTime>` — 升序排序、无连续重复。
@@ -903,7 +906,7 @@
 
 ### `DateTime _dateOnly(DateTime date)` <a id="dateonly"></a>
 - **种类：** `_ToyCostOverviewPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 6261 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 5679 行）
 - **用途：** 从 `DateTime` 剥离日内时间分量，使基于天的成本数学不依赖原始时间戳的时间分量。
 - **输入：** `date`。
 - **返回：** `DateTime` — `DateTime(date.year, date.month, date.day)`。
@@ -914,7 +917,7 @@
 
 ### `({double minY, double maxY}) _chartBounds(double minY, double maxY)` <a id="chartbounds"></a>
 - **种类：** `_ToyCostOverviewPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 6269 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 5687 行）
 - **用途：** 填充原始 min/max y 范围，使平坦或全零成本图表仍渲染可见垂直空间。
 - **输入：** `minY`、`maxY`。
 - **返回：** Dart 记录 `({double minY, double maxY})`。
@@ -928,7 +931,7 @@
 
 ### `double _logTransform(double value)` <a id="logtransform"></a>
 - **种类：** `_ToyCostOverviewPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 6285 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 5703 行）
 - **用途：** 把成本值映射到带符号 log10 刻度供图表化，使少数高早期成本点不视觉压平后来的小值。
 - **输入：** `value`。
 - **返回：** `double`。
@@ -944,7 +947,7 @@
 
 ### `double _logInverse(double value)` <a id="loginverse"></a>
 - **种类：** `_ToyCostOverviewPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 6296 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 5714 行）
 - **用途：** 反转 `_logTransform`，把对数刻度图表坐标转换回真实成本值。
 - **输入：** `value`。
 - **返回：** `double`。
@@ -960,7 +963,7 @@
 
 ### `double _dateInterval(double minX, double maxX)` <a id="dateinterval"></a>
 - **种类：** `_ToyCostOverviewPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 6307 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 5725 行）
 - **用途：** 返回缩放到可见 x 范围的底部轴日期标签间隔（毫秒），使标签绝不拥挤。
 - **输入：** `minX`、`maxX`（图表 x 坐标，即纪元毫秒）。
 - **返回：** `double` 毫秒。
@@ -971,7 +974,7 @@
 
 ### `String _dateLabel(DateTime date, double minX, double maxX, String localeName)` <a id="datelabel"></a>
 - **种类：** `_ToyCostOverviewPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 6324 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 5742 行）
 - **用途：** 格式化图表日期轴标签，基于可见范围宽度选择精度。
 - **输入：** `date`、`minX`、`maxX`、`localeName`。
 - **返回：** `String`。
@@ -986,7 +989,7 @@
 
 ### `String _axisText(double value)` <a id="axistext"></a>
 - **种类：** `_ToyCostOverviewPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 6351 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 5769 行）
 - **用途：** 紧凑格式化 y 轴成本值，使大数字仍适合窄左轴。
 - **输入：** `value`。
 - **返回：** `String` — 百万为 `"1.2m"` 风格、千为 `"3.4k"`、否则普通整数；负值保留前导 `-`。
@@ -1001,7 +1004,7 @@
 
 ### `double _totalCost(List<Toy> toys)` <a id="totalcost"></a>
 - **种类：** `_ToyCostOverviewPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 6364 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 5782 行）
 - **用途：** 对玩具列表求和总记录成本。
 - **输入：** `toys`。
 - **返回：** `double`。
@@ -1016,7 +1019,7 @@
 
 ### `double? _totalDailyCost(List<Toy> toys)` <a id="totaldailycost"></a>
 - **种类：** `_ToyCostOverviewPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 6372 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 5790 行）
 - **用途：** 可计算时对玩具列表求和平均每日成本。
 - **输入：** `toys`。
 - **返回：** `double?` — 无玩具同时有价格和购买日期时为 `null`。
@@ -1031,7 +1034,7 @@
 
 ### `Widget build(BuildContext context)`（`_IntimacyBody`） <a id="intimacybody-build"></a>
 - **种类：** `_IntimacyBody` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（约第 1105 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（约第 1224 行）
 - **用途：** 把月历、趋势图和记录历史排成堆叠布局或双栏布局。
 - **输入：** `context`；以及组件自己的 `twoPane`、`leftPaneWidth`、`calendarBlocks`、`chartBlocks` 和 `recordBlocks` 字段。
 - **返回：** 堆叠时为 `ListView`，分栏时为两个 `ListView` 组成的 `Row`。
@@ -1039,5 +1042,5 @@
 - **算法：**
   1. `!twoPane` → 一个 `ListView`，依次是 `calendarBlocks`、`Divider(height: 1)`、`chartBlocks`、`recordBlocks`——与 v1.4.1 之前页面的主体完全相同。
   2. 否则是由 `SizedBox(width: leftPaneWidth, child: ListView([...calendarBlocks, Divider, ...chartBlocks]))`（仅在有图表时放分隔线）、`VerticalDivider(width: 1)` 和 `Expanded(child: ListView(recordBlocks))` 组成的 `Row`。
-- **用法：** 在分栏决策和窗格宽度解析完成后由 `_IntimacyPageState.build` 构建；记录少于两条时 `chartBlocks` 为空，因为那时图表什么都不渲染。
-- **备注：** 堆叠时日历本身就占掉手机的大部分高度，因此选中一个日期会把它所选出的记录滚出视野；分栏时日历**和图表**共用左窗格，历史拿走其余空间。图表在 v1.4.3 移到了左边：日历下方的窗格原本空着，而图表在记录上方则把第一周的历史往下推。两个窗格各自独立滚动，因为日历、几个人的周期行加上一张图表可能超出紧凑高度。见 [../../../adaptive-layout.md](../../../adaptive-layout.md)。
+- **用法：** 在分栏决策和窗格宽度解析完成后由 `_IntimacyPageState.build` 构建；`chartBlocks` 在记录达到两条起包含趋势图，并自 v1.5.0 起在 `platformMayHaveOnDeviceModel && settings.onDeviceAiEnabled` 时包含端侧 AI 洞察卡片；记录少于两条且 AI 关闭时它为空。卡片的 `buildRequest` 在 `intimacyVisibilityProvider` 报告模块隐藏时返回 `null`，否则用 `_records`、`_userBody`、`_cycleRecords` 和 `_weightRecordsForInsight` 调用 `buildIntimacyInsightFacts`。它带两个小节（`aiIntimacyTrend` 涵盖 `trend`/`advice`，`aiIntimacyBody` 涵盖 `body`），仅当 `_userBody?.cycleEnabled == true` 时带 `aiEstimateDisclaimer` 脚注。
+- **备注：** 堆叠时日历本身就占掉手机的大部分高度，因此选中一个日期会把它所选出的记录滚出视野；分栏时日历**和图表**共用左窗格，历史拿走其余空间。图表在 v1.4.3 移到了左边：日历下方的窗格原本空着，而图表在记录上方则把第一周的历史往下推。两个窗格各自独立滚动，因为日历、几个人的周期行加上一张图表可能超出紧凑高度。见 [../../../../adaptive-layout.md](../../../../adaptive-layout.md)。

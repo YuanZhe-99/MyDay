@@ -176,9 +176,14 @@ storage path, intimacy visibility toggle, theme, locale, week start day, tray se
 settings, local API settings (`apiPort`, `apiListenAddress`, `apiEnabled`, `apiUsername`,
 `apiPassword`), today's fired desktop reminder keys (`reminderNotifiedKeys`), the local-only
 intimacy timer keep-screen-awake preference (`intimacyTimerKeepScreenAwake`), the local-only
-body weight-sync warning opt-out (`intimacyBodyWeightSyncWarningDisabled`), and the four
+body weight-sync warning opt-out (`intimacyBodyWeightSyncWarningDisabled`), the four
 device-local list column preferences (`todoSectionColumns`, `financeListColumns`,
-`weightListColumns`, `intimacyListColumns`).
+`weightListColumns`, `intimacyListColumns`), and the on-device AI switches (`onDeviceAiEnabled`,
+`onDeviceAiPreferFast`, v1.5.0).
+
+The two on-device AI keys are written only when `true` and removed when switched off, so an
+absent key means off. They are device-local because whether a model exists is a property of the
+device — see [on-device-ai.md](on-device-ai.md).
 
 The four list column preferences are stored here, and therefore never synced, on purpose: window
 size is a property of the device, not of the account — see
@@ -193,7 +198,7 @@ platform app documents directory on mobile; desktop users can choose a custom st
 
 | Data | File | Synced | Notes |
 | --- | --- | --- | --- |
-| Core preferences | `storage_config.json` | No | Custom path, intimacy visibility, theme, locale, week start day, tray, backup, local API settings, today's fired desktop reminder keys (`reminderNotifiedKeys`), local-only intimacy timer keep-screen-awake preference (`intimacyTimerKeepScreenAwake`), local-only body weight-sync warning opt-out (`intimacyBodyWeightSyncWarningDisabled`), device-local list column preferences (`todoSectionColumns`, `financeListColumns`, `weightListColumns`, `intimacyListColumns`) |
+| Core preferences | `storage_config.json` | No | Custom path, intimacy visibility, theme, locale, week start day, tray, backup, local API settings, today's fired desktop reminder keys (`reminderNotifiedKeys`), local-only intimacy timer keep-screen-awake preference (`intimacyTimerKeepScreenAwake`), local-only body weight-sync warning opt-out (`intimacyBodyWeightSyncWarningDisabled`), device-local list column preferences (`todoSectionColumns`, `financeListColumns`, `weightListColumns`, `intimacyListColumns`), on-device AI switches (`onDeviceAiEnabled`, `onDeviceAiPreferFast`) |
 | Todo | `todo_data.json` | Yes | Tasks, daily templates, completion log, daily score log, reminders, task sort/custom order |
 | Finance | `finance_data.json` | Yes | Accounts including optional fee waiver criteria, categories, transactions, subscriptions, finance settings, transaction account picker settings |
 | Exchange rates | `exchange_rates.json` | Yes | Rate snapshots and `lastFetchedAt` |
@@ -204,11 +209,49 @@ platform app documents directory on mobile; desktop users can choose a custom st
 | Images | `images/*` | Yes | Referenced finance/intimacy images sync; backups include images. Files are `<uuid><ext>` in any image format, including `.svg` (bundled bank logos copied on preset pick, v1.4.5); no format change |
 | Backups | `backups/backup_*.json` | No | Local recovery bundles; v2 bundles reference deduplicated image blobs |
 | Backup image blobs | `backups/blobs/` | No | Content-addressed (`sha256`), shared across backups, reference-counted GC |
+| On-device AI insights | `ai_insights.json` | No | Per-device cache of generated insight cards (v1.5.0); never synced, backed up or exported; rebuildable, so an unreadable file reads as empty |
 
-Files moved by `TodoStorage.setStoragePath()`: `todo_data.json`, `finance_data.json`,
-`exchange_rates.json`, `intimacy_data.json`, `weight_data.json`, and `webdav_config.json`.
-`storage_config.json` always stays in the default app directory. Directories such as `images/`,
-`backups/`, and `.sync_base/` are not moved by that file list.
+`TodoStorage.setStoragePath()` moves **everything** in the old data folder — the data files,
+`webdav_config.json`, `ai_insights.json`, and the `images/`, `backups/` and `.sync_base/`
+directories — through `migrateStorageContents` (copy-then-delete; an entry that already exists at
+the destination wins and is left alone). Only `storage_config.json` is skipped: it always stays in
+the default app directory because it holds the custom path itself.
+
+## `ai_insights.json`
+
+The on-device AI insight cache (v1.5.0), written atomically through `AiInsightsCache` with its own
+write queue. It is **not** a registered data module: never synced, never in a backup bundle or ZIP
+export, and it has no preservation schema. Unlike the data files, an unreadable or malformed file
+reads as empty — it is a cache, and losing it only costs one regeneration per card. *Clear
+generated insights* in Settings deletes it.
+
+```json
+{
+  "version": 1,
+  "insights": {
+    "finance": {
+      "fingerprint": "3f9a…",
+      "generatedAt": "2026-09-28T01:02:03.000Z",
+      "language": "zh_CN",
+      "lines": ["…", "…", "…", "…"],
+      "model": "stable/full · nano-v3",
+      "promptVersion": 1,
+      "slots": ["flowSummary", "flowAdvice", "subSummary", "subAdvice"],
+      "status": "ok"
+    }
+  }
+}
+```
+
+- Keys under `insights` are `todo`, `finance`, `weight`, `intimacy`. Unknown keys and malformed
+  entries are dropped on read.
+- `fingerprint` is the hex SHA-256 described in
+  [on-device-ai.md](on-device-ai.md#cache-and-fingerprint); a card regenerates only when it changes.
+- `lines` holds the validated sentences in slot order and `slots` the slot id of each, so a card can
+  group lines under its section headings even when an earlier slot was dropped.
+- `status` is `ok`, or `skipped` when the model refused (`guardrail`) or cannot write the language;
+  a skipped entry has no lines and is not retried until the fingerprint changes.
+- `generatedAt` is UTC.
 
 ## Related pages
 

@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../features/ai/services/on_device_ai_service.dart';
 import '../../features/todo/services/todo_storage.dart';
 import '../services/reminder_service.dart';
 import '../services/tray_service.dart';
@@ -19,6 +20,14 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
     _loadPersisted();
   }
 
+  /// Purpose: Create a notifier that starts from fixed settings.
+  /// Inputs: `settings`.
+  /// Returns: A new `AppSettingsNotifier` instance.
+  /// Side effects: None; nothing is read from disk.
+  /// Notes: For tests that override `appSettingsProvider`. Setters still
+  /// persist through `TodoStorage`.
+  AppSettingsNotifier.fixed(super.settings);
+
   /// Purpose: Provide the internal load persisted helper for this file.
   /// Inputs: None.
   /// Returns: `Future<void>`.
@@ -32,6 +41,8 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
     final financeListColumns = await TodoStorage.getFinanceListColumns();
     final weightListColumns = await TodoStorage.getWeightListColumns();
     final intimacyListColumns = await TodoStorage.getIntimacyListColumns();
+    final onDeviceAiEnabled = await TodoStorage.getOnDeviceAiEnabled();
+    final onDeviceAiPreferFast = await TodoStorage.getOnDeviceAiPreferFast();
 
     final themeMode = switch (modeStr) {
       'light' => ThemeMode.light,
@@ -53,10 +64,15 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
       financeListColumns: financeListColumns,
       weightListColumns: weightListColumns,
       intimacyListColumns: intimacyListColumns,
+      onDeviceAiEnabled: onDeviceAiEnabled,
+      onDeviceAiPreferFast: onDeviceAiPreferFast,
     );
     final resolvedLocale = locale ?? PlatformDispatcher.instance.locale;
     TrayService.instance.updateLocale(resolvedLocale);
     ReminderService.instance.updateLocale(resolvedLocale);
+    final ai = OnDeviceAiService.instance;
+    await ai.setPreferFast(onDeviceAiPreferFast);
+    await ai.setEnabled(onDeviceAiEnabled);
   }
 
   /// Purpose: Implement the set theme mode behavior for this file.
@@ -145,6 +161,29 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
     state = state.copyWith(intimacyListColumns: columns);
     TodoStorage.setIntimacyListColumns(columns);
   }
+
+  /// Purpose: Turn on-device AI on or off.
+  /// Inputs: `enabled`.
+  /// Returns: None.
+  /// Side effects: Persists the preference and switches `OnDeviceAiService`.
+  /// Notes: Off by default. Switching off cancels anything running; the
+  /// insight cards then render nothing.
+  void setOnDeviceAiEnabled(bool enabled) {
+    state = state.copyWith(onDeviceAiEnabled: enabled);
+    TodoStorage.setOnDeviceAiEnabled(enabled);
+    OnDeviceAiService.instance.setEnabled(enabled);
+  }
+
+  /// Purpose: Prefer the faster on-device model where both sizes are served.
+  /// Inputs: `enabled`.
+  /// Returns: None.
+  /// Side effects: Persists the preference; the service re-probes.
+  /// Notes: Android only.
+  void setOnDeviceAiPreferFast(bool enabled) {
+    state = state.copyWith(onDeviceAiPreferFast: enabled);
+    TodoStorage.setOnDeviceAiPreferFast(enabled);
+    OnDeviceAiService.instance.setPreferFast(enabled);
+  }
 }
 
 class AppSettings {
@@ -166,8 +205,15 @@ class AppSettings {
   /// Column preference for the Intimacy page's record list.
   final int intimacyListColumns;
 
+  /// Whether on-device AI (the module insight cards) is on. Device-local.
+  final bool onDeviceAiEnabled;
+
+  /// Whether the faster on-device model is preferred (Android).
+  final bool onDeviceAiPreferFast;
+
   /// Purpose: Create a app settings instance.
-  /// Inputs: `themeMode`, `locale`, `weekStartDay`, and the four column preferences.
+  /// Inputs: `themeMode`, `locale`, `weekStartDay`, the four column
+  /// preferences, `onDeviceAiEnabled`, `onDeviceAiPreferFast`.
   /// Returns: A new `AppSettings` instance.
   /// Side effects: None.
   /// Notes: `weekStartDay` uses Dart's Monday=1 through Sunday=7 numbering.
@@ -179,6 +225,8 @@ class AppSettings {
     this.financeListColumns = listColumnsAuto,
     this.weightListColumns = listColumnsAuto,
     this.intimacyListColumns = listColumnsAuto,
+    this.onDeviceAiEnabled = false,
+    this.onDeviceAiPreferFast = false,
   });
 
   /// Purpose: Create a copy of this value with selected fields replaced.
@@ -194,6 +242,8 @@ class AppSettings {
     int? financeListColumns,
     int? weightListColumns,
     int? intimacyListColumns,
+    bool? onDeviceAiEnabled,
+    bool? onDeviceAiPreferFast,
     bool clearLocale = false,
   }) {
     return AppSettings(
@@ -204,6 +254,8 @@ class AppSettings {
       financeListColumns: financeListColumns ?? this.financeListColumns,
       weightListColumns: weightListColumns ?? this.weightListColumns,
       intimacyListColumns: intimacyListColumns ?? this.intimacyListColumns,
+      onDeviceAiEnabled: onDeviceAiEnabled ?? this.onDeviceAiEnabled,
+      onDeviceAiPreferFast: onDeviceAiPreferFast ?? this.onDeviceAiPreferFast,
     );
   }
 }

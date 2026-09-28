@@ -49,7 +49,9 @@ for (final c in recordConflicts) {
 | `weight_data.json` | `mergeWeightData()` | 记录按 id + `modifiedAt`；身高跟随设置 LWW（保存体重数据会 bump `settingsModifiedAt`，因此清空身高会同步）；提醒/设置 LWW |
 | `images/*` | `_syncImages()` | 添加式双向，但只针对引用的图像；与扩展名无关，因此 `.svg` 标志和其他图像一样同步 |
 
-由 `TodoStorage.setStoragePath()` 移动的文件是 `todo_data.json`、`finance_data.json`、`exchange_rates.json`、`intimacy_data.json`、`weight_data.json` 和 `webdav_config.json`。`storage_config.json` 总是留在默认应用目录。`images/`、`backups/` 和 `.sync_base/` 等目录不被那个文件列表移动。
+`TodoStorage.setStoragePath()` 移动旧数据文件夹中的一切，包括 `webdav_config.json`、`.sync_base/`、`images/` 和 `backups/`；只有 `storage_config.json` 留在默认应用目录。见 [data-formats.md](data-formats.md#persisted-data-inventory)。
+
+`ai_insights.json`（端侧 AI 洞察缓存，v1.5.0）刻意不是已登记的模块，因此它从不被上传、下载或合并。见 [on-device-ai.md](on-device-ai.md)。
 
 完整字段级合并语义（包括泛型 `mergeRecords` 三方引擎和 `CycleRecord`/`DailyCompletionLog` 的删除-vs-并集规则）在 [三方合并](algorithms/three-way-merge.md) 中。
 

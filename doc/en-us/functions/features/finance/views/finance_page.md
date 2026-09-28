@@ -5,7 +5,10 @@ currency-conversion-fallback warning), an upcoming-renewals strip, and the group
 selected month's transactions, with swipe-to-edit/delete and a floating add button. Since v1.4.3
 the two-pane arrangement also fills the summary pane with a subscription overview — the three
 subscription statistics and the active list — drawn from
-[`subscription_summary.dart`](../services/subscription_summary.md). The app bar's
+[`subscription_summary.dart`](../services/subscription_summary.md). Since v1.5.0
+the summary also carries the on-device AI insight card
+([`AiInsightCard`](../../ai/widgets/ai_insight_card.md), see
+[On-device AI](../../../../on-device-ai.md#insight-cards)), in both arrangements. The app bar's
 overflow actions are the entry points into every other Finance sub-page (accounts, analysis,
 subscriptions, categories, exchange rates, default currency). See
 [Finance](../../../../features/finance.md#views-and-analysis-page) for how this page fits into the
@@ -64,7 +67,7 @@ this codebase's convention of documenting callable members rather than data fiel
 
 ### `Future<void> _loadData()` <a id="_loaddata"></a>
 - **Kind:** method of `_FinancePageState`
-- **Source:** `lib/features/finance/views/finance_page.dart` (lines 96-137)
+- **Source:** `lib/features/finance/views/finance_page.dart` (lines 108-149)
 - **Purpose:** Load finance data and exchange-rate data from disk into state, or record a load
   error so existing-but-unreadable data is surfaced instead of silently treated as empty.
 - **Inputs:** None (reads `FinanceStorage.load()` and `ExchangeRateStorage.load()`).
@@ -104,7 +107,7 @@ this codebase's convention of documenting callable members rather than data fiel
 
 ### `void _processSubscriptions()` <a id="_processsubscriptions"></a>
 - **Kind:** method of `_FinancePageState`
-- **Source:** `lib/features/finance/views/finance_page.dart` (lines 145-154)
+- **Source:** `lib/features/finance/views/finance_page.dart` (lines 157-166)
 - **Purpose:** For each active subscription, generate transactions for any billing dates that have
   passed since the app last processed renewals.
 - **Inputs:** None (reads `_subscriptions`, `_transactions`).
@@ -131,7 +134,7 @@ this codebase's convention of documenting callable members rather than data fiel
 
 ### `Future<void> _saveData()` <a id="_savedata"></a>
 - **Kind:** method of `_FinancePageState`
-- **Source:** `lib/features/finance/views/finance_page.dart` (lines 188-220)
+- **Source:** `lib/features/finance/views/finance_page.dart` (lines 174-206)
 - **Purpose:** Persist the current in-memory finance state to disk, refusing to write while the
   loaded file is known to be unreadable.
 - **Inputs:** None (reads every persisted state field).
@@ -168,7 +171,7 @@ this codebase's convention of documenting callable members rather than data fiel
 
 ### `Future<void> _pickFlowMonth()` <a id="_pickflowmonth"></a>
 - **Kind:** method of `_FinancePageState`
-- **Source:** `lib/features/finance/views/finance_page.dart` (lines 300-369)
+- **Source:** `lib/features/finance/views/finance_page.dart` (lines 286-355)
 - **Purpose:** Let the user pick the year and month that filters the home page's transaction flow
   and summary cards.
 - **Inputs:** None (reads `context`, `_selectedFlowMonth`).
@@ -198,7 +201,7 @@ this codebase's convention of documenting callable members rather than data fiel
 
 ### `Widget build(BuildContext context)` <a id="build"></a>
 - **Kind:** method of `_FinancePageState` (`@override` of `State.build`)
-- **Source:** `lib/features/finance/views/finance_page.dart` (lines 377-659)
+- **Source:** `lib/features/finance/views/finance_page.dart` (lines 363-744)
 - **Purpose:** Compute the selected month's expense/income/total-assets summary — tracking any
   currency pairs that fell back to a 1:1 conversion — and render the Finance home page: app bar,
   summary header, upcoming-renewals strip, and the grouped, swipeable transaction list.
@@ -231,8 +234,21 @@ this codebase's convention of documenting callable members rather than data fiel
      through `sortSubscriptions` with the stored sort mode and custom order, and
      `subscriptionSummary` through `summarizeSubscriptions` — all from
      [`subscription_summary.md`](../services/subscription_summary.md). When `twoPane` and
-     `activeSubs` is non-empty, a `_SubscriptionOverview` is appended to `summaryBlocks`.
-  8. Build a `Scaffold` with an `AppBar` (accounts/analysis/subscriptions/overflow-menu actions,
+     `activeSubs` is non-empty, a `_SubscriptionOverview` is appended to `summaryBlocks`, after the
+     AI card below.
+  8. Between the upcoming-renewals strip (and its `Divider`) and the subscription overview,
+     `summaryBlocks` always holds an
+     [`AiInsightCard`](../../ai/widgets/ai_insight_card.md#aiinsightcard-new) (v1.5.0) with
+     `module: InsightModule.finance`, `compact: !twoPane` (collapsed to one preview line when
+     stacked), and two `AiInsightSection`s: `l10n.aiFinanceFlow` over the slots `flowSummary` and
+     `flowAdvice`, and `l10n.aiFinanceSubscriptions` over `subSummary` and `subAdvice`. Its
+     `buildRequest: (language, now)` calls
+     [`buildFinanceInsightFacts`](../services/finance_insight_facts.md#buildfinanceinsightfacts)
+     with `now`, `_accounts`, `_categories`, `_transactions`, `_subscriptions`, `_rateData` and
+     `_defaultCurrency`, and returns `null` when that returns `null`, otherwise
+     `AiInsightRequest(facts: facts, language: language, now: now)`. The card renders nothing while
+     on-device AI is off or the platform cannot have a model.
+  9. Build a `Scaffold` with an `AppBar` (accounts/analysis/subscriptions/overflow-menu actions,
      all disabled when `_loadError != null`) and a body that is: a spinner while `!_loaded`; the
      `_FinanceDataError` view while `_loadError != null`; otherwise a `Column` of
      `_SummaryHeader` (fed the computed totals, `missingRatePairs.toList()..sort()`, and
@@ -243,7 +259,7 @@ this codebase's convention of documenting callable members rather than data fiel
      fed `monthTransactions` sorted newest-first, each row wrapped in a `Dismissible` (swipe
      start-to-end opens edit; swipe end-to-start asks for delete confirmation via
      `confirmDelete`).
-  9. A `FloatingActionButton` triggers `_addTransaction`, disabled when `_loadError != null`.
+  10. A `FloatingActionButton` triggers `_addTransaction`, disabled when `_loadError != null`.
 - **Usage:** Invoked by the Flutter framework whenever `_FinancePageState` rebuilds; not called
   directly. `FinancePage` itself is mounted from the router:
   ```dart
@@ -272,6 +288,9 @@ this codebase's convention of documenting callable members rather than data fiel
   [`build`](#build).
 - [`add_transaction_dialog.dart`](../widgets/add_transaction_dialog.md) — the dialog shown by
   `_addTransaction` and `_editTransaction`.
+- [`ai_insight_card.dart`](../../ai/widgets/ai_insight_card.md) and
+  [`finance_insight_facts.dart`](../services/finance_insight_facts.md) — the on-device AI card in
+  `summaryBlocks` and the facts it is given (v1.5.0).
 - [`subscription_summary.dart`](../services/subscription_summary.md) — `upcomingSubscriptions`,
   `sortSubscriptions`, `summarizeSubscriptions`, used by [`build`](#build) for the renewal strip
   and the subscription overview.
@@ -286,7 +305,7 @@ this codebase's convention of documenting callable members rather than data fiel
 
 ### `Widget build(BuildContext context)` (`_FinanceBody`) <a id="financebody-build"></a>
 - **Kind:** method of `_FinanceBody`
-- **Source:** `lib/features/finance/views/finance_page.dart` (approx. line 940)
+- **Source:** `lib/features/finance/views/finance_page.dart` (approx. line 1048)
 - **Purpose:** Arrange the month summary and the transaction list either stacked or in two panes.
 - **Inputs:** `context`; the widget's own `twoPane`, `leftPaneWidth`, `summaryBlocks`,
   `transactionHeader` and `transactionList` fields.
@@ -303,16 +322,17 @@ this codebase's convention of documenting callable members rather than data fiel
   two layouts can never show different content — with one deliberate exception the page itself
   makes: since v1.4.3 the subscription overview is added to `summaryBlocks` only in the two-pane
   arrangement, because it fills a pane that would otherwise sit empty, while stacked it would push
-  the first transaction further down a phone. Stacked, the month summary already spends up to a
+  the first transaction further down a phone. The on-device AI card (v1.5.0) is in both
+  arrangements, but `compact` (collapsed to one preview line) when stacked. Stacked, the month summary already spends up to a
   third of a phone's height before the first transaction appears; split, the transaction list —
   the thing the user actually reads — takes everything the summary does not. The left pane is a
   `ListView` in its own right because a long renewal strip plus the summary can outgrow a compact
   height, which the split rule still admits at 480. See
-  [../../../adaptive-layout.md](../../../adaptive-layout.md).
+  [../../../../adaptive-layout.md](../../../../adaptive-layout.md).
 
 ### `Widget build(BuildContext context)` (`_SubscriptionOverview`) <a id="subscriptionoverview-build"></a>
 - **Kind:** method of `_SubscriptionOverview`
-- **Source:** `lib/features/finance/views/finance_page.dart` (approx. line 1290)
+- **Source:** `lib/features/finance/views/finance_page.dart` (approx. line 1376)
 - **Purpose:** Render the subscriptions page's three statistics and its active list inside the
   finance summary pane.
 - **Inputs:** `context`; the widget's `paneWidth`, `summary`, `active`, `categories`, `accounts`,

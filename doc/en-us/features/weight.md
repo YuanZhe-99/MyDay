@@ -98,6 +98,15 @@ the summary card flattens into a full-width strip with its figures beside its st
 trend charts take a column each below it, sharing one range picker. See
 [adaptive-layout.md](../adaptive-layout.md) for the gate.
 
+## AI insight card (1.5.0)
+
+With on-device AI on (Android, iOS/macOS 26+), an insight card sits between the summary card and
+the charts: the weight trend and one gentle suggestion. The facts are built by
+`buildWeightInsightFacts` (`services/weight_insight_facts.dart`): latest weight and date, BMI,
+change over 7/30/90 days, recent range, weigh-in count, body fat, and bust/waist/hip carried forward
+exactly as the page shows them. Record notes are never sent. While AI is off the card renders
+nothing, so the page's spacing is unchanged. See [On-device AI](../on-device-ai.md).
+
 ## Related pages
 
 - [Data Formats](../data-formats.md) — exact JSON shape of `WeightRecord`/`WeightData`.

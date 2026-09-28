@@ -54,6 +54,10 @@ static bool shouldSkipWeightReminderAt({
 
 在足够宽、可以分栏的窗口上——横持展开的折叠屏、平板、桌面窗口——摘要卡片展平成一条全宽横幅，数字在左、统计在右，两张趋势图各占下方一列，共用一个范围选择器。闸门参见 [adaptive-layout.md](../adaptive-layout.md)。
 
+## AI 洞察卡片（1.5.0）
+
+端侧 AI 开启时（Android、iOS/macOS 26+），摘要卡片和图表之间有一张洞察卡片：体重趋势和一条温和的建议。事实由 `buildWeightInsightFacts`（`services/weight_insight_facts.dart`）构建：最新体重及日期、BMI、7/30/90 天内的变化、近期范围、称重次数、体脂，以及与页面显示完全一致的向前继承的胸/腰/臀。记录备注绝不发送。AI 关闭时卡片不渲染任何内容，因此页面间距不变。见 [端侧 AI](../on-device-ai.md)。
+
 ## 相关页面
 
 - [数据格式](../data-formats.md) — `WeightRecord`/`WeightData` 的精确 JSON 形态。

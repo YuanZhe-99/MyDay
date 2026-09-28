@@ -344,6 +344,38 @@ class TodoStorage {
     await _saveConfig();
   }
 
+  /// Purpose: Read whether the user turned on on-device AI.
+  /// Inputs: None.
+  /// Returns: `Future<bool>` — false when the key is absent.
+  /// Side effects: Reads `storage_config.json`.
+  /// Notes: Device-local, never synced; off by default (v1.5.0).
+  static Future<bool> getOnDeviceAiEnabled() async =>
+      (await readConfig())['onDeviceAiEnabled'] == true;
+
+  /// Purpose: Persist the on-device AI switch.
+  /// Inputs: `enabled`.
+  /// Returns: `Future<void>`.
+  /// Side effects: Merge-writes `storage_config.json`.
+  /// Notes: Stored only when true; false removes the key.
+  static Future<void> setOnDeviceAiEnabled(bool enabled) =>
+      writeConfig({'onDeviceAiEnabled': enabled ? true : null});
+
+  /// Purpose: Read whether the faster on-device model is preferred.
+  /// Inputs: None.
+  /// Returns: `Future<bool>` — false when the key is absent.
+  /// Side effects: Reads `storage_config.json`.
+  /// Notes: Android only in effect.
+  static Future<bool> getOnDeviceAiPreferFast() async =>
+      (await readConfig())['onDeviceAiPreferFast'] == true;
+
+  /// Purpose: Persist the faster-model preference.
+  /// Inputs: `enabled`.
+  /// Returns: `Future<void>`.
+  /// Side effects: Merge-writes `storage_config.json`.
+  /// Notes: Stored only when true; false removes the key.
+  static Future<void> setOnDeviceAiPreferFast(bool enabled) =>
+      writeConfig({'onDeviceAiPreferFast': enabled ? true : null});
+
   /// Get persisted theme mode.
   /// Purpose: Implement the get theme mode behavior for this file.
   /// Inputs: None.

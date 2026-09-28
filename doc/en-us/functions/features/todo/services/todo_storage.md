@@ -6,7 +6,8 @@ other feature's storage service resolves its app directory through
 read/write through [`readConfig()`](#readconfig)/[`writeConfig()`](#writeconfig). This file defines
 two persisted surfaces: `storage_config.json`, which **always** stays in the default app directory
 regardless of any custom storage path (custom path itself, intimacy visibility, theme, locale, week
-start day, tray settings, backup settings, local API settings), and `todo_data.json` (wrapped by
+start day, tray settings, backup settings, local API settings, list-column preferences, the
+on-device AI switches — see [On-device AI](../../../../on-device-ai.md)), and `todo_data.json` (wrapped by
 `TodoData`: daily templates, one-time tasks, the completion log, the score log, morning/completion
 reminder settings, task sort modes/custom orders, `settingsModifiedAt`). See
 [Todo](../../../../features/todo.md#storage) and
@@ -35,6 +36,10 @@ atomic-write conventions this file implements. `Task`/`DailyCompletionLog`/`Dail
 | [`_saveConfig`](#_saveconfig) | static method (`TodoStorage`) | A | Merge-write the cached config fields back to disk. |
 | [`getIntimacyVisible`](#getintimacyvisible) | static method (`TodoStorage`) | A | Get persisted intimacy-visible state. |
 | [`setIntimacyVisible`](#setintimacyvisible) | static method (`TodoStorage`) | A | Set and persist intimacy-visible state. |
+| [`getOnDeviceAiEnabled`](#getondeviceaienabled) | static method (`TodoStorage`) | A | Read whether the user turned on on-device AI. |
+| [`setOnDeviceAiEnabled`](#setondeviceaienabled) | static method (`TodoStorage`) | A | Persist the on-device AI switch. |
+| [`getOnDeviceAiPreferFast`](#getondeviceaipreferfast) | static method (`TodoStorage`) | A | Read whether the faster on-device model is preferred. |
+| [`setOnDeviceAiPreferFast`](#setondeviceaipreferfast) | static method (`TodoStorage`) | A | Persist the faster-model preference. |
 | [`getThemeMode`](#getthememode) | static method (`TodoStorage`) | A | Get persisted theme mode. |
 | [`setThemeMode`](#setthememode) | static method (`TodoStorage`) | A | Set and persist theme mode. |
 | [`getLocaleTag`](#getlocaletag) | static method (`TodoStorage`) | A | Get persisted locale tag. |
@@ -65,13 +70,14 @@ atomic-write conventions this file implements. `Task`/`DailyCompletionLog`/`Dail
 | `getIntimacyListColumns` | static method (`TodoStorage`) | A | Read the Intimacy page's record-column preference. |
 | `setIntimacyListColumns` | static method (`TodoStorage`) | A | Persist the Intimacy page's record-column preference. |
 
-`grep -c 'Purpose:' lib/features/todo/services/todo_storage.dart` reports 43, matching all
-forty-three real declarations listed above exactly. No misattached doc comments were found — every
+`grep -c 'Purpose:' lib/features/todo/services/todo_storage.dart` reports 47, matching all
+forty-seven real declarations listed above exactly (43 before v1.5.0 plus the four on-device AI
+accessors). No misattached doc comments were found — every
 `/// Purpose:` block sits directly above the real constructor/method it documents — and no
 undocumented real declaration exists either; the only non-`Purpose:`-documented members are plain
 fields (`_fileName`, `_customPath`, `_configLoaded`, `_intimacyVisible`, `_themeMode`, `_localeTag`,
 `_weekStartDay`, `_minimizeToTray`, `_closeToTray`, `_writeQueue`, `_dataFileNames`), which are data,
-not declarations of behavior, and are correctly excluded from the table. Tier split: 42 Tier A / 1
+not declarations of behavior, and are correctly excluded from the table. Tier split: 46 Tier A / 1
 Tier B. The single Tier B row is `TodoStorageException.toString`, a trivial accessor returning the
 stored `message` field with no logic (the same pattern as `WeightStorageException.toString` in
 [`weight_storage.dart`](../../weight/services/weight_storage.md#weightstorageexception-new)). Every
@@ -87,7 +93,7 @@ trivial forwarding.
 
 ### `TodoData({required this.dailyTemplates, required this.oneTimeTasks, required this.dailyLog, DailyScoreLog? dailyScores, this.morningReminderHour, this.morningReminderMinute, this.completionReminderHour, this.completionReminderMinute, this.taskSortModes = const {}, this.taskCustomOrders = const {}, DateTime? settingsModifiedAt})` <a id="tododata-new"></a>
 - **Kind:** constructor of `TodoData`
-- **Source:** `lib/features/todo/services/todo_storage.dart` (line 33)
+- **Source:** `lib/features/todo/services/todo_storage.dart` (line 35)
 - **Purpose:** Create the whole todo document — task lists, logs, reminder settings, sort state —
   defaulting `dailyScores` to an empty `DailyScoreLog` and `settingsModifiedAt` to the Unix epoch.
 - **Inputs:** `dailyTemplates`, `oneTimeTasks`, `dailyLog` (required); optional `dailyScores`,
@@ -110,7 +116,7 @@ trivial forwarding.
     ),
   );
   ```
-  (`lib/features/todo/views/todo_page.dart`, `_saveData`, lines 163-169).
+  (`lib/features/todo/views/todo_page.dart`, `_saveData`, lines 169-175).
 - **Notes:** Defaulting `settingsModifiedAt` to the epoch (not "now") means a freshly created
   `TodoData` always loses a last-writer-wins settings merge against any peer that has ever saved
   settings before — the same deliberate "never overwrite a real prior value" convention as
@@ -118,7 +124,7 @@ trivial forwarding.
 
 ### `Map<String, dynamic> toJson()` <a id="tojson"></a>
 - **Kind:** method of `TodoData`
-- **Source:** `lib/features/todo/services/todo_storage.dart` (line 54)
+- **Source:** `lib/features/todo/services/todo_storage.dart` (line 56)
 - **Purpose:** Serialize the whole todo document into the `todo_data.json` shape.
 - **Inputs:** None.
 - **Returns:** `Map<String, dynamic>` with `dailyTemplates`/`oneTimeTasks`/`dailyLog`/
@@ -136,7 +142,7 @@ trivial forwarding.
 
 ### `factory TodoData.fromJson(Map<String, dynamic> json)` <a id="fromjson"></a>
 - **Kind:** factory constructor of `TodoData`
-- **Source:** `lib/features/todo/services/todo_storage.dart` (line 76)
+- **Source:** `lib/features/todo/services/todo_storage.dart` (line 78)
 - **Purpose:** Reconstruct the whole todo document from its persisted/synced JSON shape, migrating
   the old single-reminder format to the current morning/completion split.
 - **Inputs:** `json`.
@@ -165,7 +171,7 @@ trivial forwarding.
 
 ### `const TodoStorageException(this.message)` <a id="todostorageexception-new"></a>
 - **Kind:** const constructor of `TodoStorageException`
-- **Source:** `lib/features/todo/services/todo_storage.dart` (line 127)
+- **Source:** `lib/features/todo/services/todo_storage.dart` (line 129)
 - **Purpose:** Create a todo storage exception carrying a user-visible message, thrown when
   `todo_data.json` exists but cannot be safely read or written.
 - **Inputs:** `message`.
@@ -176,7 +182,7 @@ trivial forwarding.
   ```dart
   throw TodoStorageException('$_fileName is not valid JSON: $e');
   ```
-  (`load`, line 470; the analogous `'Failed to load $_fileName: $e'` case at line 472 covers any
+  (`load`, line 605; the analogous `'Failed to load $_fileName: $e'` case at line 607 covers any
   other read failure).
 - **Notes:** Implements `Exception` (not `Error`), so it's meant to be caught and shown to the user —
   `todo_page.dart`'s `_loadData()` catches it and stores `e.toString()` as `_loadError`, which then
@@ -186,7 +192,7 @@ trivial forwarding.
 
 ### `static Future<Directory> _getDefaultAppDir()` <a id="_getdefaultappdir"></a>
 - **Kind:** private static method of `TodoStorage`
-- **Source:** `lib/features/todo/services/todo_storage.dart` (line 170)
+- **Source:** `lib/features/todo/services/todo_storage.dart` (line 172)
 - **Purpose:** Resolve (creating if needed) the default `<platform app documents dir>/MyDay`
   directory.
 - **Inputs:** None.
@@ -202,7 +208,7 @@ trivial forwarding.
 
 ### `static Future<File> _getConfigFile()` <a id="_getconfigfile"></a>
 - **Kind:** private static method of `TodoStorage`
-- **Source:** `lib/features/todo/services/todo_storage.dart` (line 185)
+- **Source:** `lib/features/todo/services/todo_storage.dart` (line 187)
 - **Purpose:** Resolve the `File` handle for `storage_config.json`, always inside the default app
   directory.
 - **Inputs:** None.
@@ -216,7 +222,7 @@ trivial forwarding.
 
 ### `static Future<File> getConfigFile()` <a id="getconfigfile"></a>
 - **Kind:** static method of `TodoStorage`
-- **Source:** `lib/features/todo/services/todo_storage.dart` (line 196)
+- **Source:** `lib/features/todo/services/todo_storage.dart` (line 198)
 - **Purpose:** Expose `_getConfigFile()` publicly, per its doc comment, "for other services (e.g.
   `LocalApiServer`)".
 - **Inputs:** None.
@@ -225,13 +231,13 @@ trivial forwarding.
 - **Algorithm:** One-line forward to `_getConfigFile()`.
 - **Usage:** No call sites found anywhere in `lib/` or `test/` — including `local_api_server.dart`,
   the module named in its own doc comment as the intended consumer. `LocalApiServer` in fact reads
-  config through `TodoStorage.readConfig()` instead (e.g. `local_api_server.dart` line 69).
+  config through `TodoStorage.readConfig()` instead (e.g. `local_api_server.dart` line 70).
 - **Notes:** Currently unused/dead code relative to its stated purpose; a future direct-file-access
   consumer would use this rather than duplicating `_getConfigFile`'s path logic.
 
 ### `static Future<Map<String, dynamic>> readConfig()` <a id="readconfig"></a>
 - **Kind:** static method of `TodoStorage`
-- **Source:** `lib/features/todo/services/todo_storage.dart` (line 204)
+- **Source:** `lib/features/todo/services/todo_storage.dart` (line 206)
 - **Purpose:** Read the raw config JSON, for modules that store their own keys directly rather than
   through this file's cached fields.
 - **Inputs:** None.
@@ -245,7 +251,7 @@ trivial forwarding.
   final config = await TodoStorage.readConfig();
   _apiEnabled = config['apiEnabled'] as bool? ?? false;
   ```
-  (`lib/features/settings/views/settings_page.dart`, `_loadApiSettings`, lines 190-197); also used
+  (`lib/features/settings/views/settings_page.dart`, `_loadApiSettings`, lines 219-222); also used
   by `BackupService.loadSettings()`, `TrayService`, `ReminderService`, and
   `local_api_server.dart` for their own module-specific keys.
 - **Notes:** Unlike [`_loadConfig`](#_loadconfig), this never caches its result — every call re-reads
@@ -253,7 +259,7 @@ trivial forwarding.
 
 ### `static Future<void> writeConfig(Map<String, dynamic> config)` <a id="writeconfig"></a>
 - **Kind:** static method of `TodoStorage`
-- **Source:** `lib/features/todo/services/todo_storage.dart` (line 220)
+- **Source:** `lib/features/todo/services/todo_storage.dart` (line 222)
 - **Purpose:** Merge-write `config`'s keys into `storage_config.json` without clobbering keys other
   modules have written.
 - **Inputs:** `config` — a partial map of keys to add/update; a `null` value under a key removes
@@ -276,7 +282,7 @@ trivial forwarding.
     'apiPassword': newPass.isEmpty ? null : newPass,
   });
   ```
-  (`settings_page.dart`, lines 351-356, saving local API settings — note the inline `x.isEmpty ?
+  (`settings_page.dart`, lines 380-385, saving local API settings — note the inline `x.isEmpty ?
   null : x` pattern relying on `writeConfig`'s null-removes-the-key behavior).
 - **Notes:** Because this is read-merge-write (not a blind overwrite), it's how `BackupService`'s
   `autoBackupEnabled`/`backupRetentionDays` keys and Todo's own cached fields (theme, locale, etc.,
@@ -285,7 +291,7 @@ trivial forwarding.
 
 ### `static Future<void> _loadConfig()` <a id="_loadconfig"></a>
 - **Kind:** private static method of `TodoStorage`
-- **Source:** `lib/features/todo/services/todo_storage.dart` (line 243)
+- **Source:** `lib/features/todo/services/todo_storage.dart` (line 245)
 - **Purpose:** Lazily populate this class's static cached fields (`_customPath`,
   `_intimacyVisible`, `_themeMode`, `_localeTag`, `_weekStartDay`, `_minimizeToTray`,
   `_closeToTray`) from `storage_config.json`, at most once until invalidated.
@@ -308,7 +314,7 @@ trivial forwarding.
 
 ### `static Future<void> _saveConfig()` <a id="_saveconfig"></a>
 - **Kind:** private static method of `TodoStorage`
-- **Source:** `lib/features/todo/services/todo_storage.dart` (line 274)
+- **Source:** `lib/features/todo/services/todo_storage.dart` (line 276)
 - **Purpose:** Write this class's cached fields back into `storage_config.json`, preserving keys
   written by other modules (e.g. `BackupService`'s `autoBackupEnabled`/`backupRetentionDays`).
 - **Inputs:** None.
@@ -328,7 +334,7 @@ trivial forwarding.
 
 ### `static Future<bool> getIntimacyVisible()` <a id="getintimacyvisible"></a>
 - **Kind:** static method of `TodoStorage`
-- **Source:** `lib/features/todo/services/todo_storage.dart` (line 327)
+- **Source:** `lib/features/todo/services/todo_storage.dart` (line 329)
 - **Purpose:** Get persisted intimacy-feature visibility.
 - **Inputs:** None.
 - **Returns:** `Future<bool>`.
@@ -339,12 +345,12 @@ trivial forwarding.
   final visible = await TodoStorage.getIntimacyVisible();
   state = IntimacyVisibility(visible: visible);
   ```
-  (`lib/shared/providers/intimacy_visibility.dart`, `_loadPersistedState`, lines 45-47).
+  (`lib/shared/providers/intimacy_visibility.dart`, `_loadPersistedState`, lines 46-47).
 - **Notes:** None.
 
 ### `static Future<void> setIntimacyVisible(bool value)` <a id="setintimacyvisible"></a>
 - **Kind:** static method of `TodoStorage`
-- **Source:** `lib/features/todo/services/todo_storage.dart` (line 338)
+- **Source:** `lib/features/todo/services/todo_storage.dart` (line 340)
 - **Purpose:** Set and persist intimacy-feature visibility.
 - **Inputs:** `value`.
 - **Returns:** `Future<void>`.
@@ -363,21 +369,77 @@ trivial forwarding.
   no-op, but note the call above isn't `await`ed by its caller — the write happens fire-and-forget
   from the provider's perspective.
 
+### `static Future<bool> getOnDeviceAiEnabled()` <a id="getondeviceaienabled"></a>
+- **Kind:** static method of `TodoStorage`
+- **Source:** `lib/features/todo/services/todo_storage.dart` (line 352)
+- **Purpose:** Read whether the user turned on on-device AI.
+- **Inputs:** None.
+- **Returns:** `Future<bool>` — `true` only when the `onDeviceAiEnabled` key is JSON `true`; `false`
+  when it is absent or anything else.
+- **Side effects:** Reads `storage_config.json` (via [`readConfig`](#readconfig)).
+- **Algorithm:** `(await readConfig())['onDeviceAiEnabled'] == true`.
+- **Usage:** `final onDeviceAiEnabled = await TodoStorage.getOnDeviceAiEnabled();`
+  (`lib/shared/providers/app_settings.dart`, `_loadPersisted`, line 44).
+- **Notes:** Device-local and never synced; off by default (v1.5.0). Unlike the cached fields
+  above, this goes through the uncached `readConfig`, so it never touches the `_loadConfig` cache.
+  See [On-device AI](../../../../on-device-ai.md) and
+  [`app_settings.dart`](../../../shared/providers/app_settings.md#_loadpersisted).
+
+### `static Future<void> setOnDeviceAiEnabled(bool enabled)` <a id="setondeviceaienabled"></a>
+- **Kind:** static method of `TodoStorage`
+- **Source:** `lib/features/todo/services/todo_storage.dart` (line 360)
+- **Purpose:** Persist the on-device AI switch.
+- **Inputs:** `enabled`.
+- **Returns:** `Future<void>`.
+- **Side effects:** Merge-writes `storage_config.json` via [`writeConfig`](#writeconfig), which also
+  invalidates the `_loadConfig` cache.
+- **Algorithm:** `writeConfig({'onDeviceAiEnabled': enabled ? true : null})` — `false` maps to
+  `null`, which `writeConfig` turns into removing the key.
+- **Usage:** `TodoStorage.setOnDeviceAiEnabled(enabled);` (`app_settings.dart`,
+  [`setOnDeviceAiEnabled`](../../../shared/providers/app_settings.md#setondeviceaienabled), line 173).
+- **Notes:** Stored only when `true`, so a device that never opted in has no key at all.
+
+### `static Future<bool> getOnDeviceAiPreferFast()` <a id="getondeviceaipreferfast"></a>
+- **Kind:** static method of `TodoStorage`
+- **Source:** `lib/features/todo/services/todo_storage.dart` (line 368)
+- **Purpose:** Read whether the faster on-device model is preferred.
+- **Inputs:** None.
+- **Returns:** `Future<bool>` — `false` when the `onDeviceAiPreferFast` key is absent.
+- **Side effects:** Reads `storage_config.json` (via [`readConfig`](#readconfig)).
+- **Algorithm:** `(await readConfig())['onDeviceAiPreferFast'] == true`.
+- **Usage:** `final onDeviceAiPreferFast = await TodoStorage.getOnDeviceAiPreferFast();`
+  (`app_settings.dart`, `_loadPersisted`, line 45).
+- **Notes:** Only has an effect on Android, where AICore can serve a full and a fast model;
+  device-local.
+
+### `static Future<void> setOnDeviceAiPreferFast(bool enabled)` <a id="setondeviceaipreferfast"></a>
+- **Kind:** static method of `TodoStorage`
+- **Source:** `lib/features/todo/services/todo_storage.dart` (line 376)
+- **Purpose:** Persist the faster-model preference.
+- **Inputs:** `enabled`.
+- **Returns:** `Future<void>`.
+- **Side effects:** Merge-writes `storage_config.json` via [`writeConfig`](#writeconfig).
+- **Algorithm:** `writeConfig({'onDeviceAiPreferFast': enabled ? true : null})`.
+- **Usage:** `TodoStorage.setOnDeviceAiPreferFast(enabled);` (`app_settings.dart`,
+  [`setOnDeviceAiPreferFast`](../../../shared/providers/app_settings.md#setondeviceaipreferfast),
+  line 184).
+- **Notes:** Stored only when `true`; `false` removes the key.
+
 ### `static Future<String?> getThemeMode()` <a id="getthememode"></a>
 - **Kind:** static method of `TodoStorage`
-- **Source:** `lib/features/todo/services/todo_storage.dart` (line 351)
+- **Source:** `lib/features/todo/services/todo_storage.dart` (line 385)
 - **Purpose:** Get the persisted theme mode string.
 - **Inputs:** None.
 - **Returns:** `Future<String?>` — `null` means "follow system".
 - **Side effects:** May trigger the first `_loadConfig()` read.
 - **Algorithm:** `await _loadConfig(); return _themeMode;`.
 - **Usage:** `final modeStr = await TodoStorage.getThemeMode();` (`lib/shared/providers/
-  app_settings.dart`, `_loadPersisted`, line 27).
+  app_settings.dart`, `_loadPersisted`, line 37).
 - **Notes:** None.
 
 ### `static Future<void> setThemeMode(String? mode)` <a id="setthememode"></a>
 - **Kind:** static method of `TodoStorage`
-- **Source:** `lib/features/todo/services/todo_storage.dart` (line 362)
+- **Source:** `lib/features/todo/services/todo_storage.dart` (line 396)
 - **Purpose:** Set and persist the theme mode string.
 - **Inputs:** `mode` — `'light'`/`'dark'`/`null` (system).
 - **Returns:** `Future<void>`.
@@ -396,24 +458,24 @@ trivial forwarding.
     TodoStorage.setThemeMode(str);
   }
   ```
-  (`app_settings.dart`, lines 58-66).
+  (`app_settings.dart`, lines 83-91).
 - **Notes:** Always writes, even if `mode` is unchanged from the cached value — unlike
   `setIntimacyVisible`'s guarded write.
 
 ### `static Future<String?> getLocaleTag()` <a id="getlocaletag"></a>
 - **Kind:** static method of `TodoStorage`
-- **Source:** `lib/features/todo/services/todo_storage.dart` (line 374)
+- **Source:** `lib/features/todo/services/todo_storage.dart` (line 408)
 - **Purpose:** Get the persisted locale tag.
 - **Inputs:** None.
 - **Returns:** `Future<String?>` — e.g. `'en'`, `'zh'`, `'zh_TW'`, `'ja'`, or `null` for system.
 - **Side effects:** May trigger the first `_loadConfig()` read.
 - **Algorithm:** `await _loadConfig(); return _localeTag;`.
-- **Usage:** `final localeTag = await TodoStorage.getLocaleTag();` (`app_settings.dart`, line 28).
+- **Usage:** `final localeTag = await TodoStorage.getLocaleTag();` (`app_settings.dart`, line 38).
 - **Notes:** None.
 
 ### `static Future<void> setLocaleTag(String? tag)` <a id="setlocaletag"></a>
 - **Kind:** static method of `TodoStorage`
-- **Source:** `lib/features/todo/services/todo_storage.dart` (line 385)
+- **Source:** `lib/features/todo/services/todo_storage.dart` (line 419)
 - **Purpose:** Set and persist the locale tag.
 - **Inputs:** `tag`.
 - **Returns:** `Future<void>`.
@@ -430,25 +492,25 @@ trivial forwarding.
     TodoStorage.setLocaleTag(tag);
   }
   ```
-  (`app_settings.dart`, `setLocale`, lines 78-85).
+  (`app_settings.dart`, `setLocale`, lines 103-110).
 - **Notes:** None.
 
 ### `static Future<int> getWeekStartDay()` <a id="getweekstartday"></a>
 - **Kind:** static method of `TodoStorage`
-- **Source:** `lib/features/todo/services/todo_storage.dart` (line 397)
+- **Source:** `lib/features/todo/services/todo_storage.dart` (line 431)
 - **Purpose:** Get the global calendar week start day shared by every calendar in the app.
 - **Inputs:** None.
 - **Returns:** `Future<int>` — Dart's Monday=1 through Sunday=7 numbering.
 - **Side effects:** May trigger the first `_loadConfig()` read.
 - **Algorithm:** `await _loadConfig(); return _weekStartDay;`.
 - **Usage:** `final weekStartDay = await TodoStorage.getWeekStartDay();`
-  (`lib/shared/widgets/app_date_picker.dart`, lines 20 and 46; also `app_settings.dart` line 29).
+  (`lib/shared/widgets/app_date_picker.dart`, lines 20 and 46; also `app_settings.dart` line 39).
 - **Notes:** `_loadConfig` already normalizes this value via `_normalizeWeekStartDay` when reading
   from disk, so this getter never needs to re-validate it.
 
 ### `static Future<void> setWeekStartDay(int weekday)` <a id="setweekstartday"></a>
 - **Kind:** static method of `TodoStorage`
-- **Source:** `lib/features/todo/services/todo_storage.dart` (line 408)
+- **Source:** `lib/features/todo/services/todo_storage.dart` (line 442)
 - **Purpose:** Update the global calendar week start day.
 - **Inputs:** `weekday`.
 - **Returns:** `Future<void>`.
@@ -464,13 +526,13 @@ trivial forwarding.
     TodoStorage.setWeekStartDay(normalized);
   }
   ```
-  (`app_settings.dart`, lines 93-97).
+  (`app_settings.dart`, lines 118-122).
 - **Notes:** Invalid values (outside Monday..Sunday) are silently normalized to Monday rather than
   rejected — see [`_normalizeWeekStartDay`](#_normalizeweekstartday).
 
 ### `static Future<Directory> getAppDir()` <a id="getappdir"></a>
 - **Kind:** static method of `TodoStorage`
-- **Source:** `lib/features/todo/services/todo_storage.dart` (line 421)
+- **Source:** `lib/features/todo/services/todo_storage.dart` (line 556)
 - **Purpose:** Resolve the directory data files are actually stored in — the custom path if one is
   set, otherwise the default `Documents/MyDay` directory.
 - **Inputs:** None.
@@ -494,7 +556,7 @@ trivial forwarding.
 
 ### `static Future<File> _getFile()` <a id="_getfile"></a>
 - **Kind:** private static method of `TodoStorage`
-- **Source:** `lib/features/todo/services/todo_storage.dart` (line 438)
+- **Source:** `lib/features/todo/services/todo_storage.dart` (line 573)
 - **Purpose:** Resolve the `File` handle for `todo_data.json` inside the active app directory.
 - **Inputs:** None.
 - **Returns:** `Future<File>`.
@@ -505,7 +567,7 @@ trivial forwarding.
 
 ### `static Future<bool> fileExists()` <a id="fileexists"></a>
 - **Kind:** static method of `TodoStorage`
-- **Source:** `lib/features/todo/services/todo_storage.dart` (line 449)
+- **Source:** `lib/features/todo/services/todo_storage.dart` (line 584)
 - **Purpose:** Check whether `todo_data.json` exists at all, without attempting to parse it.
 - **Inputs:** None.
 - **Returns:** `Future<bool>`.
@@ -518,7 +580,7 @@ trivial forwarding.
 
 ### `static Future<TodoData?> load()` <a id="load"></a>
 - **Kind:** static method of `TodoStorage`
-- **Source:** `lib/features/todo/services/todo_storage.dart` (line 461)
+- **Source:** `lib/features/todo/services/todo_storage.dart` (line 596)
 - **Purpose:** Load and parse `todo_data.json`, returning `null` only when the file doesn't exist.
 - **Inputs:** None.
 - **Returns:** `Future<TodoData?>` — `null` if missing; otherwise a parsed `TodoData` or a thrown
@@ -549,7 +611,7 @@ trivial forwarding.
     return;
   }
   ```
-  (`todo_page.dart`, `_loadData`, lines 92-109); also called from `local_api_server.dart` (many
+  (`todo_page.dart`, `_loadData`, lines 101-115); also called from `local_api_server.dart` (many
   read/modify/save handlers) and `reminder_service.dart`.
 - **Notes:** Missing vs. corrupt is deliberately distinguished — missing returns `null` ("no data
   yet"), corrupt/unreadable throws (an error state the UI must surface) — so a corrupted file is
@@ -559,7 +621,7 @@ trivial forwarding.
 
 ### `static Future<void> save(TodoData data)` <a id="save"></a>
 - **Kind:** static method of `TodoStorage`
-- **Source:** `lib/features/todo/services/todo_storage.dart` (line 482)
+- **Source:** `lib/features/todo/services/todo_storage.dart` (line 617)
 - **Purpose:** Queue a write of `data`, ensuring overlapping `save` calls never interleave their
   writes to `todo_data.json`.
 - **Inputs:** `data`.
@@ -581,7 +643,7 @@ trivial forwarding.
     TodoData(dailyTemplates: _dailyTemplates, oneTimeTasks: _oneTimeTasks, /* ... */),
   );
   ```
-  (`todo_page.dart`, `_saveData`, lines 163-172); also called throughout `local_api_server.dart`
+  (`todo_page.dart`, `_saveData`, lines 169-183); also called throughout `local_api_server.dart`
   after any REST-driven mutation.
 - **Notes:** Because `_writeQueue` is a single static field, concurrent `save()` calls anywhere in
   the app (UI and the local REST API alike) are strictly serialized in call order — the same
@@ -589,7 +651,7 @@ trivial forwarding.
 
 ### `static Future<void> _saveNow(TodoData data)` <a id="_savenow"></a>
 - **Kind:** private static method of `TodoStorage`
-- **Source:** `lib/features/todo/services/todo_storage.dart` (line 496)
+- **Source:** `lib/features/todo/services/todo_storage.dart` (line 631)
 - **Purpose:** Perform one actual write of `data` to `todo_data.json`, after the caller has already
   taken its turn in the write queue.
 - **Inputs:** `data`.
@@ -611,19 +673,19 @@ trivial forwarding.
 
 ### `static Future<String> getStoragePath()` <a id="getstoragepath"></a>
 - **Kind:** static method of `TodoStorage`
-- **Source:** `lib/features/todo/services/todo_storage.dart` (line 512)
+- **Source:** `lib/features/todo/services/todo_storage.dart` (line 647)
 - **Purpose:** Get the active storage directory path, for display in Settings.
 - **Inputs:** None.
 - **Returns:** `Future<String>`.
 - **Side effects:** None directly (delegates to `getAppDir`, which may create a directory).
 - **Algorithm:** `appDir = await getAppDir(); return appDir.path;`.
 - **Usage:** `final path = await TodoStorage.getStoragePath();`
-  (`lib/features/settings/views/settings_page.dart`, `_loadStoragePath`, line 128).
+  (`lib/features/settings/views/settings_page.dart`, `_loadStoragePath`, line 142).
 - **Notes:** None.
 
 ### `static Future<bool> setStoragePath(String? newPath)` <a id="setstoragepath"></a>
 - **Kind:** static method of `TodoStorage`
-- **Source:** `lib/features/todo/services/todo_storage.dart` (line 536)
+- **Source:** `lib/features/todo/services/todo_storage.dart` (line 669)
 - **Purpose:** Change the custom storage directory, moving the app's known data files into it (or
   adopting whatever is already there) so no existing data is lost or duplicated.
 - **Inputs:** `newPath` — `null` resets to the default location.
@@ -649,7 +711,7 @@ trivial forwarding.
     /* show settingsResetDefaultLocation or settingsStoragePathUpdated snackbar */
   }
   ```
-  (`settings_page.dart`, lines 766-779).
+  (`settings_page.dart`, lines 924-937).
 - **Notes:** `storage_config.json` itself is never in `_dataFileNames` and is never moved — it
   always stays in the default app directory (per `_getConfigFile`/`_getDefaultAppDir`), even after a
   custom storage path is set for everything else. Directories such as `images/`, `backups/`, and
@@ -657,7 +719,7 @@ trivial forwarding.
 
 ### `static Future<bool> getMinimizeToTray()` <a id="getminimizetotray"></a>
 - **Kind:** static method of `TodoStorage`
-- **Source:** `lib/features/todo/services/todo_storage.dart` (line 571)
+- **Source:** `lib/features/todo/services/todo_storage.dart` (line 696)
 - **Purpose:** Get the persisted "minimize to tray" setting.
 - **Inputs:** None.
 - **Returns:** `Future<bool>`.
@@ -673,7 +735,7 @@ trivial forwarding.
 
 ### `static Future<void> setMinimizeToTray(bool value)` <a id="setminimizetotray"></a>
 - **Kind:** static method of `TodoStorage`
-- **Source:** `lib/features/todo/services/todo_storage.dart` (line 581)
+- **Source:** `lib/features/todo/services/todo_storage.dart` (line 706)
 - **Purpose:** Set and persist the "minimize to tray" setting.
 - **Inputs:** `value`.
 - **Returns:** `Future<void>`.
@@ -691,7 +753,7 @@ trivial forwarding.
 
 ### `static Future<bool> getCloseToTray()` <a id="getclosetotray"></a>
 - **Kind:** static method of `TodoStorage`
-- **Source:** `lib/features/todo/services/todo_storage.dart` (line 592)
+- **Source:** `lib/features/todo/services/todo_storage.dart` (line 717)
 - **Purpose:** Get the persisted "close to tray" setting.
 - **Inputs:** None.
 - **Returns:** `Future<bool>`.
@@ -702,7 +764,7 @@ trivial forwarding.
 
 ### `static Future<void> setCloseToTray(bool value)` <a id="setclosetotray"></a>
 - **Kind:** static method of `TodoStorage`
-- **Source:** `lib/features/todo/services/todo_storage.dart` (line 602)
+- **Source:** `lib/features/todo/services/todo_storage.dart` (line 727)
 - **Purpose:** Set and persist the "close to tray" setting.
 - **Inputs:** `value`.
 - **Returns:** `Future<void>`.
@@ -722,7 +784,7 @@ trivial forwarding.
 
 ### `static int _normalizeWeekStartDay(int? weekday)` <a id="_normalizeweekstartday"></a>
 - **Kind:** private static method of `TodoStorage`
-- **Source:** `lib/features/todo/services/todo_storage.dart` (line 613)
+- **Source:** `lib/features/todo/services/todo_storage.dart` (line 738)
 - **Purpose:** Return a valid persisted week start day, defaulting invalid or missing values to
   Monday.
 - **Inputs:** `weekday` — nullable, expected to be `DateTime.monday`..`DateTime.sunday` (1-7).

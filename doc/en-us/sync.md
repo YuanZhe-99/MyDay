@@ -85,10 +85,12 @@ Reproduced from `AGENTS.md`:
 | `weight_data.json` | `mergeWeightData()` | Records by id + `modifiedAt`; height follows settings LWW (saving weight data bumps `settingsModifiedAt`, so clearing height syncs); reminder/settings LWW |
 | `images/*` | `_syncImages()` | Additive bidirectional, but only for referenced images; extension-agnostic, so `.svg` logos sync like any other image |
 
-Files moved by `TodoStorage.setStoragePath()` are `todo_data.json`, `finance_data.json`,
-`exchange_rates.json`, `intimacy_data.json`, `weight_data.json`, and `webdav_config.json`.
-`storage_config.json` always stays in the default app directory. Directories such as `images/`,
-`backups/`, and `.sync_base/` are not moved by that file list.
+`TodoStorage.setStoragePath()` moves everything in the old data folder, including
+`webdav_config.json`, `.sync_base/`, `images/` and `backups/`; only `storage_config.json` stays in
+the default app directory. See [data-formats.md](data-formats.md#persisted-data-inventory).
+
+`ai_insights.json` (on-device AI insight cache, v1.5.0) is deliberately not a registered module, so
+it is never uploaded, downloaded or merged. See [on-device-ai.md](on-device-ai.md).
 
 Full field-level merge semantics (including the generic `mergeRecords` three-way engine and the
 `CycleRecord`/`DailyCompletionLog` deletion-vs-union rules) are in

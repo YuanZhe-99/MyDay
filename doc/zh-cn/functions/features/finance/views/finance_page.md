@@ -1,6 +1,6 @@
 # lib/features/finance/views/finance_page.dart
 
-财务标签的主页：可选月摘要（支出/收入/总资产，带币种转换回退警告）、即将续费条，以及所选月份交易的分组列表，带滑动编辑/删除和浮动添加按钮。自 v1.4.3 起，双栏排布还会用一个订阅概览——三项订阅统计和进行中列表，取自 [`subscription_summary.dart`](../services/subscription_summary.md)——填满摘要窗格。应用栏的溢出操作是进入其他每个财务子页（账户、分析、订阅、分类、汇率、默认币种）的入口。本页如何融入那里描述的可选月主页摘要和分组月度交易见 [财务](../../../../features/finance.md#views-and-analysis-page)。
+财务标签的主页：可选月摘要（支出/收入/总资产，带币种转换回退警告）、即将续费条，以及所选月份交易的分组列表，带滑动编辑/删除和浮动添加按钮。自 v1.4.3 起，双栏排布还会用一个订阅概览——三项订阅统计和进行中列表，取自 [`subscription_summary.dart`](../services/subscription_summary.md)——填满摘要窗格。自 v1.5.0 起，摘要在两种排布中还都带有端侧 AI 洞察卡片（[`AiInsightCard`](../../ai/widgets/ai_insight_card.md)，见[端侧 AI](../../../../on-device-ai.md#insight-cards)）。应用栏的溢出操作是进入其他每个财务子页（账户、分析、订阅、分类、汇率、默认币种）的入口。本页如何融入那里描述的可选月主页摘要和分组月度交易见 [财务](../../../../features/finance.md#views-and-analysis-page)。
 
 ## 声明
 
@@ -48,7 +48,7 @@
 
 ### `Future<void> _loadData()` <a id="_loaddata"></a>
 - **种类：** `_FinancePageState` 的方法
-- **来源：** `lib/features/finance/views/finance_page.dart`（第 96-137 行）
+- **来源：** `lib/features/finance/views/finance_page.dart`（第 108-149 行）
 - **用途：** 从磁盘加载财务数据和汇率数据进状态，或记录加载错误，使存在但不可读的数据被浮出而不是静默当作空。
 - **输入：** 无（读取 `FinanceStorage.load()` 和 `ExchangeRateStorage.load()`）。
 - **返回：** `Future<void>`。
@@ -70,7 +70,7 @@
 
 ### `void _processSubscriptions()` <a id="_processsubscriptions"></a>
 - **种类：** `_FinancePageState` 的方法
-- **来源：** `lib/features/finance/views/finance_page.dart`（第 145-154 行）
+- **来源：** `lib/features/finance/views/finance_page.dart`（第 157-166 行）
 - **用途：** 对每个激活订阅，为应用上次处理续费以来已过的任何计费日期生成交易。
 - **输入：** 无（读取 `_subscriptions`、`_transactions`）。
 - **返回：** 无。
@@ -87,7 +87,7 @@
 
 ### `Future<void> _saveData()` <a id="_savedata"></a>
 - **种类：** `_FinancePageState` 的方法
-- **来源：** `lib/features/finance/views/finance_page.dart`（第 188-220 行）
+- **来源：** `lib/features/finance/views/finance_page.dart`（第 174-206 行）
 - **用途：** 把当前内存财务状态持久化到磁盘，已知加载的文件不可读时拒绝写入。
 - **输入：** 无（读取每个持久化状态字段）。
 - **返回：** `Future<void>`。
@@ -111,7 +111,7 @@
 
 ### `Future<void> _pickFlowMonth()` <a id="_pickflowmonth"></a>
 - **种类：** `_FinancePageState` 的方法
-- **来源：** `lib/features/finance/views/finance_page.dart`（第 300-369 行）
+- **来源：** `lib/features/finance/views/finance_page.dart`（第 286-355 行）
 - **用途：** 让用户选择过滤主页交易流和摘要卡片的年和月。
 - **输入：** 无（读取 `context`、`_selectedFlowMonth`）。
 - **返回：** `Future<void>`。
@@ -134,7 +134,7 @@
 
 ### `Widget build(BuildContext context)` <a id="build"></a>
 - **种类：** `_FinancePageState` 的方法（`State.build` 的 `@override`）
-- **来源：** `lib/features/finance/views/finance_page.dart`（第 377-659 行）
+- **来源：** `lib/features/finance/views/finance_page.dart`（第 363-744 行）
 - **用途：** 计算所选月的支出/收入/总资产摘要——跟踪任何回退到 1:1 转换的币种对——并渲染财务主页：应用栏、摘要页头、即将续费条和分组、可滑动交易列表。
 - **输入：** `context`。
 - **返回：** 当前状态的组件树（加载转圈、阻塞错误视图或完整主页）。
@@ -146,9 +146,10 @@
   4. `monthExpense`：折叠 `monthTransactions` 中 `type == expense` 的，经 `convertCurrency(_rateData.ratesAt(t.rateSnapshotId), t.amount, t.currency, _defaultCurrency, onMissingRate: trackMissingRate)`（[`balance_util.md#convertcurrency`](../services/balance_util.md#convertcurrency)）转换每笔交易——即按该交易自己日期生效的汇率快照。
   5. `monthIncome`：相同折叠，过滤 `type == income`。
   6. `totalAssets`：`_accounts` 为空时回退 `monthIncome - monthExpense`；否则折叠 `_accounts`，经 `accountBalance(a, _transactions, _rateData)`（[`balance_util.md#accountbalance`](../services/balance_util.md#accountbalance)）计算每个账户余额并用**今天**的 `currentRates` 转换为 `_defaultCurrency`——不同于 `monthExpense`/`monthIncome` 使用的逐交易快照汇率。
-  7. 计算 `upcomingSubs = upcomingSubscriptions(_subscriptions, days: 3)`，然后用存储的排序模式和自定义顺序经 `sortSubscriptions` 得到 `activeSubs`，再经 `summarizeSubscriptions` 得到 `subscriptionSummary`——全部来自 [`subscription_summary.md`](../services/subscription_summary.md)。当 `twoPane` 且 `activeSubs` 非空时，把一个 `_SubscriptionOverview` 追加到 `summaryBlocks`。
-  8. 构建带 `AppBar`（账户/分析/订阅/溢出菜单操作，`_loadError != null` 时全部禁用）的 `Scaffold`，正文为：`!_loaded` 时转圈；`_loadError != null` 时 `_FinanceDataError` 视图；否则是 `_SummaryHeader`（喂计算的总计、`missingRatePairs.toList()..sort()` 和把 `_selectedFlowMonth` 按月移位的 prev/next 月回调）的 `Column`、可选即将续费 `Chip` 条、"交易"小节标签，以及空状态消息或喂按最新优先排序的 `monthTransactions`、每行包在 `Dismissible`（从左往右滑动打开编辑；从右往左滑动经 `confirmDelete` 请求删除确认）中的 `buildGroupedTransactionList`（[`grouped_transaction_list.md#buildgroupedtransactionlist`](../widgets/grouped_transaction_list.md#buildgroupedtransactionlist)）。
-  9. `FloatingActionButton` 触发 `_addTransaction`，`_loadError != null` 时禁用。
+  7. 计算 `upcomingSubs = upcomingSubscriptions(_subscriptions, days: 3)`，然后用存储的排序模式和自定义顺序经 `sortSubscriptions` 得到 `activeSubs`，再经 `summarizeSubscriptions` 得到 `subscriptionSummary`——全部来自 [`subscription_summary.md`](../services/subscription_summary.md)。当 `twoPane` 且 `activeSubs` 非空时，把一个 `_SubscriptionOverview` 追加到 `summaryBlocks`，位于下面的 AI 卡片之后。
+  8. 在即将续费条（及其 `Divider`）与订阅概览之间，`summaryBlocks` 总是包含一个 [`AiInsightCard`](../../ai/widgets/ai_insight_card.md#aiinsightcard-new)（v1.5.0），`module: InsightModule.finance`、`compact: !twoPane`（堆叠时折叠为一行预览），以及两个 `AiInsightSection`：`l10n.aiFinanceFlow` 涵盖槽位 `flowSummary` 和 `flowAdvice`，`l10n.aiFinanceSubscriptions` 涵盖 `subSummary` 和 `subAdvice`。其 `buildRequest: (language, now)` 用 `now`、`_accounts`、`_categories`、`_transactions`、`_subscriptions`、`_rateData` 和 `_defaultCurrency` 调用 [`buildFinanceInsightFacts`](../services/finance_insight_facts.md#buildfinanceinsightfacts)，后者返回 `null` 时返回 `null`，否则返回 `AiInsightRequest(facts: facts, language: language, now: now)`。端侧 AI 关闭或平台不可能有模型时，卡片什么都不渲染。
+  9. 构建带 `AppBar`（账户/分析/订阅/溢出菜单操作，`_loadError != null` 时全部禁用）的 `Scaffold`，正文为：`!_loaded` 时转圈；`_loadError != null` 时 `_FinanceDataError` 视图；否则是 `_SummaryHeader`（喂计算的总计、`missingRatePairs.toList()..sort()` 和把 `_selectedFlowMonth` 按月移位的 prev/next 月回调）的 `Column`、可选即将续费 `Chip` 条、"交易"小节标签，以及空状态消息或喂按最新优先排序的 `monthTransactions`、每行包在 `Dismissible`（从左往右滑动打开编辑；从右往左滑动经 `confirmDelete` 请求删除确认）中的 `buildGroupedTransactionList`（[`grouped_transaction_list.md#buildgroupedtransactionlist`](../widgets/grouped_transaction_list.md#buildgroupedtransactionlist)）。
+  10. `FloatingActionButton` 触发 `_addTransaction`，`_loadError != null` 时禁用。
 - **用法：** `_FinancePageState` 重建时由 Flutter 框架调用；不直接调用。`FinancePage` 本身从路由器挂载：
   ```dart
   builder: (context, state) => const FinancePage(),
@@ -165,6 +166,7 @@
 - [`exchange_rate_storage.md`](../services/exchange_rate_storage.md) — `load`、`currentRates`、`ratesAt`，由 [`_loadData`](#_loaddata) 和 [`build`](#build) 使用。
 - [`grouped_transaction_list.dart`](../widgets/grouped_transaction_list.md) — `buildGroupedTransactionList`，用于在 [`build`](#build) 中渲染按日期分组的交易列表。
 - [`add_transaction_dialog.dart`](../widgets/add_transaction_dialog.md) — `_addTransaction` 和 `_editTransaction` 显示的对话框。
+- [`ai_insight_card.dart`](../../ai/widgets/ai_insight_card.md) 和 [`finance_insight_facts.dart`](../services/finance_insight_facts.md) — `summaryBlocks` 中的端侧 AI 卡片及其得到的事实（v1.5.0）。
 - [`subscription_summary.dart`](../services/subscription_summary.md) — `upcomingSubscriptions`、`sortSubscriptions`、`summarizeSubscriptions`，由 [`build`](#build) 用于续费条和订阅概览。
 - [`subscription_avatar.dart`](../widgets/subscription_avatar.md) — `_SubscriptionOverviewTile` 中的头像。
 - [`subscription_detail_page.dart`](subscription_detail_page.md) — 由 `_openSubscriptionDetail` 压入。
@@ -173,7 +175,7 @@
 
 ### `Widget build(BuildContext context)`（`_FinanceBody`） <a id="financebody-build"></a>
 - **种类：** `_FinanceBody` 的方法
-- **来源：** `lib/features/finance/views/finance_page.dart`（约第 940 行）
+- **来源：** `lib/features/finance/views/finance_page.dart`（约第 1048 行）
 - **用途：** 把月度摘要和交易列表排成堆叠布局或双栏布局。
 - **输入：** `context`；以及组件自己的 `twoPane`、`leftPaneWidth`、`summaryBlocks`、`transactionHeader` 和 `transactionList` 字段。
 - **返回：** 堆叠时为 `Column`，分栏时为 `Row`。
@@ -182,11 +184,11 @@
   1. `!twoPane` → `Column(children: [...summaryBlocks, transactionHeader, Expanded(transactionList)])`，与 v1.4.1 之前页面的主体完全相同。
   2. 否则是由 `SizedBox(width: leftPaneWidth, child: ListView(summaryBlocks))`、`VerticalDivider(width: 1)` 和承载标题及列表的 `Expanded` 右窗格组成的 `Row`。
 - **用法：** 在分栏决策和窗格宽度解析完成后由 `_FinancePageState.build` 构建。
-- **备注：** 三个内容槽由页面构建一次、在这里以两种方式排布，因此两种布局不可能显示不同的内容——页面自己刻意做的一个例外除外：自 v1.4.3 起，订阅概览只在双栏排布中被加入 `summaryBlocks`，因为它填的是原本会空着的窗格，而堆叠时它会把手机上的第一笔交易推得更靠下。堆叠时，月度摘要本就在第一笔交易出现之前要花掉手机高度的三分之一；分栏时，交易列表——用户真正在读的东西——拿走摘要之外的一切。左窗格本身是 `ListView`，因为很长的续订条加上摘要可能超出紧凑高度，而分栏规则在 480 处仍然放行这种高度。见 [../../../adaptive-layout.md](../../../adaptive-layout.md)。
+- **备注：** 三个内容槽由页面构建一次、在这里以两种方式排布，因此两种布局不可能显示不同的内容——页面自己刻意做的一个例外除外：自 v1.4.3 起，订阅概览只在双栏排布中被加入 `summaryBlocks`，因为它填的是原本会空着的窗格，而堆叠时它会把手机上的第一笔交易推得更靠下。端侧 AI 卡片（v1.5.0）在两种排布中都有，但堆叠时为 `compact`（折叠为一行预览）。堆叠时，月度摘要本就在第一笔交易出现之前要花掉手机高度的三分之一；分栏时，交易列表——用户真正在读的东西——拿走摘要之外的一切。左窗格本身是 `ListView`，因为很长的续订条加上摘要可能超出紧凑高度，而分栏规则在 480 处仍然放行这种高度。见 [../../../../adaptive-layout.md](../../../../adaptive-layout.md)。
 
 ### `Widget build(BuildContext context)`（`_SubscriptionOverview`） <a id="subscriptionoverview-build"></a>
 - **种类：** `_SubscriptionOverview` 的方法
-- **来源：** `lib/features/finance/views/finance_page.dart`（约第 1290 行）
+- **来源：** `lib/features/finance/views/finance_page.dart`（约第 1376 行）
 - **用途：** 在财务摘要窗格内渲染订阅页的三项统计和它的进行中列表。
 - **输入：** `context`；组件的 `paneWidth`、`summary`、`active`、`categories`、`accounts`、`currencyCode`、`onOpenAll` 和 `onOpenDetail` 字段。
 - **返回：** 一个 `Column`。

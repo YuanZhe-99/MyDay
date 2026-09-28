@@ -8,6 +8,8 @@
 
 嵌入内联 base64 `_images` 的旧 v1 捆绑仍可恢复——恢复先检查 `_imageRefs`（v2 blob 引用），再回退到旧内联 base64 路径。
 
+**不在捆绑或 ZIP 导出中的内容：** `storage_config.json`、`webdav_config.json`、`.sync_base/` 和 `ai_insights.json`（端侧 AI 洞察缓存，v1.5.0）。捆绑和导出只遍历模块注册表，而这些都没有登记。因此恢复绝不会带回生成的洞察；卡片会根据恢复后的数据重新生成。见 [on-device-ai.md](on-device-ai.md)。
+
 ## Blob 垃圾回收
 
 - 一个 blob 只在**没有剩余备份**引用它时被物理删除。

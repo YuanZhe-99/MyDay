@@ -16,7 +16,11 @@ import '../../../shared/widgets/adaptive_tile_grid.dart';
 import '../../../shared/widgets/app_date_picker.dart';
 import '../../../shared/widgets/delete_confirm.dart';
 import '../../../shared/widgets/unsaved_changes_guard.dart';
+import '../../ai/services/insight_prompts.dart';
+import '../../ai/services/insight_service.dart';
+import '../../ai/widgets/ai_insight_card.dart';
 import '../models/weight_record.dart';
+import '../services/weight_insight_facts.dart';
 import '../services/weight_storage.dart';
 
 /// Identifies the weight summary card wherever the page places it.
@@ -456,6 +460,23 @@ class _WeightPageState extends ConsumerState<WeightPage> {
           ),
         ),
         const SizedBox(height: 16),
+
+        // ── On-device AI insight (v1.5.0) ── empty while AI is off, so the
+        // spacing below the summary is unchanged then.
+        AiInsightCard(
+          module: InsightModule.weight,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          buildRequest: (language, now) {
+            final facts = buildWeightInsightFacts(
+              now: now,
+              heightCm: _height,
+              records: _records,
+            );
+            return facts == null
+                ? null
+                : AiInsightRequest(facts: facts, language: language, now: now);
+          },
+        ),
 
         // ── Chart section ──
         KeyedSubtree(

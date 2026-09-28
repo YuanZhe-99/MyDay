@@ -1,6 +1,6 @@
 # lib/features/intimacy/views/intimacy_page.dart
 
-The Intimacy feature's main view file — by far the largest source file in the whole app (5642
+The Intimacy feature's main view file — by far the largest source file in the whole app (5887
 lines). It hosts the home `IntimacyPage` (calendar, record list, trend chart, manage
 menu) and every management/detail sub-page reached from it: partner management, toy management,
 position management, the filtered per-partner/per-toy detail page (with its Records/Body tabs),
@@ -28,6 +28,15 @@ persist the chart's shared selection. The toy daily-cost trend chart on `_ToyCos
 stays here — it plots money over a projected date timeline on a log scale — and it now shares the
 public `IntimacyChartRange` enum exported by the chart widget instead of a private duplicate.
 
+Since v1.5.0 the home page's chart section also carries the on-device AI insight card
+([`AiInsightCard`](../../ai/widgets/ai_insight_card.md#aiinsightcard-new), `module:
+InsightModule.intimacy`), fed by
+[`buildIntimacyInsightFacts`](../services/intimacy_insight_facts.md#buildintimacyinsightfacts).
+For the card's body facts, `_loadData` also reads the user's own bust/waist/hip records from
+[`WeightStorage`](../../weight/services/weight_storage.md) into the `_weightRecordsForInsight`
+field, but only while on-device AI is on where a model can exist. See
+[On-device AI](../../../../on-device-ai.md#insight-cards).
+
 ## Declarations
 
 | Declaration | Kind | Tier | Purpose |
@@ -47,7 +56,7 @@ public `IntimacyChartRange` enum exported by the chart widget instead of a priva
 | [`_addRecord`](#addrecord-main) | method (`_IntimacyPageState`) | A | Open the add-record dialog (active partners/toys only) and persist the result. |
 | [`_deleteRecord`](#deleterecord-main) | method (`_IntimacyPageState`) | A | Remove a record by id and persist. |
 | [`_editRecord`](#editrecord-main) | method (`_IntimacyPageState`) | A | Open the edit-record dialog and persist the updated record. |
-| `_IntimacyPageState.build` | method (widget) | B | Build the home page: calendar, chart section, and record list/summary. |
+| `_IntimacyPageState.build` | method (widget) | B | Build the home page: calendar, chart section (trend chart and, since v1.5.0, the on-device AI insight card), and record list/summary. |
 | `_showAllRecords` | method (widget helper) | B | Show the full filtered record list in a modal bottom sheet. |
 | `_buildRecordListWidgets` | method (widget helper) | B | Build the weekly-grouped record list widgets (main page). |
 | `_buildWeekHeader` | method (widget helper) | B | Build an ISO-week group header row (main page). |
@@ -211,34 +220,42 @@ public `IntimacyChartRange` enum exported by the chart widget instead of a priva
 | [`build`](#intimacybody-build) | method (`_IntimacyBody`) | A | Stack calendar, chart and records, or put the calendar and chart in a pane beside the records. |
 
 **Row count reconciliation:** 177 rows above, matching `grep -c '/// Purpose:'` = 177 exactly (54
-Tier A, 122 Tier B). v1.3.2 removed 27 rows (17 Tier A, 10 Tier B) when the record-metric charts
+Tier A, 123 Tier B). v1.3.2 removed 27 rows (17 Tier A, 10 Tier B) when the record-metric charts
 moved to [`intimacy_trend_chart.dart`](../widgets/intimacy_trend_chart.md), and added one
 (`_saveChartSettings`, Tier A). See the note at the end of this page for how duplicate-named
 declarations
 (the same helper name reimplemented in more than one class, e.g. `_filteredRecords` in both
 `_IntimacyPageState` and `_FilteredRecordsPageState`) are disambiguated in anchors.
+Plain state fields get no rows, so v1.5.0's `_weightRecordsForInsight` field (line 84; a one-line
+`///` comment, no `Purpose:` block) is covered in [`_loadData`](#loaddata) rather than the table.
+The row count is unchanged by v1.5.0.
 
 ## Documentation
 
 ### `Future<void> _loadData()` <a id="loaddata"></a>
 - **Kind:** method of `_IntimacyPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 172)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 127)
 - **Purpose:** Load `intimacy_data.json` into page state, or record a blocking read error.
 - **Inputs:** None (reads `IntimacyStorage.load()`).
 - **Returns:** `Future<void>`.
 - **Side effects:** Sets `_loaded = false` while reloading (if already loaded and mounted), then
   populates every intimacy field (`_partners`, `_toys`, `_positions`, `_records`, timer
   history/session, user body, cycle records, retention, sort modes/custom orders,
-  `_settingsModifiedAt`) via `setState`.
+  `_settingsModifiedAt`) via `setState`. Since v1.5.0 it may also read `weight_data.json` through
+  `WeightStorage.load()` and sets `_weightRecordsForInsight`.
 - **Algorithm:**
   1. If already loaded and still mounted, flip `_loaded` to `false` first so the UI can show a
      loading/stale state during a reload.
   2. Call `IntimacyStorage.load()`; on exception, store `e.toString()` in `_loadError`, set
      `_loaded = true`, and return — an unreadable file is surfaced as an error, never silently
      treated as empty data.
-  3. On success, clear `_loadError` and copy every field off the loaded `IntimacyData` (defensive
+  3. Since v1.5.0, when `platformMayHaveOnDeviceModel` and
+     `ref.read(appSettingsProvider).onDeviceAiEnabled`, read
+     `(await WeightStorage.load())?.records` (empty when there is no file) for the AI card's body
+     facts. Any exception is swallowed and leaves the list empty. Otherwise the list stays empty.
+  4. Return if no longer mounted. Otherwise clear `_loadError`, set `_weightRecordsForInsight`, and copy every field off the loaded `IntimacyData` (defensive
      list/map copies for cycle records and custom orders so page-owned collections are mutable).
-  4. Set `_loaded = true` unconditionally at the end of the `setState` block.
+  5. Set `_loaded = true` unconditionally at the end of the `setState` block.
 - **Usage:**
   ```dart
   @override
@@ -249,11 +266,15 @@ declarations
   }
   ```
 - **Notes:** Registered as the auto-sync "local data changed" callback, so a background sync pull
-  reloads this page's in-memory state automatically.
+  reloads this page's in-memory state automatically. A missing or unreadable weight file never
+  blocks this page; it only leaves the AI card's body facts out. The weight records are read only
+  here, so turning AI on while the page is open leaves them empty until the next load.
+  `_weightRecordsForInsight` is read only by the AI card's `buildRequest` in `build`.
+  See [`weight_storage.md`](../../weight/services/weight_storage.md).
 
 ### `Future<void> _saveData()` <a id="savedata"></a>
 - **Kind:** method of `_IntimacyPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 220)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 187)
 - **Purpose:** Persist the current in-memory intimacy state to disk and notify auto-sync.
 - **Inputs:** None (reads all `_IntimacyPageState` fields).
 - **Returns:** `Future<void>`.
@@ -279,7 +300,7 @@ declarations
 
 ### `Future<void> _saveTimerState({required List<TimerHistoryEntry> history, required IntimacyTimerSession? session, required bool historyChanged, required bool timerSessionChanged, required int? retentionDays, required bool retentionChanged})` <a id="savetimerstate"></a>
 - **Kind:** method of `_IntimacyPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 262)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 244)
 - **Purpose:** Persist timer history/session/retention changes streamed back from the still-open
   `TimerPage`.
 - **Inputs:** `history`, `session`, `retentionDays`, plus three `bool` flags telling which of
@@ -305,7 +326,7 @@ declarations
 
 ### `Future<void> _saveChartSettings(IntimacyChartSettings settings)` <a id="savechartsettings"></a>
 - **Kind:** method of `_IntimacyPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 257)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 231)
 - **Purpose:** Persist a new trend-chart metric and range selection.
 - **Inputs:** `settings` — the complete new selection reported by an `IntimacyTrendChart`.
 - **Returns:** `Future<void>`.
@@ -324,7 +345,7 @@ declarations
 
 ### `List<PersonCycleOverlay> _buildCycleOverlays(AppLocalizations l10n)` <a id="buildcycleoverlays"></a>
 - **Kind:** method of `_IntimacyPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 303)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 285)
 - **Purpose:** Build the list of per-person cycle overlays shown on the home calendar.
 - **Inputs:** `l10n` (for the user's own display label).
 - **Returns:** `List<PersonCycleOverlay>` — one entry per eligible person (user first, then
@@ -354,7 +375,7 @@ declarations
 
 ### `List<IntimacyRecord> get _filteredRecords` (in `_IntimacyPageState`) <a id="filteredrecords-main"></a>
 - **Kind:** getter of `_IntimacyPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 421)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 403)
 - **Purpose:** Apply the selected calendar date, type filter, and sort mode to the full record
   list for display on the home page.
 - **Inputs:** None (reads `_records`, `_selectedDate`, `_filterMode`, `_sortMode`).
@@ -379,7 +400,7 @@ declarations
 
 ### `Future<void> _addRecord()` (in `_IntimacyPageState`) <a id="addrecord-main"></a>
 - **Kind:** method of `_IntimacyPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 468)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 450)
 - **Purpose:** Open the add-record dialog, offering only active partners/toys, and persist the
   result.
 - **Inputs:** None.
@@ -398,7 +419,7 @@ declarations
 
 ### `void _deleteRecord(IntimacyRecord record)` (in `_IntimacyPageState`) <a id="deleterecord-main"></a>
 - **Kind:** method of `_IntimacyPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 490)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 472)
 - **Purpose:** Remove one record by id and persist.
 - **Inputs:** `record` — the record to delete (matched by id).
 - **Returns:** None.
@@ -414,7 +435,7 @@ declarations
 
 ### `Future<void> _editRecord(IntimacyRecord record)` (in `_IntimacyPageState`) <a id="editrecord-main"></a>
 - **Kind:** method of `_IntimacyPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 500)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 482)
 - **Purpose:** Open the edit-record dialog for an existing record and persist the update.
 - **Inputs:** `record` — the record being edited.
 - **Returns:** `Future<void>`.
@@ -438,7 +459,7 @@ declarations
 
 ### `int _compareNullableDates(DateTime? a, DateTime? b)` (in `_PartnerManagementPageState`) <a id="comparenullabledates-partner"></a>
 - **Kind:** method of `_PartnerManagementPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 2609)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 1940)
 - **Purpose:** Compare two optional dates, treating `null` as sorting after any real date.
 - **Inputs:** `a`, `b`.
 - **Returns:** `int` — standard comparator contract.
@@ -456,7 +477,7 @@ declarations
 
 ### `List<String> _normalizedOrder(String statusKey)` (in `_PartnerManagementPageState`) <a id="normalizedorder-partner"></a>
 - **Kind:** method of `_PartnerManagementPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 2629)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 1960)
 - **Purpose:** Reconcile the stored custom-order id list for a status group with the partners
   that currently exist in that group.
 - **Inputs:** `statusKey` (`_statusActive` or `_statusInactive`).
@@ -481,7 +502,7 @@ declarations
 
 ### `List<Partner> _sortPartners(String statusKey, List<Partner> partners)` <a id="sortpartners"></a>
 - **Kind:** method of `_PartnerManagementPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 2652)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 1983)
 - **Purpose:** Sort a partner list according to the status group's current sort mode.
 - **Inputs:** `statusKey`, `partners` (the list to sort — a copy is made, input isn't mutated).
 - **Returns:** `List<Partner>`.
@@ -504,7 +525,7 @@ declarations
 
 ### `void _setSortMode(String statusKey, String mode)` (in `_PartnerManagementPageState`) <a id="setsortmode-partner"></a>
 - **Kind:** method of `_PartnerManagementPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 2690)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 2021)
 - **Purpose:** Switch a status group's active sort mode, seeding its custom order the first time
   custom sort is selected.
 - **Inputs:** `statusKey`, `mode` (one of `_sortDate`/`_sortCount`/`_sortName`/`_sortCustom`).
@@ -529,7 +550,7 @@ declarations
 
 ### `void _appendPartnerToCustomOrderIfNeeded(Partner partner)` <a id="appendpartnertocustomorderifneeded"></a>
 - **Kind:** method of `_PartnerManagementPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 2717)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 2048)
 - **Purpose:** Insert a partner into its status group's custom order, only if that group is
   actually using custom sort.
 - **Inputs:** `partner` — used for its id and current active/inactive status.
@@ -552,7 +573,7 @@ declarations
 
 ### `void _removePartnerFromCustomOrders(String partnerId)` <a id="removepartnerfromcustomorders"></a>
 - **Kind:** method of `_PartnerManagementPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 2728)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 2059)
 - **Purpose:** Remove a partner id from every stored custom order (both active and inactive
   groups).
 - **Inputs:** `partnerId`.
@@ -567,7 +588,7 @@ declarations
 
 ### `void _reorderPartners(String statusKey, List<Partner> partners, int oldIndex, int newIndex)` <a id="reorderpartners"></a>
 - **Kind:** method of `_PartnerManagementPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 2739)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 2070)
 - **Purpose:** Apply a `ReorderableListView` drag gesture to a status group's custom order.
 - **Inputs:** `statusKey`, `partners` (the currently-displayed, already-sorted list),
   `oldIndex`/`newIndex` as reported by the drag callback.
@@ -591,7 +612,7 @@ declarations
 
 ### `void _deletePartner(Partner p)` <a id="deletepartner"></a>
 - **Kind:** method of `_PartnerManagementPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 2784)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 2115)
 - **Purpose:** Permanently delete a partner and their cycle records, while intentionally leaving
   historical activity records untouched.
 - **Inputs:** `p` — the partner to delete.
@@ -620,7 +641,7 @@ declarations
 
 ### `void _breakUpPartner(Partner p)` <a id="breakuppartner"></a>
 - **Kind:** method of `_PartnerManagementPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 2801)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 2132)
 - **Purpose:** Mark a partner as separated without deleting them: sets an end date and disables
   their calendar cycle overlay.
 - **Inputs:** `p` — the partner to break up with.
@@ -650,7 +671,7 @@ declarations
 
 ### `int _compareNullableDates(DateTime? a, DateTime? b)` (in `_ToyManagementPageState`) <a id="comparenullabledates-toy"></a>
 - **Kind:** method of `_ToyManagementPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 3622)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 2964)
 - **Purpose:** Compare two optional dates, treating `null` as sorting after any real date.
 - **Inputs:** `a`, `b`.
 - **Returns:** `int`.
@@ -663,7 +684,7 @@ declarations
 
 ### `double _totalToyCost(List<Toy> toys)` (in `_ToyManagementPageState`) <a id="totaltoycost"></a>
 - **Kind:** method of `_ToyManagementPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 3649)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 2991)
 - **Purpose:** Sum the total recorded cost across a toy list.
 - **Inputs:** `toys`.
 - **Returns:** `double` — `0.0` if none have a price.
@@ -680,7 +701,7 @@ declarations
 
 ### `double? _totalDailyToyCost(List<Toy> toys)` <a id="totaldailytoycost"></a>
 - **Kind:** method of `_ToyManagementPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 3657)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 2999)
 - **Purpose:** Sum average daily costs across a toy list, when at least one toy has enough data to
   compute one.
 - **Inputs:** `toys`.
@@ -699,7 +720,7 @@ declarations
 
 ### `List<String> _normalizedOrder(String statusKey)` (in `_ToyManagementPageState`) <a id="normalizedorder-toy"></a>
 - **Kind:** method of `_ToyManagementPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 3674)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 3016)
 - **Purpose:** Reconcile the stored custom-order id list for a status group with the toys that
   currently exist in that group.
 - **Inputs:** `statusKey` (`_statusActive` or `_statusInactive`, the latter meaning "retired" in
@@ -714,7 +735,7 @@ declarations
 
 ### `List<Toy> _sortToys(String statusKey, List<Toy> toys)` <a id="sorttoys"></a>
 - **Kind:** method of `_ToyManagementPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 3697)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 3039)
 - **Purpose:** Sort a toy list according to the status group's current sort mode.
 - **Inputs:** `statusKey`, `toys`.
 - **Returns:** `List<Toy>`.
@@ -733,7 +754,7 @@ declarations
 
 ### `void _setSortMode(String statusKey, String mode)` (in `_ToyManagementPageState`) <a id="setsortmode-toy"></a>
 - **Kind:** method of `_ToyManagementPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 3733)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 3075)
 - **Purpose:** Switch a status group's active sort mode, seeding its custom order on first use.
 - **Inputs:** `statusKey`, `mode`.
 - **Returns:** None.
@@ -750,7 +771,7 @@ declarations
 
 ### `void _appendToyToCustomOrderIfNeeded(Toy toy)` <a id="appendtoytocustomorderifneeded"></a>
 - **Kind:** method of `_ToyManagementPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 3760)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 3102)
 - **Purpose:** Insert a toy into its status group's custom order, only if that group uses custom
   sort.
 - **Inputs:** `toy`.
@@ -768,7 +789,7 @@ declarations
 
 ### `void _removeToyFromCustomOrders(String toyId)` <a id="removetoyfromcustomorders"></a>
 - **Kind:** method of `_ToyManagementPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 3771)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 3113)
 - **Purpose:** Remove a toy id from every stored custom order.
 - **Inputs:** `toyId`.
 - **Returns:** None.
@@ -781,7 +802,7 @@ declarations
 
 ### `void _reorderToys(String statusKey, List<Toy> toys, int oldIndex, int newIndex)` <a id="reordertoys"></a>
 - **Kind:** method of `_ToyManagementPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 3782)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 3124)
 - **Purpose:** Apply a drag-reorder gesture to a status group's custom toy order.
 - **Inputs:** `statusKey`, `toys`, `oldIndex`, `newIndex`.
 - **Returns:** None.
@@ -797,7 +818,7 @@ declarations
 
 ### `void _deleteToy(Toy t)` <a id="deletetoy"></a>
 - **Kind:** method of `_ToyManagementPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 3825)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 3167)
 - **Purpose:** Permanently delete a toy.
 - **Inputs:** `t`.
 - **Returns:** None.
@@ -816,7 +837,7 @@ declarations
 
 ### `void _retireToy(Toy t)` <a id="retiretoy"></a>
 - **Kind:** method of `_ToyManagementPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 3837)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 3179)
 - **Purpose:** Mark a toy retired without deleting it.
 - **Inputs:** `t`.
 - **Returns:** None.
@@ -841,7 +862,7 @@ declarations
 
 ### `void _importDefaults()` <a id="importdefaults"></a>
 - **Kind:** method of `_PositionManagementPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 4746)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 4093)
 - **Purpose:** Add the app's built-in default position presets, skipping any already present by
   name.
 - **Inputs:** None (uses localized preset names/emoji from `l10n`).
@@ -867,7 +888,7 @@ declarations
 
 ### `List<IntimacyRecord> get _filteredRecords` (in `_FilteredRecordsPageState`) <a id="filteredrecords-filtered"></a>
 - **Kind:** getter of `_FilteredRecordsPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 5099)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 4467)
 - **Purpose:** Return this detail page's records — those referencing the scoped partner or toy —
   newest first.
 - **Inputs:** None (reads `_records`, `widget.partnerId`, `widget.toyId`).
@@ -887,7 +908,7 @@ declarations
 
 ### `List<Partner> _dialogPartners({String? includePartnerId})` <a id="dialogpartners"></a>
 - **Kind:** method of `_FilteredRecordsPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 5125)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 4493)
 - **Purpose:** Build the partner picker list offered by the add/edit record dialog on this
   detail page.
 - **Inputs:** `includePartnerId` — an id (typically the record being edited) that must appear
@@ -913,7 +934,7 @@ declarations
 
 ### `List<Toy> _dialogToys({Iterable<String> includeToyIds = const []})` <a id="dialogtoys"></a>
 - **Kind:** method of `_FilteredRecordsPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 5141)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 4509)
 - **Purpose:** Build the toy picker list offered by the add/edit record dialog on this detail
   page.
 - **Inputs:** `includeToyIds` — ids (typically from the record being edited) that must appear even
@@ -932,7 +953,7 @@ declarations
 
 ### `Future<void> _addRecord()` (in `_FilteredRecordsPageState`) <a id="addrecord-filtered"></a>
 - **Kind:** method of `_FilteredRecordsPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 5164)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 4532)
 - **Purpose:** Open the add-record dialog from a partner/toy detail page, preselecting the current
   scope.
 - **Inputs:** None.
@@ -951,7 +972,7 @@ declarations
 
 ### `Future<void> _editRecord(IntimacyRecord record)` (in `_FilteredRecordsPageState`) <a id="editrecord-filtered"></a>
 - **Kind:** method of `_FilteredRecordsPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 5187)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 4555)
 - **Purpose:** Open the edit-record dialog for one record from a detail page and update local
   state.
 - **Inputs:** `record`.
@@ -971,7 +992,7 @@ declarations
 
 ### `void _deleteRecord(IntimacyRecord record)` (in `_FilteredRecordsPageState`) <a id="deleterecord-filtered"></a>
 - **Kind:** method of `_FilteredRecordsPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 5210)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 4578)
 - **Purpose:** Remove a record from local state and notify the parent.
 - **Inputs:** `record`.
 - **Returns:** None.
@@ -987,7 +1008,7 @@ declarations
 
 ### `String _formatDuration(Duration duration)` <a id="formatduration"></a>
 - **Kind:** method of `_FilteredRecordsPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 5220)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 4588)
 - **Purpose:** Format a duration for the detail page's summary metrics.
 - **Inputs:** `duration`.
 - **Returns:** `String` — `"Xh Ym"` if at least one hour, else `"Ym"`.
@@ -1000,7 +1021,7 @@ declarations
 
 ### `_ToyCostTrendData _buildTrendData(List<DateTime> dates, DateTime today, List<Toy> toys)` <a id="buildtrenddata"></a>
 - **Kind:** method of `_ToyCostOverviewPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 6072)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 5490)
 - **Purpose:** Compute the history/future daily-cost spot lists and y-axis bounds plotted on the
   aggregate cost trend chart.
 - **Inputs:** `dates` (the sampled timeline from [`_timeline`](#timeline)), `today`, `toys` (the
@@ -1023,7 +1044,7 @@ declarations
 
 ### `double? _dailyCostAt(DateTime date, List<Toy> toys)` <a id="dailycostat"></a>
 - **Kind:** method of `_ToyCostOverviewPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 6112)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 5530)
 - **Purpose:** Compute the aggregate average daily cost across a toy list on one date.
 - **Inputs:** `date`, `toys`.
 - **Returns:** `double?` — `null` until at least one included toy can be costed on that date.
@@ -1040,7 +1061,7 @@ declarations
 
 ### `double? _toyDailyCostAt(Toy toy, DateTime date)` <a id="toydailycostat"></a>
 - **Kind:** method of `_ToyCostOverviewPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 6129)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 5547)
 - **Purpose:** Compute one toy's average daily cost as of a specific date, accounting for
   retirement.
 - **Inputs:** `toy`, `date`.
@@ -1070,7 +1091,7 @@ declarations
 
 ### `DateTime _historyStart(DateTime today, List<Toy> toys)` <a id="historystart"></a>
 - **Kind:** method of `_ToyCostOverviewPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 6151)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 5569)
 - **Purpose:** Return the first date shown on the cost trend chart for the selected range.
 - **Inputs:** `today`, `toys`.
 - **Returns:** `DateTime`.
@@ -1090,7 +1111,7 @@ declarations
 
 ### `DateTime _futureEnd(DateTime today, DateTime historyStart, List<Toy> toys)` <a id="futureend"></a>
 - **Kind:** method of `_ToyCostOverviewPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 6186)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 5604)
 - **Purpose:** Return the projected end date for the future/projection half of the cost trend
   chart.
 - **Inputs:** `today`, `historyStart`, `toys`.
@@ -1110,7 +1131,7 @@ declarations
 
 ### `DateTime? _earliestPurchaseDate(List<Toy> toys)` <a id="earliestpurchasedate"></a>
 - **Kind:** method of `_ToyCostOverviewPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 6205)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 5623)
 - **Purpose:** Return the earliest purchase date among a toy list.
 - **Inputs:** `toys`.
 - **Returns:** `DateTime?` — `null` if no toy has a purchase date.
@@ -1122,7 +1143,7 @@ declarations
 
 ### `List<DateTime> _timeline(DateTime historyStart, DateTime today, DateTime futureEnd, List<Toy> toys)` <a id="timeline"></a>
 - **Kind:** method of `_ToyCostOverviewPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 6221)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 5639)
 - **Purpose:** Build the sampled, deduplicated date list plotted along the cost trend chart's
   x-axis.
 - **Inputs:** `historyStart`, `today`, `futureEnd`, `toys`.
@@ -1147,7 +1168,7 @@ declarations
 
 ### `DateTime _dateOnly(DateTime date)` <a id="dateonly"></a>
 - **Kind:** method of `_ToyCostOverviewPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 6261)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 5679)
 - **Purpose:** Strip the time-of-day component from a `DateTime` so day-based cost math is stable
   regardless of the original timestamp's time component.
 - **Inputs:** `date`.
@@ -1162,7 +1183,7 @@ declarations
 
 ### `({double minY, double maxY}) _chartBounds(double minY, double maxY)` <a id="chartbounds"></a>
 - **Kind:** method of `_ToyCostOverviewPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 6269)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 5687)
 - **Purpose:** Pad a raw min/max y-range so flat or all-zero cost charts still render with visible
   vertical space.
 - **Inputs:** `minY`, `maxY`.
@@ -1179,7 +1200,7 @@ declarations
 
 ### `double _logTransform(double value)` <a id="logtransform"></a>
 - **Kind:** method of `_ToyCostOverviewPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 6285)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 5703)
 - **Purpose:** Map a cost value onto a signed log10 scale for charting, so a few high early-cost
   points don't visually flatten later small values.
 - **Inputs:** `value`.
@@ -1198,7 +1219,7 @@ declarations
 
 ### `double _logInverse(double value)` <a id="loginverse"></a>
 - **Kind:** method of `_ToyCostOverviewPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 6296)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 5714)
 - **Purpose:** Invert `_logTransform`, converting a log-scale chart coordinate back to a real cost
   value.
 - **Inputs:** `value`.
@@ -1217,7 +1238,7 @@ declarations
 
 ### `double _dateInterval(double minX, double maxX)` <a id="dateinterval"></a>
 - **Kind:** method of `_ToyCostOverviewPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 6307)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 5725)
 - **Purpose:** Return a bottom-axis date-label interval (milliseconds) scaled to the visible
   x-range, so labels never crowd together.
 - **Inputs:** `minX`, `maxX` (chart x-coordinates, i.e. epoch milliseconds).
@@ -1233,7 +1254,7 @@ declarations
 
 ### `String _dateLabel(DateTime date, double minX, double maxX, String localeName)` <a id="datelabel"></a>
 - **Kind:** method of `_ToyCostOverviewPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 6324)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 5742)
 - **Purpose:** Format a chart date-axis label, choosing precision based on how wide the visible
   range is.
 - **Inputs:** `date`, `minX`, `maxX`, `localeName`.
@@ -1250,7 +1271,7 @@ declarations
 
 ### `String _axisText(double value)` <a id="axistext"></a>
 - **Kind:** method of `_ToyCostOverviewPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 6351)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 5769)
 - **Purpose:** Format a y-axis cost value compactly so large numbers still fit on a narrow left
   axis.
 - **Inputs:** `value`.
@@ -1268,7 +1289,7 @@ declarations
 
 ### `double _totalCost(List<Toy> toys)` <a id="totalcost"></a>
 - **Kind:** method of `_ToyCostOverviewPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 6364)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 5782)
 - **Purpose:** Sum the total recorded cost across a toy list.
 - **Inputs:** `toys`.
 - **Returns:** `double`.
@@ -1284,7 +1305,7 @@ declarations
 
 ### `double? _totalDailyCost(List<Toy> toys)` <a id="totaldailycost"></a>
 - **Kind:** method of `_ToyCostOverviewPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 6372)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 5790)
 - **Purpose:** Sum average daily costs across a toy list, when computable.
 - **Inputs:** `toys`.
 - **Returns:** `double?` — `null` if no toy has both a price and a purchase date.
@@ -1301,7 +1322,7 @@ declarations
 
 ### `Widget build(BuildContext context)` (`_IntimacyBody`) <a id="intimacybody-build"></a>
 - **Kind:** method of `_IntimacyBody`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (approx. line 1105)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (approx. line 1224)
 - **Purpose:** Arrange the month calendar, the trend chart and the record history either stacked
   or in two panes.
 - **Inputs:** `context`; the widget's own `twoPane`, `leftPaneWidth`, `calendarBlocks`,
@@ -1315,10 +1336,17 @@ declarations
      Divider, ...chartBlocks]))` (the divider only when there is a chart), a
      `VerticalDivider(width: 1)`, and `Expanded(child: ListView(recordBlocks))`.
 - **Usage:** Built by `_IntimacyPageState.build` once the split decision and the pane width are
-  resolved; `chartBlocks` is empty below two records, because the chart renders nothing there.
+  resolved. `chartBlocks` holds the trend chart from two records up and, since v1.5.0, the on-device
+  AI insight card while `platformMayHaveOnDeviceModel && settings.onDeviceAiEnabled`; it is empty
+  below two records with AI off. The card's `buildRequest` returns `null` when
+  `intimacyVisibilityProvider` reports the module hidden, and otherwise calls
+  `buildIntimacyInsightFacts` with `_records`, `_userBody`, `_cycleRecords` and
+  `_weightRecordsForInsight`. It carries two sections (`aiIntimacyTrend` over `trend`/`advice`,
+  `aiIntimacyBody` over `body`) and the `aiEstimateDisclaimer` footnote only when
+  `_userBody?.cycleEnabled == true`.
 - **Notes:** Stacked, the calendar alone is most of a phone's height, so selecting a date scrolls
   the records it selected out of view; split, the calendar **and the chart** share the left pane
   while the history takes the rest. The chart moved left in v1.4.3: below the calendar the pane
   sat empty, while above the records the chart pushed the first week of history down. Both panes
   scroll independently, because a calendar, several people's cycle rows and a chart can outgrow a
-  compact height. See [../../../adaptive-layout.md](../../../adaptive-layout.md).
+  compact height. See [../../../../adaptive-layout.md](../../../../adaptive-layout.md).

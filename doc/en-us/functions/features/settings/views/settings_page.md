@@ -1,7 +1,8 @@
 # lib/features/settings/views/settings_page.dart
 
 The main Settings screen: General (language/week-start/theme), Privacy (Intimacy module hide/show),
-Desktop (tray, launch-at-startup, local API server, custom storage location), Data (WebDAV sync,
+On-device AI (v1.5.0; the [`AiSettingsTiles`](../../ai/widgets/ai_settings_tiles.md) rows where a
+model can exist, otherwise a single "not supported here" note), Desktop (tray, launch-at-startup, local API server, custom storage location), Data (WebDAV sync,
 ZIP import/export, backup), About (version, license, privacy policy), and a debug-only subscription
 date-override section. `SettingsPage`/`_SettingsPageState` own the read/write plumbing for most of
 these settings directly (via `TodoStorage.readConfig`/`writeConfig`, `TrayService`, `launchAtStartup`,
@@ -47,8 +48,9 @@ page's WebDAV status tile reacts to.
 | [`_buildDetailPane`](#builddetailpane) | method (`_SettingsPageState`) | A | Build the right-hand pane of the two-pane layout. |
 | [`_buildSettingsList`](#buildsettingslist) | method (`_SettingsPageState`) | A | Build the first-level settings list. |
 
-**Reconciliation:** `grep -c 'Purpose:' lib/features/settings/views/settings_page.dart` returns 27 against 28 rows; the extra row is the `_SettingsDetail` enum, which carries no `Purpose:` block.
-All 23 blocks document real declarations (22 methods/constructors/a getter, plus the nested local
+**Reconciliation:** `grep -c 'Purpose:' lib/features/settings/views/settings_page.dart` returns 27
+against 28 rows; the extra row is the `_SettingsDetail` enum, which carries no `Purpose:` block.
+All 27 blocks document real declarations (26 methods/constructors/a getter, plus the nested local
 function `signature()` declared inside `_showApiSettingsDialog`, which itself has its own `Purpose:`
 block) — no misattached blocks and no undocumented real declarations were found. The instance fields
 at the top of `_SettingsPageState` (`_storagePath`, `_apiPort`, etc.) have no `Purpose:` block,
@@ -58,7 +60,7 @@ consistent with them being state, not functions.
 
 ### `Future<void> _openDataFolder()` <a id="opendatafolder"></a>
 - **Kind:** method of `_SettingsPageState`
-- **Source:** `lib/features/settings/views/settings_page.dart` (line 137)
+- **Source:** `lib/features/settings/views/settings_page.dart` (line 151)
 - **Purpose:** Open the app data directory in the host OS's file manager, using the correct native
   command per desktop platform.
 - **Inputs:** None (reads `TodoStorage.getAppDir()`).
@@ -87,7 +89,7 @@ consistent with them being state, not functions.
 
 ### `Future<void> _showApiSettingsDialog()` <a id="showapisettingsdialog"></a>
 - **Kind:** method of `_SettingsPageState`
-- **Source:** `lib/features/settings/views/settings_page.dart` (line 272)
+- **Source:** `lib/features/settings/views/settings_page.dart` (line 301)
 - **Purpose:** Let the user edit the local API server's listen address, port, username, and
   password, then persist the change and restart the server so it picks up the new settings.
 - **Inputs:** None (reads current `_apiPort`/`_apiListenAddress`/`_apiUsername`/`_apiPassword` to
@@ -127,7 +129,7 @@ consistent with them being state, not functions.
 
 ### `Future<void> _showStoragePathDialog(BuildContext context)` <a id="showstoragepathdialog"></a>
 - **Kind:** method of `_SettingsPageState`
-- **Source:** `lib/features/settings/views/settings_page.dart` (line 721)
+- **Source:** `lib/features/settings/views/settings_page.dart` (line 877)
 - **Purpose:** Let the user view and change the custom data storage path, or reset it back to the
   app's default location.
 - **Inputs:** `context` — used for the dialog and post-save snackbar.
@@ -160,7 +162,7 @@ consistent with them being state, not functions.
 
 ### `void _showLanguagePicker(BuildContext context, AppSettings settings)` <a id="showlanguagepicker"></a>
 - **Kind:** method of `_SettingsPageState`
-- **Source:** `lib/features/settings/views/settings_page.dart` (line 875)
+- **Source:** `lib/features/settings/views/settings_page.dart` (line 1031)
 - **Purpose:** Show a bottom sheet letting the user pick "follow system" or one of the four
   supported app languages, converting the selection into the `Locale` the app settings provider
   expects.
@@ -202,10 +204,12 @@ consistent with them being state, not functions.
   Data section's underlying behavior, implemented in
   [`webdav_config_page.dart`](../../../shared/views/webdav_config_page.md) and
   [`backup_page.dart`](../../../shared/views/backup_page.md).
+- [On-device AI](../../../../on-device-ai.md) — the feature behind the On-device AI section, whose
+  rows are [`ai_settings_tiles.dart`](../../ai/widgets/ai_settings_tiles.md).
 
 ### `Widget _detailPage(_SettingsDetail detail)` <a id="detailpage"></a>
 - **Kind:** method of `_SettingsPageState`
-- **Source:** `lib/features/settings/views/settings_page.dart` (approx. line 466)
+- **Source:** `lib/features/settings/views/settings_page.dart` (line 483)
 - **Purpose:** Build the second-level page a settings row leads to.
 - **Inputs:** `detail`.
 - **Returns:** `Widget` — a `Scaffold` with its own app bar.
@@ -220,7 +224,7 @@ consistent with them being state, not functions.
 
 ### `Future<void> _open(_SettingsDetail detail)` <a id="open"></a>
 - **Kind:** method of `_SettingsPageState`
-- **Source:** `lib/features/settings/views/settings_page.dart` (approx. line 485)
+- **Source:** `lib/features/settings/views/settings_page.dart` (line 502)
 - **Purpose:** Open a second-level page the way the current layout calls for.
 - **Inputs:** `detail`.
 - **Returns:** `Future<void>` — completes when a pushed page is popped, immediately when the pane
@@ -237,7 +241,7 @@ consistent with them being state, not functions.
 
 ### `Widget _buildDetailPane(AppLocalizations l10n)` <a id="builddetailpane"></a>
 - **Kind:** method of `_SettingsPageState`
-- **Source:** `lib/features/settings/views/settings_page.dart` (approx. line 505)
+- **Source:** `lib/features/settings/views/settings_page.dart` (line 522)
 - **Purpose:** Build the right-hand pane of the two-pane settings layout.
 - **Inputs:** `l10n`.
 - **Returns:** `Widget` — a centred placeholder, or a `Navigator` hosting the selected page.
@@ -252,14 +256,18 @@ consistent with them being state, not functions.
 
 ### `Widget _buildSettingsList(...)` <a id="buildsettingslist"></a>
 - **Kind:** method of `_SettingsPageState`
-- **Source:** `lib/features/settings/views/settings_page.dart` (approx. line 545)
+- **Source:** `lib/features/settings/views/settings_page.dart` (line 564)
 - **Purpose:** Build the first-level settings list.
 - **Inputs:** `context`, `l10n`, `visibility`, `settings`; `labels` — the four already-formatted
   strings `build` derives before choosing a layout.
 - **Returns:** `Widget` — the scrolling `ListView` of sections.
 - **Side effects:** None beyond building widgets; the tiles' own callbacks have their own.
-- **Algorithm:** Unchanged from the list `build` returned before v1.4.1 — General, Privacy,
-  Desktop (desktop only), Data, About, and Debug sections.
+- **Algorithm:** The list `build` returned before v1.4.1 — General, Privacy, Desktop (desktop
+  only), Data, About, and Debug sections — plus, since v1.5.0, an On-device AI section
+  (`l10n.aiSectionTitle`) between Privacy and Desktop. That section holds
+  `const AiSettingsTiles()` when `platformMayHaveOnDeviceModel` (from `genai_backend.dart`) is true,
+  otherwise a single `ListTile` with an `auto_awesome_outlined` icon and
+  `l10n.aiNotSupportedHere` (Windows, Linux).
 - **Usage:** Called from `build`; it is the whole body on a narrow window and the left pane on a
   wide one.
 - **Notes:** Extracted rather than duplicated, so the list is identical in both modes and only

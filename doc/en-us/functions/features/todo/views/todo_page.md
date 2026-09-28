@@ -10,6 +10,8 @@ than owning any data itself. See [Todo](../../../../features/todo.md) for the mo
 concepts (`Task`, `DailyCompletionLog`, `DailyScoreLog`, sort modes/custom orders) and
 [Three-Way Merge](../../../../algorithms/three-way-merge.md) for how the underlying logs merge
 across devices.
+Since v1.5.0 the task area also carries today's on-device AI insight card ([`_buildAiCard`](#buildaicard)); see
+[On-device AI](../../../../on-device-ai.md#insight-cards).
 
 ## Declarations
 
@@ -86,14 +88,18 @@ across devices.
 | `build` | method (`_TodoCalendarPageState`) | B | Build the calendar page's widget subtree. |
 | `_CalendarLegendItem({...})` | constructor (`_CalendarLegendItem`) | B | Create a compact calendar legend item. |
 | `build` | method (`_CalendarLegendItem`) | B | Build the legend item's icon-plus-label row. |
+| [`_buildAiCard`](#buildaicard) | method (`_TodoPageState`) | A | Build today's on-device AI insight card from the loaded task state. |
 | [`_buildTaskArea`](#buildtaskarea) | method (`_TodoPageState`) | A | Arrange the task sections in one column or several side by side, in reading order. |
 | [`_taskSections`](#tasksections) | method (`_TodoPageState`) | A | Return the three task sections in display order. |
+
+**Reconciliation:** `grep -c 'Purpose:' lib/features/todo/views/todo_page.dart` returns 74, matching
+the 74 rows above (34 Tier A, 40 Tier B).
 
 ## Documentation
 
 ### `Future<void> _loadData()` <a id="loaddata"></a>
 - **Kind:** method of `_TodoPageState`
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 92)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 98)
 - **Purpose:** Load todo data from `TodoStorage` into state, or record a read error without losing any prior in-memory data.
 - **Inputs:** None (reads from `TodoStorage.load()`).
 - **Returns:** `Future<void>`.
@@ -117,7 +123,7 @@ across devices.
 
 ### `Future<void> _saveData()` <a id="savedata"></a>
 - **Kind:** method of `_TodoPageState`
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 151)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 157)
 - **Purpose:** Persist the current in-memory todo state to `TodoStorage`, unless loading hasn't finished or the last load failed.
 - **Inputs:** None (reads current state fields).
 - **Returns:** `Future<void>`.
@@ -137,7 +143,7 @@ across devices.
 
 ### `DateTime _selectedWeekStart(int weekStartDay)` <a id="selectedweekstart"></a>
 - **Kind:** method of `_TodoPageState`
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 338)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 344)
 - **Purpose:** Return the first day of the week that contains `_selectedDate`, honoring the app's configurable week-start day.
 - **Inputs:** `weekStartDay` — the globally configured first weekday, using Dart's Monday=1..Sunday=7 numbering.
 - **Returns:** The `DateTime` (time stripped) of the first day of that week.
@@ -154,7 +160,7 @@ across devices.
 
 ### `List<DateTime> _selectedWeekDates(int weekStartDay)` <a id="selectedweekdates"></a>
 - **Kind:** method of `_TodoPageState`
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 346)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 352)
 - **Purpose:** Return the seven dates shown as day cells in the inline week calendar.
 - **Inputs:** `weekStartDay` — the configured first weekday, forwarded to `_selectedWeekStart`.
 - **Returns:** `List<DateTime>` of exactly seven consecutive dates starting at `_selectedWeekStart(weekStartDay)`.
@@ -169,7 +175,7 @@ across devices.
 
 ### `List<Task> get _dailyForDate` <a id="dailyfordate"></a>
 - **Kind:** getter of `_TodoPageState`
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 358)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 364)
 - **Purpose:** Return the daily task templates visible on the selected date, with each template's completion and subtask-completion state overlaid from the per-date log.
 - **Inputs:** None (reads `_dailyTemplates`, `_dailyLog`, `_selectedDate`).
 - **Returns:** `List<Task>`, sorted per the daily section's current sort mode.
@@ -190,7 +196,7 @@ across devices.
 
 ### `int _compareNullableDates(DateTime? a, DateTime? b)` <a id="comparenullabledates"></a>
 - **Kind:** method of `_TodoPageState`
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 440)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 446)
 - **Purpose:** Comparator for two optional dates, treating a missing date as "latest" so tasks without a due-relevant date sort after those with one.
 - **Inputs:** `a`, `b` — nullable `DateTime`s.
 - **Returns:** `int` — negative/zero/positive per `Comparable` conventions.
@@ -205,7 +211,7 @@ across devices.
 
 ### `int _compareTaskFallback(Task a, Task b)` <a id="comparetaskfallback"></a>
 - **Kind:** method of `_TodoPageState`
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 452)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 458)
 - **Purpose:** Provide a deterministic tie-breaking order for tasks that compare equal on the active sort key.
 - **Inputs:** `a`, `b` — `Task`s.
 - **Returns:** `int` comparator result.
@@ -221,7 +227,7 @@ across devices.
 
 ### `List<String> _normalizedTaskOrder(TaskType type)` <a id="normalizedtaskorder"></a>
 - **Kind:** method of `_TodoPageState`
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 471)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 477)
 - **Purpose:** Reconcile the saved custom-order ID list for a task type against that type's current live task IDs — dropping IDs for deleted tasks and appending IDs for tasks not yet in the saved order.
 - **Inputs:** `type` — the `TaskType` whose order to normalize.
 - **Returns:** `List<String>` of task IDs, each appearing exactly once.
@@ -244,7 +250,7 @@ across devices.
 
 ### `List<Task> _sortTasksForMode(List<Task> tasks, TaskType type, String mode)` <a id="sorttasksformode"></a>
 - **Kind:** method of `_TodoPageState`
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 491)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 497)
 - **Purpose:** Sort a list of tasks according to an explicit sort mode, independent of what mode is currently configured for the type.
 - **Inputs:** `tasks` — the list to sort (copied, not mutated in place); `type` — used only for the custom-order branch; `mode` — one of `_taskSortDue`, `_taskSortName`, `_taskSortCustom`, `_taskSortCreated`.
 - **Returns:** A new sorted `List<Task>`.
@@ -263,7 +269,7 @@ across devices.
 
 ### `void _appendTaskToCustomOrderIfNeeded(Task task)` <a id="appendtasktocustomorderifneeded"></a>
 - **Kind:** method of `_TodoPageState`
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 538)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 544)
 - **Purpose:** Keep a task type's saved custom order in sync when a task is created while custom sort is active for that type.
 - **Inputs:** `task` — the newly created `Task`.
 - **Returns:** None.
@@ -285,7 +291,7 @@ across devices.
 
 ### `void _removeTaskFromCustomOrders(String taskId)` <a id="removetaskfromcustomorders"></a>
 - **Kind:** method of `_TodoPageState`
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 551)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 557)
 - **Purpose:** Remove a deleted task's ID from every task type's saved custom order, not just its own type's.
 - **Inputs:** `taskId` — the ID being removed.
 - **Returns:** None.
@@ -302,7 +308,7 @@ across devices.
 
 ### `void _onTaskSortModeChanged(TaskType type, String mode)` <a id="ontasksortmodechanged"></a>
 - **Kind:** method of `_TodoPageState`
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 564)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 570)
 - **Purpose:** Handle the user picking a new sort mode for one section, seeding a stable custom order the first time custom sort is selected.
 - **Inputs:** `type` — the section's `TaskType`; `mode` — the newly selected sort mode string.
 - **Returns:** None.
@@ -322,7 +328,7 @@ across devices.
 
 ### `void _onTaskReorder(TaskType type, List<Task> visibleTasks, int oldIndex, int newIndex)` <a id="ontaskreorder"></a>
 - **Kind:** method of `_TodoPageState`
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 589)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 595)
 - **Purpose:** Apply a drag-and-drop reorder performed on the currently visible (filtered) task list back onto the type's full saved custom order, which may contain more IDs than are currently visible.
 - **Inputs:** `type`; `visibleTasks` — the list actually shown (and dragged) in the UI; `oldIndex`/`newIndex` — Flutter `ReorderableListView` indices.
 - **Returns:** None.
@@ -342,7 +348,7 @@ across devices.
 
 ### `bool _oneTimeVisibleOnDate(Task t)` <a id="onetimevisibleondate"></a>
 - **Kind:** method of `_TodoPageState`
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 634)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 640)
 - **Purpose:** Decide whether a one-time (routine/work) task should be shown on the currently selected date.
 - **Inputs:** `t` — the one-time `Task` to test.
 - **Returns:** `bool`.
@@ -364,7 +370,7 @@ across devices.
 
 ### `List<Task> _dailyTemplatesForDate(DateTime date)` <a id="dailytemplatesfordate"></a>
 - **Kind:** method of `_TodoPageState`
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 685)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 691)
 - **Purpose:** Return the daily templates active on an arbitrary date (not necessarily the selected date), respecting `startDate`/`deletedDate`.
 - **Inputs:** `date` — any `DateTime`.
 - **Returns:** `List<Task>` of daily templates (without completion state overlaid).
@@ -381,7 +387,7 @@ across devices.
 
 ### `bool _allDailyCompletedOn(DateTime date)` <a id="alldailycompletedon"></a>
 - **Kind:** method of `_TodoPageState`
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 699)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 705)
 - **Purpose:** Report whether every daily template active on `date` is marked completed for that date.
 - **Inputs:** `date`.
 - **Returns:** `bool` — `false` if there are no active templates that day.
@@ -399,7 +405,7 @@ across devices.
 
 ### `bool _allTasksCompletedOn(DateTime date)` <a id="alltaskscompletedon"></a>
 - **Kind:** method of `_TodoPageState`
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 713)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 719)
 - **Purpose:** Report whether every daily template and every one-time task visible on `date` is completed — the strongest "fully done day" signal used for the calendar's checkmark.
 - **Inputs:** `date`.
 - **Returns:** `bool`.
@@ -417,7 +423,7 @@ across devices.
 
 ### `bool _someDailyCompletedOn(DateTime date)` <a id="somedailycompletedon"></a>
 - **Kind:** method of `_TodoPageState`
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 737)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 743)
 - **Purpose:** Detect a "partially done" day — at least one but not all active daily templates completed — for the calendar's partial-progress marker.
 - **Inputs:** `date`.
 - **Returns:** `bool`.
@@ -431,7 +437,7 @@ across devices.
 
 ### `bool _hasFutureScheduledOneTimeTask(DateTime date)` <a id="hasfuturescheduledonetimetask"></a>
 - **Kind:** method of `_TodoPageState`
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 757)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 763)
 - **Purpose:** Check whether a future calendar date has a one-time (routine/work) task scheduled exactly on it, to show a small "upcoming" marker.
 - **Inputs:** `date`.
 - **Returns:** `bool` — always `false` for dates that are today or in the past.
@@ -445,7 +451,7 @@ across devices.
 
 ### `void _toggleTask(Task task)` <a id="toggletask"></a>
 - **Kind:** method of `_TodoPageState`
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 826)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 832)
 - **Purpose:** Toggle a task's completion state, keeping its subtasks in sync and, for a completing recurring one-time task, offering to schedule the next occurrence.
 - **Inputs:** `task` — the `Task` being toggled (as currently displayed, which for daily tasks is the per-date-mapped copy, not the raw template).
 - **Returns:** None.
@@ -467,7 +473,7 @@ across devices.
 
 ### `Future<void> _offerNextOccurrence(Task completedTask)` <a id="offernextoccurrence"></a>
 - **Kind:** method of `_TodoPageState`
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 893)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 899)
 - **Purpose:** After a recurring one-time task is completed, compute its next occurrence date and let the user confirm/edit and create that follow-up task.
 - **Inputs:** `completedTask` — the just-completed `Task`, which must have a non-null `recurrence`.
 - **Returns:** `Future<void>`.
@@ -489,7 +495,7 @@ across devices.
 
 ### `void _deleteTask(Task task)` <a id="deletetask"></a>
 - **Kind:** method of `_TodoPageState`
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 932)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 938)
 - **Purpose:** Delete a task, using a hard delete for one-time tasks and for daily templates created on the currently selected date, but a soft delete (stamping `deletedDate`) for older daily templates so historical completion logs stay meaningful.
 - **Inputs:** `task` — the `Task` to delete.
 - **Returns:** None.
@@ -510,7 +516,7 @@ across devices.
 
 ### `void _toggleSubtask(Task task, SubTask subtask)` <a id="togglesubtask"></a>
 - **Kind:** method of `_TodoPageState`
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 962)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 968)
 - **Purpose:** Toggle one subtask's completion, using per-date logging for daily tasks and direct mutation for one-time tasks.
 - **Inputs:** `task` — the parent `Task`; `subtask` — the `SubTask` being toggled.
 - **Returns:** None.
@@ -527,7 +533,7 @@ across devices.
 
 ### `Future<void> _editTask(Task task)` <a id="edittask"></a>
 - **Kind:** method of `_TodoPageState`
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 1013)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 1019)
 - **Purpose:** Open the edit-task dialog against the real (un-mapped) underlying task, offering a permanent-delete option for soft-deleted daily templates, and apply whatever the dialog returns.
 - **Inputs:** `task` — the displayed `Task` (for daily tasks, this may be the per-date-mapped copy from `_dailyForDate`, not the stored template).
 - **Returns:** `Future<void>`.
@@ -545,7 +551,7 @@ across devices.
 
 ### `void _prevMonth()` <a id="prevmonth"></a>
 - **Kind:** method of `_TodoCalendarPageState`
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 1583)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 1689)
 - **Purpose:** Move the visible calendar month back by one.
 - **Inputs:** None.
 - **Returns:** None.
@@ -562,7 +568,7 @@ across devices.
 
 ### `void _nextMonth()` <a id="nextmonth"></a>
 - **Kind:** method of `_TodoCalendarPageState`
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 1594)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 1700)
 - **Purpose:** Move the visible calendar month forward by one.
 - **Inputs:** None.
 - **Returns:** None.
@@ -579,7 +585,7 @@ across devices.
 
 ### `void _changeYear(int delta)` <a id="changeyear"></a>
 - **Kind:** method of `_TodoCalendarPageState`
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 1605)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 1711)
 - **Purpose:** Move the visible calendar by whole years while keeping the same visible month.
 - **Inputs:** `delta` — signed year offset (the UI only ever passes `-1`/`1`).
 - **Returns:** None.
@@ -595,7 +601,7 @@ across devices.
 
 ### `void _jumpToMonth(int month)` <a id="jumptomonth"></a>
 - **Kind:** method of `_TodoCalendarPageState`
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 1616)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 1722)
 - **Purpose:** Jump the visible calendar directly to a specific month within the currently visible year.
 - **Inputs:** `month` — 1-12 (Dart month numbering).
 - **Returns:** None.
@@ -609,7 +615,7 @@ across devices.
 
 ### `List<MapEntry<DateTime, int>> get _monthScoreEntries` <a id="monthscoreentries"></a>
 - **Kind:** getter of `_TodoCalendarPageState`
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 1627)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 1733)
 - **Purpose:** Return every calendar day in the visible month paired with its score, treating any day with no saved score entry as zero — the single data source feeding both the score trend chart and the joyful/suffering day lists.
 - **Inputs:** None (reads `_viewMonth`, `widget.dailyScores`).
 - **Returns:** `List<MapEntry<DateTime, int>>`, one entry per day of `_viewMonth`, in day-of-month order.
@@ -628,7 +634,7 @@ across devices.
 
 ### `Widget _buildScoreTrendCard(ThemeData theme, AppLocalizations l10n)` <a id="buildscoretrendcard"></a>
 - **Kind:** method of `_TodoCalendarPageState` (widget helper)
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 1913)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 2019)
 - **Purpose:** Build the monthly daily-score trend line chart, including converting the month's score entries into chart-plottable data.
 - **Inputs:** `theme`, `l10n`.
 - **Returns:** A `Card` containing an `fl_chart` `LineChart`.
@@ -648,7 +654,7 @@ across devices.
 
 ### `Widget _buildScoreListsCard(ThemeData theme, AppLocalizations l10n)` <a id="buildscorelistscard"></a>
 - **Kind:** method of `_TodoCalendarPageState` (widget helper)
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 2089)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 2195)
 - **Purpose:** Filter the visible month's score entries into "joyful" and "suffering" day lists and render them as two sections.
 - **Inputs:** `theme`, `l10n`.
 - **Returns:** A `Card` containing two `_buildScoreDaySection` outputs separated by a `Divider`.
@@ -668,24 +674,50 @@ across devices.
 - [Todo](../../../../features/todo.md) — `Task`, `TaskRecurrence`, `DailyCompletionLog`, `DailyScoreLog` model concepts and the storage/reminder rules this file implements.
 - [Three-Way Merge](../../../../algorithms/three-way-merge.md) — how `_dailyLog`/`_dailyScores` merge across devices (not implemented in this file, but the state this file edits).
 
+### `Widget _buildAiCard()` <a id="buildaicard"></a>
+- **Kind:** method of `_TodoPageState`
+- **Source:** `lib/features/todo/views/todo_page.dart` (line 1434)
+- **Purpose:** Build today's on-device AI insight card (v1.5.0) from the page's already-loaded task
+  state.
+- **Inputs:** None; reads `_dailyTemplates`, `_oneTimeTasks`, `_dailyLog` and `_dailyScores` when the
+  card calls its `buildRequest` callback.
+- **Returns:** `Widget` — an [`AiInsightCard`](../../ai/widgets/ai_insight_card.md#aiinsightcard-new)
+  with `module: InsightModule.todo`, no `sections`, and margin `EdgeInsets.fromLTRB(16, 8, 16, 8)`.
+  The card itself renders nothing while on-device AI is off or the platform cannot have a model.
+- **Side effects:** None directly. The card may ask `AiInsightStore` to run the model or read
+  `ai_insights.json` when its request's fingerprint changes.
+- **Algorithm:** The `buildRequest: (language, now)` callback calls
+  [`buildTodoInsightFacts`](../services/todo_insight_facts.md#buildtodoinsightfacts) with `now` and
+  the four state fields above. It returns `null` when the builder returns `null` (the card then
+  shows nothing). Otherwise it returns `AiInsightRequest(facts: facts, language: language, now: now)`.
+- **Usage:** `final aiCard = _isToday ? _buildAiCard() : null;` in
+  [`_buildTaskArea`](#buildtaskarea) (line 1472).
+- **Notes:** Only built while today is selected. The card picks plan, progress or review from the
+  time bucket of `now`, not from `_selectedDate`. The facts are computed from the whole loaded state,
+  so the selected week or day does not affect them. See
+  [On-device AI](../../../../on-device-ai.md#insight-cards).
+
 ### `Widget _buildTaskArea(ThemeData theme, AppLocalizations l10n, int columns)` <a id="buildtaskarea"></a>
 - **Kind:** method of `_TodoPageState`
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 1435)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 1467)
 - **Purpose:** Arrange the task sections either in the single scrolling column the page has always
-  had, or in several independently scrolling columns side by side, with the score card after the
-  last section.
+  had, or in several independently scrolling columns side by side, with the score card (and,
+  when today is selected, the on-device AI card) after the last section.
 - **Inputs:** `theme`, `l10n`; `columns` — the resolved section-column count from
   `listColumnCount`.
 - **Returns:** `Widget`.
 - **Side effects:** None beyond building widgets.
 - **Algorithm:**
-  1. Get the sections from `_taskSections` and the score card from `_buildDailyScoreCard`.
+  1. Get the sections from `_taskSections` and the score card from `_buildDailyScoreCard`. Set
+     `aiCard = _isToday ? _buildAiCard() : null` ([`_buildAiCard`](#buildaicard), v1.5.0).
   2. `columns <= 1` → one `ListView` with a `Divider` between adjacent sections, the score card,
-     and 80 dp of FAB clearance at the end.
+     `?aiCard` (a null-aware element, so nothing is added on another day), and 80 dp of FAB
+     clearance at the end.
   3. Otherwise `fill = columnMajorFill(sections.length, columns)`
      ([`adaptive_layout.md#columnmajorfill`](../../../shared/utils/adaptive_layout.md#columnmajorfill)),
      then a `Row` of `columns` `Expanded` children separated by `VerticalDivider`s; column `c`
-     renders the sections `fill[c]` names, and the last column appends the score card. Two columns
+     renders the sections `fill[c]` names, and the last column appends the score card and then
+     `?aiCard` (`...[scoreCard, ?aiCard]`). Two columns
      therefore read Daily + Routine, then Work + score; three read one section each with the score
      under Work.
 - **Usage:** `Expanded(child: _buildTaskArea(theme, l10n, sectionColumns))` in `build`.
@@ -695,11 +727,11 @@ across devices.
   so a long Daily list cannot push Work off the bottom of the window. Before v1.4.3 the four blocks
   were dealt round-robin, which put Routine beside Daily and Work underneath it — separating the
   two one-time lists a user reads together; column-major fill keeps reading order. See
-  [../../../adaptive-layout.md](../../../adaptive-layout.md) for the rule that produces `columns`.
+  [../../../../adaptive-layout.md](../../../../adaptive-layout.md) for the rule that produces `columns`.
 
 ### `List<Widget> _taskSections(ThemeData theme, AppLocalizations l10n)` <a id="tasksections"></a>
 - **Kind:** method of `_TodoPageState`
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 1490)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 1517)
 - **Purpose:** Return the three task sections in display order.
 - **Inputs:** `theme`, `l10n`.
 - **Returns:** `List<Widget>` of three sections: Daily, Routine, Work.

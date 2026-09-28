@@ -94,6 +94,14 @@ the same change (per the project's maintenance rule).
 
 - `android/app/build.gradle.kts` uses `import java.util.Properties`.
 - Namespace/application id: `com.yuanzhe.my_day`.
+- **`minSdk` is `26`** since 1.5.0, not `flutter.minSdkVersion` (24): ML Kit GenAI
+  (`com.google.mlkit:genai-prompt:1.0.0-beta4`, on-device AI) requires API 26. Android 7.0 and 7.1
+  are no longer supported. See [on-device-ai.md](on-device-ai.md).
+- **On-device AI (1.5.0):** `MainActivity` attaches `GenAiChannel`
+  (`com.yuanzhe.my_day/genai`) in `configureFlutterEngine` and detaches it in `onDestroy`; the
+  release build type adds `proguardFiles("proguard-rules.pro")`, whose keep rules stop R8 from
+  shrinking ML Kit into a failure that looks like an unsupported device; the manifest's `<queries>`
+  lists `com.google.android.aicore`. Both flavors ship it.
 - Java 17 source/target compatibility and core library desugaring are enabled.
 - **Kotlin migration state (app side migrated):** Gradle wrapper `9.3.1`, AGP `9.1.1`; the app no
   longer applies `kotlin-android`. The Kotlin `jvmTarget` is set via a top-level
@@ -141,6 +149,10 @@ the same change (per the project's maintenance rule).
   back from these sources without native Icon Composer / Liquid Glass Clear assets.
 - CI builds a sideload IPA without codesign; an App Store IPA requires signing/provisioning outside
   the current workflow.
+- **On-device AI (1.5.0)** comes from the local plugin `packages/on_device_ai_apple` (Apple
+  Foundation Models, iOS 26+). The deployment target stays 13.0: FoundationModels is weakly linked,
+  and CI's `tool/check_weak_link.sh` step fails the build otherwise. No entitlement or `Info.plist`
+  key is needed. See [on-device-ai.md](on-device-ai.md).
 
 ## macOS
 
@@ -152,6 +164,9 @@ the same change (per the project's maintenance rule).
   required for WebDAV and the exchange-rate API; network server is required for the local API
   server.
 - `MainFlutterWindow.swift` includes LaunchAtLogin integration for the startup plugin.
+- **On-device AI (1.5.0)** uses the same `packages/on_device_ai_apple` plugin (macOS 26+),
+  registered in `macos/Flutter/GeneratedPluginRegistrant.swift` and weakly linked as on iOS. The
+  sandbox needs no new entitlement.
 
 ## Windows
 
@@ -165,6 +180,9 @@ the same change (per the project's maintenance rule).
 - Windows has no `--flavor`; the distribution flavor is carried by `--dart-define=FLAVOR=` alone
   (CI builds pass `FLAVOR=full`, so Windows installers include the bundled bank logos). iOS and
   macOS likewise use only `--dart-define=FLAVOR=full` and define no native flavors.
+- **No on-device AI.** Windows has no on-device model, so `platformMayHaveOnDeviceModel` is false:
+  the module insight cards are never built and the Settings *On-device AI* section is a single
+  "not available on this platform" line. See [on-device-ai.md](on-device-ai.md).
 
 ## Related pages
 

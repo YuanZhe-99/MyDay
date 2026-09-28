@@ -1,6 +1,6 @@
 # lib/features/settings/views/privacy_policy_page.dart
 
-显示 MyDay 应用内隐私政策的单个静态页，翻译为英语、简体中文、繁体中文和日语，由活动应用语言区域而非页面自己的语言选择器选择。按 [设置](../../../../features/settings.md)，它应与仓库根 `PRIVACY_POLICY.md` 匹配。像 [`license_page.dart`](license_page.md) 一样，它没有服务或外部状态——唯一"逻辑"是挑选渲染哪个预制字符串。
+显示 MyDay 应用内隐私政策的单个静态页，翻译为英语、简体中文、繁体中文和日语，由活动应用语言区域而非页面自己的语言选择器选择。按 [设置](../../../../features/settings.md)，它应与仓库根 `PRIVACY_POLICY.md` 匹配。像 [`license_page.dart`](license_page.md) 一样，它没有服务或外部状态——唯一"逻辑"是挑选渲染哪个预制字符串。自 1.5.0 起，四个字符串各含一个"端侧 AI"小节（位于第三方服务与数据备份小节之间），说明此功能默认关闭、只在设备上运行（Android 上经 AICore 使用 Gemini Nano，或 iOS/macOS 26+ 上使用 Apple Intelligence；Windows 上不提供），列出每个模块交给模型哪些已算好的数字、哪些字段永远不会到达模型，并说明生成结果不会同步、备份或导出——见 [端侧 AI](../../../../on-device-ai.md)。
 
 ## 声明
 
@@ -19,3 +19,4 @@
 ## 相关页面
 
 - [设置](../../../../features/settings.md) — 链接到本页、以及此文本应跟随 `PRIVACY_POLICY.md` 的说明。
+- [端侧 AI](../../../../on-device-ai.md) — "端侧 AI"政策小节所描述的功能。

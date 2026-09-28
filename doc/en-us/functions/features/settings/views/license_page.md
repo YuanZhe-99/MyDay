@@ -4,7 +4,9 @@ A single static page showing MyDay's GPLv3 license notice as selectable text. It
 services, and no external collaborators beyond localization — it exists purely so the About section
 in [Settings](../../../../features/settings.md) has a dedicated GPL license screen, distinct from the
 auto-generated open-source-licenses page (`showLicensePage`, wired from `settings_page.dart`) and
-from [`privacy_policy_page.dart`](privacy_policy_page.md).
+from [`privacy_policy_page.dart`](privacy_policy_page.md). Since 1.5.0 the text ends with a
+"Third-party components" notice for the OpenCC-derived Chinese conversion tables
+(`lib/shared/utils/chinese_convert_data.dart`, Apache-2.0), used by the on-device AI cards.
 
 ## Declarations
 

@@ -1,6 +1,6 @@
 # lib/features/settings/views/settings_page.dart
 
-主设置屏：通用（语言/周起始/主题）、隐私（亲密模块隐藏/显示）、桌面（托盘、启动时启动、本地 API 服务器、自定义存储位置）、数据（WebDAV 同步、ZIP 导入/导出、备份）、关于（版本、许可证、隐私政策）和仅调试的订阅日期覆盖小节。`SettingsPage`/`_SettingsPageState` 直接拥有其中大多数设置的读写管道（经 `TodoStorage.readConfig`/`writeConfig`、`TrayService`、`launchAtStartup` 和 `LocalApiServer`），而 WebDAV 同步和备份委托给 [`webdav_config_page.dart`](../../../shared/views/webdav_config_page.md) 和 [`backup_page.dart`](../../../shared/views/backup_page.md)，关于小节链接到 [`license_page.dart`](license_page.md) 和 [`privacy_policy_page.dart`](privacy_policy_page.md)。逐小节完整功能描述见 [设置](../../../../features/settings.md)，本页暴露开关的仅桌面托盘/启动/本地 API 机制见 [平台说明](../../../../platform-notes.md)，本页 WebDAV 状态块响应的自动同步触发器见 [WebDAV 同步](../../../../sync.md)。
+主设置屏：通用（语言/周起始/主题）、隐私（亲密模块隐藏/显示）、端侧 AI（v1.5.0；可能存在模型的平台上是 [`AiSettingsTiles`](../../ai/widgets/ai_settings_tiles.md) 各行，否则是一条"此处不支持"说明）、桌面（托盘、启动时启动、本地 API 服务器、自定义存储位置）、数据（WebDAV 同步、ZIP 导入/导出、备份）、关于（版本、许可证、隐私政策）和仅调试的订阅日期覆盖小节。`SettingsPage`/`_SettingsPageState` 直接拥有其中大多数设置的读写管道（经 `TodoStorage.readConfig`/`writeConfig`、`TrayService`、`launchAtStartup` 和 `LocalApiServer`），而 WebDAV 同步和备份委托给 [`webdav_config_page.dart`](../../../shared/views/webdav_config_page.md) 和 [`backup_page.dart`](../../../shared/views/backup_page.md)，关于小节链接到 [`license_page.dart`](license_page.md) 和 [`privacy_policy_page.dart`](privacy_policy_page.md)。逐小节完整功能描述见 [设置](../../../../features/settings.md)，本页暴露开关的仅桌面托盘/启动/本地 API 机制见 [平台说明](../../../../platform-notes.md)，本页 WebDAV 状态块响应的自动同步触发器见 [WebDAV 同步](../../../../sync.md)。
 
 ## 声明
 
@@ -41,7 +41,7 @@
 
 ### `Future<void> _openDataFolder()` <a id="opendatafolder"></a>
 - **种类：** `_SettingsPageState` 的方法
-- **来源：** `lib/features/settings/views/settings_page.dart`（第 137 行）
+- **来源：** `lib/features/settings/views/settings_page.dart`（第 151 行）
 - **用途：** 在宿主操作系统文件管理器中打开应用数据目录，按桌面平台使用正确原生命令。
 - **输入：** 无（读取 `TodoStorage.getAppDir()`）。
 - **返回：** `Future<void>`。
@@ -65,7 +65,7 @@
 
 ### `Future<void> _showApiSettingsDialog()` <a id="showapisettingsdialog"></a>
 - **种类：** `_SettingsPageState` 的方法
-- **来源：** `lib/features/settings/views/settings_page.dart`（第 272 行）
+- **来源：** `lib/features/settings/views/settings_page.dart`（第 301 行）
 - **用途：** 让用户编辑本地 API 服务器的监听地址、端口、用户名和密码，然后持久化变更并重启服务器使其拾取新设置。
 - **输入：** 无（读取当前 `_apiPort`/`_apiListenAddress`/`_apiUsername`/`_apiPassword` 播种对话框文本控制器）。
 - **返回：** `Future<void>`。
@@ -90,7 +90,7 @@
 
 ### `Future<void> _showStoragePathDialog(BuildContext context)` <a id="showstoragepathdialog"></a>
 - **种类：** `_SettingsPageState` 的方法
-- **来源：** `lib/features/settings/views/settings_page.dart`（第 721 行）
+- **来源：** `lib/features/settings/views/settings_page.dart`（第 877 行）
 - **用途：** 让用户查看和更改自定义数据存储路径，或重置回应用默认位置。
 - **输入：** `context` — 用于对话框和保存后 snackbar。
 - **返回：** `Future<void>`。
@@ -114,7 +114,7 @@
 
 ### `void _showLanguagePicker(BuildContext context, AppSettings settings)` <a id="showlanguagepicker"></a>
 - **种类：** `_SettingsPageState` 的方法
-- **来源：** `lib/features/settings/views/settings_page.dart`（第 875 行）
+- **来源：** `lib/features/settings/views/settings_page.dart`（第 1031 行）
 - **用途：** 显示让用户选"跟随系统"或四种受支持应用语言之一的底部面板，把选择转换为应用设置提供者期望的 `Locale`。
 - **输入：** `context`；`settings` — 当前 `AppSettings`，用于计算预选单选值。
 - **返回：** `None`。
@@ -141,10 +141,11 @@
 - [设置](../../../../features/settings.md) — 本页实现的逐小节功能描述。
 - [平台说明](../../../../platform-notes.md) — `_showApiSettingsDialog` 编辑的本地 API 服务器配置键，以及桌面小节其他开关背后的托盘/启动机制。
 - [WebDAV 同步](../../../../sync.md) 和 [备份与恢复](../../../../backup-restore.md) — 数据小节底层行为，在 [`webdav_config_page.dart`](../../../shared/views/webdav_config_page.md) 和 [`backup_page.dart`](../../../shared/views/backup_page.md) 中实现。
+- [端侧 AI](../../../../on-device-ai.md) — 端侧 AI 分区背后的功能，其各行是 [`ai_settings_tiles.dart`](../../ai/widgets/ai_settings_tiles.md)。
 
 ### `Widget _detailPage(_SettingsDetail detail)` <a id="detailpage"></a>
 - **种类：** `_SettingsPageState` 的方法
-- **来源：** `lib/features/settings/views/settings_page.dart`（约第 466 行）
+- **来源：** `lib/features/settings/views/settings_page.dart`（第 483 行）
 - **用途：** 构建设置行通向的二级页面。
 - **输入：** `detail`。
 - **返回：** `Widget`——一个带自己 app bar 的 `Scaffold`。
@@ -155,7 +156,7 @@
 
 ### `Future<void> _open(_SettingsDetail detail)` <a id="open"></a>
 - **种类：** `_SettingsPageState` 的方法
-- **来源：** `lib/features/settings/views/settings_page.dart`（约第 485 行）
+- **来源：** `lib/features/settings/views/settings_page.dart`（第 502 行）
 - **用途：** 按当前布局所要求的方式打开二级页面。
 - **输入：** `detail`。
 - **返回：** `Future<void>`——推入的页面被弹出时完成；使用窗格时立即完成。
@@ -166,7 +167,7 @@
 
 ### `Widget _buildDetailPane(AppLocalizations l10n)` <a id="builddetailpane"></a>
 - **种类：** `_SettingsPageState` 的方法
-- **来源：** `lib/features/settings/views/settings_page.dart`（约第 505 行）
+- **来源：** `lib/features/settings/views/settings_page.dart`（第 522 行）
 - **用途：** 构建双栏设置布局的右侧窗格。
 - **输入：** `l10n`。
 - **返回：** `Widget`——居中的占位内容，或托管所选页面的 `Navigator`。
@@ -177,11 +178,11 @@
 
 ### `Widget _buildSettingsList(...)` <a id="buildsettingslist"></a>
 - **种类：** `_SettingsPageState` 的方法
-- **来源：** `lib/features/settings/views/settings_page.dart`（约第 545 行）
+- **来源：** `lib/features/settings/views/settings_page.dart`（第 564 行）
 - **用途：** 构建一级设置列表。
 - **输入：** `context`、`l10n`、`visibility`、`settings`；`labels`——`build` 在选择布局之前就已格式化好的四个字符串。
 - **返回：** `Widget`——分区的滚动 `ListView`。
 - **副作用：** 除构建组件外无；磁贴自己的回调各有其副作用。
-- **算法：** 与 v1.4.1 之前 `build` 返回的列表完全相同——常规、隐私、桌面（仅桌面）、数据、关于和调试分区。
+- **算法：** v1.4.1 之前 `build` 返回的列表——常规、隐私、桌面（仅桌面）、数据、关于和调试分区——自 v1.5.0 起在隐私与桌面之间再加一个端侧 AI 分区（`l10n.aiSectionTitle`）。`platformMayHaveOnDeviceModel`（来自 `genai_backend.dart`）为真时该分区放 `const AiSettingsTiles()`，否则放一个带 `auto_awesome_outlined` 图标和 `l10n.aiNotSupportedHere` 的 `ListTile`（Windows、Linux）。
 - **用法：** 由 `build` 调用；它在窄窗口上是整个主体，在宽窗口上是左窗格。
 - **备注：** 抽取而不是复制，因此列表在两种模式下完全相同，变的只是它的 chevron 行落在哪里。

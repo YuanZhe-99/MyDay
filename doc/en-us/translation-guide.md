@@ -155,6 +155,14 @@ Not copied to the other repos — no other app has these.
 | token (word token) | 词元 | Todo: a Latin letter/digit run the suggester matches whole |
 | inflection | 词形变化 | Todo: the closed English suffix set (`-s`, `-ing`…) a token may add to a keyword |
 | filler phrase | 填充语 | Todo: words like "don't forget" / 别忘了 deliberately kept out of the keyword table |
+| on-device AI | 端侧 AI | a model running on this device (v1.5.0); same as MyAnime and MyNihongo. Not 「本地 AI」 or 「设备端 AI」 |
+| insight card | 洞察卡片 | the per-module on-device AI card (v1.5.0) |
+| time bucket | 时段 | Todo card mode: morning / afternoon / evening |
+| fingerprint | 指纹 | SHA-256 over everything a cached insight depends on |
+| slot | 槽位 | one numbered answer a card asks the model for |
+| quoted term | 引用词 | user-typed words ignored by the reply script check |
+| regenerate | 重新生成 | the card's refresh button |
+| weak linking | 弱链接 | FoundationModels is linked with `LC_LOAD_WEAK_DYLIB` |
 
 ## 6. Review checklist (run before committing a Chinese page)
 

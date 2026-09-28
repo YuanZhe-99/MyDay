@@ -8,6 +8,11 @@ Source: `lib/features/settings/views/settings_page.dart`, `privacy_policy_page.d
 - **General**: language, global week start day for app calendars and weekly grouping, and theme.
 - **Privacy**: Intimacy module toggle with a hide confirmation (see
   [Intimacy](intimacy.md#hidden-by-default) — hiding never deletes data).
+- **On-device AI** (1.5.0): on Android, iOS and macOS, `AiSettingsTiles` — the *Use on-device AI*
+  switch (off by default), then, while it is on, the model status with *Download* (Android) or
+  *Check again*, *Use the faster model* when both sizes are served, notes, *Technical details*, and
+  *Clear generated insights*. On Windows and Linux a single "not available on this platform" line.
+  See [On-device AI](../on-device-ai.md).
 - **Desktop**: minimize-to-tray, close-to-tray, launch at startup, local API enable/status/settings,
   custom storage location, open data folder (see [Platform Notes](../platform-notes.md) for the
   local API and tray/startup mechanics behind these toggles).

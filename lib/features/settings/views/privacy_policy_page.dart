@@ -90,6 +90,16 @@ The app uses the following third-party services:
 
 These services have their own privacy policies, which we encourage you to review. MyDay!!!!! only sends minimal, non-personal data (currency codes or public bank URLs) to these services.
 
+On-Device AI (optional, since 1.5.0)
+
+The Todo, Finance, Weight and Intimacy pages can optionally show short summaries and suggestions written by the language model built into your device — Gemini Nano through Android AICore, or the model that is part of Apple Intelligence on iOS 26 and macOS 26 or later. This is off by default and runs only after you turn on "Use on-device AI" in Settings. It is not available on Windows.
+
+• Everything the model does happens on your device. It is given only figures the app has already calculated: for Todo, today's and tomorrow's task titles and whether they are done; for Finance, monthly totals, category and subscription names and subscription costs; for Weight, your weight trend and measurements; for Intimacy, counts and averages and your body measurements and estimated cycle phase. Notes, card numbers, security codes, bank names, locations and the names of partners, toys and positions are never given to it.
+
+• On Android, the model is downloaded by the AICore system service from Google, and only when you tap Download in Settings. On Apple devices the model is part of Apple Intelligence and is managed by the system.
+
+• Generated results stay on your device: they are neither synced, backed up nor exported, and you can clear them in Settings. No cloud model is used, including Apple's Private Cloud Compute.
+
 Data Backup
 
 The app provides a local backup feature. Backup files are stored on your device and include all your data and images. The storage and management of backup files is entirely under your control.
@@ -130,6 +140,16 @@ MyDay!!!!! 仅在以下情况下访问互联网：
 • Google Favicon / Icon Horse / DuckDuckGo / Clearbit ——用于银行图标
 
 这些服务有各自的隐私政策，建议您查阅。MyDay!!!!! 仅向这些服务发送最少的非个人数据（货币代码或公开的银行网址）。
+
+端侧 AI（可选，自 1.5.0 起）
+
+待办、财务、体重和性生活页面可以选择显示由您设备内置的语言模型写出的简短总结与建议——Android 上通过 AICore 使用 Gemini Nano，iOS 26 和 macOS 26 及以上使用 Apple Intelligence 的模型。此功能默认关闭，只有在您于设置中开启「使用端侧 AI」后才会运行。Windows 上不提供。
+
+• 模型的所有处理都在您的设备上完成。它只会拿到应用已经算好的数字：待办为今天和明天的任务标题及完成情况；财务为每月合计、分类名称、订阅名称和订阅费用；体重为体重趋势和身体围度；性生活为次数和平均值，以及您的身体围度和估算的周期阶段。备注、卡号、安全码、银行名称、地点，以及伴侣、玩具和姿势的名称永远不会交给模型。
+
+• 在 Android 上，模型由系统服务 AICore 从 Google 下载，并且只在您于设置中点「下载」时才开始。在 Apple 设备上，模型属于 Apple Intelligence，由系统管理。
+
+• 生成的结果只保存在您的设备上：不会同步、备份或导出，您可以在设置中清除。不使用任何云端模型，包括 Apple 的私有云计算（Private Cloud Compute）。
 
 数据备份
 
@@ -172,6 +192,16 @@ MyDay!!!!! 僅在以下情況下存取網際網路：
 
 這些服務有各自的隱私政策，建議您查閱。MyDay!!!!! 僅向這些服務傳送最少的非個人資料（貨幣代碼或公開的銀行網址）。
 
+裝置端 AI（選用，自 1.5.0 起）
+
+待辦、財務、體重和性生活頁面可以選擇顯示由您裝置內建的語言模型寫出的簡短總結與建議——Android 上透過 AICore 使用 Gemini Nano，iOS 26 和 macOS 26 及以上使用 Apple Intelligence 的模型。此功能預設關閉，只有在您於設定中開啟「使用裝置端 AI」後才會執行。Windows 上不提供。
+
+• 模型的所有處理都在您的裝置上完成。它只會拿到應用程式已經算好的數字：待辦為今天和明天的任務標題及完成情況；財務為每月合計、分類名稱、訂閱名稱和訂閱費用；體重為體重趨勢和身體圍度；性生活為次數和平均值，以及您的身體圍度和估算的週期階段。備註、卡號、安全碼、銀行名稱、地點，以及伴侶、玩具和姿勢的名稱永遠不會交給模型。
+
+• 在 Android 上，模型由系統服務 AICore 從 Google 下載，而且只在您於設定中點「下載」時才開始。在 Apple 裝置上，模型屬於 Apple Intelligence，由系統管理。
+
+• 產生的結果只儲存在您的裝置上：不會同步、備份或匯出，您可以在設定中清除。不使用任何雲端模型，包括 Apple 的私有雲端運算（Private Cloud Compute）。
+
 資料備份
 
 應用程式提供本機備份功能。備份檔案儲存在您的裝置上，包含您的所有資料和圖片。備份檔案的儲存和管理完全由您掌控。
@@ -212,6 +242,16 @@ MyDay!!!!! は以下の場合にのみインターネットにアクセスしま
 • Google Favicon / Icon Horse / DuckDuckGo / Clearbit ——銀行ロゴ画像用
 
 これらのサービスには独自のプライバシーポリシーがあります。ご確認をお勧めします。MyDay!!!!! はこれらのサービスに最小限の非個人データ（通貨コードまたは公開の銀行URL）のみを送信します。
+
+オンデバイスAI（任意、1.5.0 以降）
+
+ToDo・家計・体重・性生活の各ページでは、端末に内蔵された言語モデル（Android では AICore 経由の Gemini Nano、iOS 26 / macOS 26 以降では Apple Intelligence のモデル）が書いた短い要約と提案を表示できます。初期状態ではオフで、設定で「オンデバイスAIを使う」をオンにした後にのみ動作します。Windows では利用できません。
+
+• モデルの処理はすべて端末内で行われます。モデルに渡されるのは、アプリが計算済みの数値だけです：ToDo では今日と明日のタスク名と完了状況、家計では月ごとの合計・カテゴリ名・サブスクリプション名と費用、体重では体重の推移と各部のサイズ、性生活では回数と平均値、体のサイズと推定の周期フェーズです。メモ、カード番号、セキュリティコード、銀行名、場所、パートナー・おもちゃ・体位の名前がモデルに渡されることはありません。
+
+• Android では、モデルは AICore システムサービスが Google からダウンロードし、設定で「ダウンロード」をタップしたときだけ行われます。Apple のデバイスでは、モデルは Apple Intelligence の一部としてシステムが管理します。
+
+• 生成された結果は端末内にのみ保存され、同期・バックアップ・エクスポートされることはなく、設定から消去できます。Apple の Private Cloud Compute を含め、クラウドのモデルは一切使用しません。
 
 データバックアップ
 

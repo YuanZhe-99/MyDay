@@ -106,6 +106,18 @@ always use daily OS schedules (shifted to start tomorrow if already completed to
 [Platform Notes](../platform-notes.md#notifications-reminders-tray-and-startup) for the desktop vs.
 mobile reminder delivery split and fire-time semantics.
 
+## AI insight card (1.5.0)
+
+With on-device AI on (Android, iOS/macOS 26+), an insight card follows the daily score card — in
+the last column when sections sit side by side — while **today** is selected. Its mode follows the
+local time: before 12:00 *Today's plan* (what is on, what to start with, a tip); 12:00–18:00 *How
+today is going* (progress, what is left, reminders still ahead); from 18:00 *Today in review &
+tomorrow* (a review, what to do first tomorrow, an encouragement). The facts are built by
+`buildTodoInsightFacts` (`services/todo_insight_facts.dart`) with the same visibility rules as the
+page; task titles are sent, task notes and subtask titles never are. The card is cached in
+`ai_insights.json` and regenerates only when today's tasks or completions change, at 12:00, 18:00
+and midnight, or after a model update. See [On-device AI](../on-device-ai.md).
+
 ## Related pages
 
 - [Data Formats](../data-formats.md) — exact JSON shape of every model above.

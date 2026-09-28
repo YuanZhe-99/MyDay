@@ -9,6 +9,7 @@ import 'package:local_notifier/local_notifier.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import 'app/app.dart';
+import 'features/ai/services/on_device_ai_service.dart';
 import 'shared/services/auto_sync_service.dart';
 import 'shared/services/local_api_server.dart';
 import 'shared/services/mobile_notification_service.dart';
@@ -52,6 +53,10 @@ void main() async {
 
   // Start auto-sync lifecycle observer (syncs only when user opts in)
   AutoSyncService.instance.start();
+
+  // Track the app lifecycle for on-device AI (never touches the model while
+  // the user's switch is off)
+  OnDeviceAiService.instance.start();
 
   // Initialise system tray on desktop platforms
   if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {

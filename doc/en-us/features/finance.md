@@ -175,6 +175,19 @@ uncategorized flows, category transaction drill-down with add/edit/delete suppor
 trends, editable custom date ranges, and a total-assets trend that reconstructs account balances at
 sample points.
 
+## AI insight card (1.5.0)
+
+With on-device AI on (Android, iOS/macOS 26+), an insight card follows the upcoming-renewals strip
+on the Finance home. It has two sections: *Income & spending* (the trend over this month and the
+three before, and one suggestion) and *Subscriptions* (a summary and one suggestion). In the stacked
+phone layout it is collapsed to a single preview line and expands on tap, so the transaction list
+stays in view; in the split layout it is full in the left pane. The facts are built by
+`buildFinanceInsightFacts` (`services/finance_insight_facts.dart`) from the same conversions the
+home summary uses (each transaction at its rate snapshot, balances at current rates), plus
+`summarizeSubscriptions` and `upcomingSubscriptions`. Only default-currency aggregates, category
+names and subscription names are sent; **card numbers, expiry dates, security codes, bank and
+account names, and notes never are**. See [On-device AI](../on-device-ai.md).
+
 ## Related pages
 
 - [Data Formats](../data-formats.md) — exact JSON shape of every model above.

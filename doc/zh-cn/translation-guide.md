@@ -131,6 +131,14 @@
 | token (word token) | 词元 | Todo：建议器整体匹配的一段拉丁字母/数字 |
 | inflection | 词形变化 | Todo：词元可在关键词后附加的封闭英文后缀集合（`-s`、`-ing`…） |
 | filler phrase | 填充语 | Todo：像 "don't forget" / 别忘了 这样刻意不收入关键词表的词语 |
+| on-device AI | 端侧 AI | 在本设备上运行的模型（v1.5.0）；与 MyAnime 和 MyNihongo 相同。不用「本地 AI」或「设备端 AI」 |
+| insight card | 洞察卡片 | 各模块的端侧 AI 卡片（v1.5.0） |
+| time bucket | 时段 | Todo 卡片的模式：上午 / 下午 / 晚上 |
+| fingerprint | 指纹 | 对缓存洞察所依赖的全部内容计算的 SHA-256 |
+| slot | 槽位 | 卡片向模型索取的一个带编号的回答 |
+| quoted term | 引用词 | 回复文字系统检查时忽略的用户输入词语 |
+| regenerate | 重新生成 | 卡片的刷新按钮 |
+| weak linking | 弱链接 | FoundationModels 以 `LC_LOAD_WEAK_DYLIB` 链接 |
 
 ## 6. 复查清单（提交中文页面之前运行）
 

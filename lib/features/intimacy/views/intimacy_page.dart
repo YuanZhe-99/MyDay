@@ -16,8 +16,16 @@ import '../../../shared/widgets/adaptive_tile_grid.dart';
 import '../../../shared/widgets/app_date_picker.dart';
 import '../../../shared/widgets/delete_confirm.dart';
 import '../../../shared/widgets/unsaved_changes_guard.dart';
+import '../../../shared/providers/intimacy_visibility.dart';
+import '../../ai/services/genai_backend.dart';
+import '../../ai/services/insight_prompts.dart';
+import '../../ai/services/insight_service.dart';
+import '../../ai/widgets/ai_insight_card.dart';
+import '../../weight/models/weight_record.dart';
+import '../../weight/services/weight_storage.dart';
 import '../models/intimacy_record.dart';
 import '../services/cycle_predictor.dart';
+import '../services/intimacy_insight_facts.dart';
 import '../services/intimacy_storage.dart';
 import '../widgets/add_record_dialog.dart';
 import '../widgets/body_section.dart';
@@ -71,6 +79,9 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
     isUtc: true,
   );
   List<CycleRecord> _cycleRecords = [];
+
+  /// Weight records read only for the AI card's body facts (v1.5.0).
+  List<WeightRecord> _weightRecordsForInsight = const [];
   int? _timerHistoryRetentionDays;
   Map<String, String> _partnerSortModes = {};
   Map<String, List<String>> _partnerCustomOrders = {};
@@ -126,9 +137,20 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
       });
       return;
     }
+    // The user's own bust/waist/hip live in Weight; read them only for the
+    // AI card's body facts. A missing or unreadable weight file must never
+    // block this page, so any failure just leaves those facts out.
+    var weightRecords = const <WeightRecord>[];
+    if (platformMayHaveOnDeviceModel &&
+        ref.read(appSettingsProvider).onDeviceAiEnabled) {
+      try {
+        weightRecords = (await WeightStorage.load())?.records ?? const [];
+      } catch (_) {}
+    }
     if (!mounted) return;
     setState(() {
       _loadError = null;
+      _weightRecordsForInsight = weightRecords;
       if (data != null) {
         _partners = data.partners;
         _toys = data.toys;
@@ -629,6 +651,44 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
                     records: _records,
                     settings: _chartSettings,
                     onSettingsChanged: _saveChartSettings,
+                  ),
+                // On-device AI insight (v1.5.0). Only added while AI is on
+                // where a model can exist, so the chart pane's divider and
+                // spacing are unchanged otherwise.
+                if (platformMayHaveOnDeviceModel && settings.onDeviceAiEnabled)
+                  AiInsightCard(
+                    module: InsightModule.intimacy,
+                    footnote: _userBody?.cycleEnabled == true
+                        ? l10n.aiEstimateDisclaimer
+                        : null,
+                    sections: [
+                      AiInsightSection(l10n.aiIntimacyTrend, const {
+                        'trend',
+                        'advice',
+                      }),
+                      AiInsightSection(l10n.aiIntimacyBody, const {'body'}),
+                    ],
+                    buildRequest: (language, now) {
+                      // The page is unreachable while the module is hidden;
+                      // this is belt and braces.
+                      if (!ref.read(intimacyVisibilityProvider).visible) {
+                        return null;
+                      }
+                      final facts = buildIntimacyInsightFacts(
+                        now: now,
+                        records: _records,
+                        userBody: _userBody,
+                        cycleRecords: _cycleRecords,
+                        weightRecords: _weightRecordsForInsight,
+                      );
+                      return facts == null
+                          ? null
+                          : AiInsightRequest(
+                              facts: facts,
+                              language: language,
+                              now: now,
+                            );
+                    },
                   ),
               ],
               recordBlocks: [

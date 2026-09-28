@@ -29,6 +29,16 @@ The app uses the following third-party services:
 
 These services have their own privacy policies, which we encourage you to review. MyDay!!!!! only sends minimal, non-personal data (currency codes or public bank URLs) to these services.
 
+## On-Device AI (optional, since 1.5.0)
+
+The Todo, Finance, Weight and Intimacy pages can optionally show short summaries and suggestions written by the language model built into your device — Gemini Nano through Android AICore, or the model that is part of Apple Intelligence on iOS 26 and macOS 26 or later. This is off by default and runs only after you turn on "Use on-device AI" in Settings. It is not available on Windows.
+
+- Everything the model does happens on your device. It is given only figures the app has already calculated: for Todo, today's and tomorrow's task titles and whether they are done; for Finance, monthly totals, category and subscription names and subscription costs; for Weight, your weight trend and measurements; for Intimacy, counts and averages and your body measurements and estimated cycle phase. Notes, card numbers, security codes, bank names, locations and the names of partners, toys and positions are never given to it.
+
+- On Android, the model is downloaded by the AICore system service from Google, and only when you tap Download in Settings. On Apple devices the model is part of Apple Intelligence and is managed by the system.
+
+- Generated results stay on your device: they are neither synced, backed up nor exported, and you can clear them in Settings. No cloud model is used, including Apple's Private Cloud Compute.
+
 ## Data Backup
 
 The app provides a local backup feature. Backup files are stored on your device and include all your data and images. The storage and management of backup files is entirely under your control.

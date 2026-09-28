@@ -13,9 +13,13 @@ import '../../../shared/services/reminder_service.dart';
 import '../../../shared/utils/adaptive_layout.dart';
 import '../../../shared/widgets/adaptive_tile_grid.dart';
 import '../../../shared/widgets/delete_confirm.dart';
+import '../../ai/services/insight_prompts.dart';
+import '../../ai/services/insight_service.dart';
+import '../../ai/widgets/ai_insight_card.dart';
 import '../models/finance.dart';
 import '../services/balance_util.dart';
 import '../services/exchange_rate_storage.dart';
+import '../services/finance_insight_facts.dart';
 import '../services/finance_storage.dart';
 import '../services/subscription_processor.dart';
 import '../services/subscription_summary.dart';
@@ -607,6 +611,42 @@ class _FinancePageState extends ConsumerState<FinancePage> {
                   ),
                 if (upcomingSubs.isNotEmpty) const Divider(height: 1),
 
+                // On-device AI insight (v1.5.0). Collapsed to one preview
+                // line when stacked, so a phone keeps its transaction list in
+                // view; empty while AI is off or unsupported.
+                AiInsightCard(
+                  module: InsightModule.finance,
+                  compact: !twoPane,
+                  sections: [
+                    AiInsightSection(l10n.aiFinanceFlow, const {
+                      'flowSummary',
+                      'flowAdvice',
+                    }),
+                    AiInsightSection(l10n.aiFinanceSubscriptions, const {
+                      'subSummary',
+                      'subAdvice',
+                    }),
+                  ],
+                  buildRequest: (language, now) {
+                    final facts = buildFinanceInsightFacts(
+                      now: now,
+                      accounts: _accounts,
+                      categories: _categories,
+                      transactions: _transactions,
+                      subscriptions: _subscriptions,
+                      rateData: _rateData,
+                      defaultCurrency: _defaultCurrency,
+                    );
+                    return facts == null
+                        ? null
+                        : AiInsightRequest(
+                            facts: facts,
+                            language: language,
+                            now: now,
+                          );
+                  },
+                ),
+
                 // Subscription overview — two-pane only. Stacked, this block
                 // would push the first transaction further down a phone, which
                 // is the very cost the split exists to remove; there the
@@ -983,7 +1023,8 @@ class _FinanceBody extends StatelessWidget {
   /// the page itself makes: the subscription overview is added to
   /// `summaryBlocks` only in the two-pane arrangement, because it fills a pane
   /// that would otherwise sit empty, while stacked it would push the first
-  /// transaction further down a phone.
+  /// transaction further down a phone. The on-device AI card (v1.5.0) is in
+  /// both, but collapsed to a single preview line when stacked.
   const _FinanceBody({
     required this.twoPane,
     required this.leftPaneWidth,

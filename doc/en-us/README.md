@@ -43,6 +43,8 @@ The shared WebDAV sync, backup, and ZIP engines are not in this repository. They
   validation and safety, and ZIP-only import/export.
 - [Platform Notes](platform-notes.md) — Android/iOS/macOS/Windows caveats, the local HTTP API,
   tray behavior, and startup launch.
+- [On-device AI](on-device-ai.md) — the optional insight cards (1.5.0): policy, model layer, what
+  each card is given, the cache and fingerprint, and the device checklist.
 - [CI/CD](ci-cd.md) — CI jobs and workflow caveats, the build/verify command set, and fresh-clone
   (submodule) steps.
 - [Version History](version-history.md) — release-by-release summary. Worth checking before changing

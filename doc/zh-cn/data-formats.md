@@ -1,4 +1,4 @@
-# 数据格式仅本地的体重同步警告退出（`intimacyBodyWeightSyncWarningDisabled`）、设备本地的列表列数偏好（`todoSectionColumns`、`financeListColumns`、`weightListColumns`、`intimacyListColumns`） |
+# 数据格式
 
 本页记录每个持久化模型的字段级形态、`storage_config.json` 和完整持久化数据清单。字段列表直接读取自每个小节下列出的模型源文件。适用于所有这些文件的存储/写队列/UTC 时间戳规则见 [架构](architecture.md)，它们如何跨设备合并见 [WebDAV 同步](sync.md) / [三方合并](algorithms/three-way-merge.md)。
 
@@ -64,17 +64,19 @@
 
 ## `storage_config.json`
 
-总是留在默认应用目录（绝不随自定义存储路径移动）。保存：自定义存储路径、亲密可见性开关、主题、语言区域、周起始日、托盘设置、备份设置、本地 API 设置（`apiPort`、`apiListenAddress`、`apiEnabled`、`apiUsername`、`apiPassword`）、今天已触发的桌面提醒键（`reminderNotifiedKeys`）、仅本地的亲密计时器保持屏幕唤醒偏好（`intimacyTimerKeepScreenAwake`）、仅本地的体重同步警告退出（`intimacyBodyWeightSyncWarningDisabled`），以及四个设备本地的列表列数偏好（`todoSectionColumns`、`financeListColumns`、`weightListColumns`、`intimacyListColumns`）。
+总是留在默认应用目录（绝不随自定义存储路径移动）。保存：自定义存储路径、亲密可见性开关、主题、语言区域、周起始日、托盘设置、备份设置、本地 API 设置（`apiPort`、`apiListenAddress`、`apiEnabled`、`apiUsername`、`apiPassword`）、今天已触发的桌面提醒键（`reminderNotifiedKeys`）、仅本地的亲密计时器保持屏幕唤醒偏好（`intimacyTimerKeepScreenAwake`）、仅本地的体重同步警告退出（`intimacyBodyWeightSyncWarningDisabled`）、四个设备本地的列表列数偏好（`todoSectionColumns`、`financeListColumns`、`weightListColumns`、`intimacyListColumns`），以及端侧 AI 开关（`onDeviceAiEnabled`、`onDeviceAiPreferFast`，v1.5.0）。
+
+这两个端侧 AI 键只在为 `true` 时写入，关闭时移除，因此键不存在即表示关闭。它们只存在于本设备，因为是否有模型是设备的属性——见 [on-device-ai.md](on-device-ai.md)。
 
 这四个列数偏好存放在这里、因而从不同步，是刻意的：窗口尺寸是设备的属性，不是账户的属性——见 [自适应布局](adaptive-layout.md)。在用户固定列数之前每一个都不存在，存在时保存 1..4 的整数；其余情况（含不存在）一律读作「自动」。
 
-## 持久化数据清单
+## 持久化数据清单 <a id="persisted-data-inventory"></a>
 
 从 `AGENTS.md` 复制。默认应用数据目录是桌面上的 `Documents/MyDay/` 或移动端的平台应用文档目录；桌面用户可以选择自定义存储路径，但 `storage_config.json` 总是留在默认应用目录。
 
 | 数据 | 文件 | 同步 | 备注 |
 | --- | --- | --- | --- |
-| 核心偏好 | `storage_config.json` | 否 | 自定义路径、亲密可见性、主题、语言区域、周起始日、托盘、备份、本地 API 设置、今天已触发的桌面提醒键（`reminderNotifiedKeys`）、仅本地的亲密计时器保持屏幕唤醒偏好（`intimacyTimerKeepScreenAwake`）、仅本地的体重同步警告退出（`intimacyBodyWeightSyncWarningDisabled`） |
+| 核心偏好 | `storage_config.json` | 否 | 自定义路径、亲密可见性、主题、语言区域、周起始日、托盘、备份、本地 API 设置、今天已触发的桌面提醒键（`reminderNotifiedKeys`）、仅本地的亲密计时器保持屏幕唤醒偏好（`intimacyTimerKeepScreenAwake`）、仅本地的体重同步警告退出（`intimacyBodyWeightSyncWarningDisabled`）、设备本地的列表列数偏好（`todoSectionColumns`、`financeListColumns`、`weightListColumns`、`intimacyListColumns`）、端侧 AI 开关（`onDeviceAiEnabled`、`onDeviceAiPreferFast`） |
 | 待办 | `todo_data.json` | 是 | 任务、每日模板、完成日志、每日评分日志、提醒、任务排序/自定义顺序 |
 | 财务 | `finance_data.json` | 是 | 账户含可选免手续费标准、分类、交易、订阅、财务设置、交易账户选择器设置 |
 | 汇率 | `exchange_rates.json` | 是 | 汇率快照和 `lastFetchedAt` |
@@ -85,8 +87,37 @@
 | 图像 | `images/*` | 是 | 引用的财务/亲密图像同步；备份含图像。文件为任意图像格式的 `<uuid><ext>`，包括 `.svg`（选择预设时复制的内置银行标志，v1.4.5）；格式不变 |
 | 备份 | `backups/backup_*.json` | 否 | 本地恢复捆绑；v2 捆绑引用去重后的图像 blob |
 | 备份图像 blob | `backups/blobs/` | 否 | 内容寻址（`sha256`）、跨备份共享、引用计数 GC |
+| 端侧 AI 洞察 | `ai_insights.json` | 否 | 生成的洞察卡片的逐设备缓存（v1.5.0）；从不同步、备份或导出；可重建，因此不可读的文件读作空 |
 
-由 `TodoStorage.setStoragePath()` 移动的文件：`todo_data.json`、`finance_data.json`、`exchange_rates.json`、`intimacy_data.json`、`weight_data.json` 和 `webdav_config.json`。`storage_config.json` 总是留在默认应用目录。`images/`、`backups/` 和 `.sync_base/` 等目录不被那个文件列表移动。
+`TodoStorage.setStoragePath()` 通过 `migrateStorageContents` 移动旧数据文件夹中的**一切**——数据文件、`webdav_config.json`、`ai_insights.json`，以及 `images/`、`backups/` 和 `.sync_base/` 目录（先复制后删除；目标位置已存在的条目胜出并保持不动）。只跳过 `storage_config.json`：它总是留在默认应用目录，因为它保存的正是自定义路径本身。
+
+## `ai_insights.json`
+
+端侧 AI 洞察缓存（v1.5.0），通过 `AiInsightsCache` 以其自己的写队列原子写入。它**不是**已登记的数据模块：从不同步，从不出现在备份捆绑或 ZIP 导出中，也没有保留模式。与数据文件不同，不可读或格式错误的文件读作空——它是缓存，丢失它的代价只是每张卡片重新生成一次。设置中的*清除已生成的洞察*会删除它。
+
+```json
+{
+  "version": 1,
+  "insights": {
+    "finance": {
+      "fingerprint": "3f9a…",
+      "generatedAt": "2026-09-28T01:02:03.000Z",
+      "language": "zh_CN",
+      "lines": ["…", "…", "…", "…"],
+      "model": "stable/full · nano-v3",
+      "promptVersion": 1,
+      "slots": ["flowSummary", "flowAdvice", "subSummary", "subAdvice"],
+      "status": "ok"
+    }
+  }
+}
+```
+
+- `insights` 下的键是 `todo`、`finance`、`weight`、`intimacy`。未知键和格式错误的条目在读取时丢弃。
+- `fingerprint` 是 [on-device-ai.md](on-device-ai.md#cache-and-fingerprint) 中描述的十六进制 SHA-256；卡片只在它变化时重新生成。
+- `lines` 按槽位顺序保存经过校验的句子，`slots` 保存每句对应的槽位 id，因此即使前面的某个槽位被丢弃，卡片也能把各行归到对应的分区标题下。
+- `status` 为 `ok`，或在模型拒绝（`guardrail`）或无法使用该语言写作时为 `skipped`；跳过的条目没有行，在指纹变化之前不会重试。
+- `generatedAt` 是 UTC。
 
 ## 相关页面
 
