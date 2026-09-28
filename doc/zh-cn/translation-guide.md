@@ -137,6 +137,7 @@
 | fingerprint | 指纹 | 对缓存洞察所依赖的全部内容计算的 SHA-256 |
 | slot | 槽位 | 卡片向模型索取的一个带编号的回答 |
 | quoted term | 引用词 | 回复文字系统检查时忽略的用户输入词语 |
+| fallback facts | 回退事实 | 模型拒绝带标题的事实时卡片再试一次所发送的更简朴事实 |
 | regenerate | 重新生成 | 卡片的刷新按钮 |
 | weak linking | 弱链接 | FoundationModels 以 `LC_LOAD_WEAK_DYLIB` 链接 |
 

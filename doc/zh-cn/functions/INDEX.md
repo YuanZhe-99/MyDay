@@ -6,12 +6,12 @@
 
 | 度量 | 计数 |
 |---|---|
-| `grep -r '/// Purpose:' lib --include=*.dart` | **1593** |
-| 全部 100 页的声明表行 | **1656** |
-| ——其中 Tier A（完整条目） | 917 |
-| ——其中 Tier B（仅索引行） | 739 |
+| `grep -r '/// Purpose:' lib --include=*.dart` | **1597** |
+| 全部 100 页的声明表行 | **1663** |
+| ——其中 Tier A（完整条目） | 920 |
+| ——其中 Tier B（仅索引行） | 743 |
 
-下面的 **Declarations** 和 **Tier A** 列统计**每页声明表中的行**，这是可机械检查的数字。一行不总是一个 `/// Purpose:` 块，表行数超出 grep 计数的 63 行净差额被完整逐项列出——行数与自己的 `grep` 不同的每页都带一条 `**Reconciliation:**` 说明确切原因。有三个反复出现的原因：
+下面的 **Declarations** 和 **Tier A** 列统计**每页声明表中的行**，这是可机械检查的数字。一行不总是一个 `/// Purpose:` 块，表行数超出 grep 计数的 66 行净差额被完整逐项列出——行数与自己的 `grep` 不同的每页都带一条 `**Reconciliation:**` 说明确切原因。有三个反复出现的原因：
 
 - **文件级库注释**（`backup_service.dart`、`webdav_service.dart`、`import_export_service.dart`、`json_preservation.dart`、`sync_progress.dart`、`sync_wake_lock.dart`）：`import` 块上方的一个 `/// Purpose:` 块记录文件，不记录声明，因此被 `grep` 计数但得不到行。
 - **没有 `Purpose:` 块的真实声明**（枚举、typedef、顶层 `const`、Riverpod provider、`appRouter`）：无 `grep` 命中，但有一行，因为它们是文件表面的一部分。
@@ -42,8 +42,8 @@
 | `lib/features/ai/services/ai_insights_cache.dart` | [features/ai/services/ai_insights_cache.md](features/ai/services/ai_insights_cache.md) | 12 | 10 |
 | `lib/features/ai/services/genai_backend.dart` | [features/ai/services/genai_backend.md](features/ai/services/genai_backend.md) | 27 | 7 |
 | `lib/features/ai/services/insight_language.dart` | [features/ai/services/insight_language.md](features/ai/services/insight_language.md) | 3 | 3 |
-| `lib/features/ai/services/insight_prompts.dart` | [features/ai/services/insight_prompts.md](features/ai/services/insight_prompts.md) | 17 | 11 |
-| `lib/features/ai/services/insight_service.dart` | [features/ai/services/insight_service.md](features/ai/services/insight_service.md) | 16 | 11 |
+| `lib/features/ai/services/insight_prompts.dart` | [features/ai/services/insight_prompts.md](features/ai/services/insight_prompts.md) | 21 | 12 |
+| `lib/features/ai/services/insight_service.dart` | [features/ai/services/insight_service.md](features/ai/services/insight_service.md) | 18 | 13 |
 | `lib/features/ai/services/on_device_ai_service.dart` | [features/ai/services/on_device_ai_service.md](features/ai/services/on_device_ai_service.md) | 26 | 9 |
 | `lib/features/ai/services/output_validation.dart` | [features/ai/services/output_validation.md](features/ai/services/output_validation.md) | 6 | 4 |
 | `lib/features/ai/widgets/ai_insight_card.dart` | [features/ai/widgets/ai_insight_card.md](features/ai/widgets/ai_insight_card.md) | 13 | 8 |
@@ -111,7 +111,7 @@
 | `lib/features/todo/constants/emoji_keywords.dart` | [features/todo/constants/emoji_keywords.md](features/todo/constants/emoji_keywords.md) | 3 | 2 |
 | `lib/features/todo/constants/task_emojis.dart` | [features/todo/constants/task_emojis.md](features/todo/constants/task_emojis.md) | 1 | 1 |
 | `lib/features/todo/models/task.dart` | [features/todo/models/task.md](features/todo/models/task.md) | 38 | 37 |
-| `lib/features/todo/services/todo_insight_facts.dart` | [features/todo/services/todo_insight_facts.md](features/todo/services/todo_insight_facts.md) | 6 | 4 |
+| `lib/features/todo/services/todo_insight_facts.dart` | [features/todo/services/todo_insight_facts.md](features/todo/services/todo_insight_facts.md) | 7 | 4 |
 | `lib/features/todo/services/todo_storage.dart` | [features/todo/services/todo_storage.md](features/todo/services/todo_storage.md) | 47 | 46 |
 | `lib/features/todo/utils/emoji_suggester.dart` | [features/todo/utils/emoji_suggester.md](features/todo/utils/emoji_suggester.md) | 9 | 5 |
 | `lib/features/todo/views/todo_page.dart` | [features/todo/views/todo_page.md](features/todo/views/todo_page.md) | 74 | 34 |
@@ -132,7 +132,7 @@
 
 ## l10n/
 
-`lib/l10n/` 已在 [l10n/INDEX.md](l10n/INDEX.md) 中记录（生成代码，不属于上面 1593 个 `Purpose:` 块和 1656 个表行）。
+`lib/l10n/` 已在 [l10n/INDEX.md](l10n/INDEX.md) 中记录（生成代码，不属于上面 1597 个 `Purpose:` 块和 1663 个表行）。
 
 ## shared/
 
@@ -174,13 +174,13 @@
 |---|---|---|---|---|
 | 根（`lib/`） | 1 | 1 | 1 | 0 |
 | `app/` | 5 | 20 | 15 | 5 |
-| `features/ai/` | 9 | 126 | 65 | 61 |
+| `features/ai/` | 9 | 132 | 68 | 64 |
 | `features/finance/` | 25 | 408 | 196 | 212 |
 | `features/intimacy/` | 12 | 369 | 179 | 190 |
 | `features/settings/` | 3 | 33 | 8 | 25 |
-| `features/todo/` | 12 | 229 | 142 | 87 |
+| `features/todo/` | 12 | 230 | 142 | 88 |
 | `features/weight/` | 4 | 92 | 51 | 41 |
 | `shared/` | 29 | 378 | 260 | 118 |
-| **总计** | **100** | **1656** | **917** | **739** |
+| **总计** | **100** | **1663** | **920** | **743** |
 
-这里的每行都是上面逐文件行的算术和，在 v1.5.0 中重新派生。文件计数也与 `find lib -name '*.dart' -not -path 'lib/l10n/*'` 完全匹配——100 个源文件、100 个页面，没有无页面的文件，也没有无文件的页面。
+这里的每行都是上面逐文件行的算术和，在 v1.5.0 中重新派生，并按 v1.5.1 触及的三个页面调整。文件计数也与 `find lib -name '*.dart' -not -path 'lib/l10n/*'` 完全匹配——100 个源文件、100 个页面，没有无页面的文件，也没有无文件的页面。

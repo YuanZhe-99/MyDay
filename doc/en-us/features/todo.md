@@ -114,9 +114,13 @@ local time: before 12:00 *Today's plan* (what is on, what to start with, a tip);
 today is going* (progress, what is left, reminders still ahead); from 18:00 *Today in review &
 tomorrow* (a review, what to do first tomorrow, an encouragement). The facts are built by
 `buildTodoInsightFacts` (`services/todo_insight_facts.dart`) with the same visibility rules as the
-page; task titles are sent, task notes and subtask titles never are. The card is cached in
-`ai_insights.json` and regenerates only when today's tasks or completions change, at 12:00, 18:00
-and midnight, or after a model update. See [On-device AI](../on-device-ai.md).
+page; task titles are sent (at most 8 per line, 24 characters each, with at most one qualifier such
+as *overdue* or a reminder time), task notes and subtask titles never are. Since 1.5.1 the page also
+hands the card a counts-only version of the same facts as `fallbackFacts`: if the model declines the
+titled facts or answers nothing usable, that plainer version is tried once before the card gives
+up. The card is cached in `ai_insights.json` and regenerates only when today's tasks or completions
+change, at 12:00, 18:00 and midnight, or after a model update. See
+[On-device AI](../on-device-ai.md).
 
 ## Related pages
 

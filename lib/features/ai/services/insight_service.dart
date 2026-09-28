@@ -65,15 +65,22 @@ class AiInsightRequest {
   /// Local time the facts were computed for; its date is fingerprinted.
   final DateTime now;
 
+  /// A plainer second try, or null: sent once when the model declines
+  /// [facts] or returns nothing usable for them. Todo passes a counts-only
+  /// version without task titles. Not part of the fingerprint.
+  final InsightFacts? fallbackFacts;
+
   /// Purpose: Create a request.
   /// Inputs: see fields.
   /// Returns: A new `AiInsightRequest`.
   /// Side effects: None.
-  /// Notes: None.
+  /// Notes: `fallbackFacts` must carry the same module and the same slot
+  /// ids in the same order as `facts`, so the card's sections still apply.
   const AiInsightRequest({
     required this.facts,
     required this.language,
     required this.now,
+    this.fallbackFacts,
   });
 }
 
@@ -262,18 +269,7 @@ class AiInsightStore extends ChangeNotifier {
     final model = modelIdentityOf(_ai.report);
     AiInsightState next;
     try {
-      final reply = await _ai.generate(
-        instructions: insightInstructions(request.language),
-        prompt: insightPrompt(request.facts),
-        maxOutputTokens: insightMaxOutputTokens,
-        priority: force ? AiPriority.interactive : AiPriority.background,
-      );
-      final parsed = parseInsightReply(
-        reply,
-        request.facts.slots.length,
-        request.language.code,
-        quotedTerms: request.facts.quotedTerms,
-      );
+      final (facts, parsed) = await _answer(request, force);
       if (parsed.isEmpty) {
         next = AiInsightState(
           phase: AiInsightPhase.failed,
@@ -288,7 +284,7 @@ class AiInsightStore extends ChangeNotifier {
           lines: [
             for (final n in numbers) request.language.finish(parsed[n]!),
           ],
-          slots: [for (final n in numbers) request.facts.slots[n - 1].id],
+          slots: [for (final n in numbers) facts.slots[n - 1].id],
           status: AiInsightStatus.ok,
           generatedAt: _clock().toUtc(),
           model: model,
@@ -369,6 +365,57 @@ class AiInsightStore extends ChangeNotifier {
         _latest.remove(module);
       }
     }
+  }
+
+  /// Purpose: Run the model once for one facts value and parse the reply.
+  /// Inputs: `facts`, `language`, `force` — interactive priority when true.
+  /// Returns: `Future<Map<int, String>>` — slot number to sentence; empty
+  /// when nothing in the reply was usable.
+  /// Side effects: Runs the model.
+  /// Notes: Internal helper used within this file only. Throws
+  /// `GenAiException` as the service does.
+  Future<Map<int, String>> _generateParsed(
+    InsightFacts facts,
+    InsightLanguage language,
+    bool force,
+  ) async {
+    final reply = await _ai.generate(
+      instructions: insightInstructions(language),
+      prompt: insightPrompt(facts),
+      maxOutputTokens: insightMaxOutputTokens,
+      priority: force ? AiPriority.interactive : AiPriority.background,
+    );
+    return parseInsightReply(
+      reply,
+      facts.slots.length,
+      language.code,
+      quotedTerms: facts.quotedTerms,
+      asks: [for (final s in facts.slots) s.ask],
+    );
+  }
+
+  /// Purpose: Answer a request, trying its fallback facts once if needed.
+  /// Inputs: `request`, `force`.
+  /// Returns: `Future<(InsightFacts, Map<int, String>)>` — the facts that
+  /// were actually answered and the parsed reply, which may be empty.
+  /// Side effects: Runs the model once or twice.
+  /// Notes: Internal helper used within this file only. The fallback runs
+  /// when the first reply is refused (guardrail) or parses to nothing, and
+  /// only when the request carries one. A guardrail on the fallback itself
+  /// propagates, so it is cached as skipped like any other refusal.
+  Future<(InsightFacts, Map<int, String>)> _answer(
+    AiInsightRequest request,
+    bool force,
+  ) async {
+    final primary = request.facts;
+    final fallback = request.fallbackFacts;
+    try {
+      final parsed = await _generateParsed(primary, request.language, force);
+      if (parsed.isNotEmpty || fallback == null) return (primary, parsed);
+    } on GenAiException catch (e) {
+      if (e.failure != GenAiFailure.guardrail || fallback == null) rethrow;
+    }
+    return (fallback, await _generateParsed(fallback, request.language, force));
   }
 
   /// Purpose: Put an entry into the cache and persist it.

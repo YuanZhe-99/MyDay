@@ -122,13 +122,23 @@ the lines (older lines dimmed while newer ones are generated), and the label and
 ### What each card is given
 
 Facts are English `- key: value` lines computed by a pure builder, rounded so that a fingerprint
-does not change with float noise. The model is asked to answer each numbered request with one
+does not change with float noise. The model is asked to answer each numbered question with one
 sentence under 30 words in the UI language, using only the facts, with no medical, legal or
-investment advice and no invented numbers.
+investment advice and no invented numbers. The prompt is `Facts:`, the lines, `Questions:`, the
+numbered questions, and then the exact reply template (`1: <sentence>` …) — since 1.5.1, because
+a small model keeps to a shape it has just seen far better than to one described in prose.
+
+The reply parser (`parseInsightReply`) accepts `<number>: <sentence>` with `:`, `：`, `.`, `)` or
+`、` as the separator, a number alone on a line followed by its sentence, and — only when nothing
+at all is numbered — the first prose lines in order. It drops a line that merely echoes a question,
+a line over 200 characters, and a line in the wrong script. Until 1.5.1 the reply went through
+`stripMarkdown` first, which also removed `1. ` as a list marker; a reply numbered with periods
+therefore parsed to nothing and the Todo card, whose prompt invited exactly that style, showed
+*could not answer*. Bold and code marks are still removed; list markers are kept.
 
 | Card | Sent | Never sent |
 |---|---|---|
-| Todo | The date; titles of today's daily habits and one-off tasks (trimmed to 40 characters, at most 12 per line); whether each is done, carried over, overdue, and its reminder time; counts; the self-rating; tomorrow's tasks in the evening | Task notes, subtask titles |
+| Todo | The date; titles of today's daily habits and one-off tasks (trimmed to 24 characters, at most 8 per line), each open one-off task with at most one qualifier — `overdue`, `due <date>` or its reminder time; done counts; the self-rating; tomorrow's tasks in the evening. If the model declines these or answers nothing usable, a second try sends the same facts as counts only, with no titles (`fallbackFacts`). | Task notes, subtask titles |
 | Finance | Income and spending per month for this month and the three before, in the default currency; the top three spending categories this month and last; the total across accounts; subscription count, cost and the costliest names; renewals in the next 7 days | Card numbers, expiry dates, security codes, bank or account names, transaction and subscription notes |
 | Weight | Latest weight and date, height, BMI, change over 7/30/90 days, recent range, weigh-in count, body fat, bust/waist/hip carried forward, waist-to-hip ratio | Record notes |
 | Intimacy | For the last 30 days and the 30 before: counts (partnered vs solo), average rating, average timed length, climax rate, protection rate; 90-day count; days since the last entry; the user's bust/waist/hip (from Weight), underbust and estimated bra size; when the user tracks their own cycle: typical length, last start, today's estimated phase and fertile window, days to the next estimated start | Notes, locations, partner, toy and position names, thrust counts, the porn flag, genital measurements, partners' cycles |
@@ -168,8 +178,11 @@ also updates.
 meanwhile replaces the pending one, so ticking several tasks in a row costs at most one extra run,
 and a result whose facts are no longer current is discarded. A `failed`, `timeout` or unparseable
 reply is not cached and is retried only by the refresh button or by new facts, so it cannot loop;
-`busy`, `background`, `cancelled` and `unavailable` are retried on the next page build. *Clear
-generated insights* in Settings deletes the file.
+`busy`, `background`, `cancelled` and `unavailable` are retried on the next page build. A request
+may carry `fallbackFacts` (Todo does, since 1.5.1): when the model declines the primary facts
+(`guardrail`) or returns nothing usable for them, the store sends the fallback once, in the same
+run, and caches whatever it yields under the primary fingerprint; a refusal of the fallback too is
+cached as *skipped* like any other. *Clear generated insights* in Settings deletes the file.
 
 ## Android: ML Kit GenAI over AICore
 
@@ -186,6 +199,14 @@ generated insights* in Settings deletes the file.
   model" only when both sizes are served.
 - Instructions are sent as a `SystemInstruction` where the model reports `isSystemPromptAvailable`,
   and prepended to the prompt otherwise.
+- The Prompt API reports no dedicated code for content the safety filter blocked. Since 1.5.1
+  `generate` reads the candidate's `finishReason`: blank text, or `OTHER` (`-100`), is thrown as
+  `guardrail`, so the Dart side caches it as *skipped* and tries a card's `fallbackFacts` instead
+  of showing *could not answer*; `MAX_TOKENS` is logged and the truncated text returned (the
+  parser keeps whatever complete lines it has). A `REQUEST_PROCESSING_ERROR`,
+  `RESPONSE_PROCESSING_ERROR` or `RESPONSE_GENERATION_ERROR` whose message mentions *safety*,
+  *filter*, *blocked*, *guardrail* or *harmful* is also `guardrail`; any other wording stays
+  `failed`.
 - `android/app/proguard-rules.pro` carries the two keep rules that R8 needs for ML Kit, and the
   release build type lists it with `proguardFiles`.
 - `AndroidManifest.xml` has a `<queries>` entry for `com.google.android.aicore` so `info` can read

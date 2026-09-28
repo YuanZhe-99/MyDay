@@ -117,8 +117,9 @@ void main() {
       expect(text, isNot(contains('Old habit')));
       expect(text, isNot(contains('Future habit')));
       expect(text, contains('Write report'));
-      expect(text, contains('carried over since 2026-09-26'));
-      expect(text, contains("Yesterday's self-rating (-5..5): 3"));
+      expect(text, contains('Write report (15:30)'));
+      expect(text, isNot(contains('carried over')));
+      expect(text, contains("Yesterday's self-rating: 3 on a -5 to 5 scale"));
       expect(facts.slots.map((s) => s.id), ['plan', 'first', 'tip']);
     });
 
@@ -191,6 +192,49 @@ void main() {
       log.toggle(DateTime(2026, 9, 28), 'run');
       final c = build(DateTime(2026, 9, 28, 13))!.canonical();
       expect(c, isNot(a));
+    });
+
+    test('the counts-only variant carries no titles and the same slots', () {
+      final overdue = Task(
+        id: 'overdue',
+        title: 'Pay rent',
+        type: TaskType.workOnce,
+        createdDate: created,
+        scheduledDate: DateTime(2026, 9, 26),
+        dueDate: DateTime(2026, 9, 27),
+      );
+      for (final hour in [9, 13, 20]) {
+        final now = DateTime(2026, 9, 28, hour);
+        final titled = buildTodoInsightFacts(
+          now: now,
+          dailyTemplates: [run],
+          oneTimeTasks: [report, overdue, tomorrow],
+          dailyLog: log,
+          dailyScores: scores,
+        )!;
+        final plain = buildTodoInsightFacts(
+          now: now,
+          dailyTemplates: [run],
+          oneTimeTasks: [report, overdue, tomorrow],
+          dailyLog: log,
+          dailyScores: scores,
+          includeTitles: false,
+        )!;
+        final text = plain.lines.join('\n');
+        expect(text, isNot(contains('Morning run')));
+        expect(text, isNot(contains('Pay rent')));
+        expect(text, isNot(contains('Dentist')));
+        expect(text, contains('1 overdue'));
+        expect(plain.quotedTerms, isEmpty);
+        expect(
+          plain.slots.map((s) => s.id).toList(),
+          titled.slots.map((s) => s.id).toList(),
+        );
+        // The evening review lists bare titles; the other buckets qualify.
+        if (hour < 18) {
+          expect(titled.lines.join('\n'), contains('Pay rent (overdue)'));
+        }
+      }
     });
   });
 

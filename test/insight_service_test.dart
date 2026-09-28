@@ -149,7 +149,7 @@ void main() {
   });
 
   test('unusable output is a failure', () async {
-    backend.generateReplies.add('Sure! Here is my answer without numbers.');
+    backend.generateReplies.add('这一行不是英文，所以不能用。');
     await store.ensure(_request('weight 60 kg'));
     expect(store.stateOf(InsightModule.weight).phase, AiInsightPhase.failed);
     expect(saves, 0);
@@ -237,7 +237,7 @@ void main() {
     });
 
     test('drops over-long lines rather than truncating', () {
-      final parsed = parseInsightReply('1: ${'a' * 200}', 1, 'en');
+      final parsed = parseInsightReply('1: ${'a' * 240}', 1, 'en');
       expect(parsed, isEmpty);
     });
 
@@ -255,15 +255,144 @@ void main() {
       );
     });
 
-    test('the prompt lists facts then numbered requests', () {
+    test('the prompt lists facts, questions, then the reply template', () {
       final prompt = insightPrompt(_request('weight 60 kg').facts);
       expect(
         prompt,
-        'Facts:\n- weight 60 kg\nAnswer:\n1. Describe the trend.\n'
-        '2. One suggestion.\n',
+        'Facts:\n- weight 60 kg\n\nQuestions:\n1. Describe the trend.\n'
+        '2. One suggestion.\n\nReply with exactly 2 lines, one per question, '
+        'in this form:\n1: <sentence>\n2: <sentence>\n',
       );
       expect(insightInstructions(_en), contains('English'));
       expect(insightInstructions(_en), contains('never invent numbers'));
+      expect(insightInstructions(_en), contains('Do not repeat'));
+    });
+
+    test('period and bold numbering are read, not stripped as lists', () {
+      // v1.5.0 ran `stripMarkdown` first, which removed `1. ` as a list
+      // marker and left every line unnumbered.
+      final parsed = parseInsightReply(
+        '1. 今天先处理房租。\n**2.** 然后改简历。\n3) 分段完成。',
+        3,
+        'zh',
+      );
+      expect(parsed, {1: '今天先处理房租。', 2: '然后改简历。', 3: '分段完成。'});
+    });
+
+    test('a number alone on a line takes the next line as its answer', () {
+      final parsed = parseInsightReply(
+        '1:\n\nThe trend is down.\n2.\nKeep going.',
+        2,
+        'en',
+      );
+      expect(parsed, {1: 'The trend is down.', 2: 'Keep going.'});
+    });
+
+    test('unnumbered prose is taken in order only when nothing is numbered', () {
+      expect(
+        parseInsightReply(
+          'Answer:\nThe trend is down.\n\nKeep going.\nExtra line.',
+          2,
+          'en',
+        ),
+        {1: 'The trend is down.', 2: 'Keep going.'},
+      );
+      // One numbered line means the model did number; the rest is ignored.
+      expect(
+        parseInsightReply('Intro line.\n2: Keep going.', 2, 'en'),
+        {2: 'Keep going.'},
+      );
+    });
+
+    test('an echoed question is not an answer', () {
+      final parsed = parseInsightReply(
+        '1: Describe the trend.\n2: Keep going.',
+        2,
+        'en',
+        asks: const ['Describe the trend.', 'One suggestion.'],
+      );
+      expect(parsed, {2: 'Keep going.'});
+    });
+
+    test('a one-character quoted term is left in place', () {
+      // Removing "a" from every word would leave no Latin letters to check.
+      final parsed = parseInsightReply(
+        '1: Start with a, then rest.',
+        1,
+        'en',
+        quotedTerms: const ['a'],
+      );
+      expect(parsed, {1: 'Start with a, then rest.'});
+    });
+  });
+
+  group('fallback facts', () {
+    const plain = InsightFacts(
+      module: InsightModule.weight,
+      bucket: InsightTimeBucket.none,
+      lines: ['- plain'],
+      slots: [
+        InsightSlot('trend', 'Describe the trend.'),
+        InsightSlot('advice', 'One suggestion.'),
+      ],
+    );
+    AiInsightRequest withFallback() => AiInsightRequest(
+      facts: _request('weight 60 kg').facts,
+      language: _en,
+      now: DateTime(2026, 9, 28, 9),
+      fallbackFacts: plain,
+    );
+
+    test('a guardrail on the titled facts retries the plain ones', () async {
+      backend.generateReplies.addAll([
+        const GenAiException(GenAiFailure.guardrail),
+        '1: Plain answer.',
+      ]);
+      await store.ensure(withFallback());
+      final state = store.stateOf(InsightModule.weight);
+      expect(state.phase, AiInsightPhase.ready);
+      expect(state.entry!.status, AiInsightStatus.ok);
+      expect(state.entry!.lines, ['Plain answer.']);
+      expect(state.entry!.slots, ['trend']);
+      expect(generations(), 2);
+      expect(backend.calls.last, contains('- plain'));
+    });
+
+    test('an unusable reply retries the plain facts once', () async {
+      backend.generateReplies.addAll(['全是中文的回答。', '2: Plain tip.']);
+      await store.ensure(withFallback());
+      final state = store.stateOf(InsightModule.weight);
+      expect(state.phase, AiInsightPhase.ready);
+      expect(state.entry!.lines, ['Plain tip.']);
+      expect(state.entry!.slots, ['advice']);
+      expect(generations(), 2);
+    });
+
+    test('a guardrail on the plain facts too is cached as skipped', () async {
+      backend.generateReplies.addAll([
+        const GenAiException(GenAiFailure.guardrail),
+        const GenAiException(GenAiFailure.guardrail),
+      ]);
+      await store.ensure(withFallback());
+      expect(store.stateOf(InsightModule.weight).entry!.status,
+          AiInsightStatus.skipped);
+      await store.ensure(withFallback());
+      expect(generations(), 2);
+    });
+
+    test('an empty reply to the plain facts is a failure, run once', () async {
+      backend.generateReplies.addAll(['', '']);
+      await store.ensure(withFallback());
+      expect(store.stateOf(InsightModule.weight).phase, AiInsightPhase.failed);
+      await store.ensure(withFallback());
+      expect(generations(), 2);
+    });
+
+    test('without fallback facts nothing is retried', () async {
+      backend.generateReplies.add('');
+      await store.ensure(_request('weight 60 kg'));
+      expect(store.stateOf(InsightModule.weight).phase, AiInsightPhase.failed);
+      expect(generations(), 1);
     });
   });
 }

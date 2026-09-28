@@ -161,6 +161,7 @@ Not copied to the other repos — no other app has these.
 | fingerprint | 指纹 | SHA-256 over everything a cached insight depends on |
 | slot | 槽位 | one numbered answer a card asks the model for |
 | quoted term | 引用词 | user-typed words ignored by the reply script check |
+| fallback facts | 回退事实 | the plainer facts a card sends once when the model declines the titled ones |
 | regenerate | 重新生成 | the card's refresh button |
 | weak linking | 弱链接 | FoundationModels is linked with `LC_LOAD_WEAK_DYLIB` |
 

@@ -8,14 +8,14 @@ mirroring the `lib/` tree (with `.dart` replaced by `.md`).
 
 | Measure | Count |
 |---|---|
-| `grep -r '/// Purpose:' lib --include=*.dart` | **1593** |
-| Declarations-table rows across all 100 pages | **1656** |
-| — of those rows, Tier A (full entry) | 917 |
-| — of those rows, Tier B (index row only) | 739 |
+| `grep -r '/// Purpose:' lib --include=*.dart` | **1597** |
+| Declarations-table rows across all 100 pages | **1663** |
+| — of those rows, Tier A (full entry) | 920 |
+| — of those rows, Tier B (index row only) | 743 |
 
 The **Declarations** and **Tier A** columns below count **rows in each page's Declarations
 table**, which is the mechanically checkable figure. A row is not always one `/// Purpose:` block,
-and the 63-row net excess of the table count over the grep count is fully itemized — every page whose row count
+and the 66-row net excess of the table count over the grep count is fully itemized — every page whose row count
 differs from its own `grep` carries a `**Reconciliation:**` note saying exactly why. There are
 three recurring reasons:
 
@@ -57,8 +57,8 @@ drifted from the per-file rows.)
 | `lib/features/ai/services/ai_insights_cache.dart` | [features/ai/services/ai_insights_cache.md](features/ai/services/ai_insights_cache.md) | 12 | 10 |
 | `lib/features/ai/services/genai_backend.dart` | [features/ai/services/genai_backend.md](features/ai/services/genai_backend.md) | 27 | 7 |
 | `lib/features/ai/services/insight_language.dart` | [features/ai/services/insight_language.md](features/ai/services/insight_language.md) | 3 | 3 |
-| `lib/features/ai/services/insight_prompts.dart` | [features/ai/services/insight_prompts.md](features/ai/services/insight_prompts.md) | 17 | 11 |
-| `lib/features/ai/services/insight_service.dart` | [features/ai/services/insight_service.md](features/ai/services/insight_service.md) | 16 | 11 |
+| `lib/features/ai/services/insight_prompts.dart` | [features/ai/services/insight_prompts.md](features/ai/services/insight_prompts.md) | 21 | 12 |
+| `lib/features/ai/services/insight_service.dart` | [features/ai/services/insight_service.md](features/ai/services/insight_service.md) | 18 | 13 |
 | `lib/features/ai/services/on_device_ai_service.dart` | [features/ai/services/on_device_ai_service.md](features/ai/services/on_device_ai_service.md) | 26 | 9 |
 | `lib/features/ai/services/output_validation.dart` | [features/ai/services/output_validation.md](features/ai/services/output_validation.md) | 6 | 4 |
 | `lib/features/ai/widgets/ai_insight_card.dart` | [features/ai/widgets/ai_insight_card.md](features/ai/widgets/ai_insight_card.md) | 13 | 8 |
@@ -126,7 +126,7 @@ drifted from the per-file rows.)
 | `lib/features/todo/constants/emoji_keywords.dart` | [features/todo/constants/emoji_keywords.md](features/todo/constants/emoji_keywords.md) | 3 | 2 |
 | `lib/features/todo/constants/task_emojis.dart` | [features/todo/constants/task_emojis.md](features/todo/constants/task_emojis.md) | 1 | 1 |
 | `lib/features/todo/models/task.dart` | [features/todo/models/task.md](features/todo/models/task.md) | 38 | 37 |
-| `lib/features/todo/services/todo_insight_facts.dart` | [features/todo/services/todo_insight_facts.md](features/todo/services/todo_insight_facts.md) | 6 | 4 |
+| `lib/features/todo/services/todo_insight_facts.dart` | [features/todo/services/todo_insight_facts.md](features/todo/services/todo_insight_facts.md) | 7 | 4 |
 | `lib/features/todo/services/todo_storage.dart` | [features/todo/services/todo_storage.md](features/todo/services/todo_storage.md) | 47 | 46 |
 | `lib/features/todo/utils/emoji_suggester.dart` | [features/todo/utils/emoji_suggester.md](features/todo/utils/emoji_suggester.md) | 9 | 5 |
 | `lib/features/todo/views/todo_page.dart` | [features/todo/views/todo_page.md](features/todo/views/todo_page.md) | 74 | 34 |
@@ -148,7 +148,7 @@ drifted from the per-file rows.)
 ## l10n/
 
 `lib/l10n/` is already documented at [l10n/INDEX.md](l10n/INDEX.md) (generated code, not part of
-the 1593 `Purpose:` blocks and 1656 table rows above).
+the 1597 `Purpose:` blocks and 1663 table rows above).
 
 ## shared/
 
@@ -190,15 +190,16 @@ the 1593 `Purpose:` blocks and 1656 table rows above).
 |---|---|---|---|---|
 | Root (`lib/`) | 1 | 1 | 1 | 0 |
 | `app/` | 5 | 20 | 15 | 5 |
-| `features/ai/` | 9 | 126 | 65 | 61 |
+| `features/ai/` | 9 | 132 | 68 | 64 |
 | `features/finance/` | 25 | 408 | 196 | 212 |
 | `features/intimacy/` | 12 | 369 | 179 | 190 |
 | `features/settings/` | 3 | 33 | 8 | 25 |
-| `features/todo/` | 12 | 229 | 142 | 87 |
+| `features/todo/` | 12 | 230 | 142 | 88 |
 | `features/weight/` | 4 | 92 | 51 | 41 |
 | `shared/` | 29 | 378 | 260 | 118 |
-| **Total** | **100** | **1656** | **917** | **739** |
+| **Total** | **100** | **1663** | **920** | **743** |
 
-Every row here is the arithmetic sum of the per-file rows above, re-derived in v1.5.0. The file
+Every row here is the arithmetic sum of the per-file rows above, re-derived in v1.5.0 and
+adjusted for the three pages v1.5.1 touched. The file
 counts also match `find lib -name '*.dart' -not -path 'lib/l10n/*'` exactly — 100 source files, 100
 pages, no file without a page and no page without a file.

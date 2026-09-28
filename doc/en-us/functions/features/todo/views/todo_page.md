@@ -551,7 +551,7 @@ the 74 rows above (34 Tier A, 40 Tier B).
 
 ### `void _prevMonth()` <a id="prevmonth"></a>
 - **Kind:** method of `_TodoCalendarPageState`
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 1689)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 1703)
 - **Purpose:** Move the visible calendar month back by one.
 - **Inputs:** None.
 - **Returns:** None.
@@ -568,7 +568,7 @@ the 74 rows above (34 Tier A, 40 Tier B).
 
 ### `void _nextMonth()` <a id="nextmonth"></a>
 - **Kind:** method of `_TodoCalendarPageState`
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 1700)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 1714)
 - **Purpose:** Move the visible calendar month forward by one.
 - **Inputs:** None.
 - **Returns:** None.
@@ -585,7 +585,7 @@ the 74 rows above (34 Tier A, 40 Tier B).
 
 ### `void _changeYear(int delta)` <a id="changeyear"></a>
 - **Kind:** method of `_TodoCalendarPageState`
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 1711)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 1725)
 - **Purpose:** Move the visible calendar by whole years while keeping the same visible month.
 - **Inputs:** `delta` — signed year offset (the UI only ever passes `-1`/`1`).
 - **Returns:** None.
@@ -601,7 +601,7 @@ the 74 rows above (34 Tier A, 40 Tier B).
 
 ### `void _jumpToMonth(int month)` <a id="jumptomonth"></a>
 - **Kind:** method of `_TodoCalendarPageState`
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 1722)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 1736)
 - **Purpose:** Jump the visible calendar directly to a specific month within the currently visible year.
 - **Inputs:** `month` — 1-12 (Dart month numbering).
 - **Returns:** None.
@@ -615,7 +615,7 @@ the 74 rows above (34 Tier A, 40 Tier B).
 
 ### `List<MapEntry<DateTime, int>> get _monthScoreEntries` <a id="monthscoreentries"></a>
 - **Kind:** getter of `_TodoCalendarPageState`
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 1733)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 1747)
 - **Purpose:** Return every calendar day in the visible month paired with its score, treating any day with no saved score entry as zero — the single data source feeding both the score trend chart and the joyful/suffering day lists.
 - **Inputs:** None (reads `_viewMonth`, `widget.dailyScores`).
 - **Returns:** `List<MapEntry<DateTime, int>>`, one entry per day of `_viewMonth`, in day-of-month order.
@@ -634,7 +634,7 @@ the 74 rows above (34 Tier A, 40 Tier B).
 
 ### `Widget _buildScoreTrendCard(ThemeData theme, AppLocalizations l10n)` <a id="buildscoretrendcard"></a>
 - **Kind:** method of `_TodoCalendarPageState` (widget helper)
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 2019)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 2033)
 - **Purpose:** Build the monthly daily-score trend line chart, including converting the month's score entries into chart-plottable data.
 - **Inputs:** `theme`, `l10n`.
 - **Returns:** A `Card` containing an `fl_chart` `LineChart`.
@@ -654,7 +654,7 @@ the 74 rows above (34 Tier A, 40 Tier B).
 
 ### `Widget _buildScoreListsCard(ThemeData theme, AppLocalizations l10n)` <a id="buildscorelistscard"></a>
 - **Kind:** method of `_TodoCalendarPageState` (widget helper)
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 2195)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 2209)
 - **Purpose:** Filter the visible month's score entries into "joyful" and "suffering" day lists and render them as two sections.
 - **Inputs:** `theme`, `l10n`.
 - **Returns:** A `Card` containing two `_buildScoreDaySection` outputs separated by a `Divider`.
@@ -689,17 +689,23 @@ the 74 rows above (34 Tier A, 40 Tier B).
 - **Algorithm:** The `buildRequest: (language, now)` callback calls
   [`buildTodoInsightFacts`](../services/todo_insight_facts.md#buildtodoinsightfacts) with `now` and
   the four state fields above. It returns `null` when the builder returns `null` (the card then
-  shows nothing). Otherwise it returns `AiInsightRequest(facts: facts, language: language, now: now)`.
+  shows nothing). Otherwise it calls the builder a second time with the same arguments plus
+  `includeTitles: false` — the counts-only variant, `plain` — and returns
+  `AiInsightRequest(facts: facts, language: language, now: now, fallbackFacts: plain)` (v1.5.1).
 - **Usage:** `final aiCard = _isToday ? _buildAiCard() : null;` in
-  [`_buildTaskArea`](#buildtaskarea) (line 1472).
+  [`_buildTaskArea`](#buildtaskarea) (line 1486).
 - **Notes:** Only built while today is selected. The card picks plan, progress or review from the
   time bucket of `now`, not from `_selectedDate`. The facts are computed from the whole loaded state,
-  so the selected week or day does not affect them. See
+  so the selected week or day does not affect them. The fallback is the v1.5.1 answer to the card
+  returning nothing on device: when the model declines the titled facts with a guardrail or its
+  reply parses to nothing, [`AiInsightStore`](../../ai/services/insight_service.md#_answer) sends
+  the plain facts once; only the primary facts are fingerprinted, and the Finance, Weight and
+  Intimacy pages pass no fallback. See
   [On-device AI](../../../../on-device-ai.md#insight-cards).
 
 ### `Widget _buildTaskArea(ThemeData theme, AppLocalizations l10n, int columns)` <a id="buildtaskarea"></a>
 - **Kind:** method of `_TodoPageState`
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 1467)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 1481)
 - **Purpose:** Arrange the task sections either in the single scrolling column the page has always
   had, or in several independently scrolling columns side by side, with the score card (and,
   when today is selected, the on-device AI card) after the last section.
@@ -731,7 +737,7 @@ the 74 rows above (34 Tier A, 40 Tier B).
 
 ### `List<Widget> _taskSections(ThemeData theme, AppLocalizations l10n)` <a id="tasksections"></a>
 - **Kind:** method of `_TodoPageState`
-- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 1517)
+- **Source:** `lib/features/todo/views/todo_page.dart` (approx. line 1531)
 - **Purpose:** Return the three task sections in display order.
 - **Inputs:** `theme`, `l10n`.
 - **Returns:** `List<Widget>` of three sections: Daily, Routine, Work.

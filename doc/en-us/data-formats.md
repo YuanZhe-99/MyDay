@@ -235,7 +235,7 @@ generated insights* in Settings deletes it.
       "language": "zh_CN",
       "lines": ["…", "…", "…", "…"],
       "model": "stable/full · nano-v3",
-      "promptVersion": 1,
+      "promptVersion": 2,
       "slots": ["flowSummary", "flowAdvice", "subSummary", "subAdvice"],
       "status": "ok"
     }

@@ -1442,9 +1442,23 @@ class _TodoPageState extends ConsumerState<TodoPage> {
         dailyLog: _dailyLog,
         dailyScores: _dailyScores,
       );
-      return facts == null
-          ? null
-          : AiInsightRequest(facts: facts, language: language, now: now);
+      if (facts == null) return null;
+      // Second try without task titles, for a model that declines or
+      // returns nothing for the titled facts (v1.5.1).
+      final plain = buildTodoInsightFacts(
+        now: now,
+        dailyTemplates: _dailyTemplates,
+        oneTimeTasks: _oneTimeTasks,
+        dailyLog: _dailyLog,
+        dailyScores: _dailyScores,
+        includeTitles: false,
+      );
+      return AiInsightRequest(
+        facts: facts,
+        language: language,
+        now: now,
+        fallbackFacts: plain,
+      );
     },
   );
 

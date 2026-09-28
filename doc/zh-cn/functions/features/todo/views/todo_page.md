@@ -540,7 +540,7 @@
 
 ### `void _prevMonth()` <a id="prevmonth"></a>
 - **种类：** `_TodoCalendarPageState` 的方法
-- **来源：** `lib/features/todo/views/todo_page.dart`（约第 1689 行）
+- **来源：** `lib/features/todo/views/todo_page.dart`（约第 1703 行）
 - **用途：** 把可见日历月往回移一个月。
 - **输入：** 无。
 - **返回：** 无。
@@ -557,7 +557,7 @@
 
 ### `void _nextMonth()` <a id="nextmonth"></a>
 - **种类：** `_TodoCalendarPageState` 的方法
-- **来源：** `lib/features/todo/views/todo_page.dart`（约第 1700 行）
+- **来源：** `lib/features/todo/views/todo_page.dart`（约第 1714 行）
 - **用途：** 把可见日历月往前移一个月。
 - **输入：** 无。
 - **返回：** 无。
@@ -574,7 +574,7 @@
 
 ### `void _changeYear(int delta)` <a id="changeyear"></a>
 - **种类：** `_TodoCalendarPageState` 的方法
-- **来源：** `lib/features/todo/views/todo_page.dart`（约第 1711 行）
+- **来源：** `lib/features/todo/views/todo_page.dart`（约第 1725 行）
 - **用途：** 按整年移动可见日历，保持相同可见月。
 - **输入：** `delta` — 带符号年份偏移（UI 只传 `-1`/`1`）。
 - **返回：** 无。
@@ -590,7 +590,7 @@
 
 ### `void _jumpToMonth(int month)` <a id="jumptomonth"></a>
 - **种类：** `_TodoCalendarPageState` 的方法
-- **来源：** `lib/features/todo/views/todo_page.dart`（约第 1722 行）
+- **来源：** `lib/features/todo/views/todo_page.dart`（约第 1736 行）
 - **用途：** 把可见日历直接跳到当前可见年内特定月。
 - **输入：** `month` — 1-12（Dart 月份编号）。
 - **返回：** 无。
@@ -604,7 +604,7 @@
 
 ### `List<MapEntry<DateTime, int>> get _monthScoreEntries` <a id="monthscoreentries"></a>
 - **种类：** `_TodoCalendarPageState` 的 getter
-- **来源：** `lib/features/todo/views/todo_page.dart`（约第 1733 行）
+- **来源：** `lib/features/todo/views/todo_page.dart`（约第 1747 行）
 - **用途：** 返回可见月中每个日历日及其评分配对，无保存评分条目的任何日当作零——同时供评分趋势图和愉悦/煎熬日列表的单一数据源。
 - **输入：** 无（读取 `_viewMonth`、`widget.dailyScores`）。
 - **返回：** `List<MapEntry<DateTime, int>>`，`_viewMonth` 每天一个条目，按月内日顺序。
@@ -623,7 +623,7 @@
 
 ### `Widget _buildScoreTrendCard(ThemeData theme, AppLocalizations l10n)` <a id="buildscoretrendcard"></a>
 - **种类：** `_TodoCalendarPageState` 的方法（组件辅助）
-- **来源：** `lib/features/todo/views/todo_page.dart`（约第 2019 行）
+- **来源：** `lib/features/todo/views/todo_page.dart`（约第 2033 行）
 - **用途：** 构建月度每日评分趋势折线图，包括把月的评分条目转换为可绘图数据。
 - **输入：** `theme`、`l10n`。
 - **返回：** 含 `fl_chart` `LineChart` 的 `Card`。
@@ -643,7 +643,7 @@
 
 ### `Widget _buildScoreListsCard(ThemeData theme, AppLocalizations l10n)` <a id="buildscorelistscard"></a>
 - **种类：** `_TodoCalendarPageState` 的方法（组件辅助）
-- **来源：** `lib/features/todo/views/todo_page.dart`（约第 2195 行）
+- **来源：** `lib/features/todo/views/todo_page.dart`（约第 2209 行）
 - **用途：** 把可见月的评分条目过滤为"愉悦"和"煎熬"日列表并作为两个小节渲染。
 - **输入：** `theme`、`l10n`。
 - **返回：** 含被 `Divider` 分隔的两个 `_buildScoreDaySection` 输出的 `Card`。
@@ -670,13 +670,13 @@
 - **输入：** 无；卡片调用其 `buildRequest` 回调时读取 `_dailyTemplates`、`_oneTimeTasks`、`_dailyLog` 和 `_dailyScores`。
 - **返回：** `Widget`——一个 [`AiInsightCard`](../../ai/widgets/ai_insight_card.md#aiinsightcard-new)，`module: InsightModule.todo`，无 `sections`，外边距 `EdgeInsets.fromLTRB(16, 8, 16, 8)`。端侧 AI 关闭或平台不可能有模型时，卡片本身什么都不渲染。
 - **副作用：** 直接无。请求的指纹变化时，卡片可能让 `AiInsightStore` 运行模型或读取 `ai_insights.json`。
-- **算法：** `buildRequest: (language, now)` 回调用 `now` 和上述四个状态字段调用 [`buildTodoInsightFacts`](../services/todo_insight_facts.md#buildtodoinsightfacts)。构建器返回 `null` 时它返回 `null`（卡片随即什么都不显示）；否则返回 `AiInsightRequest(facts: facts, language: language, now: now)`。
-- **用法：** [`_buildTaskArea`](#buildtaskarea) 中的 `final aiCard = _isToday ? _buildAiCard() : null;`（第 1472 行）。
-- **备注：** 仅在选中今天时构建。卡片按 `now` 的时段而不是 `_selectedDate` 选择计划、进度或回顾。事实由整份已加载状态计算，因此所选的周或日不影响它们。见[端侧 AI](../../../../on-device-ai.md#insight-cards)。
+- **算法：** `buildRequest: (language, now)` 回调用 `now` 和上述四个状态字段调用 [`buildTodoInsightFacts`](../services/todo_insight_facts.md#buildtodoinsightfacts)。构建器返回 `null` 时它返回 `null`（卡片随即什么都不显示）；否则它用相同参数加 `includeTitles: false` 再调用一次构建器——只含计数的变体 `plain`——并返回 `AiInsightRequest(facts: facts, language: language, now: now, fallbackFacts: plain)`（v1.5.1）。
+- **用法：** [`_buildTaskArea`](#buildtaskarea) 中的 `final aiCard = _isToday ? _buildAiCard() : null;`（第 1486 行）。
+- **备注：** 仅在选中今天时构建。卡片按 `now` 的时段而不是 `_selectedDate` 选择计划、进度或回顾。事实由整份已加载状态计算，因此所选的周或日不影响它们。这个回退是 v1.5.1 对卡片在设备上一无所答的回应：当模型以 guardrail 拒绝带标题的事实或其回复解析为空时，[`AiInsightStore`](../../ai/services/insight_service.md#_answer) 把朴素事实发送一次；只有主事实计算指纹，财务、体重和亲密页面不传回退。见[端侧 AI](../../../../on-device-ai.md#insight-cards)。
 
 ### `Widget _buildTaskArea(ThemeData theme, AppLocalizations l10n, int columns)` <a id="buildtaskarea"></a>
 - **种类：** `_TodoPageState` 的方法
-- **来源：** `lib/features/todo/views/todo_page.dart`（约第 1467 行）
+- **来源：** `lib/features/todo/views/todo_page.dart`（约第 1481 行）
 - **用途：** 把任务分区排成页面一贯的单列滚动布局，或并排排成数个各自独立滚动的列，评分卡片（以及选中今天时的端侧 AI 卡片）跟在最后一个分区之后。
 - **输入：** `theme`、`l10n`；`columns`——由 `listColumnCount` 解析出的分区列数。
 - **返回：** `Widget`。
@@ -690,7 +690,7 @@
 
 ### `List<Widget> _taskSections(ThemeData theme, AppLocalizations l10n)` <a id="tasksections"></a>
 - **种类：** `_TodoPageState` 的方法
-- **来源：** `lib/features/todo/views/todo_page.dart`（约第 1517 行）
+- **来源：** `lib/features/todo/views/todo_page.dart`（约第 1531 行）
 - **用途：** 按显示顺序返回三个任务分区。
 - **输入：** `theme`、`l10n`。
 - **返回：** 三个分区的 `List<Widget>`：每日、日常、工作。

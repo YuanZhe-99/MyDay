@@ -7,6 +7,7 @@ import com.google.mlkit.genai.common.DownloadStatus
 import com.google.mlkit.genai.common.FeatureStatus
 import com.google.mlkit.genai.common.GenAiException
 import com.google.mlkit.genai.common.internal.GenAiUtils
+import com.google.mlkit.genai.prompt.Candidate
 import com.google.mlkit.genai.prompt.Generation
 import com.google.mlkit.genai.prompt.GenerationConfig
 import com.google.mlkit.genai.prompt.GenerativeModel
@@ -319,11 +320,15 @@ class GenAiChannel(private val activity: MainActivity) : MethodChannel.MethodCal
      * Purpose: Generate one answer from instructions and a prompt.
      * Inputs: `instructions`, `prompt`, `maxOutputTokens`, `temperature`,
      * `topK`.
-     * Returns: `String` — the first candidate's text, or empty.
+     * Returns: `String` — the first candidate's text.
      * Side effects: Runs Gemini Nano on the device.
      * Notes: Internal helper used within this file only. The instructions go
      * in as a system instruction where the model reports support for one, and
-     * are prepended to the prompt otherwise. Non-streaming, one candidate.
+     * are prepended to the prompt otherwise. Non-streaming, one candidate. A
+     * candidate whose text is blank, or whose finish reason is `OTHER`, is the
+     * on-device safety filter declining and throws [GuardrailException] so
+     * Dart sees `guardrail` rather than an empty answer (v1.5.1). `MAX_TOKENS`
+     * is logged and the truncated text returned.
      */
     private suspend fun generate(
         instructions: String,
@@ -348,7 +353,16 @@ class GenAiChannel(private val activity: MainActivity) : MethodChannel.MethodCal
             generateContentRequest(TextPart(text), configure)
         }
         val response = model.generateContent(request)
-        return response.candidates.firstOrNull()?.text.orEmpty()
+        val candidate = response.candidates.firstOrNull()
+        val text = candidate?.text.orEmpty()
+        val reason = candidate?.finishReason
+        if (reason == Candidate.FinishReason.MAX_TOKENS) {
+            Log.i(TAG, "GenAI reply hit maxOutputTokens=$maxOutputTokens")
+        }
+        if (text.isBlank() || reason == Candidate.FinishReason.OTHER) {
+            throw GuardrailException("Reply blank or filtered (finishReason=$reason)")
+        }
+        return text
     }
 
     /**
@@ -496,10 +510,13 @@ class GenAiChannel(private val activity: MainActivity) : MethodChannel.MethodCal
      * Notes: Internal helper used within this file only. Uses the library's
      * own `errorCode`, confirmed against the 1.0.0-beta4 AAR with `javap`
      * (`BACKGROUND_USE_BLOCKED = 30`, `PER_APP_BATTERY_USE_QUOTA_EXCEEDED =
-     * 27`). Anything unrecognised is `failed`.
+     * 27`). A [GuardrailException] from [generate], or a processing error whose
+     * message names the safety filter, is `guardrail`. Anything unrecognised
+     * is `failed`.
      */
     private fun codeFor(error: Throwable): String {
         val cause = if (error is ExecutionException) error.cause ?: error else error
+        if (cause is GuardrailException) return "guardrail"
         if (cause is GenAiException) {
             when (cause.errorCode) {
                 GenAiException.ErrorCode.NOT_AVAILABLE,
@@ -512,6 +529,10 @@ class GenAiChannel(private val activity: MainActivity) : MethodChannel.MethodCal
                 GenAiException.ErrorCode.CANCELLED -> return "cancelled"
                 GenAiException.ErrorCode.BACKGROUND_USE_BLOCKED -> return "background"
                 GenAiException.ErrorCode.PER_APP_BATTERY_USE_QUOTA_EXCEEDED -> return "quota"
+                GenAiException.ErrorCode.REQUEST_PROCESSING_ERROR,
+                GenAiException.ErrorCode.RESPONSE_PROCESSING_ERROR,
+                GenAiException.ErrorCode.RESPONSE_GENERATION_ERROR,
+                -> if (looksFiltered(cause.message)) return "guardrail"
             }
         }
         if (cause is IllegalStateException &&
@@ -521,6 +542,23 @@ class GenAiChannel(private val activity: MainActivity) : MethodChannel.MethodCal
         }
         return "failed"
     }
+
+    /**
+     * Purpose: Tell a safety-filter refusal from other processing errors.
+     * Inputs: `message` — the exception message.
+     * Returns: `Boolean`.
+     * Side effects: None.
+     * Notes: Internal helper used within this file only. AICore does not
+     * expose a dedicated code for filtered content; the message is the only
+     * signal, so this is a heuristic and unknown wording still maps to `failed`.
+     */
+    private fun looksFiltered(message: String?): Boolean {
+        val m = message.orEmpty().lowercase()
+        return listOf("safety", "filter", "blocked", "guardrail", "harmful").any { it in m }
+    }
+
+    /** The model produced nothing usable; mapped to the `guardrail` code. */
+    private class GuardrailException(message: String) : RuntimeException(message)
 
     companion object {
         /** The channel name, matched by `MethodChannelGenAiBackend` in Dart. */
