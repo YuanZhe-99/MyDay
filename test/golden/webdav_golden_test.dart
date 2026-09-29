@@ -1,8 +1,9 @@
 // Golden (characterization) harness for MyDay.
 //
-// Drives the REAL, unmodified `WebDAVService` / `BackupService` /
-// `ImportExportService` against an in-memory fake WebDAV server, recording the
-// exact request sequence and on-disk formats into golden files. This is PLAN
+// Drives the REAL, unmodified `WebDAVService` against an in-memory fake WebDAV
+// server, recording the exact request sequence into golden files. Scenarios the
+// shared myapps_data harness already covers byte-identically were removed in
+// v1.5.2; the six kept here are app-specific. This is PLAN
 // task P0.2: post-extraction (Phase 3), the new shared engine must reproduce
 // these identical sequences (invariants I1-I3). Re-run / re-record with:
 //   flutter test test/golden/webdav_golden_test.dart            (verify)
@@ -10,18 +11,15 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:archive/archive.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/src/client.dart' show runWithClient;
 import 'package:path/path.dart' as p;
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 
-import 'package:my_day/shared/services/backup_service.dart';
-import 'package:my_day/shared/services/import_export_service.dart';
 import 'package:my_day/shared/services/webdav_service.dart';
 
-import 'fake_webdav_server.dart';
-import 'request_recorder.dart';
+import '../../packages/myapps_data/test/golden/fake_webdav_server.dart';
+import '../../packages/myapps_data/test/golden/request_recorder.dart';
 
 /// Whether to rewrite goldens instead of verifying them.
 const bool _record =
@@ -34,15 +32,6 @@ class _FakePathProvider extends PathProviderPlatform {
   @override
   Future<String?> getApplicationDocumentsPath() async => documentsPath;
 }
-
-/// The five synced data files, in `_dataFileNames` order.
-const List<String> _dataFiles = [
-  'todo_data.json',
-  'finance_data.json',
-  'exchange_rates.json',
-  'intimacy_data.json',
-  'weight_data.json',
-];
 
 /// Fixed WebDAV config pointing at the fake server.
 WebDAVConfig _config() => const WebDAVConfig(
@@ -194,18 +183,6 @@ void main() {
       await sb.dir.delete(recursive: true);
     });
 
-    test('no-change sync (local == remote == base)', () async {
-      final sb = await newSandbox();
-      final data = _dataSet();
-      await sb.writeLocalData(data);
-      sb.seedRemote(data);
-      await sb.writeBase(data);
-      final result = await zone(sb, () => WebDAVService.sync(_config()));
-      expect(result.success, isTrue, reason: result.error);
-      await expectGolden(sb, 'sync_no_change');
-      await sb.dir.delete(recursive: true);
-    });
-
     test('local-only change (upload merged)', () async {
       final sb = await newSandbox();
       final base = _dataSet();
@@ -273,36 +250,6 @@ void main() {
       await expectGolden(sb, 'sync_remote_change');
       expect((await sb.dataFile('todo_data.json')).readAsStringSync(),
           contains('Remote Task'));
-      await sb.dir.delete(recursive: true);
-    });
-
-    test('both-changed-identical (no conflict)', () async {
-      final sb = await newSandbox();
-      final base = _dataSet();
-      // Both sides changed task-1 to the SAME content after base.
-      final both = _dataSet(overrides: {
-        'todo_data.json': const JsonEncoder.withIndent('  ').convert({
-          'dailyTemplates': [],
-          'oneTimeTasks': [
-            {
-              'id': 'task-1',
-              'title': 'Task One Renamed',
-              'type': 'routineOnce',
-              'createdDate': '2026-01-01T00:00:00.000Z',
-              'modifiedAt': '2026-01-05T00:00:00.000Z',
-            }
-          ],
-          'settingsModifiedAt': '2026-01-02T00:00:00.000Z',
-        }),
-      });
-      await sb.writeLocalData(both);
-      sb.seedRemote(both);
-      await sb.writeBase(base);
-      final result = await zone(sb, () => WebDAVService.sync(_config()));
-      expect(result.success, isTrue, reason: result.error);
-      expect(result.pending, isNull,
-          reason: 'identical content must not conflict');
-      await expectGolden(sb, 'sync_both_identical');
       await sb.dir.delete(recursive: true);
     });
 
@@ -375,55 +322,6 @@ void main() {
       await sb.dir.delete(recursive: true);
     });
 
-    test('force download', () async {
-      final sb = await newSandbox();
-      await sb.writeLocalData(_dataSet());
-      sb.seedRemote(_dataSet(overrides: {
-        'todo_data.json': const JsonEncoder.withIndent('  ').convert({
-          'dailyTemplates': [],
-          'oneTimeTasks': [
-            {
-              'id': 'task-remote',
-              'title': 'Remote Task',
-              'type': 'routineOnce',
-              'createdDate': '2026-01-01T00:00:00.000Z',
-              'modifiedAt': '2026-01-03T00:00:00.000Z',
-            }
-          ],
-          'settingsModifiedAt': '2026-01-02T00:00:00.000Z',
-        }),
-      }));
-      final result =
-          await zone(sb, () => WebDAVService.forceDownload(_config()));
-      expect(result.success, isTrue, reason: result.error);
-      await expectGolden(sb, 'force_download');
-      expect((await sb.dataFile('todo_data.json')).readAsStringSync(),
-          contains('Remote Task'));
-      await sb.dir.delete(recursive: true);
-    });
-
-    test('interrupted upload recovery (leftover local lock)', () async {
-      final sb = await newSandbox();
-      final data = _dataSet();
-      await sb.writeLocalData(data);
-      sb.seedRemote(data);
-      await sb.writeBase(data);
-      // Simulate an interrupted prior upload: dead local lock, remote lock gone.
-      final baseDir = Directory(p.join(sb.appDir, '.sync_base'));
-      await File(p.join(baseDir.path, 'upload_lock.json')).writeAsString(
-          jsonEncode({
-            'clientId': 'dead-client',
-            'token': 'dead-token',
-            'startedAt': '2026-01-01T00:00:00.000Z',
-            'updatedAt': '2026-01-01T00:00:00.000Z',
-            'ttlSeconds': 60,
-          }));
-      final result = await zone(sb, () => WebDAVService.sync(_config()));
-      expect(result.success, isTrue, reason: result.error);
-      await expectGolden(sb, 'sync_interrupted_recovery');
-      await sb.dir.delete(recursive: true);
-    });
-
     test('image add on each side (additive image sync)', () async {
       final sb = await newSandbox();
       // Local finance account references cover_local.jpg; remote intimacy
@@ -481,112 +379,4 @@ void main() {
       await sb.dir.delete(recursive: true);
     });
   });
-
-  group('backup goldens (on-disk format)', () {
-    test('v2 create bundle layout', () async {
-      final sb = await newSandbox();
-      BackupService.appDirProvider = () async => Directory(sb.appDir);
-      BackupService.autoBackupEnabled = false;
-      await sb.writeLocalData(_dataSet());
-      final imgDir = Directory(p.join(sb.appDir, 'images'));
-      await imgDir.create(recursive: true);
-      await File(p.join(imgDir.path, 'cover1.jpg')).writeAsBytes([1, 2, 3]);
-
-      final backup = await BackupService.createBackup();
-      expect(backup, isNotNull);
-      expect(await backup!.exists(), isTrue);
-
-      final bundle =
-          jsonDecode(await backup.readAsString()) as Map<String, dynamic>;
-      final blobDir = Directory(p.join(sb.appDir, 'backups', 'blobs'));
-      final blobs = await blobDir
-          .list()
-          .where((e) => e is File)
-          .map((e) => p.basename(e.path))
-          .toList();
-      blobs.sort();
-      final golden = StringBuffer()
-        ..writeln('backupFormat: ${bundle['_backupFormat']}')
-        ..writeln(
-            'topLevelKeys: ${(bundle.keys.toList()..sort()).join(',')}')
-        ..writeln('hasImageRefs: ${bundle.containsKey('_imageRefs')}')
-        ..writeln('imageRefKeys: '
-            '${((bundle['_imageRefs'] as Map?)?.keys.toList() ?? [])}')
-        ..writeln('dataIsString: '
-            '${_dataFiles.map((f) => '$f=${bundle[f] is String}').join(',')}')
-        ..writeln(
-            'blobs: ${blobs.map((b) => b.replaceAll(RegExp('[0-9a-f]{64}'), '<sha256>')).join(',')}');
-      final file = File(p.join(goldensDir.path, 'backup_v2_create.txt'));
-      final mismatch =
-          await GoldenMatcher(file, record: _record).check(golden.toString());
-      expect(mismatch, isNull, reason: mismatch);
-      BackupService.appDirProvider = null;
-      await sb.dir.delete(recursive: true);
-    });
-
-    test('corrupt bundle flagged in listBackups', () async {
-      final sb = await newSandbox();
-      BackupService.appDirProvider = () async => Directory(sb.appDir);
-      final backupDir = Directory(p.join(sb.appDir, 'backups'));
-      await backupDir.create(recursive: true);
-      await File(p.join(backupDir.path, 'backup_20260101_000000.json'))
-          .writeAsString('{corrupt not json');
-      final list = await BackupService.listBackups();
-      expect(list.single.corrupt, isTrue);
-      BackupService.appDirProvider = null;
-      await sb.dir.delete(recursive: true);
-    });
-  });
-
-  group('zip goldens', () {
-    test('export entry list', () async {
-      final sb = await newSandbox();
-      await sb.writeLocalData(_dataSet());
-      final imgDir = Directory(p.join(sb.appDir, 'images'));
-      await imgDir.create(recursive: true);
-      await File(p.join(imgDir.path, 'cover1.jpg')).writeAsBytes([1, 2, 3]);
-      final outDir = await Directory.systemTemp.createTemp('myday_zip_');
-      final zipPath = await ImportExportService.exportZIP(outDir.path);
-      expect(zipPath, isNotNull);
-      final entries = _zipEntries(File(zipPath!));
-      final file = File(p.join(goldensDir.path, 'zip_export_entries.txt'));
-      final mismatch = await GoldenMatcher(file, record: _record).check(
-          '${entries.join('\n')}\narchiveName: ${p.basename(zipPath).replaceAll(RegExp(r'\d{8}_\d{6}'), '<stamp>')}\n');
-      expect(mismatch, isNull, reason: mismatch);
-      await sb.dir.delete(recursive: true);
-      await outDir.delete(recursive: true);
-    });
-
-    test('import rejects path traversal', () async {
-      final sb = await newSandbox();
-      final zip = _buildZip({
-        '../evil.json': utf8.encode('{"dailyTemplates":[],"oneTimeTasks":[]}'),
-        'todo_data.json': utf8.encode(
-            '{"dailyTemplates":[],"oneTimeTasks":[]}'),
-      });
-      final zipFile = File(p.join(sb.dir.path, 'evil.zip'));
-      await zipFile.writeAsBytes(zip);
-      // MyDay strictly rejects unknown/traversal entries with a false result.
-      final ok = await ImportExportService.importZIP(zipFile.path);
-      expect(ok, isFalse, reason: 'MyDay must reject traversal entries');
-      await sb.dir.delete(recursive: true);
-    });
-  });
-}
-
-/// Read entry names from a ZIP file.
-List<String> _zipEntries(File zipFile) {
-  final bytes = zipFile.readAsBytesSync();
-  final archive = ZipDecoder().decodeBytes(bytes);
-  final names = archive.map((f) => f.name).toList()..sort();
-  return names;
-}
-
-/// Build a ZIP in-memory from a name->bytes map.
-List<int> _buildZip(Map<String, List<int>> files) {
-  final archive = Archive();
-  files.forEach((name, bytes) {
-    archive.addFile(ArchiveFile(name, bytes.length, bytes));
-  });
-  return ZipEncoder().encode(archive);
 }

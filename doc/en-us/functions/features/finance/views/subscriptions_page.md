@@ -75,7 +75,7 @@ functions of `subscription_summary.dart`, and `_buildLeading` with its two neste
 
 ### `List<Subscription> get _active` <a id="_active"></a>
 - **Kind:** getter of `_SubscriptionsPageState`
-- **Source:** `lib/features/finance/views/subscriptions_page.dart` (line 96)
+- **Source:** `lib/features/finance/views/subscriptions_page.dart` (line 99)
 - **Purpose:** Return the currently active subscriptions, sorted according to the selected sort mode.
 - **Inputs:** None (reads `_subscriptions`, `_sortMode`, `_customOrder`).
 - **Returns:** `List<Subscription>`.
@@ -91,7 +91,7 @@ functions of `subscription_summary.dart`, and `_buildLeading` with its two neste
 
 ### `List<Subscription> get _historical` <a id="_historical"></a>
 - **Kind:** getter of `_SubscriptionsPageState`
-- **Source:** `lib/features/finance/views/subscriptions_page.dart` (line 107)
+- **Source:** `lib/features/finance/views/subscriptions_page.dart` (line 110)
 - **Purpose:** Return the subscriptions that are no longer active (fully cancelled or expired), for
   the "Historical" list section.
 - **Inputs:** None (reads `_subscriptions`).
@@ -99,14 +99,14 @@ functions of `subscription_summary.dart`, and `_buildLeading` with its two neste
 - **Side effects:** None.
 - **Algorithm:** `_subscriptions.where((s) => !s.isActive).toList()` — unlike `_active`, no sort mode
   is applied; historical subscriptions keep `_subscriptions`' own order.
-- **Usage:** `final historical = _historical;` (`build`, line 679).
+- **Usage:** `final historical = _historical;` (`build`, line 676).
 - **Notes:** This is the getter that determines which subscriptions show a "Restore" action instead
-  of "Cancel" in the tile's swipe/long-press menus (see `build`, lines 983-1045) — the `isActive` split
+  of "Cancel" in the tile's swipe/long-press menus (see `build`, lines 980-1042) — the `isActive` split
   here is the same boundary `_restoreSubscription` dispatches on.
 
 ### `void _onSortModeChanged(String mode)` <a id="_onsortmodechanged"></a>
 - **Kind:** method of `_SubscriptionsPageState`
-- **Source:** `lib/features/finance/views/subscriptions_page.dart` (line 149)
+- **Source:** `lib/features/finance/views/subscriptions_page.dart` (line 118)
 - **Purpose:** Switch the active sort mode and, the first time the user enters custom mode with no
   existing custom order, seed one from the current active list.
 - **Inputs:** `mode` — one of `'nextRenewal'`, `'name'`, `'custom'`.
@@ -119,14 +119,14 @@ functions of `subscription_summary.dart`, and `_buildLeading` with its two neste
      active subscriptions (in their current display order).
   2. Call `widget.onSortChanged(_sortMode, _sortMode == 'custom' ? _customOrder : null)` to persist
      the choice.
-- **Usage:** `onSelected: _onSortModeChanged` (`build`, line 699, the sort `PopupMenuButton`).
+- **Usage:** `onSelected: _onSortModeChanged` (`build`, line 696, the sort `PopupMenuButton`).
 - **Notes:** Re-entering custom mode after it already has a `_customOrder` does *not* reseed it —
   the existing order (including any subscriptions added/removed since) is kept, so switching sort
   modes back and forth doesn't lose a previously arranged custom order.
 
 ### `void _insertNewSubscription(({Subscription sub, bool importHistory}) result)` <a id="_insertnewsubscription"></a>
 - **Kind:** method of `_SubscriptionsPageState`
-- **Source:** `lib/features/finance/views/subscriptions_page.dart` (line 254)
+- **Source:** `lib/features/finance/views/subscriptions_page.dart` (line 159)
 - **Purpose:** Insert a newly created (or copy-restored) subscription, computing its initial
   `nextBillingDate` so the very next processor run bills correctly, and optionally import its billing
   history as transactions.
@@ -143,15 +143,17 @@ functions of `subscription_summary.dart`, and `_buildLeading` with its two neste
      [`tempSub.calculateNextBillingDate`](../models/finance.md#calculatenextbillingdate): if
      `result.importHistory` is true, `after: today` (first billing date strictly after today, since
      today's — and all earlier — billing days will be backfilled as transactions separately); if not
-     importing history, `after: today - 1 day` (first billing date on/after today, since the processor
-     itself will catch today's billing on its next run rather than this method backfilling it).
+     importing history, `after: addCalendarDays(today, -1)` (first billing date on/after today, since
+     the processor itself will catch today's billing on its next run rather than this method
+     backfilling it). Since v1.5.2 "yesterday" is a calendar-day step rather than
+     `today.subtract(const Duration(days: 1))`, so it stays on local midnight across a DST change.
   3. Build the final `sub` with that `nextBillingDate` baked in, `setState` to append it to
      `_subscriptions` (and `_customOrder` if `_sortMode == 'custom'`), then notify
      `widget.onSubscriptionsChanged` (and `widget.onSortChanged` if applicable).
   4. If `result.importHistory`, call `_importHistoricalTransactions(sub)`.
-- **Usage:** `_insertNewSubscription(result);` (`_addSubscription`, line 245, and
-  `_copyRestoreSubscription`, line 440 — both dialog flows funnel into this one insertion path).
-- **Notes:** The `after: today` vs. `after: today - 1 day` distinction in step 2 is what prevents a
+- **Usage:** `_insertNewSubscription(result);` (`_addSubscription`, line 150, and
+  `_copyRestoreSubscription`, line 343 — both dialog flows funnel into this one insertion path).
+- **Notes:** The `after: today` vs. `after: addCalendarDays(today, -1)` distinction in step 2 is what prevents a
   history-importing add from double-billing today: importing already generates a transaction for
   today's billing day (if due), so `nextBillingDate` must skip past it; a non-importing add leaves
   today's billing for the regular `SubscriptionProcessor` catch-up to generate — see
@@ -159,7 +161,7 @@ functions of `subscription_summary.dart`, and `_buildLeading` with its two neste
 
 ### `Future<void> _editSubscription(Subscription sub)` <a id="_editsubscription"></a>
 - **Kind:** async method of `_SubscriptionsPageState`
-- **Source:** `lib/features/finance/views/subscriptions_page.dart` (line 315)
+- **Source:** `lib/features/finance/views/subscriptions_page.dart` (line 218)
 - **Purpose:** Open the edit dialog for an existing subscription and, on save, recompute
   `nextBillingDate` only if a billing-relevant parameter actually changed, otherwise preserve it.
 - **Inputs:** `sub` — the subscription being edited.
@@ -171,13 +173,14 @@ functions of `subscription_summary.dart`, and `_buildLeading` with its two neste
   2. If a result came back, determine `billingChanged` — `true` if `startDate`, `trialDays`,
      `billingCycleType`, or `billingInterval` differ from the original `sub`.
   3. If `billingChanged`: build a `tempSub` from the *new* billing parameters and recompute `nbd` via
-     `calculateNextBillingDate(after: today - 1 day)` (same "on/after today" anchor as a fresh add).
+     `calculateNextBillingDate(after: addCalendarDays(today, -1))` (same "on/after today" anchor as a
+     fresh add; calendar-day arithmetic since v1.5.2).
      Otherwise: keep `nbd = sub.nextBillingDate` unchanged.
   4. Build the `edited` subscription preserving `isActive`/`cancelledAt`/`cancelType` from the
      dialog's result (so cancellation state set elsewhere isn't clobbered by an edit) plus the
      resolved `nbd`; `setState` to replace it by matching `id` in `_subscriptions`; notify
      `widget.onSubscriptionsChanged`.
-- **Usage:** `onEdit: () => _editSubscription(sub)` (`build`, lines 963 and 1029, wired to both the
+- **Usage:** `onEdit: () => _editSubscription(sub)` (`build`, lines 856 and 924, wired to both the
   active and historical tile's edit action).
 - **Notes:** Recomputing `nextBillingDate` only when billing parameters changed (rather than on every
   edit) avoids silently resetting a subscription's billing cursor just because the user edited an
@@ -185,7 +188,7 @@ functions of `subscription_summary.dart`, and `_buildLeading` with its two neste
 
 ### `Future<void> _restoreSubscription(Subscription sub)` <a id="_restoresubscription"></a>
 - **Kind:** async method of `_SubscriptionsPageState`
-- **Source:** `lib/features/finance/views/subscriptions_page.dart` (line 384)
+- **Source:** `lib/features/finance/views/subscriptions_page.dart` (line 287)
 - **Purpose:** Restore a subscription, dispatching to the correct restore path based on its current
   cancellation state — this is the entry point for the "Restore" action on both active
   (pending-at-expiry) and historical (fully cancelled/expired) subscriptions.
@@ -201,8 +204,8 @@ functions of `subscription_summary.dart`, and `_buildLeading` with its two neste
      wired to it in `build` in the first place — `onRestore` is only passed when
      `cancelType == CancelType.atExpiry` for active tiles, or unconditionally for historical tiles.)
 - **Usage:** `onRestore: sub.cancelType == CancelType.atExpiry ? () { _restoreSubscription(sub); } :
-  null` (`build`, lines 965-969, active tiles) and `onRestore: () { _restoreSubscription(sub); }`
-  (`build`, line 1030, historical tiles).
+  null` (`build`, lines 962-966, active tiles) and `onRestore: () { _restoreSubscription(sub); }`
+  (`build`, line 1027, historical tiles).
 - **Notes:** This method is the dispatcher for exactly the two restore behaviors described in
   [Finance](../../../../features/finance.md#views-and-analysis-page): "a pending at-expiry
   cancellation can be restored in place, while an expired or fully-cancelled subscription restores by
@@ -210,7 +213,7 @@ functions of `subscription_summary.dart`, and `_buildLeading` with its two neste
 
 ### `void _undoAtExpiryCancellation(Subscription sub)` <a id="_undoatexpirycancellation"></a>
 - **Kind:** method of `_SubscriptionsPageState`
-- **Source:** `lib/features/finance/views/subscriptions_page.dart` (line 399)
+- **Source:** `lib/features/finance/views/subscriptions_page.dart` (line 302)
 - **Purpose:** Undo a pending at-expiry cancellation in place, without changing the subscription's
   identity (same `id`), reactivating it as an ordinary billing subscription.
 - **Inputs:** `sub` — must currently be `isActive == true` with `cancelType == CancelType.atExpiry`
@@ -223,7 +226,7 @@ functions of `subscription_summary.dart`, and `_buildLeading` with its two neste
   unset) and `nextBillingDate: sub.nextBillingDate ?? _nextBillingDateFromToday(sub)` (falls back to a
   freshly computed date if the field was somehow unset); `setState` to overwrite the matching entry by
   `id`; notify `widget.onSubscriptionsChanged`.
-- **Usage:** `_undoAtExpiryCancellation(sub);` (`_restoreSubscription`, line 386 — the only call
+- **Usage:** `_undoAtExpiryCancellation(sub);` (`_restoreSubscription`, line 383 — the only call
   site).
 - **Notes:** This is equivalent to simply removing the scheduled cancellation marker — the
   subscription keeps its original `id`/`startDate`/history, which is the key difference from
@@ -231,7 +234,7 @@ functions of `subscription_summary.dart`, and `_buildLeading` with its two neste
 
 ### `Future<void> _copyRestoreSubscription(Subscription sub)` <a id="_copyrestoresubscription"></a>
 - **Kind:** async method of `_SubscriptionsPageState`
-- **Source:** `lib/features/finance/views/subscriptions_page.dart` (line 429)
+- **Source:** `lib/features/finance/views/subscriptions_page.dart` (line 332)
 - **Purpose:** Restore a fully historical (inactive) subscription by opening the edit dialog
   pre-filled from its settings and, on confirmation, inserting the result as a **brand-new** active
   subscription — the source subscription itself is left untouched.
@@ -241,7 +244,7 @@ functions of `subscription_summary.dart`, and `_buildLeading` with its two neste
   `_insertNewSubscription` (which appends a new entry and notifies callbacks).
 - **Algorithm:** `await showDialog` with `AddSubscriptionDialog(subscription: sub, restoreAsCopy:
   true, ...)`; if the dialog returns a result, call `_insertNewSubscription(result)`.
-- **Usage:** `await _copyRestoreSubscription(sub);` (`_restoreSubscription`, line 390 — the only call
+- **Usage:** `await _copyRestoreSubscription(sub);` (`_restoreSubscription`, line 387 — the only call
   site).
 - **Notes:** `restoreAsCopy: true` is a flag passed to `AddSubscriptionDialog` (not shown in this
   file) that presumably pre-fills the form with `sub`'s values while letting `AddSubscriptionDialog`
@@ -251,7 +254,7 @@ functions of `subscription_summary.dart`, and `_buildLeading` with its two neste
 
 ### `DateTime? _nextBillingDateFromToday(Subscription sub)` <a id="_nextbillingdatefromtoday"></a>
 - **Kind:** method of `_SubscriptionsPageState`
-- **Source:** `lib/features/finance/views/subscriptions_page.dart` (line 449)
+- **Source:** `lib/features/finance/views/subscriptions_page.dart` (line 352)
 - **Purpose:** Compute the first billing date on or after today, used as a fallback when a
   subscription being reactivated lacks a persisted `nextBillingDate`.
 - **Inputs:** `sub`.
@@ -260,10 +263,11 @@ functions of `subscription_summary.dart`, and `_buildLeading` with its two neste
   (e.g. an `atExpiry`-cancelled subscription past its cutoff — not expected to apply here since the
   caller only reaches this after clearing cancellation).
 - **Side effects:** None.
-- **Algorithm:** `sub.calculateNextBillingDate(after: today - 1 day)` — the "on/after today" anchor
-  pattern used consistently across this file's billing-date recomputation call sites.
+- **Algorithm:** `sub.calculateNextBillingDate(after: addCalendarDays(today, -1))`, where `today` is
+  local midnight — the "on/after today" anchor pattern used consistently across this file's
+  billing-date recomputation call sites (all three use `addCalendarDays` since v1.5.2).
 - **Usage:** `nextBillingDate: sub.nextBillingDate ?? _nextBillingDateFromToday(sub)`
-  (`_undoAtExpiryCancellation`, line 415 — the only call site).
+  (`_undoAtExpiryCancellation`, line 318 — the only call site).
 - **Notes:** This mirrors the "migration case" in
   [`SubscriptionProcessor.process`](../../../../algorithms/subscription-billing.md#hourly-renewal-catch-up-and-multi-cycle-catch-up)
   (computing a `nextBillingDate` once for a subscription that predates the field being persisted), but
@@ -271,7 +275,7 @@ functions of `subscription_summary.dart`, and `_buildLeading` with its two neste
 
 ### `void _deleteSubscription(Subscription sub)` <a id="_deletesubscription"></a>
 - **Kind:** method of `_SubscriptionsPageState`
-- **Source:** `lib/features/finance/views/subscriptions_page.dart` (line 462)
+- **Source:** `lib/features/finance/views/subscriptions_page.dart` (line 363)
 - **Purpose:** Permanently remove a subscription (active or historical) and keep the custom sort
   order consistent by also removing its id from there.
 - **Inputs:** `sub`.
@@ -282,7 +286,7 @@ functions of `subscription_summary.dart`, and `_buildLeading` with its two neste
   `_customOrder.remove(sub.id)`; then notify `widget.onSubscriptionsChanged(_subscriptions)`, and if
   `_sortMode == 'custom'`, also `widget.onSortChanged(_sortMode, _customOrder)`.
 - **Usage:** Always gated behind `confirmDelete(context, l10n.financeThisSubscription)` at the call
-  site, e.g. `if (confirmed == true) { _deleteSubscription(sub); }` (`build`, lines 975-977 and
+  site, e.g. `if (confirmed == true) { _deleteSubscription(sub); }` (`build`, lines 972-974 and
   998-1001, active and historical `Dismissible.confirmDismiss`/`onDelete`).
 - **Notes:** No transactions previously generated from this subscription are deleted or
   unlinked — only the subscription record and its custom-order entry are removed; a deleted
@@ -291,7 +295,7 @@ functions of `subscription_summary.dart`, and `_buildLeading` with its two neste
 
 ### `void _doCancelSubscription(Subscription sub, CancelType type)` <a id="_docancelsubscription"></a>
 - **Kind:** method of `_SubscriptionsPageState`
-- **Source:** `lib/features/finance/views/subscriptions_page.dart` (line 511)
+- **Source:** `lib/features/finance/views/subscriptions_page.dart` (line 412)
 - **Purpose:** Apply the chosen cancellation type to a subscription — the actual state transition
   behind both the "Cancel immediately" and "Cancel at expiry" choices.
 - **Inputs:** `sub`; `type` — `CancelType.immediate` or `CancelType.atExpiry`.
@@ -316,7 +320,7 @@ functions of `subscription_summary.dart`, and `_buildLeading` with its two neste
     },
   ),
   ```
-  (`_cancelSubscription`, lines 484-491, alongside an identical `atExpiry` `ListTile`, lines 492-499.)
+  (`_cancelSubscription`, lines 481-488, alongside an identical `atExpiry` `ListTile`, lines 489-496.)
 - **Notes:** `isActive: type == CancelType.atExpiry` is the crux of the whole cancel/restore state
   machine: an `atExpiry` cancellation is deliberately left "active" (so it keeps appearing and keeps
   billing) until `SubscriptionProcessor` later flips it inactive at the cutoff, whereas `immediate`
@@ -326,7 +330,7 @@ functions of `subscription_summary.dart`, and `_buildLeading` with its two neste
 
 ### `void _importHistoricalTransactions(Subscription sub)` <a id="_importhistoricaltransactions"></a>
 - **Kind:** method of `_SubscriptionsPageState`
-- **Source:** `lib/features/finance/views/subscriptions_page.dart` (line 543)
+- **Source:** `lib/features/finance/views/subscriptions_page.dart` (line 444)
 - **Purpose:** Generate transactions for every billing day a newly added subscription would have
   already incurred (from its `startDate`/anchor up to today), without duplicating any billing day that
   already has a matching transaction.
@@ -348,7 +352,7 @@ functions of `subscription_summary.dart`, and `_buildLeading` with its two neste
      [`SubscriptionProcessor.transactionIdForBilling`](../services/subscription_processor.md#transactionidforbilling).
   4. If any new transactions were built, `setState(() => _transactions.addAll(newTxs))` and notify
      `widget.onTransactionsChanged`.
-- **Usage:** `_importHistoricalTransactions(sub);` (`_insertNewSubscription`, line 306, only when
+- **Usage:** `_importHistoricalTransactions(sub);` (`_insertNewSubscription`, line 305, only when
   `result.importHistory` is true).
 - **Notes:** By reusing `SubscriptionProcessor`'s exact key/id scheme (see
   [Subscription Billing](../../../../algorithms/subscription-billing.md#idempotent-billing-day-generation)),
@@ -358,7 +362,7 @@ functions of `subscription_summary.dart`, and `_buildLeading` with its two neste
 
 ### `Widget _buildReorderBody(ThemeData theme, AppLocalizations l10n, List<Subscription> active)` <a id="_buildreorderbody"></a>
 - **Kind:** method of `_SubscriptionsPageState`
-- **Source:** `lib/features/finance/views/subscriptions_page.dart` (line 630)
+- **Source:** `lib/features/finance/views/subscriptions_page.dart` (line 506)
 - **Purpose:** Render the drag-to-reorder list shown while `_reordering` is true, and persist the
   new custom order as soon as an item is dropped.
 - **Inputs:** `theme`; `l10n`; `active` — the active subscriptions in their current custom order.
@@ -381,7 +385,7 @@ functions of `subscription_summary.dart`, and `_buildLeading` with its two neste
 
 ### `Widget build(BuildContext context)` <a id="build"></a>
 - **Kind:** method override of `_SubscriptionTile` (a `StatelessWidget`)
-- **Source:** `lib/features/finance/views/subscriptions_page.dart` (line 1197)
+- **Source:** `lib/features/finance/views/subscriptions_page.dart` (line 1093)
 - **Purpose:** Render one subscription's list row, computing every status label (category, account,
   billing cycle, next-billing/expiry date, cancellation date) from the subscription's *current* state
   before laying out the `ListTile`.
@@ -419,7 +423,7 @@ functions of `subscription_summary.dart`, and `_buildLeading` with its two neste
     onDelete: () async { /* confirmDelete then _deleteSubscription(sub) */ },
   )
   ```
-  (`_SubscriptionsPageState.build`, lines 957-979, wrapped in a `Dismissible` for swipe actions.)
+  (`_SubscriptionsPageState.build`, lines 954-976, wrapped in a `Dismissible` for swipe actions.)
 - **Notes:** Steps 3-4 are where the cancel/restore state machine becomes user-visible: an
   at-expiry-cancelled subscription that is still technically `isActive` shows an "Expiry date" label
   (not "Next billing"), which is the tile-level signal that distinguishes it from an ordinary active

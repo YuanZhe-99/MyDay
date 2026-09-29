@@ -39,7 +39,7 @@
 
 ### 财务：`migrateFinanceForcedBalances(data)` 和 `buildFinanceModule()` <a id="financemigration"></a>
 - **用途：** 用当前汇率把旧强制账户余额转换为真实交易。
-- **备注：** 从 `WebDAVService._migrateFinanceForcedBalances` 逐字移来。它作为模块的 `postMergeTransform` 接线，因为那正是它先前运行的位置：**在**合并**之后**和**在**冲突解决**之后**，在常规同步和最终化两条路径上。它不是合并前的远程迁移。财务也从其 `accounts` 和 `subscriptions` 小节贡献引用图像。
+- **备注：** 从 `WebDAVService._migrateFinanceForcedBalances` 逐字移来。它作为模块的 `postMergeTransform` 接线，因为那正是它先前运行的位置：**在**合并**之后**和**在**冲突解决**之后**，在常规同步和最终化两条路径上。它不是合并前的远程迁移。自 v1.5.2 起，当 `needsForcedBalanceMigration(data.accounts)` 为 false 时，它直接原样返回数据，不读取 `exchange_rates.json`；否则无法读取的汇率文件会以 `ExchangeRateStorageException` 抛出。财务也从其 `accounts` 和 `subscriptions` 小节贡献引用图像。
 
 ### 汇率 <a id="exchangerates"></a>
 - **备注：** 直接构建而不是经结构化构建器。`mergeExchangeRateJson` 是永远不可能产生记录冲突的整文件并集合并，因此结果总是完整的，没有解决构建器。它是唯一报告索引上传进度的模块。

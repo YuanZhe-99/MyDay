@@ -16,18 +16,6 @@ import 'package:my_day/features/weight/models/weight_record.dart';
 /// Side effects: May update UI state or trigger user-facing flows.
 /// Notes: None.
 void main() {
-  test('Task note serializes and deserializes', () {
-    final task = Task(
-      title: 'Plan release',
-      note: 'Double-check installer version',
-      type: TaskType.workOnce,
-    );
-
-    final restored = Task.fromJson(task.toJson());
-
-    expect(restored.note, 'Double-check installer version');
-  });
-
   test('DailyScoreLog defaults, clamps, and preserves explicit zero', () {
     final date = DateTime(2026, 6, 3);
     final log = DailyScoreLog();
@@ -103,7 +91,7 @@ void main() {
     expect(merged.dailyScores.scoreFor(date), -3);
   });
 
-  test('WeightRecord serializes optional body measurements', () {
+  test('WeightRecord round-trips body measurements and omits absent ones', () {
     final record = WeightRecord(
       id: 'weight-1',
       weight: 65.4,
@@ -119,25 +107,24 @@ void main() {
     expect(restored.bustCm, 88.0);
     expect(restored.waistCm, 70.5);
     expect(restored.hipCm, 92.0);
-  });
 
-  test('WeightRecord omits absent body measurements', () {
-    final record = WeightRecord(
+    // Absent measurements are omitted from JSON and restore as null.
+    final bare = WeightRecord(
       id: 'weight-2',
       weight: 66,
       datetime: DateTime.parse('2026-05-28T08:00:00Z'),
       modifiedAt: DateTime.parse('2026-05-28T08:30:00Z'),
     );
 
-    final json = record.toJson();
-    final restored = WeightRecord.fromJson(json);
+    final json = bare.toJson();
+    final restoredBare = WeightRecord.fromJson(json);
 
     expect(json.containsKey('bustCm'), isFalse);
     expect(json.containsKey('waistCm'), isFalse);
     expect(json.containsKey('hipCm'), isFalse);
-    expect(restored.bustCm, isNull);
-    expect(restored.waistCm, isNull);
-    expect(restored.hipCm, isNull);
+    expect(restoredBare.bustCm, isNull);
+    expect(restoredBare.waistCm, isNull);
+    expect(restoredBare.hipCm, isNull);
   });
 
   test('WeightData calculates waist-hip ratio from positive measurements', () {

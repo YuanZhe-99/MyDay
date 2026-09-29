@@ -102,10 +102,13 @@ class ImageService {
   /// Inputs: `url`, `minBytes`.
   /// Returns: `Future<String?>`.
   /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: None.
+  /// Notes: The request times out after 15 seconds and then returns null.
   static Future<String?> downloadAndSave(String url, {int minBytes = 500}) async {
     try {
-      final response = await http.get(Uri.parse(url));
+      // A stalled server must not leave the caller waiting forever.
+      final response = await http
+          .get(Uri.parse(url))
+          .timeout(const Duration(seconds: 15));
       if (response.statusCode != 200) return null;
       if (response.bodyBytes.length < minBytes) return null;
 

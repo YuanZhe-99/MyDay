@@ -205,9 +205,7 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
   Future<void> _setKeepScreenAwake(bool enabled) async {
     setState(() => _keepScreenAwake = enabled);
     await _applyWakelock();
-    final config = await TodoStorage.readConfig();
-    config[_keepScreenAwakeConfigKey] = enabled;
-    await TodoStorage.writeConfig(config);
+    await TodoStorage.writeConfig({_keepScreenAwakeConfigKey: enabled});
   }
 
   /// Purpose: Apply the current wakelock preference while this page is visible.

@@ -58,7 +58,7 @@ the tiering rule's explicit services/IO bucket.
     await ExchangeRateStorage.save(withTimestamp);
   }
   ```
-  (`lib/features/finance/views/exchange_rates_page.dart:70-77`, `_fetchOnline`, which stamps
+  (`lib/features/finance/views/exchange_rates_page.dart:86-93`, `_fetchOnline`, which stamps
   `lastFetchedAt` after a successful merge so [`shouldFetchToday`](#shouldfetchtoday) won't re-fetch
   again the same day.)
 - **Notes:** A pair whose base currency's fetch failed (or whose target currency isn't in the
@@ -102,7 +102,7 @@ the tiering rule's explicit services/IO bucket.
     await _fetchOnline();
   }
   ```
-  (`lib/features/finance/views/exchange_rates_page.dart:57-59`, run once right after the exchange
+  (`lib/features/finance/views/exchange_rates_page.dart:73-75`, run once right after the exchange
   rates page loads its data.)
 - **Notes:** Uses local calendar-day comparison, not a rolling 24-hour window — a fetch just before
   midnight and another just after midnight both count as "different days" even if less than a

@@ -5,7 +5,10 @@ immutable `RateSnapshot`s plus a `currentSnapshotId` pointer, rather than a sing
 currency-pair map — this is what lets `Transaction.rateSnapshotId` reconstruct the exact rate that
 was in effect when a historical transaction was recorded (see
 [`ratesAt`](#ratesat) and [`balance_util.dart`](balance_util.md)'s `_accountTransactionDelta`).
-`load()` transparently migrates an older flat-map file format into the first snapshot. See
+`load()` transparently migrates an older flat-map file format into the first snapshot. Since
+v1.5.2 an existing file that cannot be read or parsed raises
+[`ExchangeRateStorageException`](#exchangeratestorageexception-new) instead of silently falling
+back to default rates, and [`_saveNow`](#savenow) refuses to overwrite such a file. See
 [Finance](../../../../features/finance.md#exchange-rates) for the feature-level overview and
 [`ExchangeRateApi`](exchange_rate_api.md) for the live-fetch client that calls
 [`updateRates`](#updaterates).
@@ -22,23 +25,26 @@ was in effect when a historical transaction was recorded (see
 | [`ratesAt`](#ratesat) | method (`ExchangeRateData`) | A | Rates for a specific historical snapshot, falling back to current. |
 | [`toJson`](#exchangeratedata-tojson) | method (`ExchangeRateData`) | A | Serialize exchange-rate data to JSON. |
 | [`ExchangeRateData.fromJson`](#exchangeratedata-fromjson) | factory constructor (`ExchangeRateData`) | A | Parse exchange-rate data from JSON. |
+| [`ExchangeRateStorageException()`](#exchangeratestorageexception-new) | const constructor (`ExchangeRateStorageException`) | A | Create the exception raised when `exchange_rates.json` exists but cannot be read or parsed (v1.5.2). |
+| [`toString`](#exchangeratestorageexception-tostring) | method (`ExchangeRateStorageException`) | A | Return the readable exception message. |
 | [`_getFile`](#getfile) | static method (`ExchangeRateStorage`) | A | Resolve the on-disk path of `exchange_rates.json`. |
-| [`load`](#load) | static method (`ExchangeRateStorage`) | A | Load, parse, and migrate `exchange_rates.json`. |
+| [`load`](#load) | static method (`ExchangeRateStorage`) | A | Load, parse, and migrate `exchange_rates.json`; throw on an unreadable existing file. |
 | [`save`](#save) | static method (`ExchangeRateStorage`) | A | Queue a write of exchange-rate data, serialized against concurrent saves. |
-| [`_saveNow`](#savenow) | static method (`ExchangeRateStorage`) | A | Perform one preserved, validated, atomic write. |
+| [`_saveNow`](#savenow) | static method (`ExchangeRateStorage`) | A | Perform one preserved, validated, atomic write; refuse to overwrite an unparseable file. |
 | [`updateRates`](#updaterates) | static method (`ExchangeRateStorage`) | A | Create a new snapshot only if rates actually changed. |
 | [`_ratesEqual`](#ratesequal) | static method (`ExchangeRateStorage`) | A | Compare two rate maps for exact equality. |
 | [`_defaultData`](#defaultdata) | static method (`ExchangeRateStorage`) | A | Build the built-in default exchange-rate data. |
 | [`_createInitialData`](#createinitialdata) | static method (`ExchangeRateStorage`) | A | Wrap a flat rate map as the first snapshot. |
 
 **Reconciliation:** `grep -c 'Purpose:' lib/features/finance/services/exchange_rate_storage.dart`
-returns 16, matching the 16 rows above exactly — each block sits immediately above its real
-declaration (constructor, factory constructor, getter, or static method); none were found
+returns 18, matching the 18 rows above exactly — each block sits immediately above its real
+declaration (constructor, factory constructor, getter, method, or static method); none were found
 misattached above a call-site statement. The remaining plain fields in the file (`_fileName`,
-`_writeQueue`, `_defaultRates`) carry no `/// Purpose:` block, consistent with this codebase's
+`_writeQueue`, `_defaultRates`, and `ExchangeRateStorageException.message`) carry no `/// Purpose:` block, consistent with this codebase's
 convention of documenting callable members rather than plain data, and none of them constitute an
-undocumented callable declaration. All 16 documented declarations are classified Tier A: the model
-constructors/serialization pairs match the tiering rule's explicit Tier A bucket, and every
+undocumented callable declaration. All 18 documented declarations are classified Tier A: the model
+constructors/serialization pairs match the tiering rule's explicit Tier A bucket, the
+`ExchangeRateStorageException` pair is the error type every rates reader must handle, and every
 `ExchangeRateStorage` static method performs real IO, branching, or loop logic (including
 `currentRates`/`ratesAt`, whose one-line map lookups feed every currency conversion in the feature
 via `balance_util.dart`, and `_defaultData`, whose default rates are the fallback every fresh
@@ -59,7 +65,7 @@ install starts from).
   ```dart
   final snapshot = RateSnapshot(rates: Map.unmodifiable(newRates));
   ```
-  (`lib/features/finance/services/exchange_rate_storage.dart:215`, inside
+  (`lib/features/finance/services/exchange_rate_storage.dart:260`, inside
   [`updateRates`](#updaterates); also used by [`_createInitialData`](#createinitialdata) to wrap a
   flat rate map as the first snapshot.)
 - **Notes:** `updateRates` always passes an unmodifiable rate map, guarding against accidental
@@ -112,7 +118,7 @@ install starts from).
   );
   await ExchangeRateStorage.save(withTimestamp);
   ```
-  (`lib/features/finance/views/exchange_rates_page.dart:72-77`, stamping `lastFetchedAt` after a
+  (`lib/features/finance/views/exchange_rates_page.dart:88-93`, stamping `lastFetchedAt` after a
   successful online fetch.)
 - **Notes:** None.
 
@@ -129,7 +135,7 @@ install starts from).
   ```dart
   final currentRates = widget.rateData.currentRates;
   ```
-  (`lib/features/finance/views/analysis_page.dart:860`, used wherever "today's" rates rather than a
+  (`lib/features/finance/views/analysis_page.dart:861`, used wherever "today's" rates rather than a
   transaction's historical snapshot are needed, e.g. converting a reconstructed account balance.)
 - **Notes:** None.
 
@@ -146,7 +152,7 @@ install starts from).
   ```dart
   final rates = rateData.ratesAt(tx.rateSnapshotId);
   ```
-  (`lib/features/finance/services/balance_util.dart:316`, inside `_accountTransactionDelta` — the
+  (`lib/features/finance/services/balance_util.dart:368`, inside `_accountTransactionDelta` — the
   central place a transaction's amount is converted using the rate that was in effect when it was
   recorded.)
 - **Notes:** A transaction recorded before exchange-rate snapshotting existed (`rateSnapshotId ==
@@ -181,9 +187,40 @@ install starts from).
 - **Notes:** Assumes `json['snapshots']` exists — callers must check for the older flat-map format
   first (see [`load`](#load)'s migration branch) or this throws.
 
+### `const ExchangeRateStorageException(String message)` <a id="exchangeratestorageexception-new"></a>
+- **Kind:** const constructor of `ExchangeRateStorageException`
+- **Source:** `lib/features/finance/services/exchange_rate_storage.dart` (line 127)
+- **Purpose:** Create the exception raised when `exchange_rates.json` exists but cannot be read or
+  parsed (v1.5.2).
+- **Inputs:** `message` — readable description, including the file name and the underlying error.
+- **Returns:** A new `ExchangeRateStorageException`.
+- **Side effects:** None.
+- **Algorithm:** Plain `const` field-assigning constructor; the class implements `Exception`.
+- **Usage:**
+  ```dart
+  throw ExchangeRateStorageException('$_fileName is unreadable: $e');
+  ```
+  (`lib/features/finance/services/exchange_rate_storage.dart:184`, inside [`load`](#load).)
+- **Notes:** Thrown instead of falling back to default rates, so the snapshot history is never
+  overwritten by a default snapshot on the next save. `FinanceStorage.load` and
+  `migrateFinanceForcedBalances` rethrow it, the finance and exchange-rate pages show a blocking
+  error view, and the local API maps it to a 500 `data_unreadable` response.
+
+### `String toString()` <a id="exchangeratestorageexception-tostring"></a>
+- **Kind:** method of `ExchangeRateStorageException` (overrides `Object.toString`)
+- **Source:** `lib/features/finance/services/exchange_rate_storage.dart` (line 135)
+- **Purpose:** Return the readable exception message.
+- **Inputs:** None.
+- **Returns:** `String` — `message` unchanged.
+- **Side effects:** None.
+- **Algorithm:** `=> message`.
+- **Usage:** `_loadError = e.toString();` in the exchange-rate page's `_loadRates` and the finance
+  page's `_loadDataNow`, whose error views display the text.
+- **Notes:** None.
+
 ### `static Future<File> _getFile()` <a id="getfile"></a>
 - **Kind:** static method of `ExchangeRateStorage`
-- **Source:** `lib/features/finance/services/exchange_rate_storage.dart` (line 127)
+- **Source:** `lib/features/finance/services/exchange_rate_storage.dart` (line 148)
 - **Purpose:** Resolve the `File` handle for `exchange_rates.json` inside the app's data directory.
 - **Inputs:** None.
 - **Returns:** `Future<File>`.
@@ -196,37 +233,45 @@ install starts from).
 
 ### `static Future<ExchangeRateData> load()` <a id="load"></a>
 - **Kind:** static method of `ExchangeRateStorage`
-- **Source:** `lib/features/finance/services/exchange_rate_storage.dart` (line 137)
+- **Source:** `lib/features/finance/services/exchange_rate_storage.dart` (line 161)
 - **Purpose:** Load `exchange_rates.json`, transparently migrating the older flat currency-pair map
-  format into a single-snapshot history, and falling back to built-in defaults on any failure.
+  format into a single-snapshot history. A missing or blank file yields the built-in defaults; an
+  existing file that cannot be read or parsed throws (v1.5.2).
 - **Inputs:** None.
-- **Returns:** `Future<ExchangeRateData>` — never `null`; a missing or corrupt file resolves to
-  [`_defaultData()`](#defaultdata).
+- **Returns:** `Future<ExchangeRateData>` — never `null`; a missing or blank file resolves to
+  [`_defaultData()`](#defaultdata). Throws
+  [`ExchangeRateStorageException`](#exchangeratestorageexception-new) for an unreadable file.
 - **Side effects:** Reads `exchange_rates.json` from disk.
 - **Algorithm:**
   1. If the file doesn't exist, return `_defaultData()`.
-  2. Decode its JSON.
-  3. **Migration:** if the decoded map has no `snapshots` key (the old flat-map format), treat every
+  2. Read it as a string; a read failure throws `ExchangeRateStorageException('Failed to read ...')`.
+     If the content is blank (whitespace only), return `_defaultData()`.
+  3. Decode its JSON as a map.
+  4. **Migration:** if the decoded map has no `snapshots` key (the old flat-map format), treat every
      entry as a `Map<String, double>` and wrap it via
      [`_createInitialData`](#createinitialdata) as the very first snapshot.
-  4. Otherwise parse it directly via
+  5. Otherwise parse it directly via
      [`ExchangeRateData.fromJson`](#exchangeratedata-fromjson).
-  5. Any exception anywhere in this path (missing file race, bad JSON, malformed snapshot) is caught
-     and mapped to `_defaultData()`.
+  6. Any exception in steps 3-5 (bad JSON, non-map JSON, malformed snapshot) is rethrown as
+     `ExchangeRateStorageException('exchange_rates.json is unreadable: ...')`. Before v1.5.2 every
+     failure here returned `_defaultData()`.
 - **Usage:**
   ```dart
   final data = await ExchangeRateStorage.load();
   ```
-  (`lib/features/finance/views/exchange_rates_page.dart:50`; also used by
-  `finance_storage.dart`'s `load()` to run the forced-balance migration, and by
-  `webdav_service.dart`'s `_migrateFinanceForcedBalances` for the same reason during sync.)
-- **Notes:** Unlike `FinanceStorage.load()` and `WeightStorage.load()`, this never throws to the
-  caller — every failure path silently degrades to the built-in default rates instead of surfacing
-  an error, since exchange rates are less critical user data than accounts/transactions.
+  (`lib/features/finance/views/exchange_rates_page.dart:58`, inside a `try` that switches to the
+  page's load-error view; also used by `finance_page.dart`'s `_loadDataNow`, by the local API
+  server, and by `finance_storage.dart`'s `load()` and `data_modules.dart`'s
+  `migrateFinanceForcedBalances`, which since v1.5.2 call it only when
+  [`needsForcedBalanceMigration`](balance_util.md#needsforcedbalancemigration) is true.)
+- **Notes:** Since v1.5.2 this matches `FinanceStorage.load()` and `WeightStorage.load()`: an
+  unreadable existing file throws instead of silently degrading to the built-in default rates.
+  Returning defaults used to let the next save replace the whole snapshot history, which
+  historical transactions point into through `rateSnapshotId`.
 
 ### `static Future<void> save(ExchangeRateData data)` <a id="save"></a>
 - **Kind:** static method of `ExchangeRateStorage`
-- **Source:** `lib/features/finance/services/exchange_rate_storage.dart` (line 163)
+- **Source:** `lib/features/finance/services/exchange_rate_storage.dart` (line 193)
 - **Purpose:** Queue a write of `data`, ensuring overlapping `save` calls never interleave their
   writes to `exchange_rates.json`.
 - **Inputs:** `data`.
@@ -243,13 +288,13 @@ install starts from).
   await ExchangeRateStorage.save(withTimestamp);
   AutoSyncService.instance.notifySaved();
   ```
-  (`lib/features/finance/views/exchange_rates_page.dart:77-78`.)
+  (`lib/features/finance/views/exchange_rates_page.dart:96-97`.)
 - **Notes:** Concurrent `save()` calls are strictly serialized in call order — the same overlapping-
   writer protection documented for `WeightStorage.save`.
 
 ### `static Future<void> _saveNow(ExchangeRateData data)` <a id="savenow"></a>
 - **Kind:** static method of `ExchangeRateStorage`
-- **Source:** `lib/features/finance/services/exchange_rate_storage.dart` (line 177)
+- **Source:** `lib/features/finance/services/exchange_rate_storage.dart` (line 209)
 - **Purpose:** Perform one actual write of `data` to `exchange_rates.json`, after the caller has
   already taken its turn in the write queue — including a one-time detection of whether the
   on-disk file is still in the legacy flat-map format.
@@ -258,9 +303,12 @@ install starts from).
 - **Side effects:** Writes `exchange_rates.json` through `DataFileSafety.writeValidatedDataJson`
   (a validated, atomic replace).
 - **Algorithm:**
-  1. Resolve the file; if it exists, decode it and check whether it has a `snapshots` key
-     (`preserveUnknown`). Any decode failure here is swallowed and treated as `preserveUnknown =
-     true`.
+  1. Resolve the file. If it exists, read it (a read failure throws
+     [`ExchangeRateStorageException`](#exchangeratestorageexception-new)); if the content is not
+     blank, decode it and require a JSON object — anything else throws
+     `ExchangeRateStorageException('... refusing to overwrite it')` (v1.5.2; previously the decode
+     failure was swallowed and the file overwritten). `preserveUnknown` is whether that object has
+     a `snapshots` key; a missing or blank file keeps `preserveUnknown = true`.
   2. If the on-disk file is still the legacy flat-map format (`preserveUnknown == false`), write
      `jsonEncode(data.toJson())` directly — there is no unknown-field schema to preserve against an
      old format.
@@ -270,11 +318,13 @@ install starts from).
 - **Usage:** Only called from [`save`](#save)'s write-queue chain.
 - **Notes:** This is the one storage class in the Finance feature whose save path branches on the
   *current on-disk format* rather than always running unknown-field preservation — a direct
-  consequence of supporting the flat-map -> snapshot-history migration.
+  consequence of supporting the flat-map -> snapshot-history migration. An unparseable existing file is
+  never overwritten: the write fails with `ExchangeRateStorageException` and the file stays as it
+  is for the user to inspect.
 
 ### `static ExchangeRateData updateRates(ExchangeRateData data, Map<String, double> newRates)` <a id="updaterates"></a>
 - **Kind:** static method of `ExchangeRateStorage`
-- **Source:** `lib/features/finance/services/exchange_rate_storage.dart` (line 208)
+- **Source:** `lib/features/finance/services/exchange_rate_storage.dart` (line 253)
 - **Purpose:** Apply a new set of rates, creating a fresh `RateSnapshot` (and advancing
   `currentSnapshotId`) only if the rates actually differ from the current snapshot — so identical
   fetches or saves never grow the snapshot history pointlessly.
@@ -296,13 +346,13 @@ install starts from).
   ```
   (`lib/features/finance/services/exchange_rate_api.dart:54`, the last step of
   [`ExchangeRateApi.fetchAndMerge`](exchange_rate_api.md#fetchandmerge); also called directly from
-  `exchange_rates_page.dart:94` when the user manually edits rates.)
+  `exchange_rates_page.dart:115` when the user manually edits rates.)
 - **Notes:** Old snapshots are never removed — the history only grows, which is what lets
   `ratesAt(oldSnapshotId)` keep resolving historical transactions correctly indefinitely.
 
 ### `static bool _ratesEqual(Map<String, double> a, Map<String, double> b)` <a id="ratesequal"></a>
 - **Kind:** static method of `ExchangeRateStorage`
-- **Source:** `lib/features/finance/services/exchange_rate_storage.dart` (line 229)
+- **Source:** `lib/features/finance/services/exchange_rate_storage.dart` (line 274)
 - **Purpose:** Decide whether two rate maps are exactly equal, gating whether
   [`updateRates`](#updaterates) needs to create a new snapshot.
 - **Inputs:** `a`, `b`.
@@ -318,22 +368,23 @@ install starts from).
 
 ### `static ExchangeRateData _defaultData()` <a id="defaultdata"></a>
 - **Kind:** static method of `ExchangeRateStorage`
-- **Source:** `lib/features/finance/services/exchange_rate_storage.dart` (line 242)
-- **Purpose:** Build the built-in default exchange-rate data used when no file exists yet or loading
-  fails.
+- **Source:** `lib/features/finance/services/exchange_rate_storage.dart` (line 287)
+- **Purpose:** Build the built-in default exchange-rate data used when no file exists yet or the
+  file is blank.
 - **Inputs:** None.
 - **Returns:** `ExchangeRateData`.
 - **Side effects:** None.
 - **Algorithm:** `_createInitialData(_defaultRates)` — a one-line forward to
   [`_createInitialData`](#createinitialdata) using the hard-coded `_defaultRates` map (USD/EUR/GBP/
   JPY/CAD/AUD to CNY, plus EUR_USD/GBP_USD).
-- **Usage:** Called from [`load`](#load)'s two failure paths (missing file, any exception).
+- **Usage:** Called from [`load`](#load)'s two empty-file paths (missing file, blank file); since
+  v1.5.2 an unreadable file no longer falls back to it.
 - **Notes:** The hard-coded defaults are approximate reference values only — they exist so the app
   has *something* to convert with before the user's first successful online fetch or manual edit.
 
 ### `static ExchangeRateData _createInitialData(Map<String, double> rates)` <a id="createinitialdata"></a>
 - **Kind:** static method of `ExchangeRateStorage`
-- **Source:** `lib/features/finance/services/exchange_rate_storage.dart` (line 249)
+- **Source:** `lib/features/finance/services/exchange_rate_storage.dart` (line 294)
 - **Purpose:** Wrap a flat currency-pair rate map as the first (and only) snapshot of a fresh
   `ExchangeRateData` history.
 - **Inputs:** `rates`.

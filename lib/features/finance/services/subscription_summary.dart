@@ -1,3 +1,4 @@
+import '../../../shared/utils/week_grouping.dart';
 import '../models/finance.dart';
 import 'balance_util.dart';
 import 'exchange_rate_storage.dart';
@@ -148,7 +149,7 @@ List<(Subscription, DateTime)> upcomingSubscriptions(
 }) {
   final current = now ?? DateTime.now();
   final today = DateTime(current.year, current.month, current.day);
-  final limit = today.add(Duration(days: days));
+  final limit = addCalendarDays(today, days);
   final result = <(Subscription, DateTime)>[];
   for (final sub in subscriptions) {
     if (sub.cancelType == CancelType.atExpiry) continue;

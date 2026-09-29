@@ -349,8 +349,9 @@ safely change later.
 - **Usage:** `SizedBox(width: settingsLeftPaneWidth(constraints.maxWidth), child: sectionList)`.
 - **Notes:** A larger proportion than the other two panes, because this list carries full
   `ListTile`s with two-line subtitles and a trailing chevron rather than a summary block. The cap
-  never actually binds at any width the split rule admits — `test/adaptive_layout_test.dart`
-  asserts exactly that across the whole range — so it is a guard for a pane narrower than any real
+  never actually binds at any width the split rule admits — the proportional value already leaves
+  the detail pane its floor, and `test/adaptive_layout_test.dart` pins the clamp points and asserts
+  the detail pane clears its floor across the whole range — so it is a guard for a pane narrower than any real
   window, not a second breakpoint. It is kept rather than deleted because this function takes a
   **pane** width, and a future caller could hand it one.
 
@@ -380,7 +381,7 @@ safely change later.
   v1.4.3, when the split put the summary card in a 280 pane beside a 380 chart. What v1.4.4
   changed is the arrangement inside a splittable window, not which windows are splittable, so
   every viewport keeps the outcome it had — a property `test/adaptive_layout_test.dart` pins
-  directly rather than leaving to coincidence. There is no pane-width function any more: the two
+  at the 672 gate (`n - 1` and `n`) rather than leaving to coincidence. There is no pane-width function any more: the two
   columns are equal flex, so each gets half of what the gap leaves.
 
 ### `double cappedContentWidth(double contentWidth, double maxWidth)` <a id="cappedcontentwidth"></a>

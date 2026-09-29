@@ -5,7 +5,7 @@
 ## 模型
 
 - **`TaskType`**：`daily`、`routineOnce`、`workOnce`。
-- **`TaskRecurrence`**：描述*一次性*任务完成后如何重复——`RecurrenceType.everyNDays`（以天为间隔）、`RecurrenceType.monthlyOnDay`（day-of-month，钳制到目标月长度）或 `RecurrenceType.yearlyOnMonthDay`（月 + 日，短二月钳制）。`nextDate(from)` 直接在重复对象上计算下一次出现日期。带 `recurrence` 的一次性任务在用户完成任务后提示创建下一次出现。
+- **`TaskRecurrence`**：描述*一次性*任务完成后如何重复——`RecurrenceType.everyNDays`（以天为间隔）、`RecurrenceType.monthlyOnDay`（day-of-month，钳制到目标月长度）或 `RecurrenceType.yearlyOnMonthDay`（月 + 日，短二月钳制）。`nextDate(from)` 直接在重复对象上计算下一次出现日期；`everyNDays` 按日历日步进，因此任务在夏令时切换后保持其一天中的时间（v1.5.2）。带 `recurrence` 的一次性任务在用户完成任务后提示创建下一次出现。
 - **`Task`**：`id`、`title`、可选 `note`、可选 `emoji`、`type`、`isCompleted`、可选 `reminderTime`、`subtasks`、`createdDate`、可选 `completedDate`。一次性任务：`scheduledDate`（排定日期）、`dueDate`（提醒用途）、`recurrence`。每日模板：`startDate`（模板变为激活的日期——默认为创建时选中的日期）和 `deletedDate`（软删除日期；`null` 表示仍激活——每日模板绝不硬删除，使引用它们的完成日志历史保持有意义）。
 - **`DailyCompletionLog`**：每日任务和每日子任务的按日期完成跟踪，以 `yyyy-MM-dd` 为键。同步按**并集**合并——在任一台设备上完成的任务在合并后保持完成，理论是"已完成"绝不应被同步撤销。
 - **`DailyScoreLog`**：从 **-5 到 5** 的按天全天评分，默认 **0**。显式零条目被保留（不当作"无条目"），使刻意的重置为零仍能经同步传播；每个日期按该条目的 `modifiedAt` 独立合并。

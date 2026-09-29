@@ -11,7 +11,8 @@ list and [Three-Way Merge](../algorithms/three-way-merge.md) for sync semantics.
   `RecurrenceType.everyNDays` (interval in days), `RecurrenceType.monthlyOnDay` (day-of-month,
   clamped to the target month's length), or `RecurrenceType.yearlyOnMonthDay` (month + day,
   clamped for short Februaries). `nextDate(from)` computes the next occurrence date directly on the
-  recurrence object. One-time tasks with a `recurrence` prompt the user to create the next
+  recurrence object; `everyNDays` steps by calendar days, so the task keeps its time of day across
+  a DST change (v1.5.2). One-time tasks with a `recurrence` prompt the user to create the next
   occurrence after they complete the task.
 - **`Task`**: `id`, `title`, optional `note`, optional `emoji`, `type`, `isCompleted`, optional
   `reminderTime`, `subtasks`, `createdDate`, optional `completedDate`. For one-time tasks:

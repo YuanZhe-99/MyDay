@@ -15,7 +15,7 @@
 
 ### `Widget buildGroupedTransactionList(BuildContext context, List<Transaction> sorted, Widget Function(Transaction) tileBuilder)` <a id="buildgroupedtransactionlist"></a>
 - **种类：** 顶层函数
-- **来源：** `lib/features/finance/widgets/grouped_transaction_list.dart`（第 12 行）
+- **来源：** `lib/features/finance/widgets/grouped_transaction_list.dart`（第 16 行）
 - **用途：** 把按日期排序的交易列表渲染为可滚动列表，日历日期每次变化时插入日期页头行。
 - **输入：** `context` — 只用于读取当前 `Theme`；`sorted` — 交易，调用方必须已排序，使共享日期的所有交易连续（此函数不排序）；`tileBuilder` — 渲染单个交易行的回调，每笔交易调用一次。
 - **返回：** `Widget` — 覆盖页头行和交易行的 `ListView.builder`。
@@ -41,7 +41,7 @@
 
 ### `void flush()`（`buildGroupedTransactionList` 内的局部函数） <a id="flush"></a>
 - **种类：** 嵌套局部函数
-- **来源：** `lib/features/finance/widgets/grouped_transaction_list.dart`（第 37 行）
+- **来源：** `lib/features/finance/widgets/grouped_transaction_list.dart`（第 41 行）
 - **用途：** 把当前日期收集到的交易作为一行或多行打包好的行发出，然后清空累加器。
 - **输入：** 无——从外层作用域读取 `current` 和 `perRow`。
 - **返回：** 无。

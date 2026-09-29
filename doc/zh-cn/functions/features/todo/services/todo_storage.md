@@ -15,9 +15,13 @@
 | [`_getConfigFile`](#_getconfigfile) | 静态方法（`TodoStorage`） | A | 解析 `storage_config.json` 的 `File` 句柄。 |
 | [`getConfigFile`](#getconfigfile) | 静态方法（`TodoStorage`） | A | 为其他服务公共访问配置文件。 |
 | [`readConfig`](#readconfig) | 静态方法（`TodoStorage`） | A | 从磁盘读取原始配置 JSON。 |
-| [`writeConfig`](#writeconfig) | 静态方法（`TodoStorage`） | A | 把键合并写入配置 JSON。 |
+| [`writeConfig`](#writeconfig) | 静态方法（`TodoStorage`） | A | 只把更改的键合并写入配置 JSON，串行化且原子；`null` 移除键；拒绝不可读文件。 |
+| [`_enqueueConfig`](#_enqueueconfig) | 静态方法（`TodoStorage`） | A | 在每个更早的配置读-合并-写完成后运行一次配置读-合并-写。 |
+| [`_readConfigForWrite`](#_readconfigforwrite) | 静态方法（`TodoStorage`） | A | 读取配置作为合并写入的基础，内容不可解析时抛出异常。 |
+| [`_writeConfigFile`](#_writeconfigfile) | 静态方法（`TodoStorage`） | A | 用映射原子替换 `storage_config.json`。 |
 | [`_loadConfig`](#_loadconfig) | 静态方法（`TodoStorage`） | A | 惰性加载并缓存来自磁盘的配置字段。 |
-| [`_saveConfig`](#_saveconfig) | 静态方法（`TodoStorage`） | A | 把缓存配置字段合并写回磁盘。 |
+| [`_saveConfig`](#_saveconfig) | 静态方法（`TodoStorage`） | A | 把缓存配置字段的合并写入入队到配置队列。 |
+| [`_saveConfigNow`](#_saveconfignow) | 静态方法（`TodoStorage`） | A | `_saveConfig` 的队列主体：把缓存字段合并进配置文件并原子写入。 |
 | [`getIntimacyVisible`](#getintimacyvisible) | 静态方法（`TodoStorage`） | A | 获取持久化亲密可见状态。 |
 | [`setIntimacyVisible`](#setintimacyvisible) | 静态方法（`TodoStorage`） | A | 设置并持久化亲密可见状态。 |
 | [`getOnDeviceAiEnabled`](#getondeviceaienabled) | 静态方法（`TodoStorage`） | A | 读取用户是否开启了端侧 AI。 |
@@ -44,7 +48,7 @@
 | [`setCloseToTray`](#setclosetotray) | 静态方法（`TodoStorage`） | A | 设置并持久化关闭到托盘设置。 |
 | [`_normalizeWeekStartDay`](#_normalizeweekstartday) | 静态方法（`TodoStorage`） | A | 返回有效持久化周起始日，无效值默认周一。 |
 | `_getListColumns` | 静态方法（`TodoStorage`） | A | 读取某个列表界面持久化的列数偏好。 |
-| `_setListColumns` | 静态方法（`TodoStorage`） | A | 存储某个列表界面的列数偏好。 |
+| `_setListColumns` | 静态方法（`TodoStorage`） | A | 经单键 `writeConfig` 补丁存储某个列表界面的列数偏好（越界值以 `null` 清除该键）。 |
 | `getTodoSectionColumns` | 静态方法（`TodoStorage`） | A | 读取待办页的分区列数偏好。 |
 | `setTodoSectionColumns` | 静态方法（`TodoStorage`） | A | 持久化待办页的分区列数偏好。 |
 | `getFinanceListColumns` | 静态方法（`TodoStorage`） | A | 读取财务页的交易列数偏好。 |
@@ -54,7 +58,7 @@
 | `getIntimacyListColumns` | 静态方法（`TodoStorage`） | A | 读取亲密页的记录列数偏好。 |
 | `setIntimacyListColumns` | 静态方法（`TodoStorage`） | A | 持久化亲密页的记录列数偏好。 |
 
-`grep -c 'Purpose:' lib/features/todo/services/todo_storage.dart` 报告 47，与上面列出的全部四十七个真实声明精确匹配（v1.5.0 之前的 43 个加四个端侧 AI 访问器）。未发现错附文档注释——每个 `/// Purpose:` 块都恰好位于其文档化的真实构造函数/方法正上方——也不存在未文档化真实声明；唯一非 `Purpose:` 文档化的成员是普通字段（`_fileName`、`_customPath`、`_configLoaded`、`_intimacyVisible`、`_themeMode`、`_localeTag`、`_weekStartDay`、`_minimizeToTray`、`_closeToTray`、`_writeQueue`、`_dataFileNames`），它们是数据而非行为声明，正确排除在表格外。Tier 划分：46 个 Tier A / 1 个 Tier B。唯一 Tier B 行是 `TodoStorageException.toString`，返回存储 `message` 字段的平凡访问器，无逻辑（与 [`weight_storage.dart`](../../weight/services/weight_storage.md#weightstorageexception-new) 的 `WeightStorageException.toString` 相同模式）。每个其他声明都是 Tier A：`TodoData` 的构造函数/`toJson`/`fromJson` 和 `TodoStorageException` 的构造函数属于显式模型 Tier A 规则，每个 `TodoStorage` 静态方法执行真实配置缓存、文件路径解析或文件 IO——显式服务/IO Tier A 规则——即使个别方法体只有一两行（如 `_getConfigFile`、`getConfigFile`），与本仓库其他存储服务（如 `WeightStorage._getFile`）把简短 IO 邻近辅助归为 Tier A 而非平凡转发的方式一致。
+`grep -c 'Purpose:' lib/features/todo/services/todo_storage.dart` 报告 51，与上面列出的全部五十一个真实声明精确匹配（v1.5.0 之前的 43 个，加四个端侧 AI 访问器，再加 v1.5.2 的四个配置队列辅助函数：`_enqueueConfig`、`_readConfigForWrite`、`_writeConfigFile`、`_saveConfigNow`）。未发现错附文档注释——每个 `/// Purpose:` 块都恰好位于其文档化的真实构造函数/方法正上方——也不存在未文档化真实声明；唯一非 `Purpose:` 文档化的成员是普通字段（`_fileName`、`_customPath`、`_configLoaded`、`_intimacyVisible`、`_themeMode`、`_localeTag`、`_weekStartDay`、`_minimizeToTray`、`_closeToTray`、`_writeQueue`、`_configQueue`、`_dataFileNames`），它们是数据而非行为声明，正确排除在表格外。Tier 划分：50 个 Tier A / 1 个 Tier B。唯一 Tier B 行是 `TodoStorageException.toString`，返回存储 `message` 字段的平凡访问器，无逻辑（与 [`weight_storage.dart`](../../weight/services/weight_storage.md#weightstorageexception-new) 的 `WeightStorageException.toString` 相同模式）。每个其他声明都是 Tier A：`TodoData` 的构造函数/`toJson`/`fromJson` 和 `TodoStorageException` 的构造函数属于显式模型 Tier A 规则，每个 `TodoStorage` 静态方法执行真实配置缓存、文件路径解析或文件 IO——显式服务/IO Tier A 规则——即使个别方法体只有一两行（如 `_getConfigFile`、`getConfigFile`），与本仓库其他存储服务（如 `WeightStorage._getFile`）把简短 IO 邻近辅助归为 Tier A 而非平凡转发的方式一致。
 
 ## 文档
 
@@ -126,14 +130,14 @@
   ```dart
   throw TodoStorageException('$_fileName is not valid JSON: $e');
   ```
-  （`load`，第 605 行；第 607 行类似 `'Failed to load $_fileName: $e'` case 覆盖任何其他读取失败）。
+  （`load`，第 659 行；第 661 行类似 `'Failed to load $_fileName: $e'` case 覆盖任何其他读取失败）。
 - **备注：** 实现 `Exception`（而非 `Error`），因此意在捕获并显示给用户——`todo_page.dart` 的 `_loadData()` 捕获它并把 `e.toString()` 存为 `_loadError`，它随后阻塞 `_saveData()` 直到下次成功重载（见 [`load`](#load) 的备注）。
 
 ### `String toString()`（Tier B — 仅表格行，无完整条目）
 
 ### `static Future<Directory> _getDefaultAppDir()` <a id="_getdefaultappdir"></a>
 - **种类：** `TodoStorage` 的私有静态方法
-- **来源：** `lib/features/todo/services/todo_storage.dart`（第 172 行）
+- **来源：** `lib/features/todo/services/todo_storage.dart`（第 175 行）
 - **用途：** 解析（需要时创建）默认 `<平台应用文档目录>/MyDay` 目录。
 - **输入：** 无。
 - **返回：** `Future<Directory>`。
@@ -144,7 +148,7 @@
 
 ### `static Future<File> _getConfigFile()` <a id="_getconfigfile"></a>
 - **种类：** `TodoStorage` 的私有静态方法
-- **来源：** `lib/features/todo/services/todo_storage.dart`（第 187 行）
+- **来源：** `lib/features/todo/services/todo_storage.dart`（第 190 行）
 - **用途：** 解析 `storage_config.json` 的 `File` 句柄，总是位于默认应用目录内。
 - **输入：** 无。
 - **返回：** `Future<File>`。
@@ -155,7 +159,7 @@
 
 ### `static Future<File> getConfigFile()` <a id="getconfigfile"></a>
 - **种类：** `TodoStorage` 的静态方法
-- **来源：** `lib/features/todo/services/todo_storage.dart`（第 198 行）
+- **来源：** `lib/features/todo/services/todo_storage.dart`（第 201 行）
 - **用途：** 按其文档注释，公共暴露 `_getConfigFile()`，"供其他服务（如 `LocalApiServer`）"使用。
 - **输入：** 无。
 - **返回：** `Future<File>` — `getConfigFile() => _getConfigFile();` 转发的相同文件。
@@ -166,7 +170,7 @@
 
 ### `static Future<Map<String, dynamic>> readConfig()` <a id="readconfig"></a>
 - **种类：** `TodoStorage` 的静态方法
-- **来源：** `lib/features/todo/services/todo_storage.dart`（第 206 行）
+- **来源：** `lib/features/todo/services/todo_storage.dart`（第 210 行）
 - **用途：** 读取原始配置 JSON，供直接存储自己键的模块使用，而非经本文件缓存字段。
 - **输入：** 无。
 - **返回：** `Future<Map<String, dynamic>>` — 解析的配置，文件缺失或不可读时 `{}`。
@@ -178,20 +182,21 @@
   _apiEnabled = config['apiEnabled'] as bool? ?? false;
   ```
   （`lib/features/settings/views/settings_page.dart`，`_loadApiSettings`，第 219-222 行）；也用于 `BackupService.loadSettings()`、`TrayService`、`ReminderService` 和 `local_api_server.dart` 各自的模块特定键。
-- **备注：** 与 [`_loadConfig`](#_loadconfig) 不同，这从不缓存其结果——每次调用都从磁盘重新读取并重新解析文件。
+- **备注：** 与 [`_loadConfig`](#_loadconfig) 不同，这从不缓存其结果——每次调用都从磁盘重新读取并重新解析文件。刻意宽松：不可读文件得到 `{}`，使读取方继续工作。写入方不得以那个空映射为基础；它们走 [`_readConfigForWrite`](#_readconfigforwrite)，文件存在但无法解析时它拒绝继续。
 
 ### `static Future<void> writeConfig(Map<String, dynamic> config)` <a id="writeconfig"></a>
 - **种类：** `TodoStorage` 的静态方法
-- **来源：** `lib/features/todo/services/todo_storage.dart`（第 222 行）
-- **用途：** 把 `config` 的键合并写入 `storage_config.json` 而不破坏其他模块写的键。
-- **输入：** `config` — 要添加/更新的键的部分映射；键下的 `null` 值移除该键。
-- **返回：** `Future<void>`。
-- **副作用：** 读取然后重写 `storage_config.json`；使 `_loadConfig` 缓存失效（`_configLoaded = false`），使下次缓存字段读取重读文件。
+- **来源：** `lib/features/todo/services/todo_storage.dart`（第 229 行）
+- **用途：** 把 `config` 的键合并写入 `storage_config.json` 而不破坏其他模块写的键；与所有其他配置写入串行化，并以原子方式写入。
+- **输入：** `config` — **只含要更改的键**的部分映射（单键补丁）；键下的 `null` 值移除该键。调用方绝不能读出整份配置、修改后再传回：这种读-改-写周期正是 v1.5.2 队列所消除的丢失更新竞态。
+- **返回：** `Future<void>`；既有文件不可读时以 `TodoStorageException` 失败。
+- **副作用：** 读取然后原子重写 `storage_config.json`；使 `_loadConfig` 缓存失效（`_configLoaded = false`），使下次缓存字段读取重读文件。
 - **算法：**
-  1. 把既有文件读进 `existing`（缺失/损坏时 `{}`）。
-  2. `existing.addAll(config)` — 把新键覆盖到既有映射上。
-  3. `existing.removeWhere((_, v) => v == null)` — 新值为 `null` 的任何键被完全删除，不写为 JSON `null`。
-  4. 把合并映射写回，然后设 `_configLoaded = false`。
+  1. 把 `config` 复制进局部 `patch`（使调用方之后的修改不会泄漏进已排队的工作）。
+  2. 经 [`_enqueueConfig`](#_enqueueconfig) 入队，使其只在每个更早的配置写入完成后才运行。
+  3. 在队列内，`existing = await _readConfigForWrite()` — 文件缺失或空白时 `{}`，存在但不是有效 JSON 对象时抛出 `TodoStorageException`。
+  4. `existing.addAll(patch)`，然后 `existing.removeWhere((_, v) => v == null)` — 新值为 `null` 的任何键被完全删除，不写为 JSON `null`。
+  5. [`_writeConfigFile`](#_writeconfigfile)`(existing)`（原子），然后设 `_configLoaded = false`。
 - **用法：**
   ```dart
   await TodoStorage.writeConfig({
@@ -201,12 +206,45 @@
     'apiPassword': newPass.isEmpty ? null : newPass,
   });
   ```
-  （`settings_page.dart`，第 380-385 行，保存本地 API 设置——注意依赖 `writeConfig` 的 null-移除-键行为的内联 `x.isEmpty ? null : x` 模式）。
-- **备注：** 因为这是读-合并-写（不是盲覆盖），它正是让 `BackupService` 的 `autoBackupEnabled`/`backupRetentionDays` 键和 Todo 自己的缓存字段（主题、语言区域等，经 `_saveConfig` 写）共存于同一文件、任一边无需预先知道对方键集的方式。
+  （`settings_page.dart`，第 380-385 行，保存本地 API 设置——注意依赖 `writeConfig` 的 null-移除-键行为的内联 `x.isEmpty ? null : x` 模式）。自 v1.5.2 起的单键调用方：`BodySectionView`（`bodyWeightSyncWarningDisabledKey`）和 `TimerPage`（`_keepScreenAwakeConfigKey`）传 `{key: value}`，取代此前"读整个映射、设一个键、写整个映射"的序列；`_setListColumns` 传 `{key: null}` 以清除默认值。
+- **备注：** 因为这是读-合并-写（不是盲覆盖），它正是让 `BackupService` 的 `autoBackupEnabled`/`backupRetentionDays` 键和 Todo 自己的缓存字段（主题、语言区域等，经 `_saveConfig` 写）共存于同一文件、任一边无需预先知道对方键集的方式。拒绝不可解析的文件很重要，因为该文件持有 `storagePath` 和本地 API 凭据：静默从 `{}` 开始会用近乎空的映射替换它们。不得在 `_enqueueConfig` 的工作内部 await 它（会使队列死锁）；排队的工作改用私有辅助函数。
+
+### `static Future<void> _enqueueConfig(Future<void> Function() op)` <a id="_enqueueconfig"></a>
+- **种类：** `TodoStorage` 的私有静态方法
+- **来源：** `lib/features/todo/services/todo_storage.dart`（第 248 行）
+- **用途：** 在每个更早的配置读-合并-写完成后，运行一次配置读-合并-写。
+- **输入：** `op` — 要在队列内运行的工作。
+- **返回：** 随 `op` 完成（或失败）的 `Future<void>`。
+- **副作用：** 推进静态 `_configQueue` future。
+- **算法：** `next = _configQueue.then((_) => op(), onError: (_) => op())` — 前一次失败不会阻止后续工作 — 然后 `_configQueue = next.catchError((_) {})`，使链本身从不持有错误，并把仍携带 `op` 结果或错误的 `next` 返回给调用方。
+- **用法：** 只有 `writeConfig` 和 `_saveConfig` 调用它。
+- **备注：** 形态与 `save` 为 `todo_data.json` 使用的 `_writeQueue` 相同，但是独立的队列，因此配置写入与 Todo 数据写入互不阻塞。`op` 必须调用私有辅助函数（`_readConfigForWrite`、`_writeConfigFile`、`_saveConfigNow`），绝不能调用 `writeConfig` 或 `_saveConfig`，否则队列死锁。
+
+### `static Future<Map<String, dynamic>> _readConfigForWrite()` <a id="_readconfigforwrite"></a>
+- **种类：** `TodoStorage` 的私有静态方法
+- **来源：** `lib/features/todo/services/todo_storage.dart`（第 260 行）
+- **用途：** 读取当前配置，作为合并写入的基础。
+- **输入：** 无。
+- **返回：** `Future<Map<String, dynamic>>` — 文件缺失或空白时 `{}`。
+- **副作用：** 读取 `storage_config.json`。
+- **算法：** 文件缺失 → `{}`。读取失败 → `TodoStorageException('Failed to read ...')`。空白（仅空白字符）内容 → `{}`。`jsonDecode` 失败 → `TodoStorageException('... is not valid JSON; refusing to overwrite it ...')`。解码值不是 `Map<String, dynamic>` → `TodoStorageException('... is not a JSON object; refusing to overwrite it')`。否则返回解码出的映射。
+- **用法：** `writeConfig` 和 `_saveConfigNow`，总是在配置队列内调用。
+- **备注：** 宽松的公共 [`readConfig`](#readconfig) 的严格对应物：读取方对坏文件得到 `{}`，但写入方绝不能把"不可读"当作"为空"。
+
+### `static Future<void> _writeConfigFile(Map<String, dynamic> config)` <a id="_writeconfigfile"></a>
+- **种类：** `TodoStorage` 的私有静态方法
+- **来源：** `lib/features/todo/services/todo_storage.dart`（第 291 行）
+- **用途：** 用 `config` 原子替换 `storage_config.json`。
+- **输入：** `config` — 要持久化的完整映射。
+- **返回：** `Future<void>`。
+- **副作用：** 经临时文件写入 `storage_config.json`。
+- **算法：** `DataFileSafety.atomicWriteString(file, jsonEncode(config))`。
+- **用法：** `writeConfig` 和 `_saveConfigNow`，在配置队列内调用。
+- **备注：** 写入中途崩溃不再可能留下被截断的配置文件（旧的盲 `file.writeAsString` 可能）。
 
 ### `static Future<void> _loadConfig()` <a id="_loadconfig"></a>
 - **种类：** `TodoStorage` 的私有静态方法
-- **来源：** `lib/features/todo/services/todo_storage.dart`（第 245 行）
+- **来源：** `lib/features/todo/services/todo_storage.dart`（第 302 行）
 - **用途：** 惰性从 `storage_config.json` 填充此类的静态缓存字段（`_customPath`、`_intimacyVisible`、`_themeMode`、`_localeTag`、`_weekStartDay`、`_minimizeToTray`、`_closeToTray`），至多一次直到失效。
 - **输入：** 无。
 - **返回：** `Future<void>`。
@@ -217,18 +255,29 @@
 
 ### `static Future<void> _saveConfig()` <a id="_saveconfig"></a>
 - **种类：** `TodoStorage` 的私有静态方法
-- **来源：** `lib/features/todo/services/todo_storage.dart`（第 276 行）
-- **用途：** 把此类的缓存字段写回 `storage_config.json`，保留其他模块写的键（如 `BackupService` 的 `autoBackupEnabled`/`backupRetentionDays`）。
+- **来源：** `lib/features/todo/services/todo_storage.dart`（第 335 行）
+- **用途：** 把此类的缓存字段的写入入队到 `storage_config.json`，保留其他模块写的键（如 `BackupService` 的 `autoBackupEnabled`/`backupRetentionDays`）。
 - **输入：** 无。
 - **返回：** `Future<void>`。
-- **副作用：** 读取然后重写 `storage_config.json`。
-- **算法：** 把既有文件读进 `json`（或 `{}`）；对每个缓存字段，设其键（`_customPath`/`_themeMode`/`_localeTag`）或字段处于"默认"/`null` 值时完全移除键（如 `_weekStartDay == DateTime.monday` 移除 `weekStartDay` 键而非写 `1`）；总是无条件移除遗留 `intimacyEverUnlocked` 键（完全迁移进 `intimacyVisible`）；写合并映射。
+- **副作用：** 读取然后原子重写 `storage_config.json`（在 [`_saveConfigNow`](#_saveconfignow) 中）。
+- **算法：** `_enqueueConfig(_saveConfigNow)` — 整个读-合并-写在配置队列内运行，因此不会与 `writeConfig` 补丁交错。
 - **用法：** 由本文件每个缓存字段 setter（`setIntimacyVisible`、`setThemeMode`、`setLocaleTag`、`setWeekStartDay`、`setMinimizeToTray`、`setCloseToTray`）和 [`setStoragePath`](#setstoragepath) 调用。
-- **备注：** 与 `writeConfig`（公共、任意键合并写）不同，`_saveConfig` 只写此类自己的已知键集——它经文件往返（读然后写）纯粹为避免破坏其他模块的键，不是为合并调用方提供的数据。
+- **备注：** 宁可抛出 `TodoStorageException` 也不覆盖不可读的文件（经 `_readConfigForWrite`）。与 `writeConfig`（公共、任意键合并写）不同，`_saveConfig` 只写此类自己的已知键集。
+
+### `static Future<void> _saveConfigNow()` <a id="_saveconfignow"></a>
+- **种类：** `TodoStorage` 的私有静态方法
+- **来源：** `lib/features/todo/services/todo_storage.dart`（第 342 行）
+- **用途：** 把缓存设置合并进 `storage_config.json`（`_saveConfig` 的队列主体）。
+- **输入：** 无。
+- **返回：** `Future<void>`。
+- **副作用：** 读取并原子重写 `storage_config.json`。
+- **算法：** `json = await _readConfigForWrite()`；对每个缓存字段，设其键（`_customPath`/`_themeMode`/`_localeTag`）或字段处于"默认"/`null` 值时完全移除键（如 `_weekStartDay == DateTime.monday` 移除 `weekStartDay` 键而非写 `1`）；总是无条件移除遗留 `intimacyEverUnlocked` 键（完全迁移进 `intimacyVisible`）；然后 `_writeConfigFile(json)`。
+- **用法：** 只有 `_saveConfig` 在队列内调用它。
+- **备注：** 它经文件往返（读然后写）纯粹为避免破坏其他模块的键，不是为合并调用方提供的数据。
 
 ### `static Future<bool> getIntimacyVisible()` <a id="getintimacyvisible"></a>
 - **种类：** `TodoStorage` 的静态方法
-- **来源：** `lib/features/todo/services/todo_storage.dart`（第 329 行）
+- **来源：** `lib/features/todo/services/todo_storage.dart`（第 389 行）
 - **用途：** 获取持久化亲密功能可见性。
 - **输入：** 无。
 - **返回：** `Future<bool>`。
@@ -244,7 +293,7 @@
 
 ### `static Future<void> setIntimacyVisible(bool value)` <a id="setintimacyvisible"></a>
 - **种类：** `TodoStorage` 的静态方法
-- **来源：** `lib/features/todo/services/todo_storage.dart`（第 340 行）
+- **来源：** `lib/features/todo/services/todo_storage.dart`（第 400 行）
 - **用途：** 设置并持久化亲密功能可见性。
 - **输入：** `value`。
 - **返回：** `Future<void>`。
@@ -262,7 +311,7 @@
 
 ### `static Future<bool> getOnDeviceAiEnabled()` <a id="getondeviceaienabled"></a>
 - **种类：** `TodoStorage` 的静态方法
-- **来源：** `lib/features/todo/services/todo_storage.dart`（第 352 行）
+- **来源：** `lib/features/todo/services/todo_storage.dart`（第 412 行）
 - **用途：** 读取用户是否开启了端侧 AI。
 - **输入：** 无。
 - **返回：** `Future<bool>`——仅当 `onDeviceAiEnabled` 键为 JSON `true` 时为 `true`；键缺失或为其他值时为 `false`。
@@ -273,7 +322,7 @@
 
 ### `static Future<void> setOnDeviceAiEnabled(bool enabled)` <a id="setondeviceaienabled"></a>
 - **种类：** `TodoStorage` 的静态方法
-- **来源：** `lib/features/todo/services/todo_storage.dart`（第 360 行）
+- **来源：** `lib/features/todo/services/todo_storage.dart`（第 420 行）
 - **用途：** 持久化端侧 AI 开关。
 - **输入：** `enabled`。
 - **返回：** `Future<void>`。
@@ -284,7 +333,7 @@
 
 ### `static Future<bool> getOnDeviceAiPreferFast()` <a id="getondeviceaipreferfast"></a>
 - **种类：** `TodoStorage` 的静态方法
-- **来源：** `lib/features/todo/services/todo_storage.dart`（第 368 行）
+- **来源：** `lib/features/todo/services/todo_storage.dart`（第 428 行）
 - **用途：** 读取是否偏好更快的端侧模型。
 - **输入：** 无。
 - **返回：** `Future<bool>`——`onDeviceAiPreferFast` 键缺失时为 `false`。
@@ -295,7 +344,7 @@
 
 ### `static Future<void> setOnDeviceAiPreferFast(bool enabled)` <a id="setondeviceaipreferfast"></a>
 - **种类：** `TodoStorage` 的静态方法
-- **来源：** `lib/features/todo/services/todo_storage.dart`（第 376 行）
+- **来源：** `lib/features/todo/services/todo_storage.dart`（第 436 行）
 - **用途：** 持久化更快模型偏好。
 - **输入：** `enabled`。
 - **返回：** `Future<void>`。
@@ -306,7 +355,7 @@
 
 ### `static Future<String?> getThemeMode()` <a id="getthememode"></a>
 - **种类：** `TodoStorage` 的静态方法
-- **来源：** `lib/features/todo/services/todo_storage.dart`（第 385 行）
+- **来源：** `lib/features/todo/services/todo_storage.dart`（第 445 行）
 - **用途：** 获取持久化主题模式字符串。
 - **输入：** 无。
 - **返回：** `Future<String?>` — `null` 意为"跟随系统"。
@@ -317,7 +366,7 @@
 
 ### `static Future<void> setThemeMode(String? mode)` <a id="setthememode"></a>
 - **种类：** `TodoStorage` 的静态方法
-- **来源：** `lib/features/todo/services/todo_storage.dart`（第 396 行）
+- **来源：** `lib/features/todo/services/todo_storage.dart`（第 456 行）
 - **用途：** 设置并持久化主题模式字符串。
 - **输入：** `mode` — `'light'`/`'dark'`/`null`（系统）。
 - **返回：** `Future<void>`。
@@ -340,7 +389,7 @@
 
 ### `static Future<String?> getLocaleTag()` <a id="getlocaletag"></a>
 - **种类：** `TodoStorage` 的静态方法
-- **来源：** `lib/features/todo/services/todo_storage.dart`（第 408 行）
+- **来源：** `lib/features/todo/services/todo_storage.dart`（第 468 行）
 - **用途：** 获取持久化语言区域标签。
 - **输入：** 无。
 - **返回：** `Future<String?>` — 如 `'en'`、`'zh'`、`'zh_TW'`、`'ja'`，或系统的 `null`。
@@ -351,7 +400,7 @@
 
 ### `static Future<void> setLocaleTag(String? tag)` <a id="setlocaletag"></a>
 - **种类：** `TodoStorage` 的静态方法
-- **来源：** `lib/features/todo/services/todo_storage.dart`（第 419 行）
+- **来源：** `lib/features/todo/services/todo_storage.dart`（第 479 行）
 - **用途：** 设置并持久化语言区域标签。
 - **输入：** `tag`。
 - **返回：** `Future<void>`。
@@ -373,7 +422,7 @@
 
 ### `static Future<int> getWeekStartDay()` <a id="getweekstartday"></a>
 - **种类：** `TodoStorage` 的静态方法
-- **来源：** `lib/features/todo/services/todo_storage.dart`（第 431 行）
+- **来源：** `lib/features/todo/services/todo_storage.dart`（第 491 行）
 - **用途：** 获取应用每个日历共享的全局日历周起始日。
 - **输入：** 无。
 - **返回：** `Future<int>` — Dart 的周一=1 到周日=7 编号。
@@ -384,7 +433,7 @@
 
 ### `static Future<void> setWeekStartDay(int weekday)` <a id="setweekstartday"></a>
 - **种类：** `TodoStorage` 的静态方法
-- **来源：** `lib/features/todo/services/todo_storage.dart`（第 442 行）
+- **来源：** `lib/features/todo/services/todo_storage.dart`（第 502 行）
 - **用途：** 更新全局日历周起始日。
 - **输入：** `weekday`。
 - **返回：** `Future<void>`。
@@ -403,18 +452,18 @@
 
 ### `static Future<Directory> getAppDir()` <a id="getappdir"></a>
 - **种类：** `TodoStorage` 的静态方法
-- **来源：** `lib/features/todo/services/todo_storage.dart`（第 556 行）
+- **来源：** `lib/features/todo/services/todo_storage.dart`（第 610 行）
 - **用途：** 解析数据文件实际存储的目录——设置了自定义路径则自定义路径，否则默认 `Documents/MyDay` 目录。
 - **输入：** 无。
 - **返回：** `Future<Directory>`。
 - **副作用：** 磁盘上尚不存在时创建自定义目录（否则落入 `_getDefaultAppDir` 自己的创建）。
 - **算法：** `await _loadConfig()`；`_customPath` 已设且非空时构建/创建那个 `Directory` 并返回；否则返回 `_getDefaultAppDir()`。
-- **用法：** 这是本文件使用最广的入口点——几乎所有其他存储服务都经它解析目录，如 `final appDir = await TodoStorage.getAppDir();` 在 `lib/features/weight/services/weight_storage.dart`（第 39 行）、`lib/features/intimacy/services/intimacy_storage.dart`（第 40、110 行）、`lib/features/finance/services/finance_storage.dart`（第 157 行）、`lib/features/finance/services/exchange_rate_storage.dart`（第 128 行）、`lib/shared/services/image_service.dart`、`import_export_service.dart` 和 `webdav_service.dart`（各多个调用点），加它自己的 [`_getFile`](#_getfile)。
+- **用法：** 这是本文件使用最广的入口点——几乎所有其他存储服务都经它解析目录，如 `final appDir = await TodoStorage.getAppDir();` 在 `lib/features/weight/services/weight_storage.dart`（第 39 行）、`lib/features/intimacy/services/intimacy_storage.dart`（第 40、110 行）、`lib/features/finance/services/finance_storage.dart`（第 186 行）、`lib/features/finance/services/exchange_rate_storage.dart`（第 149 行）、`lib/shared/services/image_service.dart`、`import_export_service.dart` 和 `webdav_service.dart`（各多个调用点），加它自己的 [`_getFile`](#_getfile)。
 - **备注：** 这正是 `TodoStorage` 是"整个应用的中心存储/配置枢纽"而非只是 Todo 功能自己的存储类的架构原因——每个其他功能的数据文件都住在此方法解析的任何目录下。
 
 ### `static Future<File> _getFile()` <a id="_getfile"></a>
 - **种类：** `TodoStorage` 的私有静态方法
-- **来源：** `lib/features/todo/services/todo_storage.dart`（第 573 行）
+- **来源：** `lib/features/todo/services/todo_storage.dart`（第 627 行）
 - **用途：** 在活动应用目录内解析 `todo_data.json` 的 `File` 句柄。
 - **输入：** 无。
 - **返回：** `Future<File>`。
@@ -425,7 +474,7 @@
 
 ### `static Future<bool> fileExists()` <a id="fileexists"></a>
 - **种类：** `TodoStorage` 的静态方法
-- **来源：** `lib/features/todo/services/todo_storage.dart`（第 584 行）
+- **来源：** `lib/features/todo/services/todo_storage.dart`（第 638 行）
 - **用途：** 检查 `todo_data.json` 是否完全存在，不尝试解析。
 - **输入：** 无。
 - **返回：** `Future<bool>`。
@@ -436,7 +485,7 @@
 
 ### `static Future<TodoData?> load()` <a id="load"></a>
 - **种类：** `TodoStorage` 的静态方法
-- **来源：** `lib/features/todo/services/todo_storage.dart`（第 596 行）
+- **来源：** `lib/features/todo/services/todo_storage.dart`（第 650 行）
 - **用途：** 加载并解析 `todo_data.json`，只在文件不存在时返回 `null`。
 - **输入：** 无。
 - **返回：** `Future<TodoData?>` — 缺失时 `null`；否则解析 `TodoData` 或抛出 `TodoStorageException`。
@@ -469,7 +518,7 @@
 
 ### `static Future<void> save(TodoData data)` <a id="save"></a>
 - **种类：** `TodoStorage` 的静态方法
-- **来源：** `lib/features/todo/services/todo_storage.dart`（第 617 行）
+- **来源：** `lib/features/todo/services/todo_storage.dart`（第 671 行）
 - **用途：** 排队一次 `data` 写入，确保重叠 `save` 调用绝不交错写 `todo_data.json`。
 - **输入：** `data`。
 - **返回：** 此特定写入（含其在队列中的位置）完成时完成的 `Future<void>`。
@@ -489,7 +538,7 @@
 
 ### `static Future<void> _saveNow(TodoData data)` <a id="_savenow"></a>
 - **种类：** `TodoStorage` 的私有静态方法
-- **来源：** `lib/features/todo/services/todo_storage.dart`（第 631 行）
+- **来源：** `lib/features/todo/services/todo_storage.dart`（第 685 行）
 - **用途：** 在调用方已在写队列中轮到自己后，执行一次 `data` 到 `todo_data.json` 的实际写入。
 - **输入：** `data`。
 - **返回：** `Future<void>`。
@@ -503,7 +552,7 @@
 
 ### `static Future<String> getStoragePath()` <a id="getstoragepath"></a>
 - **种类：** `TodoStorage` 的静态方法
-- **来源：** `lib/features/todo/services/todo_storage.dart`（第 647 行）
+- **来源：** `lib/features/todo/services/todo_storage.dart`（第 701 行）
 - **用途：** 获取活动存储目录路径，供设置显示。
 - **输入：** 无。
 - **返回：** `Future<String>`。
@@ -514,7 +563,7 @@
 
 ### `static Future<bool> setStoragePath(String? newPath)` <a id="setstoragepath"></a>
 - **种类：** `TodoStorage` 的静态方法
-- **来源：** `lib/features/todo/services/todo_storage.dart`（第 669 行）
+- **来源：** `lib/features/todo/services/todo_storage.dart`（第 723 行）
 - **用途：** 更改自定义存储目录，把应用已知数据文件移入（或采用已在其中的），使既有数据不丢失或不重复。
 - **输入：** `newPath` — `null` 重置回默认位置。
 - **返回：** `Future<bool>` — 成功 `true`，任何东西抛出 `false`。
@@ -533,12 +582,12 @@
     /* show settingsResetDefaultLocation or settingsStoragePathUpdated snackbar */
   }
   ```
-  （`settings_page.dart`，第 924-937 行）。
+  （`settings_page.dart`，第 928-943 行）。
 - **备注：** `storage_config.json` 本身从不在 `_dataFileNames` 中、绝不被移动——它总是留在默认应用目录（按 `_getConfigFile`/`_getDefaultAppDir`），即使为其他一切设置了自定义存储路径。`images/`、`backups/` 和 `.sync_base/` 等目录也不由此文件列表移动（按 AGENTS.md）。
 
 ### `static Future<bool> getMinimizeToTray()` <a id="getminimizetotray"></a>
 - **种类：** `TodoStorage` 的静态方法
-- **来源：** `lib/features/todo/services/todo_storage.dart`（第 696 行）
+- **来源：** `lib/features/todo/services/todo_storage.dart`（第 750 行）
 - **用途：** 获取持久化"最小化到托盘"设置。
 - **输入：** 无。
 - **返回：** `Future<bool>`。
@@ -554,7 +603,7 @@
 
 ### `static Future<void> setMinimizeToTray(bool value)` <a id="setminimizetotray"></a>
 - **种类：** `TodoStorage` 的静态方法
-- **来源：** `lib/features/todo/services/todo_storage.dart`（第 706 行）
+- **来源：** `lib/features/todo/services/todo_storage.dart`（第 760 行）
 - **用途：** 设置并持久化"最小化到托盘"设置。
 - **输入：** `value`。
 - **返回：** `Future<void>`。
@@ -572,7 +621,7 @@
 
 ### `static Future<bool> getCloseToTray()` <a id="getclosetotray"></a>
 - **种类：** `TodoStorage` 的静态方法
-- **来源：** `lib/features/todo/services/todo_storage.dart`（第 717 行）
+- **来源：** `lib/features/todo/services/todo_storage.dart`（第 771 行）
 - **用途：** 获取持久化"关闭到托盘"设置。
 - **输入：** 无。
 - **返回：** `Future<bool>`。
@@ -583,7 +632,7 @@
 
 ### `static Future<void> setCloseToTray(bool value)` <a id="setclosetotray"></a>
 - **种类：** `TodoStorage` 的静态方法
-- **来源：** `lib/features/todo/services/todo_storage.dart`（第 727 行）
+- **来源：** `lib/features/todo/services/todo_storage.dart`（第 781 行）
 - **用途：** 设置并持久化"关闭到托盘"设置。
 - **输入：** `value`。
 - **返回：** `Future<void>`。
@@ -602,7 +651,7 @@
 
 ### `static int _normalizeWeekStartDay(int? weekday)` <a id="_normalizeweekstartday"></a>
 - **种类：** `TodoStorage` 的私有静态方法
-- **来源：** `lib/features/todo/services/todo_storage.dart`（第 738 行）
+- **来源：** `lib/features/todo/services/todo_storage.dart`（第 792 行）
 - **用途：** 返回有效持久化周起始日，无效或缺失值默认周一。
 - **输入：** `weekday` — 可空，预期 `DateTime.monday`..`DateTime.sunday`（1-7）。
 - **返回：** `int` — 总在 `[DateTime.monday, DateTime.sunday]`。

@@ -33,7 +33,7 @@
   ```dart
   final standard = braStandardFromCode(_profile.braStandard);
   ```
-  （`lib/features/intimacy/widgets/body_section.dart:550`，调用 `estimateBraSize` 前。）
+  （`lib/features/intimacy/widgets/body_section.dart:548`，调用 `estimateBraSize` 前。）
 - **备注：** 这是保证即使存储代码缺失或来自未来/未知版本也总是有效标准的唯一回退点。
 
 ### `String braStandardCode(BraStandard standard)` <a id="brastandardcode"></a>
@@ -50,7 +50,7 @@
     _profile.copyWith(braStandard: braStandardCode(s)),
   ),
   ```
-  （`lib/features/intimacy/widgets/body_section.dart:623`，标准选择器 chip 行。）
+  （`lib/features/intimacy/widgets/body_section.dart:621`，标准选择器 chip 行。）
 - **备注：** 无 `default` 的穷尽意味着添加新 `BraStandard` 值而不扩展此 switch 是编译期错误，不是静默运行时回退。
 
 ### `const BraSizeEstimate({required int band, required String cup, required String display})` <a id="brasizeestimate-new"></a>
@@ -106,7 +106,7 @@
         )
       : null;
   ```
-  （`lib/features/intimacy/widgets/body_section.dart:553-559`，`_buildBraCard`。）
+  （`lib/features/intimacy/widgets/body_section.dart:551-557`，`_buildBraCard`。）
 - **备注：** 全部六个分支在越界时都刻意返回 `null` 而不是近似尺寸，使 UI 能显示显式越界提示，而不是误导性的精确结果。
 
 ### `double? calculatePsi({double? lengthCm, double? baseCircumferenceCm, double? frontCircumferenceCm})` <a id="calculatepsi"></a>
@@ -125,7 +125,7 @@
     frontCircumferenceCm: _profile.frontCircumferenceCm,
   );
   ```
-  （`lib/features/intimacy/widgets/body_section.dart:902-906`，`_buildPsiCard`。）
+  （`lib/features/intimacy/widgets/body_section.dart:900-904`，`_buildPsiCard`。）
 - **备注：** 基于 dm 的截锥体积近似，纯粹作为个人参考数字显示、绝不是定性评级——源码注释明确说明其引用的统计参考是人群统计的来源，不是公式本身。
 
 ## 相关页面

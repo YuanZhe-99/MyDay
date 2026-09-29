@@ -74,8 +74,8 @@ matching the 5 rows above exactly (2 Tier A, 3 Tier B).
   );
   ```
   (`lib/features/finance/views/accounts_page.dart:893`, `_buildAccountAvatar`. The other call sites:
-  `subscription_avatar.dart:69` and `:86`, `add_transaction_dialog.dart:437` with `radius: 12`,
-  `subscription_detail_page.dart:396`, `finance_page.dart:1628`, `category_detail_page.dart:425`.)
+  `subscription_avatar.dart:69` and `:86`, `add_transaction_dialog.dart:438` with `radius: 12`,
+  `subscription_detail_page.dart:396`, `finance_page.dart:1743`, `category_detail_page.dart:425`.)
 - **Notes:** SVG logos are wordmarks as often as symbols and are drawn for light backgrounds, so
   they always get a white disc and `contain` with an inset — whole and legible in dark mode —
   and ignore `backgroundColor`. The image is a child rather than `backgroundImage` because

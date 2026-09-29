@@ -205,6 +205,31 @@ void main() {
     expect(result2.height, 171);
   });
 
+  // Proven only in a DST time zone (CI: TZ=America/New_York).
+  test('day-based recurrences keep their time of day across DST', () {
+    const every2 = TaskRecurrence.everyNDays(2);
+    for (
+      var d = DateTime(2026, 1, 1, 8);
+      d.year == 2026;
+      d = every2.nextDate(d)
+    ) {
+      expect(d.hour, 8, reason: '$d');
+    }
+    for (var day = 1; day <= 365; day++) {
+      final sub = Subscription(
+        name: 'Trial',
+        startDate: DateTime(2026, 1, day),
+        trialDays: 30,
+        billingCycleType: BillingCycleType.monthly,
+        amount: 1,
+        accountId: 'a',
+      );
+      final first = sub.firstBillingDate;
+      expect(first.hour, 0, reason: '${sub.startDate}');
+      expect(first, DateTime(2026, 1, day + 30), reason: '${sub.startDate}');
+    }
+  });
+
   test('new record timestamps default to UTC for cross-timezone LWW', () {
     expect(Task(title: 'x', type: TaskType.workOnce).modifiedAt.isUtc, isTrue);
     expect(

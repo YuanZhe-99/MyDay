@@ -62,11 +62,21 @@ class TaskRecurrence {
   /// Inputs: `from`.
   /// Returns: `DateTime`.
   /// Side effects: None.
-  /// Notes: None.
+  /// Notes: `everyNDays` steps by calendar days (wall-clock time kept across DST).
   DateTime nextDate(DateTime from) {
     switch (type) {
       case RecurrenceType.everyNDays:
-        return from.add(Duration(days: intervalDays));
+        // Calendar-day step keeps the time of day across a DST change.
+        return DateTime(
+          from.year,
+          from.month,
+          from.day + intervalDays,
+          from.hour,
+          from.minute,
+          from.second,
+          from.millisecond,
+          from.microsecond,
+        );
       case RecurrenceType.monthlyOnDay:
         var month = from.month + 1;
         var year = from.year;

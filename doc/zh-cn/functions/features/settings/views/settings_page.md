@@ -74,7 +74,7 @@
   1. 从当前设置播种四个 `TextEditingController` 并捕获初始 `signature()`（经共享 `formSignature` 辅助的所有四字段连接字符串指纹）供未保存变更检测。
   2. 显示包在 `UnsavedChangesGuard` 中的 `AlertDialog`，比较实时 `signature()` 与 `initialSignature` 决定 Cancel 是否应在丢弃前警告。
   3. 用户保存（`saved == true`）且组件仍 mounted 时：用 `int.tryParse(...) ?? 7790` 解析端口字段（无效输入回退默认）；把空地址规范化为 `'localhost'`；把空用户名/密码规范化为 `null`（而非空字符串），使清除凭据实际从配置移除它，不只是空白。
-  4. 经 `TodoStorage.writeConfig` 写四个值、更新本地状态，然后调用 `LocalApiServer.restart()` 使运行中服务器拾取新绑定地址/端口/凭据。
+  4. 经 `TodoStorage.writeConfig` 写四个值、更新本地状态（仅在仍挂载时，v1.5.2——写入是异步的），然后调用 `LocalApiServer.restart()` 使运行中服务器拾取新绑定地址/端口/凭据。
   5. 仍 mounted 时再次 `setState` 并经 `LocalApiServer.port` 显示报告服务器（可能新的）端口的 snackbar。
 - **用法：**
   ```dart
@@ -90,7 +90,7 @@
 
 ### `Future<void> _showStoragePathDialog(BuildContext context)` <a id="showstoragepathdialog"></a>
 - **种类：** `_SettingsPageState` 的方法
-- **来源：** `lib/features/settings/views/settings_page.dart`（第 877 行）
+- **来源：** `lib/features/settings/views/settings_page.dart`（第 882 行）
 - **用途：** 让用户查看和更改自定义数据存储路径，或重置回应用默认位置。
 - **输入：** `context` — 用于对话框和保存后 snackbar。
 - **返回：** `Future<void>`。
@@ -114,7 +114,7 @@
 
 ### `void _showLanguagePicker(BuildContext context, AppSettings settings)` <a id="showlanguagepicker"></a>
 - **种类：** `_SettingsPageState` 的方法
-- **来源：** `lib/features/settings/views/settings_page.dart`（第 1031 行）
+- **来源：** `lib/features/settings/views/settings_page.dart`（第 1036 行）
 - **用途：** 显示让用户选"跟随系统"或四种受支持应用语言之一的底部面板，把选择转换为应用设置提供者期望的 `Locale`。
 - **输入：** `context`；`settings` — 当前 `AppSettings`，用于计算预选单选值。
 - **返回：** `None`。
@@ -145,7 +145,7 @@
 
 ### `Widget _detailPage(_SettingsDetail detail)` <a id="detailpage"></a>
 - **种类：** `_SettingsPageState` 的方法
-- **来源：** `lib/features/settings/views/settings_page.dart`（第 483 行）
+- **来源：** `lib/features/settings/views/settings_page.dart`（第 485 行）
 - **用途：** 构建设置行通向的二级页面。
 - **输入：** `detail`。
 - **返回：** `Widget`——一个带自己 app bar 的 `Scaffold`。
@@ -156,7 +156,7 @@
 
 ### `Future<void> _open(_SettingsDetail detail)` <a id="open"></a>
 - **种类：** `_SettingsPageState` 的方法
-- **来源：** `lib/features/settings/views/settings_page.dart`（第 502 行）
+- **来源：** `lib/features/settings/views/settings_page.dart`（第 504 行）
 - **用途：** 按当前布局所要求的方式打开二级页面。
 - **输入：** `detail`。
 - **返回：** `Future<void>`——推入的页面被弹出时完成；使用窗格时立即完成。
@@ -167,7 +167,7 @@
 
 ### `Widget _buildDetailPane(AppLocalizations l10n)` <a id="builddetailpane"></a>
 - **种类：** `_SettingsPageState` 的方法
-- **来源：** `lib/features/settings/views/settings_page.dart`（第 522 行）
+- **来源：** `lib/features/settings/views/settings_page.dart`（第 524 行）
 - **用途：** 构建双栏设置布局的右侧窗格。
 - **输入：** `l10n`。
 - **返回：** `Widget`——居中的占位内容，或托管所选页面的 `Navigator`。
@@ -178,11 +178,11 @@
 
 ### `Widget _buildSettingsList(...)` <a id="buildsettingslist"></a>
 - **种类：** `_SettingsPageState` 的方法
-- **来源：** `lib/features/settings/views/settings_page.dart`（第 564 行）
+- **来源：** `lib/features/settings/views/settings_page.dart`（第 566 行）
 - **用途：** 构建一级设置列表。
 - **输入：** `context`、`l10n`、`visibility`、`settings`；`labels`——`build` 在选择布局之前就已格式化好的四个字符串。
 - **返回：** `Widget`——分区的滚动 `ListView`。
 - **副作用：** 除构建组件外无；磁贴自己的回调各有其副作用。
 - **算法：** v1.4.1 之前 `build` 返回的列表——常规、隐私、桌面（仅桌面）、数据、关于和调试分区——自 v1.5.0 起在隐私与桌面之间再加一个端侧 AI 分区（`l10n.aiSectionTitle`）。`platformMayHaveOnDeviceModel`（来自 `genai_backend.dart`）为真时该分区放 `const AiSettingsTiles()`，否则放一个带 `auto_awesome_outlined` 图标和 `l10n.aiNotSupportedHere` 的 `ListTile`（Windows、Linux）。
 - **用法：** 由 `build` 调用；它在窄窗口上是整个主体，在宽窗口上是左窗格。
-- **备注：** 抽取而不是复制，因此列表在两种模式下完全相同，变的只是它的 chevron 行落在哪里。
+- **备注：** 抽取而不是复制，因此列表在两种模式下完全相同，变的只是它的 chevron 行落在哪里。自 v1.5.2 起，桌面分区的开关（最小化到托盘、关闭到托盘、开机启动、启用本地 API）在等待的平台或配置调用之后先检查 `mounted` 再调用 `setState`，因此在切换途中离开页面不会再对已销毁的 state 调用 `setState`。

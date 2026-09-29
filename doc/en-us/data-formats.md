@@ -70,7 +70,8 @@ Source: `lib/features/finance/models/finance.dart`.
   `0`), `billingCycleType`, `billingInterval` (every X months/years, default `1`), `amount`,
   `currency` (default `'CNY'`), `accountId`, optional `categoryId`, `note` (default `''`),
   `isActive` (default `true`), optional `cancelledAt`, optional `cancelType`, optional persisted
-  `nextBillingDate`, `modifiedAt`. `firstBillingDate` = `startDate + trialDays`.
+  `nextBillingDate`, `modifiedAt`. `firstBillingDate` = `startDate + trialDays`, counted in calendar
+  days (`addCalendarDays`, so the start time of day is kept across a DST change, v1.5.2).
   `Subscription.nextBillingCursor(...)` is the shared month-end-clamping cursor advance used by both
   the model and `SubscriptionProcessor` — see
   [Subscription Billing](algorithms/subscription-billing.md) for the full algorithm.
@@ -89,6 +90,14 @@ account picker, and `settingsModifiedAt`.
 a `currentSnapshotId`, and `lastFetchedAt`. It migrates forward from an older flat
 currency→rate map format. See [Finance](features/finance.md) for how `ExchangeRateApi` populates
 this and how `balance_util.dart` consumes it.
+
+A missing or blank file reads as the default snapshot. Since v1.5.2 an existing file that cannot be
+read or parsed raises `ExchangeRateStorageException` instead of silently returning the defaults, and
+a save refuses to overwrite such a file, so the snapshot history is never replaced by one default
+snapshot. The Finance page shows its unreadable-data view, the exchange-rates page a blocking error
+view with a retry button, and the local API `data_unreadable`. `FinanceStorage.load` reads this file
+only when an account still carries a legacy forced balance to migrate, so ordinary finance loads do
+not depend on it. The on-disk format is unchanged.
 
 ## Intimacy — `intimacy_data.json`
 
@@ -189,6 +198,15 @@ The four list column preferences are stored here, and therefore never synced, on
 size is a property of the device, not of the account — see
 [adaptive-layout.md](adaptive-layout.md). Each is absent until the user pins a count and holds an
 integer 1..4; anything else, including the absent case, reads back as "auto".
+
+Every write to this file is a read-merge-write that `TodoStorage` serializes through one config
+write queue and writes atomically (temporary file, then rename) since v1.5.2. `writeConfig` takes
+only the keys being changed (a `null` value removes the key), so two settings saved at once can no
+longer drop each other. A write refuses to build on an existing file that is not a parseable JSON
+object and throws `TodoStorageException` instead, so `storagePath` and the API credentials are never
+replaced by a near-empty map; a missing or blank file counts as `{}`. Reads through
+`TodoStorage.readConfig()` stay lenient and return `{}` for an unreadable file. The format is
+unchanged.
 
 ## Persisted Data Inventory
 

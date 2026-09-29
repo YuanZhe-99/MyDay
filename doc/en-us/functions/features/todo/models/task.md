@@ -85,7 +85,7 @@ trivial accessors.
   relevant to that recurrence kind.
 - **Usage:** `TaskRecurrence._(type: RecurrenceType.everyNDays, intervalDays: days)` — called only
   from within this file, by `everyNDays`/`monthlyOnDay`/`yearlyOnMonthDay` (lines 38, 46, 54-58) and
-  `fromJson` (lines 107-112).
+  `fromJson` (lines 117-122).
 - **Notes:** Because it is private, a `TaskRecurrence` can only be built through one of the three
   named factories or `fromJson` — there is no way from outside this file to construct one with a
   `type` mismatched to its populated fields.
@@ -153,7 +153,10 @@ trivial accessors.
 - **Returns:** `DateTime` — the next occurrence date.
 - **Side effects:** None.
 - **Algorithm:**
-  1. `everyNDays`: `from.add(Duration(days: intervalDays))`.
+  1. `everyNDays`: step `intervalDays` calendar days with `DateTime(from.year, from.month,
+     from.day + intervalDays, from.hour, from.minute, from.second, from.millisecond,
+     from.microsecond)`, keeping the wall-clock time across a DST change (v1.5.2; previously
+     `from.add(Duration(days: intervalDays))`, which could shift the time by an hour).
   2. `monthlyOnDay`: advance to the following month (rolling the year over past month 12), compute
      that month's last day via `DateTime(year, month + 1, 0).day`, then clamp `dayOfMonth` into
      `[1, lastDay]`.
@@ -166,27 +169,30 @@ trivial accessors.
     completedTask.scheduledDate ?? completedTask.createdDate,
   );
   ```
-  (`lib/features/todo/views/todo_page.dart`, lines 895-897, `_offerNextOccurrence`).
+  (`lib/features/todo/views/todo_page.dart`, lines 905-907, `_offerNextOccurrence`).
 - **Notes:** `monthlyOnDay` always advances by exactly one month and `yearlyOnMonthDay` by exactly
   one year from `from` — there is no "next occurrence after today" search. The caller is expected to
-  pass the date the just-completed task was scheduled on, not an arbitrary reference date.
+  pass the date the just-completed task was scheduled on, not an arbitrary reference date. The
+  `everyNDays` step always builds a local `DateTime`, the same calendar-day rule as
+  [`addCalendarDays`](../../../shared/utils/week_grouping.md#addcalendardays) uses for local
+  dates.
 
 ### `Map<String, dynamic> toJson()` <a id="taskrecurrence-tojson"></a>
 - **Kind:** method of `TaskRecurrence`
-- **Source:** `lib/features/todo/models/task.dart` (line 94)
+- **Source:** `lib/features/todo/models/task.dart` (line 104)
 - **Purpose:** Serialize this recurrence into its persisted/synced JSON shape.
 - **Inputs:** None.
 - **Returns:** `Map<String, dynamic>` with `type` (enum name), `intervalDays`, `dayOfMonth`,
   `monthOfYear`.
 - **Side effects:** None.
 - **Algorithm:** Plain map literal — always writes all three numeric fields regardless of `type`.
-- **Usage:** `'recurrence': recurrence?.toJson()` inside `Task.toJson` (line 297).
+- **Usage:** `'recurrence': recurrence?.toJson()` inside `Task.toJson` (line 307).
 - **Notes:** Unlike `Task.toJson`, this never omits fields conditionally — a serialized `everyNDays`
   recurrence still carries `dayOfMonth: 0, monthOfYear: 0` in the JSON.
 
 ### `factory TaskRecurrence.fromJson(Map<String, dynamic> json)` <a id="taskrecurrence-fromjson"></a>
 - **Kind:** factory constructor of `TaskRecurrence`
-- **Source:** `lib/features/todo/models/task.dart` (line 106)
+- **Source:** `lib/features/todo/models/task.dart` (line 116)
 - **Purpose:** Reconstruct a `TaskRecurrence` from its persisted/synced JSON shape.
 - **Inputs:** `json`.
 - **Returns:** A new `TaskRecurrence`.
@@ -194,14 +200,14 @@ trivial accessors.
 - **Algorithm:** `RecurrenceType.values.byName(json['type'] as String)`, then each numeric field
   defaults to 0 via `as int? ?? 0`, all passed into the private `_` constructor.
 - **Usage:** `TaskRecurrence.fromJson(json['recurrence'] as Map<String, dynamic>)` inside
-  `Task.fromJson` (lines 337-339).
+  `Task.fromJson` (lines 347-349).
 - **Notes:** `byName` throws if `type` doesn't match one of the three enum names — a corrupt/foreign
   `type` string is not tolerated silently (it propagates up and surfaces as a load error, per
   `Task.fromJson`'s notes below).
 
 ### `SubTask({String? id, required this.title, this.isCompleted = false, DateTime? modifiedAt})` <a id="subtask-new"></a>
 - **Kind:** constructor of `SubTask`
-- **Source:** `lib/features/todo/models/task.dart` (line 126)
+- **Source:** `lib/features/todo/models/task.dart` (line 136)
 - **Purpose:** Create a subtask, generating `id`/`modifiedAt` when omitted.
 - **Inputs:** `title` (required); `isCompleted` (default false); optional `id`, `modifiedAt`.
 - **Returns:** A new `SubTask`.
@@ -209,13 +215,13 @@ trivial accessors.
 - **Algorithm:** `id ??= Uuid().v4()`; `modifiedAt ??= DateTime.now().toUtc()`.
 - **Usage:** `subtasks: subtaskTitles.map((t) => SubTask(title: t)).toList()`
   (`lib/features/todo/widgets/add_task_dialog.dart`, line 618); also `SubTask(title: s.title)` when
-  building the next-occurrence task (`todo_page.dart`, line 904).
+  building the next-occurrence task (`todo_page.dart`, line 914).
 - **Notes:** Unlike `Task`, `SubTask` has no `createdDate` field — only `id`/`modifiedAt` get
   auto-generated defaults.
 
 ### `SubTask copyWith({String? title, bool? isCompleted, DateTime? modifiedAt})` <a id="subtask-copywith"></a>
 - **Kind:** method of `SubTask`
-- **Source:** `lib/features/todo/models/task.dart` (line 139)
+- **Source:** `lib/features/todo/models/task.dart` (line 149)
 - **Purpose:** Produce a modified copy of this subtask, keeping the same `id`.
 - **Inputs:** Replacement `title`/`isCompleted`/`modifiedAt`.
 - **Returns:** A new `SubTask` with the same `id` as `this`.
@@ -229,26 +235,26 @@ trivial accessors.
   _subtasks[index] = _subtasks[index].copyWith(title: newTitle);
   ```
   (`lib/features/todo/widgets/edit_task_dialog.dart`, line 593); also
-  `s.copyWith(isCompleted: nowCompleting)` (`todo_page.dart`, line 854) and
-  `s.copyWith(isCompleted: subDone)` (`todo_page.dart`, line 373, mapping per-date subtask
+  `s.copyWith(isCompleted: nowCompleting)` (`todo_page.dart`, line 864) and
+  `s.copyWith(isCompleted: subDone)` (`todo_page.dart`, line 381, mapping per-date subtask
   completion onto a daily template's display copy).
 - **Notes:** Unlike `Task.copyWith`, there is no `clearX` pattern here — none of `SubTask`'s fields
   besides the auto-generated ones are nullable in a way that needs explicit clearing.
 
 ### `Map<String, dynamic> toJson()` <a id="subtask-tojson"></a>
 - **Kind:** method of `SubTask`
-- **Source:** `lib/features/todo/models/task.dart` (line 153)
+- **Source:** `lib/features/todo/models/task.dart` (line 163)
 - **Purpose:** Serialize this subtask into its persisted/synced JSON shape.
 - **Inputs:** None.
 - **Returns:** `Map<String, dynamic>` with `id`, `title`, `isCompleted`, `modifiedAt` (ISO 8601).
 - **Side effects:** None.
 - **Algorithm:** Plain map literal, no conditional omission.
-- **Usage:** `subtasks.map((s) => s.toJson()).toList()` inside `Task.toJson` (line 290).
+- **Usage:** `subtasks.map((s) => s.toJson()).toList()` inside `Task.toJson` (line 300).
 - **Notes:** None.
 
 ### `factory SubTask.fromJson(Map<String, dynamic> json)` <a id="subtask-fromjson"></a>
 - **Kind:** factory constructor of `SubTask`
-- **Source:** `lib/features/todo/models/task.dart` (line 165)
+- **Source:** `lib/features/todo/models/task.dart` (line 175)
 - **Purpose:** Reconstruct a `SubTask` from its persisted/synced JSON shape.
 - **Inputs:** `json` — expected to contain at least `id`, `title`.
 - **Returns:** A new `SubTask`.
@@ -264,14 +270,14 @@ trivial accessors.
           .toList() ??
       const [],
   ```
-  (`Task.fromJson`, lines 316-320).
+  (`Task.fromJson`, lines 326-330).
 - **Notes:** A missing/null `modifiedAt` reads as the Unix epoch (oldest possible), not "now" — so a
   subtask record persisted before `modifiedAt` was tracked will always lose a last-writer-wins
   comparison against a peer that has a real timestamp.
 
 ### `Task({String? id, required this.title, this.note, this.emoji, required this.type, this.isCompleted = false, this.reminderTime, this.subtasks = const [], DateTime? createdDate, this.completedDate, this.scheduledDate, this.deletedDate, this.startDate, this.dueDate, this.recurrence, DateTime? modifiedAt})` <a id="task-new"></a>
 - **Kind:** constructor of `Task`
-- **Source:** `lib/features/todo/models/task.dart` (line 211)
+- **Source:** `lib/features/todo/models/task.dart` (line 221)
 - **Purpose:** Create a task (daily template or one-time), generating `id`/`createdDate`/
   `modifiedAt` when omitted.
 - **Inputs:** `title`, `type` (required); many optional fields covering both daily-template use
@@ -306,7 +312,7 @@ trivial accessors.
 
 ### `Task copyWith({String? title, String? note, bool clearNote = false, String? emoji, TaskType? type, bool? isCompleted, DateTime? reminderTime, List<SubTask>? subtasks, DateTime? completedDate, DateTime? scheduledDate, DateTime? deletedDate, bool clearDeletedDate = false, DateTime? startDate, DateTime? dueDate, bool clearDueDate = false, TaskRecurrence? recurrence, bool clearRecurrence = false, DateTime? modifiedAt})` <a id="task-copywith"></a>
 - **Kind:** method of `Task`
-- **Source:** `lib/features/todo/models/task.dart` (line 237)
+- **Source:** `lib/features/todo/models/task.dart` (line 247)
 - **Purpose:** Produce a modified copy of this task, clearing nullable fields via explicit `clearXxx`
   flags rather than by passing `null`.
 - **Inputs:** Replacement values for most fields; `clearNote`/`clearDeletedDate`/`clearDueDate`/
@@ -323,21 +329,21 @@ trivial accessors.
   ```dart
   _dailyTemplates[index] = t.copyWith(deletedDate: _selectedDate);
   ```
-  (`todo_page.dart`, line 946, soft-deleting a daily template) and
+  (`todo_page.dart`, line 956, soft-deleting a daily template) and
   ```dart
   return needsCopy
       ? t.copyWith(isCompleted: done, subtasks: mappedSubs)
       : t;
   ```
-  (`todo_page.dart`, line 378, `_dailyForDate` mapping per-date completion onto the template's
+  (`todo_page.dart`, line 385, `_dailyForDate` mapping per-date completion onto the template's
   display copy).
 - **Notes:** Because `completedDate` has no `clearX` flag, `_toggleTask`'s one-time-task
-  un-completion path (`todo_page.dart`, lines 857-873) constructs a raw `Task(...)` directly instead
+  un-completion path (`todo_page.dart`, lines 864-878) constructs a raw `Task(...)` directly instead
   of calling `copyWith`, specifically so it can set `completedDate: null`.
 
 ### `Map<String, dynamic> toJson()` <a id="task-tojson"></a>
 - **Kind:** method of `Task`
-- **Source:** `lib/features/todo/models/task.dart` (line 282)
+- **Source:** `lib/features/todo/models/task.dart` (line 292)
 - **Purpose:** Serialize this task into its persisted/synced JSON shape.
 - **Inputs:** None.
 - **Returns:** `Map<String, dynamic>` with every field always present as a key (nullable fields
@@ -354,7 +360,7 @@ trivial accessors.
 
 ### `factory Task.fromJson(Map<String, dynamic> json)` <a id="task-fromjson"></a>
 - **Kind:** factory constructor of `Task`
-- **Source:** `lib/features/todo/models/task.dart` (line 306)
+- **Source:** `lib/features/todo/models/task.dart` (line 316)
 - **Purpose:** Reconstruct a `Task` from its persisted/synced JSON shape.
 - **Inputs:** `json`.
 - **Returns:** A new `Task`.
@@ -377,7 +383,7 @@ trivial accessors.
 
 ### `DailyCompletionLog()` <a id="dailycompletionlog-new"></a>
 - **Kind:** constructor of `DailyCompletionLog`
-- **Source:** `lib/features/todo/models/task.dart` (line 359)
+- **Source:** `lib/features/todo/models/task.dart` (line 369)
 - **Purpose:** Create an empty completion log.
 - **Inputs:** None.
 - **Returns:** A new `DailyCompletionLog` with both internal maps empty.
@@ -386,12 +392,12 @@ trivial accessors.
 - **Usage:** `DailyCompletionLog()` as the loader's fallback when `json['dailyLog']` is absent
   (`TodoData.fromJson`, `todo_storage.dart`, line 91), and
   `ReminderService.instance.updateData(..., dailyLog: DailyCompletionLog())` on a load failure
-  (`todo_page.dart`, line 101).
+  (`todo_page.dart`, line 107).
 - **Notes:** None.
 
 ### `static String dateKey(DateTime date)` <a id="datekey"></a>
 - **Kind:** static method of `DailyCompletionLog`
-- **Source:** `lib/features/todo/models/task.dart` (line 366)
+- **Source:** `lib/features/todo/models/task.dart` (line 376)
 - **Purpose:** Format a `DateTime` into the `yyyy-MM-dd` string key used by both the completion log
   and the score log.
 - **Inputs:** `date`.
@@ -409,7 +415,7 @@ trivial accessors.
 
 ### `bool isCompleted(DateTime date, String taskId)` <a id="iscompleted"></a>
 - **Kind:** method of `DailyCompletionLog`
-- **Source:** `lib/features/todo/models/task.dart` (line 374)
+- **Source:** `lib/features/todo/models/task.dart` (line 384)
 - **Purpose:** Check whether a specific daily task is marked done on a given date.
 - **Inputs:** `date`, `taskId`.
 - **Returns:** `bool`.
@@ -420,12 +426,12 @@ trivial accessors.
   ```dart
   final done = _dailyLog.isCompleted(_selectedDate, t.id);
   ```
-  (`todo_page.dart`, line 368, `_dailyForDate`; also lines 703, 743, 833).
+  (`todo_page.dart`, line 374, `_dailyForDate`; also lines 713, 753, 843).
 - **Notes:** None.
 
 ### `void toggle(DateTime date, String taskId)` <a id="toggle"></a>
 - **Kind:** method of `DailyCompletionLog`
-- **Source:** `lib/features/todo/models/task.dart` (line 383)
+- **Source:** `lib/features/todo/models/task.dart` (line 393)
 - **Purpose:** Flip a daily task's completion state for a given date.
 - **Inputs:** `date`, `taskId`.
 - **Returns:** None.
@@ -433,7 +439,7 @@ trivial accessors.
   `taskId`.
 - **Algorithm:** `_log.putIfAbsent(key, () => {})`; if the set already contains `taskId`, remove it,
   else add it.
-- **Usage:** `_dailyLog.toggle(_selectedDate, task.id);` (`todo_page.dart`, line 831, `_toggleTask`'s
+- **Usage:** `_dailyLog.toggle(_selectedDate, task.id);` (`todo_page.dart`, line 841, `_toggleTask`'s
   daily-task branch).
 - **Notes:** Toggling records no per-entry timestamp of its own — completion state for a date+task
   pair has no `modifiedAt`; only the union-merge in `DailyCompletionLog.merge` reconciles two logs
@@ -441,7 +447,7 @@ trivial accessors.
 
 ### `Set<String> completedIds(DateTime date)` <a id="completedids"></a>
 - **Kind:** method of `DailyCompletionLog`
-- **Source:** `lib/features/todo/models/task.dart` (line 398)
+- **Source:** `lib/features/todo/models/task.dart` (line 408)
 - **Purpose:** Return the full set of completed task IDs for a date.
 - **Inputs:** `date`.
 - **Returns:** `Set<String>`, empty if the date has no entry.
@@ -454,30 +460,30 @@ trivial accessors.
 
 ### `bool isSubtaskCompleted(DateTime date, String subtaskId)` <a id="issubtaskcompleted"></a>
 - **Kind:** method of `DailyCompletionLog`
-- **Source:** `lib/features/todo/models/task.dart` (line 407)
+- **Source:** `lib/features/todo/models/task.dart` (line 417)
 - **Purpose:** Check whether a specific subtask is marked done on a given date.
 - **Inputs:** `date`, `subtaskId`.
 - **Returns:** `bool`.
 - **Side effects:** None.
 - **Algorithm:** Same pattern as `isCompleted`, against `_subLog` instead of `_log`.
 - **Usage:** `final subDone = _dailyLog.isSubtaskCompleted(_selectedDate, s.id);` (`todo_page.dart`,
-  line 371).
+  line 378).
 - **Notes:** Same absent-entry-reads-as-false behavior as `isCompleted`.
 
 ### `void toggleSubtask(DateTime date, String subtaskId)` <a id="togglesubtask"></a>
 - **Kind:** method of `DailyCompletionLog`
-- **Source:** `lib/features/todo/models/task.dart` (line 416)
+- **Source:** `lib/features/todo/models/task.dart` (line 426)
 - **Purpose:** Flip a subtask's completion state for a given date.
 - **Inputs:** `date`, `subtaskId`.
 - **Returns:** None.
 - **Side effects:** Mutates `_subLog` in place.
 - **Algorithm:** Same pattern as `toggle`, against `_subLog` instead of `_log`.
-- **Usage:** `_dailyLog.toggleSubtask(_selectedDate, subtask.id);` (`todo_page.dart`, line 966).
+- **Usage:** `_dailyLog.toggleSubtask(_selectedDate, subtask.id);` (`todo_page.dart`, line 976).
 - **Notes:** None beyond `toggle`'s.
 
 ### `void setSubtasksCompleted(DateTime date, Iterable<String> subtaskIds, bool completed)` <a id="setsubtaskscompleted"></a>
 - **Kind:** method of `DailyCompletionLog`
-- **Source:** `lib/features/todo/models/task.dart` (line 431)
+- **Source:** `lib/features/todo/models/task.dart` (line 441)
 - **Purpose:** Bulk-set many subtask IDs to completed or not-completed for one date, in a single
   call.
 - **Inputs:** `date`, `subtaskIds`, `completed`.
@@ -493,14 +499,14 @@ trivial accessors.
     nowCompleted,
   );
   ```
-  (`todo_page.dart`, lines 840-844 — auto-completing/uncompleting all of a daily template's
+  (`todo_page.dart`, lines 849-854 — auto-completing/uncompleting all of a daily template's
   subtasks when its parent task is toggled).
 - **Notes:** Unlike `toggle` (single-ID flip), this is a direct set, not a flip — it never touches
   IDs outside `subtaskIds`, and re-applying the same `completed` value is a no-op.
 
 ### `Set<String> completedSubtaskIds(DateTime date)` <a id="completedsubtaskids"></a>
 - **Kind:** method of `DailyCompletionLog`
-- **Source:** `lib/features/todo/models/task.dart` (line 450)
+- **Source:** `lib/features/todo/models/task.dart` (line 460)
 - **Purpose:** Return the full set of completed subtask IDs for a date.
 - **Inputs:** `date`.
 - **Returns:** `Set<String>`, empty if the date has no entry.
@@ -511,7 +517,7 @@ trivial accessors.
 
 ### `Map<String, dynamic> toJson()` <a id="dailycompletionlog-tojson"></a>
 - **Kind:** method of `DailyCompletionLog`
-- **Source:** `lib/features/todo/models/task.dart` (line 458)
+- **Source:** `lib/features/todo/models/task.dart` (line 468)
 - **Purpose:** Serialize both internal maps into the `{"tasks": {...}, "subtasks": {...}}` persisted
   shape.
 - **Inputs:** None.
@@ -526,7 +532,7 @@ trivial accessors.
 
 ### `factory DailyCompletionLog.fromJson(Map<String, dynamic> json)` <a id="dailycompletionlog-fromjson"></a>
 - **Kind:** factory constructor of `DailyCompletionLog`
-- **Source:** `lib/features/todo/models/task.dart` (line 468)
+- **Source:** `lib/features/todo/models/task.dart` (line 478)
 - **Purpose:** Parse a completion log, supporting both the current `{tasks, subtasks}` format and a
   legacy flat-map format.
 - **Inputs:** `json`.
@@ -543,7 +549,7 @@ trivial accessors.
 
 ### `factory DailyCompletionLog.merge(DailyCompletionLog a, DailyCompletionLog b)` <a id="dailycompletionlog-merge"></a>
 - **Kind:** factory constructor of `DailyCompletionLog`
-- **Source:** `lib/features/todo/models/task.dart` (line 501)
+- **Source:** `lib/features/todo/models/task.dart` (line 511)
 - **Purpose:** Union-merge two completion logs across all dates, for both task and subtask
   completion independently.
 - **Inputs:** `a`, `b`.
@@ -566,45 +572,45 @@ trivial accessors.
 
 ### `DailyScoreEntry({required int score, DateTime? modifiedAt})` <a id="dailyscoreentry-new"></a>
 - **Kind:** constructor of `DailyScoreEntry`
-- **Source:** `lib/features/todo/models/task.dart` (line 527)
+- **Source:** `lib/features/todo/models/task.dart` (line 537)
 - **Purpose:** Create a score entry, clamping `score` into range and defaulting `modifiedAt`.
 - **Inputs:** `score` (required); `modifiedAt` (optional).
 - **Returns:** A new `DailyScoreEntry`.
 - **Side effects:** None.
 - **Algorithm:** `score = DailyScoreLog.normalizeScore(score)` (clamped to -5..5); `modifiedAt ??=
   DateTime.now().toUtc()`.
-- **Usage:** Only constructed internally in this file, by `DailyScoreLog.setScore` (line 602) and
-  `DailyScoreEntry.fromJson`/`DailyScoreLog.fromJson`'s numeric branch (lines 548, 633) — there are
+- **Usage:** Only constructed internally in this file, by `DailyScoreLog.setScore` (line 612) and
+  `DailyScoreEntry.fromJson`/`DailyScoreLog.fromJson`'s numeric branch (lines 558, 643) — there are
   no external callers.
 - **Notes:** None.
 
 ### `Map<String, dynamic> toJson()` <a id="dailyscoreentry-tojson"></a>
 - **Kind:** method of `DailyScoreEntry`
-- **Source:** `lib/features/todo/models/task.dart` (line 536)
+- **Source:** `lib/features/todo/models/task.dart` (line 546)
 - **Purpose:** Serialize this score entry into its persisted/synced JSON shape.
 - **Inputs:** None.
 - **Returns:** `Map<String, dynamic>` with `score`, `modifiedAt` (ISO 8601).
 - **Side effects:** None.
 - **Algorithm:** Plain map literal.
-- **Usage:** `_scores[key]!.toJson()` inside `DailyScoreLog.toJson` (line 615).
+- **Usage:** `_scores[key]!.toJson()` inside `DailyScoreLog.toJson` (line 625).
 - **Notes:** None.
 
 ### `factory DailyScoreEntry.fromJson(Map<String, dynamic> json)` <a id="dailyscoreentry-fromjson"></a>
 - **Kind:** factory constructor of `DailyScoreEntry`
-- **Source:** `lib/features/todo/models/task.dart` (line 541)
+- **Source:** `lib/features/todo/models/task.dart` (line 556)
 - **Purpose:** Reconstruct a score entry from its persisted/synced JSON shape.
 - **Inputs:** `json`.
 - **Returns:** A new `DailyScoreEntry`.
 - **Side effects:** None.
 - **Algorithm:** `score = rawScore is num ? rawScore.round() : 0` (accepts int or double, defaults 0
   otherwise); `modifiedAt` parsed via `DateTime.parse` if present, else the Unix epoch.
-- **Usage:** Called from `DailyScoreLog.fromJson`'s `Map`-valued branch (lines 627-629).
+- **Usage:** Called from `DailyScoreLog.fromJson`'s `Map`-valued branch (lines 637-639).
 - **Notes:** Routes through the main constructor, so an out-of-range stored `score` is still
   re-clamped via `normalizeScore` on load.
 
 ### `DailyScoreLog()` <a id="dailyscorelog-new"></a>
 - **Kind:** constructor of `DailyScoreLog`
-- **Source:** `lib/features/todo/models/task.dart` (line 570)
+- **Source:** `lib/features/todo/models/task.dart` (line 580)
 - **Purpose:** Create an empty daily score log.
 - **Inputs:** None.
 - **Returns:** A new `DailyScoreLog` with `_scores` empty.
@@ -617,34 +623,34 @@ trivial accessors.
 
 ### `static int normalizeScore(int score)` <a id="normalizescore"></a>
 - **Kind:** static method of `DailyScoreLog`
-- **Source:** `lib/features/todo/models/task.dart` (line 577)
+- **Source:** `lib/features/todo/models/task.dart` (line 587)
 - **Purpose:** Clamp a raw score into the supported -5..5 range.
 - **Inputs:** `score`.
 - **Returns:** `int` between `minScore` (-5) and `maxScore` (5).
 - **Side effects:** None.
 - **Algorithm:** `score.clamp(minScore, maxScore).toInt()`.
 - **Usage:** `DailyScoreLog.normalizeScore(score)` inside `DailyScoreEntry`'s own constructor (line
-  528) — every score entry is clamped through this on construction, so callers outside this file
+  538) — every score entry is clamped through this on construction, so callers outside this file
   never need to call it directly.
 - **Notes:** The explicit `.toInt()` guards against `clamp`'s statically-typed `num` return value.
 
 ### `int scoreFor(DateTime date)` <a id="scorefor"></a>
 - **Kind:** method of `DailyScoreLog`
-- **Source:** `lib/features/todo/models/task.dart` (line 592)
+- **Source:** `lib/features/todo/models/task.dart` (line 602)
 - **Purpose:** Read the score for a day, defaulting to 0 when no explicit entry exists.
 - **Inputs:** `date`.
 - **Returns:** `int`.
 - **Side effects:** None.
 - **Algorithm:** `_scores[DailyCompletionLog.dateKey(date)]?.score ?? 0`.
-- **Usage:** `final score = _dailyScores.scoreFor(_selectedDate);` (`todo_page.dart`, line 1249);
-  also `widget.dailyScores.scoreFor(...)` feeding the monthly trend chart (line 1633).
+- **Usage:** `final score = _dailyScores.scoreFor(_selectedDate);` (`todo_page.dart`, line 1259);
+  also `widget.dailyScores.scoreFor(...)` feeding the monthly trend chart (line 1757).
 - **Notes:** The `?? 0` default is why "no entry" and "an explicit score of 0" are indistinguishable
   through this method alone — that distinction only matters internally, for `setScore`'s always-
   create-a-new-entry behavior below.
 
 ### `void setScore(DateTime date, int score, {DateTime? modifiedAt})` <a id="setscore"></a>
 - **Kind:** method of `DailyScoreLog`
-- **Source:** `lib/features/todo/models/task.dart` (line 596)
+- **Source:** `lib/features/todo/models/task.dart` (line 611)
 - **Purpose:** Store (or overwrite) the score for a day.
 - **Inputs:** `date`, `score`, optional `modifiedAt`.
 - **Returns:** None.
@@ -660,14 +666,14 @@ trivial accessors.
     modifiedAt: DateTime.now().toUtc(),
   );
   ```
-  (`todo_page.dart`, `_setDailyScore`, lines 812-816).
+  (`todo_page.dart`, `_setDailyScore`, lines 822-826).
 - **Notes:** Because an explicit zero is stored as a real, timestamped entry rather than being
   treated as "clear", a deliberate reset to zero still propagates through sync — see
   [Three-Way Merge](../../../../algorithms/three-way-merge.md).
 
 ### `Map<String, dynamic> toJson()` <a id="dailyscorelog-tojson"></a>
 - **Kind:** method of `DailyScoreLog`
-- **Source:** `lib/features/todo/models/task.dart` (line 608)
+- **Source:** `lib/features/todo/models/task.dart` (line 623)
 - **Purpose:** Serialize the score map into its persisted shape, sorted by date key.
 - **Inputs:** None.
 - **Returns:** `Map<String, dynamic>` keyed by `yyyy-MM-dd`.
@@ -681,7 +687,7 @@ trivial accessors.
 
 ### `factory DailyScoreLog.fromJson(Map<String, dynamic> json)` <a id="dailyscorelog-fromjson"></a>
 - **Kind:** factory constructor of `DailyScoreLog`
-- **Source:** `lib/features/todo/models/task.dart` (line 618)
+- **Source:** `lib/features/todo/models/task.dart` (line 633)
 - **Purpose:** Parse a score log, accepting both the current per-entry-object format and a legacy
   bare-number format.
 - **Inputs:** `json`.
@@ -698,7 +704,7 @@ trivial accessors.
 
 ### `factory DailyScoreLog.merge(DailyScoreLog local, DailyScoreLog remote)` <a id="dailyscorelog-merge"></a>
 - **Kind:** factory constructor of `DailyScoreLog`
-- **Source:** `lib/features/todo/models/task.dart` (line 647)
+- **Source:** `lib/features/todo/models/task.dart` (line 657)
 - **Purpose:** Last-writer-wins merge of two score logs, resolved independently per date.
 - **Inputs:** `local`, `remote`.
 - **Returns:** A new `DailyScoreLog`.

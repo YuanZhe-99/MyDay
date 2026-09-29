@@ -351,7 +351,7 @@ class _TodoPageState extends ConsumerState<TodoPage> {
   /// Notes: The list always represents the selected date's configured week.
   List<DateTime> _selectedWeekDates(int weekStartDay) {
     final weekStart = _selectedWeekStart(weekStartDay);
-    return [for (var i = 0; i < 7; i++) weekStart.add(Duration(days: i))];
+    return [for (var i = 0; i < 7; i++) addCalendarDays(weekStart, i)];
   }
 
   /// Daily tasks for selected date — show template with per-date completion,
@@ -373,13 +373,14 @@ class _TodoPageState extends ConsumerState<TodoPage> {
         .map((t) {
           final done = _dailyLog.isCompleted(_selectedDate, t.id);
           // Map subtask completion from per-date log
+          var subChanged = false;
           final mappedSubs = t.subtasks.map((s) {
             final subDone = _dailyLog.isSubtaskCompleted(_selectedDate, s.id);
-            return subDone != s.isCompleted
-                ? s.copyWith(isCompleted: subDone)
-                : s;
+            if (subDone == s.isCompleted) return s;
+            subChanged = true;
+            return s.copyWith(isCompleted: subDone);
           }).toList();
-          final needsCopy = done != t.isCompleted || mappedSubs != t.subtasks;
+          final needsCopy = done != t.isCompleted || subChanged;
           return needsCopy
               ? t.copyWith(isCompleted: done, subtasks: mappedSubs)
               : t;
@@ -513,12 +514,15 @@ class _TodoPageState extends ConsumerState<TodoPage> {
       case _taskSortCustom:
         final order = _normalizedTaskOrder(type);
         final fallbackIndex = order.length;
+        // First occurrence wins, matching the former `indexOf` lookup.
+        final positions = <String, int>{};
+        for (var i = 0; i < order.length; i++) {
+          positions.putIfAbsent(order[i], () => i);
+        }
         list.sort((a, b) {
-          final ai = order.indexOf(a.id);
-          final bi = order.indexOf(b.id);
-          final byOrder = (ai == -1 ? fallbackIndex : ai).compareTo(
-            bi == -1 ? fallbackIndex : bi,
-          );
+          final ai = positions[a.id] ?? fallbackIndex;
+          final bi = positions[b.id] ?? fallbackIndex;
+          final byOrder = ai.compareTo(bi);
           return byOrder != 0 ? byOrder : _compareTaskFallback(a, b);
         });
       case _taskSortCreated:
@@ -804,7 +808,7 @@ class _TodoPageState extends ConsumerState<TodoPage> {
   /// Notes: Internal helper used within this file only.
   void _changeDate(int delta) {
     setState(() {
-      _selectedDate = _selectedDate.add(Duration(days: delta));
+      _selectedDate = addCalendarDays(_selectedDate, delta);
     });
   }
 
@@ -1064,7 +1068,7 @@ class _TodoPageState extends ConsumerState<TodoPage> {
     final dateFormat = DateFormat('yyyy-MM-dd (EEE)', l10n.localeName);
     final compactDateFormat = DateFormat('MM/dd', l10n.localeName);
     final weekStart = _selectedWeekStart(weekStartDay);
-    final weekEnd = weekStart.add(const Duration(days: 6));
+    final weekEnd = addCalendarDays(weekStart, 6);
     final range =
         '${compactDateFormat.format(weekStart)} - '
         '${compactDateFormat.format(weekEnd)}';

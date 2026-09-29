@@ -63,7 +63,7 @@ matching all thirty-nine real declarations in this file (including the two local
 
 ### `void _setType(TransactionType type)` <a id="settype"></a>
 - **Kind:** method of `_AddTransactionDialogState`
-- **Source:** `lib/features/finance/widgets/add_transaction_dialog.dart` (lines 224-229)
+- **Source:** `lib/features/finance/widgets/add_transaction_dialog.dart` (lines 226-231)
 - **Purpose:** Switch the dialog between expense/income/transfer and drop a now-invalid category
   selection.
 - **Inputs:** `type` — the newly selected `TransactionType`.
@@ -90,7 +90,7 @@ matching all thirty-nine real declarations in this file (including the two local
 
 ### `Account? _firstSelectableAccount()` <a id="firstselectableaccount"></a>
 - **Kind:** method of `_AddTransactionDialogState`
-- **Source:** `lib/features/finance/widgets/add_transaction_dialog.dart` (lines 476-480)
+- **Source:** `lib/features/finance/widgets/add_transaction_dialog.dart` (lines 477-481)
 - **Purpose:** Choose the account a brand-new transaction should default to, when the caller did
   not supply an `initialAccountId`.
 - **Inputs:** None (reads `_sortedAccountsForPicker` and `widget.accountPickerSettings`).
@@ -116,7 +116,7 @@ matching all thirty-nine real declarations in this file (including the two local
 
 ### `String _accountTypeLabel(AccountType type, AppLocalizations l10n)` <a id="accounttypelabel"></a>
 - **Kind:** method of `_AddTransactionDialogState`
-- **Source:** `lib/features/finance/widgets/add_transaction_dialog.dart` (lines 487-494)
+- **Source:** `lib/features/finance/widgets/add_transaction_dialog.dart` (lines 488-495)
 - **Purpose:** Map an `AccountType` to its localized section-header label for the grouped account
   dropdown.
 - **Inputs:** `type` — the `AccountType` to label; `l10n` — the current `AppLocalizations`.
@@ -137,7 +137,7 @@ matching all thirty-nine real declarations in this file (including the two local
 
 ### `List<DropdownMenuItem<String>> _accountDropdownItems(ThemeData theme, AppLocalizations l10n)` <a id="accountdropdownitems"></a>
 - **Kind:** method of `_AddTransactionDialogState`
-- **Source:** `lib/features/finance/widgets/add_transaction_dialog.dart` (lines 501-582)
+- **Source:** `lib/features/finance/widgets/add_transaction_dialog.dart` (lines 502-583)
 - **Purpose:** Build the item list for an account-picker dropdown, honoring the caller's
   `AccountPickerSettings` for type grouping and the collapsible "More" section.
 - **Inputs:** `theme`, `l10n` — used for header styling and localized type/"More" labels.
@@ -173,7 +173,7 @@ matching all thirty-nine real declarations in this file (including the two local
 
 ### `void addAccounts(List<Account> accounts, String sectionKey)` (nested in `_accountDropdownItems`) <a id="addaccounts"></a>
 - **Kind:** local function, declared inside `_accountDropdownItems`
-- **Source:** `lib/features/finance/widgets/add_transaction_dialog.dart` (lines 545-562)
+- **Source:** `lib/features/finance/widgets/add_transaction_dialog.dart` (lines 546-563)
 - **Purpose:** Append one group of accounts (either the primary group or the "More" group) to the
   enclosing `items` list, inserting a type-section header each time the account's `type` changes,
   if the caller's settings request type grouping.
@@ -210,7 +210,7 @@ matching all thirty-nine real declarations in this file (including the two local
 
 ### `void _selectAccount(String? id, {required bool isTarget})` <a id="selectaccount"></a>
 - **Kind:** method of `_AddTransactionDialogState`
-- **Source:** `lib/features/finance/widgets/add_transaction_dialog.dart` (lines 589-606)
+- **Source:** `lib/features/finance/widgets/add_transaction_dialog.dart` (lines 590-607)
 - **Purpose:** Apply the user's choice from an account dropdown — a real account, or the "More"
   sentinel that expands the hidden section instead of selecting anything.
 - **Inputs:** `id` — the dropdown's selected value (an account id, `_moreAccountsValue`, or
@@ -242,7 +242,7 @@ matching all thirty-nine real declarations in this file (including the two local
 
 ### `bool _hasUnsavedChanges()` <a id="hasunsavedchanges"></a>
 - **Kind:** method of `_AddTransactionDialogState`
-- **Source:** `lib/features/finance/widgets/add_transaction_dialog.dart` (line 613)
+- **Source:** `lib/features/finance/widgets/add_transaction_dialog.dart` (line 614)
 - **Purpose:** Tell `UnsavedChangesGuard` whether the form has diverged from its initial state.
 - **Inputs:** None.
 - **Returns:** `bool` — `true` if the current signature differs from `_initialSignature`.
@@ -260,7 +260,7 @@ matching all thirty-nine real declarations in this file (including the two local
 
 ### `String _signature()` <a id="signature"></a>
 - **Kind:** method of `_AddTransactionDialogState`
-- **Source:** `lib/features/finance/widgets/add_transaction_dialog.dart` (lines 620-630)
+- **Source:** `lib/features/finance/widgets/add_transaction_dialog.dart` (lines 621-631)
 - **Purpose:** Produce a single string that changes if and only if any editable field's value has
   changed.
 - **Inputs:** None.
@@ -280,7 +280,7 @@ matching all thirty-nine real declarations in this file (including the two local
 
 ### `void _submit(UnsavedChangesController guard)` <a id="submit"></a>
 - **Kind:** method of `_AddTransactionDialogState`
-- **Source:** `lib/features/finance/widgets/add_transaction_dialog.dart` (lines 637-669)
+- **Source:** `lib/features/finance/widgets/add_transaction_dialog.dart` (lines 638-670)
 - **Purpose:** Validate the form and, if valid, construct the `Transaction` (including
   cross-currency transfer fields) and pop the dialog with it.
 - **Inputs:** `guard` — used to pop the route with a result.
@@ -327,7 +327,7 @@ matching all thirty-nine real declarations in this file (including the two local
 
 ### `void _confirm()` <a id="confirm"></a>
 - **Kind:** method of `_CalcKeyboardState`
-- **Source:** `lib/features/finance/widgets/add_transaction_dialog.dart` (lines 829-839)
+- **Source:** `lib/features/finance/widgets/add_transaction_dialog.dart` (lines 830-840)
 - **Purpose:** Evaluate the current expression buffer and, if it produces a valid positive amount,
   pop the calculator-keyboard sheet with that amount as a formatted string.
 - **Inputs:** None (reads `_expr`).
@@ -358,7 +358,7 @@ matching all thirty-nine real declarations in this file (including the two local
 
 ### `double? _evalExpr(String expr)` <a id="evalexpr"></a>
 - **Kind:** top-level function
-- **Source:** `lib/features/finance/widgets/add_transaction_dialog.dart` (lines 1013-1021)
+- **Source:** `lib/features/finance/widgets/add_transaction_dialog.dart` (lines 1014-1022)
 - **Purpose:** Normalize the calculator keyboard's `×`/`÷` glyphs to `*`/`/` and parse the result
   into a `double`, returning `null` for any empty or malformed input instead of throwing.
 - **Inputs:** `expr` — the raw expression buffer typed via the calculator keyboard (digits, `.`,
@@ -384,7 +384,7 @@ matching all thirty-nine real declarations in this file (including the two local
 
 ### `double parse()` <a id="parse"></a>
 - **Kind:** method of `_ExprParser`
-- **Source:** `lib/features/finance/widgets/add_transaction_dialog.dart` (lines 1039-1043)
+- **Source:** `lib/features/finance/widgets/add_transaction_dialog.dart` (lines 1040-1044)
 - **Purpose:** Parse the entire source string as one arithmetic expression, rejecting any
   unconsumed trailing characters.
 - **Inputs:** None (operates on `this.src`/`this._pos`).
@@ -408,7 +408,7 @@ matching all thirty-nine real declarations in this file (including the two local
 
 ### `double _parseAddSub()` <a id="parseaddsub"></a>
 - **Kind:** method of `_ExprParser`
-- **Source:** `lib/features/finance/widgets/add_transaction_dialog.dart` (lines 1050-1058)
+- **Source:** `lib/features/finance/widgets/add_transaction_dialog.dart` (lines 1051-1059)
 - **Purpose:** Parse a left-associative chain of `+`/`-` terms, each of which is itself a
   `*`/`/` chain.
 - **Inputs:** None.
@@ -425,7 +425,7 @@ matching all thirty-nine real declarations in this file (including the two local
 
 ### `double _parseMulDiv()` <a id="parsemuldiv"></a>
 - **Kind:** method of `_ExprParser`
-- **Source:** `lib/features/finance/widgets/add_transaction_dialog.dart` (lines 1065-1074)
+- **Source:** `lib/features/finance/widgets/add_transaction_dialog.dart` (lines 1066-1075)
 - **Purpose:** Parse a left-associative chain of `*`/`/` factors, giving multiplication/division
   higher precedence than addition/subtraction, and reject division by zero.
 - **Inputs:** None.
@@ -444,7 +444,7 @@ matching all thirty-nine real declarations in this file (including the two local
 
 ### `double _parseNumber()` <a id="parsenumber"></a>
 - **Kind:** method of `_ExprParser`
-- **Source:** `lib/features/finance/widgets/add_transaction_dialog.dart` (lines 1081-1095)
+- **Source:** `lib/features/finance/widgets/add_transaction_dialog.dart` (lines 1082-1096)
 - **Purpose:** Scan one numeric literal (digits and at most one decimal point, with an optional
   leading unary minus only at the very start of the whole expression) and parse it as a `double`.
 - **Inputs:** None.

@@ -57,7 +57,7 @@ Todo 功能的数据模型：`TaskType`/`RecurrenceType` 枚举、`TaskRecurrenc
 - **返回：** 新 `TaskRecurrence`。
 - **副作用：** 无。
 - **算法：** 普通 const 字段初始化构造函数。下面三个命名构造函数（和 `fromJson`）是它唯一调用方，各提供固定 `type` 和只与该重复种类相关的字段。
-- **用法：** `TaskRecurrence._(type: RecurrenceType.everyNDays, intervalDays: days)`——只从本文件内调用，被 `everyNDays`/`monthlyOnDay`/`yearlyOnMonthDay`（第 38、46、54-58 行）和 `fromJson`（第 107-112 行）调用。
+- **用法：** `TaskRecurrence._(type: RecurrenceType.everyNDays, intervalDays: days)`——只从本文件内调用，被 `everyNDays`/`monthlyOnDay`/`yearlyOnMonthDay`（第 38、46、54-58 行）和 `fromJson`（第 117-122 行）调用。
 - **备注：** 因为它是私有的，`TaskRecurrence` 只能经三个命名工厂之一或 `fromJson` 构建——从文件外没有构造 `type` 与其填充字段不匹配的方式。
 
 ### `const TaskRecurrence.everyNDays(int days)` <a id="taskrecurrence-everyndays"></a>
@@ -119,7 +119,7 @@ Todo 功能的数据模型：`TaskType`/`RecurrenceType` 枚举、`TaskRecurrenc
 - **返回：** `DateTime` — 下一次出现日期。
 - **副作用：** 无。
 - **算法：**
-  1. `everyNDays`：`from.add(Duration(days: intervalDays))`。
+  1. `everyNDays`：用 `DateTime(from.year, from.month, from.day + intervalDays, from.hour, from.minute, from.second, from.millisecond, from.microsecond)` 前进 `intervalDays` 个日历日，跨夏令时切换保留挂钟时间（v1.5.2；此前为 `from.add(Duration(days: intervalDays))`，可能让时间偏移一小时）。
   2. `monthlyOnDay`：前进到下个月（跨过月 12 滚动年份），经 `DateTime(year, month + 1, 0).day` 计算该月最后一天，然后把 `dayOfMonth` 钳制进 `[1, lastDay]`。
   3. `yearlyOnMonthDay`：前进到 `from.year + 1`，以同样方式计算该年中 `monthOfYear` 的最后一天，以同样方式钳制 `dayOfMonth`（处理非闰目标年的 2 月 29 日 → 2 月 28 日）。
 - **用法：**
@@ -128,45 +128,45 @@ Todo 功能的数据模型：`TaskType`/`RecurrenceType` 枚举、`TaskRecurrenc
     completedTask.scheduledDate ?? completedTask.createdDate,
   );
   ```
-  （`lib/features/todo/views/todo_page.dart`，第 895-897 行，`_offerNextOccurrence`）。
-- **备注：** `monthlyOnDay` 总是从 `from` 前进恰好一个月、`yearlyOnMonthDay` 恰好一年——没有"今天之后的下一次出现"搜索。调用方应传入刚完成任务被安排的日期，不是任意参考日期。
+  （`lib/features/todo/views/todo_page.dart`，第 905-907 行，`_offerNextOccurrence`）。
+- **备注：** `monthlyOnDay` 总是从 `from` 前进恰好一个月、`yearlyOnMonthDay` 恰好一年——没有"今天之后的下一次出现"搜索。调用方应传入刚完成任务被安排的日期，不是任意参考日期。`everyNDays` 步进总是构建本地 `DateTime`，与 [`addCalendarDays`](../../../shared/utils/week_grouping.md#addcalendardays) 对本地日期采用的日历日规则相同。
 
 ### `Map<String, dynamic> toJson()` <a id="taskrecurrence-tojson"></a>
 - **种类：** `TaskRecurrence` 的方法
-- **来源：** `lib/features/todo/models/task.dart`（第 94 行）
+- **来源：** `lib/features/todo/models/task.dart`（第 104 行）
 - **用途：** 把此重复规则序列化进其持久化/同步 JSON 形态。
 - **输入：** 无。
 - **返回：** 带 `type`（枚举名）、`intervalDays`、`dayOfMonth`、`monthOfYear` 的 `Map<String, dynamic>`。
 - **副作用：** 无。
 - **算法：** 普通映射字面量——无论 `type` 总是写全部三个数字字段。
-- **用法：** `Task.toJson` 内的 `'recurrence': recurrence?.toJson()`（第 297 行）。
+- **用法：** `Task.toJson` 内的 `'recurrence': recurrence?.toJson()`（第 307 行）。
 - **备注：** 与 `Task.toJson` 不同，这从无条件省略字段——序列化的 `everyNDays` 重复规则仍在 JSON 中携带 `dayOfMonth: 0, monthOfYear: 0`。
 
 ### `factory TaskRecurrence.fromJson(Map<String, dynamic> json)` <a id="taskrecurrence-fromjson"></a>
 - **种类：** `TaskRecurrence` 的工厂构造函数
-- **来源：** `lib/features/todo/models/task.dart`（第 106 行）
+- **来源：** `lib/features/todo/models/task.dart`（第 116 行）
 - **用途：** 从其持久化/同步 JSON 形态重建 `TaskRecurrence`。
 - **输入：** `json`。
 - **返回：** 新 `TaskRecurrence`。
 - **副作用：** 无。
 - **算法：** `RecurrenceType.values.byName(json['type'] as String)`，然后每个数字字段经 `as int? ?? 0` 默认 0，全部传入私有 `_` 构造函数。
-- **用法：** `Task.fromJson` 内的 `TaskRecurrence.fromJson(json['recurrence'] as Map<String, dynamic>)`（第 337-339 行）。
+- **用法：** `Task.fromJson` 内的 `TaskRecurrence.fromJson(json['recurrence'] as Map<String, dynamic>)`（第 347-349 行）。
 - **备注：** `type` 不匹配三个枚举名之一时 `byName` 抛错——损坏/外来 `type` 字符串不被静默容忍（它向上传播并按 `Task.fromJson` 下面备注浮出为加载错误）。
 
 ### `SubTask({String? id, required this.title, this.isCompleted = false, DateTime? modifiedAt})` <a id="subtask-new"></a>
 - **种类：** `SubTask` 的构造函数
-- **来源：** `lib/features/todo/models/task.dart`（第 126 行）
+- **来源：** `lib/features/todo/models/task.dart`（第 136 行）
 - **用途：** 创建子任务，省略时生成 `id`/`modifiedAt`。
 - **输入：** `title`（必填）；`isCompleted`（默认 false）；可选 `id`、`modifiedAt`。
 - **返回：** 新 `SubTask`。
 - **副作用：** 无直接（`Uuid().v4()`/`DateTime.now()` 各产生新鲜值）。
 - **算法：** `id ??= Uuid().v4()`；`modifiedAt ??= DateTime.now().toUtc()`。
-- **用法：** `subtasks: subtaskTitles.map((t) => SubTask(title: t)).toList()`（`lib/features/todo/widgets/add_task_dialog.dart`，第 618 行）；构建下一次出现任务时也 `SubTask(title: s.title)`（`todo_page.dart`，第 904 行）。
+- **用法：** `subtasks: subtaskTitles.map((t) => SubTask(title: t)).toList()`（`lib/features/todo/widgets/add_task_dialog.dart`，第 618 行）；构建下一次出现任务时也 `SubTask(title: s.title)`（`todo_page.dart`，第 914 行）。
 - **备注：** 与 `Task` 不同，`SubTask` 没有 `createdDate` 字段——只有 `id`/`modifiedAt` 获得自动生成默认。
 
 ### `SubTask copyWith({String? title, bool? isCompleted, DateTime? modifiedAt})` <a id="subtask-copywith"></a>
 - **种类：** `SubTask` 的方法
-- **来源：** `lib/features/todo/models/task.dart`（第 139 行）
+- **来源：** `lib/features/todo/models/task.dart`（第 149 行）
 - **用途：** 产生此子任务的修改副本，保持相同 `id`。
 - **输入：** 替换 `title`/`isCompleted`/`modifiedAt`。
 - **返回：** 与 `this` 相同 `id` 的新 `SubTask`。
@@ -176,23 +176,23 @@ Todo 功能的数据模型：`TaskType`/`RecurrenceType` 枚举、`TaskRecurrenc
   ```dart
   _subtasks[index] = _subtasks[index].copyWith(title: newTitle);
   ```
-  （`lib/features/todo/widgets/edit_task_dialog.dart`，第 593 行）；也 `s.copyWith(isCompleted: nowCompleting)`（`todo_page.dart`，第 854 行）和 `s.copyWith(isCompleted: subDone)`（`todo_page.dart`，第 373 行，把逐日期子任务完成映射到每日模板的显示副本上）。
+  （`lib/features/todo/widgets/edit_task_dialog.dart`，第 593 行）；也 `s.copyWith(isCompleted: nowCompleting)`（`todo_page.dart`，第 864 行）和 `s.copyWith(isCompleted: subDone)`（`todo_page.dart`，第 381 行，把逐日期子任务完成映射到每日模板的显示副本上）。
 - **备注：** 与 `Task.copyWith` 不同，这里没有 `clearX` 模式——除自动生成的字段外 `SubTask` 没有任何字段以需要显式清除的方式可空。
 
 ### `Map<String, dynamic> toJson()` <a id="subtask-tojson"></a>
 - **种类：** `SubTask` 的方法
-- **来源：** `lib/features/todo/models/task.dart`（第 153 行）
+- **来源：** `lib/features/todo/models/task.dart`（第 163 行）
 - **用途：** 把此子任务序列化进其持久化/同步 JSON 形态。
 - **输入：** 无。
 - **返回：** 带 `id`、`title`、`isCompleted`、`modifiedAt`（ISO 8601）的 `Map<String, dynamic>`。
 - **副作用：** 无。
 - **算法：** 普通映射字面量，无条件省略。
-- **用法：** `Task.toJson` 内的 `subtasks.map((s) => s.toJson()).toList()`（第 290 行）。
+- **用法：** `Task.toJson` 内的 `subtasks.map((s) => s.toJson()).toList()`（第 300 行）。
 - **备注：** 无。
 
 ### `factory SubTask.fromJson(Map<String, dynamic> json)` <a id="subtask-fromjson"></a>
 - **种类：** `SubTask` 的工厂构造函数
-- **来源：** `lib/features/todo/models/task.dart`（第 165 行）
+- **来源：** `lib/features/todo/models/task.dart`（第 175 行）
 - **用途：** 从其持久化/同步 JSON 形态重建 `SubTask`。
 - **输入：** `json` — 预期至少包含 `id`、`title`。
 - **返回：** 新 `SubTask`。
@@ -206,12 +206,12 @@ Todo 功能的数据模型：`TaskType`/`RecurrenceType` 枚举、`TaskRecurrenc
           .toList() ??
       const [],
   ```
-  （`Task.fromJson`，第 316-320 行）。
+  （`Task.fromJson`，第 326-330 行）。
 - **备注：** 缺失/null `modifiedAt` 读作 Unix 纪元（可能的最旧），不是"现在"——因此跟踪 `modifiedAt` 前持久化的子任务记录与有真实时间戳的对等方比较时总是输掉最后写入者胜出。
 
 ### `Task({String? id, required this.title, this.note, this.emoji, required this.type, this.isCompleted = false, this.reminderTime, this.subtasks = const [], DateTime? createdDate, this.completedDate, this.scheduledDate, this.deletedDate, this.startDate, this.dueDate, this.recurrence, DateTime? modifiedAt})` <a id="task-new"></a>
 - **种类：** `Task` 的构造函数
-- **来源：** `lib/features/todo/models/task.dart`（第 211 行）
+- **来源：** `lib/features/todo/models/task.dart`（第 221 行）
 - **用途：** 创建任务（每日模板或一次性），省略时生成 `id`/`createdDate`/`modifiedAt`。
 - **输入：** `title`、`type`（必填）；覆盖每日模板用法（`startDate`、`deletedDate`）和一次性任务用法（`scheduledDate`、`dueDate`、`recurrence`）的许多可选字段。
 - **返回：** 新 `Task`。
@@ -241,7 +241,7 @@ Todo 功能的数据模型：`TaskType`/`RecurrenceType` 枚举、`TaskRecurrenc
 
 ### `Task copyWith({String? title, String? note, bool clearNote = false, String? emoji, TaskType? type, bool? isCompleted, DateTime? reminderTime, List<SubTask>? subtasks, DateTime? completedDate, DateTime? scheduledDate, DateTime? deletedDate, bool clearDeletedDate = false, DateTime? startDate, DateTime? dueDate, bool clearDueDate = false, TaskRecurrence? recurrence, bool clearRecurrence = false, DateTime? modifiedAt})` <a id="task-copywith"></a>
 - **种类：** `Task` 的方法
-- **来源：** `lib/features/todo/models/task.dart`（第 237 行）
+- **来源：** `lib/features/todo/models/task.dart`（第 247 行）
 - **用途：** 产生此任务的修改副本，经显式 `clearXxx` 标志而非传 `null` 清除可空字段。
 - **输入：** 大多数字段的替换值；`clearNote`/`clearDeletedDate`/`clearDueDate`/`clearRecurrence` 布尔。
 - **返回：** 与 `this` 相同 `id` 和 `createdDate` 的新 `Task`。
@@ -251,18 +251,18 @@ Todo 功能的数据模型：`TaskType`/`RecurrenceType` 枚举、`TaskRecurrenc
   ```dart
   _dailyTemplates[index] = t.copyWith(deletedDate: _selectedDate);
   ```
-  （`todo_page.dart`，第 946 行，软删除每日模板）和
+  （`todo_page.dart`，第 956 行，软删除每日模板）和
   ```dart
   return needsCopy
       ? t.copyWith(isCompleted: done, subtasks: mappedSubs)
       : t;
   ```
-  （`todo_page.dart`，第 378 行，`_dailyForDate` 把逐日期完成映射到模板显示副本上）。
-- **备注：** 因为 `completedDate` 没有 `clearX` 标志，`_toggleTask` 的一次性任务取消完成路径（`todo_page.dart`，第 857-873 行）直接构造原始 `Task(...)` 而非调用 `copyWith`，正为能设 `completedDate: null`。
+  （`todo_page.dart`，第 385 行，`_dailyForDate` 把逐日期完成映射到模板显示副本上）。
+- **备注：** 因为 `completedDate` 没有 `clearX` 标志，`_toggleTask` 的一次性任务取消完成路径（`todo_page.dart`，第 864-878 行）直接构造原始 `Task(...)` 而非调用 `copyWith`，正为能设 `completedDate: null`。
 
 ### `Map<String, dynamic> toJson()` <a id="task-tojson"></a>
 - **种类：** `Task` 的方法
-- **来源：** `lib/features/todo/models/task.dart`（第 282 行）
+- **来源：** `lib/features/todo/models/task.dart`（第 292 行）
 - **用途：** 把此任务序列化进其持久化/同步 JSON 形态。
 - **输入：** 无。
 - **返回：** 每个字段总是作为键存在的 `Map<String, dynamic>`（可空字段写为 JSON `null` 而非省略）。
@@ -273,7 +273,7 @@ Todo 功能的数据模型：`TaskType`/`RecurrenceType` 枚举、`TaskRecurrenc
 
 ### `factory Task.fromJson(Map<String, dynamic> json)` <a id="task-fromjson"></a>
 - **种类：** `Task` 的工厂构造函数
-- **来源：** `lib/features/todo/models/task.dart`（第 306 行）
+- **来源：** `lib/features/todo/models/task.dart`（第 316 行）
 - **用途：** 从其持久化/同步 JSON 形态重建 `Task`。
 - **输入：** `json`。
 - **返回：** 新 `Task`。
@@ -290,18 +290,18 @@ Todo 功能的数据模型：`TaskType`/`RecurrenceType` 枚举、`TaskRecurrenc
 
 ### `DailyCompletionLog()` <a id="dailycompletionlog-new"></a>
 - **种类：** `DailyCompletionLog` 的构造函数
-- **来源：** `lib/features/todo/models/task.dart`（第 359 行）
+- **来源：** `lib/features/todo/models/task.dart`（第 369 行）
 - **用途：** 创建空完成日志。
 - **输入：** 无。
 - **返回：** 两个内部映射都空的新 `DailyCompletionLog`。
 - **副作用：** 无。
 - **算法：** 平凡——依赖字段初始化器 `_log = {}` / `_subLog = {}`。
-- **用法：** 作为 `json['dailyLog']` 缺席时加载器的回退 `DailyCompletionLog()`（`TodoData.fromJson`，`todo_storage.dart`，第 91 行），加载失败时 `ReminderService.instance.updateData(..., dailyLog: DailyCompletionLog())`（`todo_page.dart`，第 101 行）。
+- **用法：** 作为 `json['dailyLog']` 缺席时加载器的回退 `DailyCompletionLog()`（`TodoData.fromJson`，`todo_storage.dart`，第 91 行），加载失败时 `ReminderService.instance.updateData(..., dailyLog: DailyCompletionLog())`（`todo_page.dart`，第 107 行）。
 - **备注：** 无。
 
 ### `static String dateKey(DateTime date)` <a id="datekey"></a>
 - **种类：** `DailyCompletionLog` 的静态方法
-- **来源：** `lib/features/todo/models/task.dart`（第 366 行）
+- **来源：** `lib/features/todo/models/task.dart`（第 376 行）
 - **用途：** 把 `DateTime` 格式化为完成日志和评分日志都使用的 `yyyy-MM-dd` 字符串键。
 - **输入：** `date`。
 - **返回：** `String`，月/日零填充、年不填充。
@@ -312,7 +312,7 @@ Todo 功能的数据模型：`TaskType`/`RecurrenceType` 枚举、`TaskRecurrenc
 
 ### `bool isCompleted(DateTime date, String taskId)` <a id="iscompleted"></a>
 - **种类：** `DailyCompletionLog` 的方法
-- **来源：** `lib/features/todo/models/task.dart`（第 374 行）
+- **来源：** `lib/features/todo/models/task.dart`（第 384 行）
 - **用途：** 检查特定每日任务在给定日期是否标记完成。
 - **输入：** `date`、`taskId`。
 - **返回：** `bool`。
@@ -322,23 +322,23 @@ Todo 功能的数据模型：`TaskType`/`RecurrenceType` 枚举、`TaskRecurrenc
   ```dart
   final done = _dailyLog.isCompleted(_selectedDate, t.id);
   ```
-  （`todo_page.dart`，第 368 行，`_dailyForDate`；也第 703、743、833 行）。
+  （`todo_page.dart`，第 374 行，`_dailyForDate`；也第 713、753、843 行）。
 - **备注：** 无。
 
 ### `void toggle(DateTime date, String taskId)` <a id="toggle"></a>
 - **种类：** `DailyCompletionLog` 的方法
-- **来源：** `lib/features/todo/models/task.dart`（第 383 行）
+- **来源：** `lib/features/todo/models/task.dart`（第 393 行）
 - **用途：** 翻转每日任务在给定日期的完成状态。
 - **输入：** `date`、`taskId`。
 - **返回：** 无。
 - **副作用：** 原地修改 `_log`——缺席时创建日期条目，然后添加/移除 `taskId`。
 - **算法：** `_log.putIfAbsent(key, () => {})`；集合已含 `taskId` 则移除，否则添加。
-- **用法：** `_dailyLog.toggle(_selectedDate, task.id);`（`todo_page.dart`，第 831 行，`_toggleTask` 的每日任务分支）。
+- **用法：** `_dailyLog.toggle(_selectedDate, task.id);`（`todo_page.dart`，第 841 行，`_toggleTask` 的每日任务分支）。
 - **备注：** 切换不记录自己的逐条目时间戳——日期+任务对的完成状态没有 `modifiedAt`；只有 `DailyCompletionLog.merge` 中的并集合并调和两个日志（见 [三方合并](../../../../algorithms/three-way-merge.md)）。
 
 ### `Set<String> completedIds(DateTime date)` <a id="completedids"></a>
 - **种类：** `DailyCompletionLog` 的方法
-- **来源：** `lib/features/todo/models/task.dart`（第 398 行）
+- **来源：** `lib/features/todo/models/task.dart`（第 408 行）
 - **用途：** 返回某日期完整已完成任务 ID 集合。
 - **输入：** `date`。
 - **返回：** `Set<String>`，日期无条目时为空。
@@ -349,29 +349,29 @@ Todo 功能的数据模型：`TaskType`/`RecurrenceType` 枚举、`TaskRecurrenc
 
 ### `bool isSubtaskCompleted(DateTime date, String subtaskId)` <a id="issubtaskcompleted"></a>
 - **种类：** `DailyCompletionLog` 的方法
-- **来源：** `lib/features/todo/models/task.dart`（第 407 行）
+- **来源：** `lib/features/todo/models/task.dart`（第 417 行）
 - **用途：** 检查特定子任务在给定日期是否标记完成。
 - **输入：** `date`、`subtaskId`。
 - **返回：** `bool`。
 - **副作用：** 无。
 - **算法：** 与 `isCompleted` 相同模式，针对 `_subLog` 而非 `_log`。
-- **用法：** `final subDone = _dailyLog.isSubtaskCompleted(_selectedDate, s.id);`（`todo_page.dart`，第 371 行）。
+- **用法：** `final subDone = _dailyLog.isSubtaskCompleted(_selectedDate, s.id);`（`todo_page.dart`，第 378 行）。
 - **备注：** 与 `isCompleted` 相同的缺席条目读作 false 行为。
 
 ### `void toggleSubtask(DateTime date, String subtaskId)` <a id="togglesubtask"></a>
 - **种类：** `DailyCompletionLog` 的方法
-- **来源：** `lib/features/todo/models/task.dart`（第 416 行）
+- **来源：** `lib/features/todo/models/task.dart`（第 426 行）
 - **用途：** 翻转子任务在给定日期的完成状态。
 - **输入：** `date`、`subtaskId`。
 - **返回：** 无。
 - **副作用：** 原地修改 `_subLog`。
 - **算法：** 与 `toggle` 相同模式，针对 `_subLog` 而非 `_log`。
-- **用法：** `_dailyLog.toggleSubtask(_selectedDate, subtask.id);`（`todo_page.dart`，第 966 行）。
+- **用法：** `_dailyLog.toggleSubtask(_selectedDate, subtask.id);`（`todo_page.dart`，第 976 行）。
 - **备注：** 除 `toggle` 的外无。
 
 ### `void setSubtasksCompleted(DateTime date, Iterable<String> subtaskIds, bool completed)` <a id="setsubtaskscompleted"></a>
 - **种类：** `DailyCompletionLog` 的方法
-- **来源：** `lib/features/todo/models/task.dart`（第 431 行）
+- **来源：** `lib/features/todo/models/task.dart`（第 441 行）
 - **用途：** 单次调用批量把多个子任务 ID 设为某日期完成或未完成。
 - **输入：** `date`、`subtaskIds`、`completed`。
 - **返回：** 无。
@@ -385,12 +385,12 @@ Todo 功能的数据模型：`TaskType`/`RecurrenceType` 枚举、`TaskRecurrenc
     nowCompleted,
   );
   ```
-  （`todo_page.dart`，第 840-844 行——父任务被切换时自动完成/取消完成每日模板的所有子任务）。
+  （`todo_page.dart`，第 849-854 行——父任务被切换时自动完成/取消完成每日模板的所有子任务）。
 - **备注：** 与 `toggle`（单 ID 翻转）不同，这是直接集合，不是翻转——绝不碰 `subtaskIds` 外的 ID，重新应用相同 `completed` 值是空操作。
 
 ### `Set<String> completedSubtaskIds(DateTime date)` <a id="completedsubtaskids"></a>
 - **种类：** `DailyCompletionLog` 的方法
-- **来源：** `lib/features/todo/models/task.dart`（第 450 行）
+- **来源：** `lib/features/todo/models/task.dart`（第 460 行）
 - **用途：** 返回某日期完整已完子任务 ID 集合。
 - **输入：** `date`。
 - **返回：** `Set<String>`，日期无条目时为空。
@@ -401,7 +401,7 @@ Todo 功能的数据模型：`TaskType`/`RecurrenceType` 枚举、`TaskRecurrenc
 
 ### `Map<String, dynamic> toJson()` <a id="dailycompletionlog-tojson"></a>
 - **种类：** `DailyCompletionLog` 的方法
-- **来源：** `lib/features/todo/models/task.dart`（第 458 行）
+- **来源：** `lib/features/todo/models/task.dart`（第 468 行）
 - **用途：** 把两个内部映射序列化进 `{"tasks": {...}, "subtasks": {...}}` 持久化形态。
 - **输入：** 无。
 - **返回：** `Map<String, dynamic>`。
@@ -412,7 +412,7 @@ Todo 功能的数据模型：`TaskType`/`RecurrenceType` 枚举、`TaskRecurrenc
 
 ### `factory DailyCompletionLog.fromJson(Map<String, dynamic> json)` <a id="dailycompletionlog-fromjson"></a>
 - **种类：** `DailyCompletionLog` 的工厂构造函数
-- **来源：** `lib/features/todo/models/task.dart`（第 468 行）
+- **来源：** `lib/features/todo/models/task.dart`（第 478 行）
 - **用途：** 解析完成日志，支持当前 `{tasks, subtasks}` 格式和遗留扁平映射格式。
 - **输入：** `json`。
 - **返回：** 新 `DailyCompletionLog`。
@@ -423,7 +423,7 @@ Todo 功能的数据模型：`TaskType`/`RecurrenceType` 枚举、`TaskRecurrenc
 
 ### `factory DailyCompletionLog.merge(DailyCompletionLog a, DailyCompletionLog b)` <a id="dailycompletionlog-merge"></a>
 - **种类：** `DailyCompletionLog` 的工厂构造函数
-- **来源：** `lib/features/todo/models/task.dart`（第 501 行）
+- **来源：** `lib/features/todo/models/task.dart`（第 511 行）
 - **用途：** 跨所有日期并集合并两个完成日志，任务和子任务完成各自独立。
 - **输入：** `a`、`b`。
 - **返回：** 新 `DailyCompletionLog`。
@@ -440,40 +440,40 @@ Todo 功能的数据模型：`TaskType`/`RecurrenceType` 枚举、`TaskRecurrenc
 
 ### `DailyScoreEntry({required int score, DateTime? modifiedAt})` <a id="dailyscoreentry-new"></a>
 - **种类：** `DailyScoreEntry` 的构造函数
-- **来源：** `lib/features/todo/models/task.dart`（第 527 行）
+- **来源：** `lib/features/todo/models/task.dart`（第 537 行）
 - **用途：** 创建评分条目，把 `score` 钳制进范围并默认 `modifiedAt`。
 - **输入：** `score`（必填）；`modifiedAt`（可选）。
 - **返回：** 新 `DailyScoreEntry`。
 - **副作用：** 无。
 - **算法：** `score = DailyScoreLog.normalizeScore(score)`（钳制到 -5..5）；`modifiedAt ??= DateTime.now().toUtc()`。
-- **用法：** 只在本文件内部构造，被 `DailyScoreLog.setScore`（第 602 行）和 `DailyScoreEntry.fromJson`/`DailyScoreLog.fromJson` 的数字分支（第 548、633 行）——无外部调用方。
+- **用法：** 只在本文件内部构造，被 `DailyScoreLog.setScore`（第 612 行）和 `DailyScoreEntry.fromJson`/`DailyScoreLog.fromJson` 的数字分支（第 558、643 行）——无外部调用方。
 - **备注：** 无。
 
 ### `Map<String, dynamic> toJson()` <a id="dailyscoreentry-tojson"></a>
 - **种类：** `DailyScoreEntry` 的方法
-- **来源：** `lib/features/todo/models/task.dart`（第 536 行）
+- **来源：** `lib/features/todo/models/task.dart`（第 546 行）
 - **用途：** 把此评分条目序列化进其持久化/同步 JSON 形态。
 - **输入：** 无。
 - **返回：** 带 `score`、`modifiedAt`（ISO 8601）的 `Map<String, dynamic>`。
 - **副作用：** 无。
 - **算法：** 普通映射字面量。
-- **用法：** `DailyScoreLog.toJson` 内的 `_scores[key]!.toJson()`（第 615 行）。
+- **用法：** `DailyScoreLog.toJson` 内的 `_scores[key]!.toJson()`（第 625 行）。
 - **备注：** 无。
 
 ### `factory DailyScoreEntry.fromJson(Map<String, dynamic> json)` <a id="dailyscoreentry-fromjson"></a>
 - **种类：** `DailyScoreEntry` 的工厂构造函数
-- **来源：** `lib/features/todo/models/task.dart`（第 541 行）
+- **来源：** `lib/features/todo/models/task.dart`（第 556 行）
 - **用途：** 从其持久化/同步 JSON 形态重建评分条目。
 - **输入：** `json`。
 - **返回：** 新 `DailyScoreEntry`。
 - **副作用：** 无。
 - **算法：** `score = rawScore is num ? rawScore.round() : 0`（接受 int 或 double，否则默认 0）；`modifiedAt` 存在时经 `DateTime.parse` 解析，否则 Unix 纪元。
-- **用法：** 从 `DailyScoreLog.fromJson` 的 `Map` 值分支调用（第 627-629 行）。
+- **用法：** 从 `DailyScoreLog.fromJson` 的 `Map` 值分支调用（第 637-639 行）。
 - **备注：** 经主构造函数路由，因此越界存储 `score` 加载时仍经 `normalizeScore` 重新钳制。
 
 ### `DailyScoreLog()` <a id="dailyscorelog-new"></a>
 - **种类：** `DailyScoreLog` 的构造函数
-- **来源：** `lib/features/todo/models/task.dart`（第 570 行）
+- **来源：** `lib/features/todo/models/task.dart`（第 580 行）
 - **用途：** 创建空每日评分日志。
 - **输入：** 无。
 - **返回：** `_scores` 空的新 `DailyScoreLog`。
@@ -484,29 +484,29 @@ Todo 功能的数据模型：`TaskType`/`RecurrenceType` 枚举、`TaskRecurrenc
 
 ### `static int normalizeScore(int score)` <a id="normalizescore"></a>
 - **种类：** `DailyScoreLog` 的静态方法
-- **来源：** `lib/features/todo/models/task.dart`（第 577 行）
+- **来源：** `lib/features/todo/models/task.dart`（第 587 行）
 - **用途：** 把原始评分钳制进受支持的 -5..5 范围。
 - **输入：** `score`。
 - **返回：** `minScore`（-5）和 `maxScore`（5）之间的 `int`。
 - **副作用：** 无。
 - **算法：** `score.clamp(minScore, maxScore).toInt()`。
-- **用法：** `DailyScoreEntry` 自己构造函数内的 `DailyScoreLog.normalizeScore(score)`（第 528 行）——每个评分条目构造时都经此钳制，因此本文件外调用方从不需要直接调用它。
+- **用法：** `DailyScoreEntry` 自己构造函数内的 `DailyScoreLog.normalizeScore(score)`（第 538 行）——每个评分条目构造时都经此钳制，因此本文件外调用方从不需要直接调用它。
 - **备注：** 显式 `.toInt()` 防 `clamp` 静态类型为 `num` 的返回值。
 
 ### `int scoreFor(DateTime date)` <a id="scorefor"></a>
 - **种类：** `DailyScoreLog` 的方法
-- **来源：** `lib/features/todo/models/task.dart`（第 592 行）
+- **来源：** `lib/features/todo/models/task.dart`（第 602 行）
 - **用途：** 读取某天的评分，无显式条目时默认 0。
 - **输入：** `date`。
 - **返回：** `int`。
 - **副作用：** 无。
 - **算法：** `_scores[DailyCompletionLog.dateKey(date)]?.score ?? 0`。
-- **用法：** `final score = _dailyScores.scoreFor(_selectedDate);`（`todo_page.dart`，第 1249 行）；也 `widget.dailyScores.scoreFor(...)` 供给月度趋势图（第 1633 行）。
+- **用法：** `final score = _dailyScores.scoreFor(_selectedDate);`（`todo_page.dart`，第 1259 行）；也 `widget.dailyScores.scoreFor(...)` 供给月度趋势图（第 1757 行）。
 - **备注：** `?? 0` 默认正是让"无条目"和"显式评分 0"经此方法单独无法区分的东西——那个区分只对内部的 `setScore` 下面总是-创建-新条目行为重要。
 
 ### `void setScore(DateTime date, int score, {DateTime? modifiedAt})` <a id="setscore"></a>
 - **种类：** `DailyScoreLog` 的方法
-- **来源：** `lib/features/todo/models/task.dart`（第 596 行）
+- **来源：** `lib/features/todo/models/task.dart`（第 611 行）
 - **用途：** 存储（或覆盖）某天的评分。
 - **输入：** `date`、`score`、可选 `modifiedAt`。
 - **返回：** 无。
@@ -520,12 +520,12 @@ Todo 功能的数据模型：`TaskType`/`RecurrenceType` 枚举、`TaskRecurrenc
     modifiedAt: DateTime.now().toUtc(),
   );
   ```
-  （`todo_page.dart`，`_setDailyScore`，第 812-816 行）。
+  （`todo_page.dart`，`_setDailyScore`，第 822-826 行）。
 - **备注：** 因为显式零作为真实、带时间戳条目存储而非当作"清除"，故意重置为零仍经同步传播——见 [三方合并](../../../../algorithms/three-way-merge.md)。
 
 ### `Map<String, dynamic> toJson()` <a id="dailyscorelog-tojson"></a>
 - **种类：** `DailyScoreLog` 的方法
-- **来源：** `lib/features/todo/models/task.dart`（第 608 行）
+- **来源：** `lib/features/todo/models/task.dart`（第 623 行）
 - **用途：** 把评分映射序列化进其持久化形态，按日期键排序。
 - **输入：** 无。
 - **返回：** 以 `yyyy-MM-dd` 键控的 `Map<String, dynamic>`。
@@ -536,7 +536,7 @@ Todo 功能的数据模型：`TaskType`/`RecurrenceType` 枚举、`TaskRecurrenc
 
 ### `factory DailyScoreLog.fromJson(Map<String, dynamic> json)` <a id="dailyscorelog-fromjson"></a>
 - **种类：** `DailyScoreLog` 的工厂构造函数
-- **来源：** `lib/features/todo/models/task.dart`（第 618 行）
+- **来源：** `lib/features/todo/models/task.dart`（第 633 行）
 - **用途：** 解析评分日志，接受当前逐条目对象格式和遗留裸数字格式。
 - **输入：** `json`。
 - **返回：** 新 `DailyScoreLog`。
@@ -547,7 +547,7 @@ Todo 功能的数据模型：`TaskType`/`RecurrenceType` 枚举、`TaskRecurrenc
 
 ### `factory DailyScoreLog.merge(DailyScoreLog local, DailyScoreLog remote)` <a id="dailyscorelog-merge"></a>
 - **种类：** `DailyScoreLog` 的工厂构造函数
-- **来源：** `lib/features/todo/models/task.dart`（第 647 行）
+- **来源：** `lib/features/todo/models/task.dart`（第 657 行）
 - **用途：** 逐日期独立解决的两个评分日志最后写入者胜出合并。
 - **输入：** `local`、`remote`。
 - **返回：** 新 `DailyScoreLog`。

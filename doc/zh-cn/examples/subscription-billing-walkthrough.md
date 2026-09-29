@@ -25,7 +25,7 @@ final sub = Subscription(
 订阅刚创建，因此 `nextBillingDate` 仍未设置。`SubscriptionProcessor.process()` 命中迁移分支：
 
 ```dart
-nbd = sub.calculateNextBillingDate(after: today.subtract(const Duration(days: 1)));
+nbd = sub.calculateNextBillingDate(after: addCalendarDays(today, -1));
 ```
 
 `after = 2026-01-30` 时，`calculateNextBillingDate` 把 `cursor` 从锚点（`2026-01-31`）开始，`while (!cursor.isAfter(after))` 循环一次都不运行，因为 `2026-01-31` 已在 `2026-01-30` 之后。因此 `nbd = 2026-01-31`——这次首次运行**只持久化**订阅上的 `nextBillingDate = 2026-01-31`。还不生成交易；这避免对处理器尚未真正走过的订阅追溯计费。

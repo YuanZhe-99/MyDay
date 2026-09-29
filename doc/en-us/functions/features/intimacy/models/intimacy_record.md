@@ -5,7 +5,8 @@ The data models for the entire Intimacy feature: `BodyProfile`, `CycleRecord`, `
 `IntimacyData` container. Every model follows the same shape as the rest of this codebase's feature
 models: a field-assigning constructor with a generated `id` (via `uuid`) and `modifiedAt` (UTC "now")
 when not supplied, plus a `toJson`/`fromJson` pair for the persisted/synced `intimacy_data.json`
-format — `BodyProfile` and `Partner` additionally have `copyWith`. `services/intimacy_storage.dart`
+format — `BodyProfile`, `Partner`, `IntimacyChartSettings`, and (since v1.5.2) `IntimacyData`
+additionally have `copyWith`. `services/intimacy_storage.dart`
 loads/saves the whole `IntimacyData` tree; `services/body_metrics.dart` and
 `services/cycle_predictor.dart` are pure calculators that read `BodyProfile`/`CycleRecord` fields but
 never store their own results. See [Intimacy](../../../../features/intimacy.md) for how these models
@@ -18,7 +19,7 @@ exact JSON field list, and
 
 Anchor note: `toJson` is defined on nine different classes in this file (`BodyProfile`,
 `CycleRecord`, `Partner`, `Toy`, `Position`, `IntimacyRecord`, `TimerHistoryEntry`,
-`IntimacyTimerSession`, `IntimacyData`), and `copyWith` is defined on two (`BodyProfile`, `Partner`).
+`IntimacyTimerSession`, `IntimacyData`), and `copyWith` is defined on four (`BodyProfile`, `Partner`, `IntimacyChartSettings`, `IntimacyData`).
 To keep anchors unique on this page, those rows use a class-qualified anchor (`bodyprofile-tojson`,
 `partner-copywith`, etc.) instead of the bare-name anchor the general rule would otherwise produce;
 every other row uses the plain bare-name anchor. The `fromJson` factory constructors and default
@@ -68,14 +69,15 @@ anchor rule.
 | [`IntimacyChartSettings.fromJson`](#intimacychartsettings-fromjson) | factory constructor (`IntimacyChartSettings`) | A | Parse chart view preferences from JSON, tolerating null and empty values. |
 | [`copyWith`](#intimacychartsettings-copywith) | method (`IntimacyChartSettings`) | A | Return a copy of the chart view preferences with selected fields replaced. |
 | [`IntimacyData()`](#intimacydata-new) | constructor (`IntimacyData`) | A | Create the top-level intimacy data container, defaulting the three independent LWW timestamps. |
+| [`copyWith`](#intimacydata-copywith) | method (`IntimacyData`) | A | Return a copy with the five record lists optionally replaced, carrying every other field and timestamp over unchanged. |
 | [`toJson`](#intimacydata-tojson) | method (`IntimacyData`) | A | Serialize the entire intimacy data tree to JSON. |
 | [`IntimacyData.fromJson`](#intimacydata-fromjson) | factory constructor (`IntimacyData`) | A | Parse the entire intimacy data tree from JSON. |
 
 **Reconciliation:** `grep -c 'Purpose:' lib/features/intimacy/models/intimacy_record.dart` reports
-43, matching all 43 rows above exactly — every `/// Purpose:` block sits directly above the real
+44, matching all 44 rows above exactly — every `/// Purpose:` block sits directly above the real
 declaration it documents (no misattached blocks were found), and no undocumented real declaration
 exists anywhere in the file. v1.3.2 added six: the two derived thrust getters and the four
-`IntimacyChartSettings` members. All 43 are classified Tier A: every one is a model
+`IntimacyChartSettings` members; v1.5.2 added one more, `IntimacyData.copyWith`. All 44 are classified Tier A: every one is a model
 constructor/`toJson`/
 `fromJson`/`copyWith` (the tiering rule's explicit Tier A bucket) or a getter/method carrying real
 logic used elsewhere (`isEmpty`, `day`, `formatDate`, the four `Toy` cost helpers, `elapsedAt`,
@@ -139,7 +141,7 @@ constructor-backing fields.
 - **Side effects:** None.
 - **Algorithm:** Map literal, one `if`-guarded entry per field.
 - **Usage:** Called from `Partner.toJson` (line 247: `'body': body!.toJson()`) and from
-  `IntimacyData.toJson` (line 866: `'userBody': userBody!.toJson()`), both only when `!isEmpty`.
+  `IntimacyData.toJson` (line 900: `'userBody': userBody!.toJson()`), both only when `!isEmpty`.
 - **Notes:** Callers are responsible for the `isEmpty` check — `toJson()` itself will still produce
   `{}` for an empty profile if called directly.
 
@@ -154,7 +156,7 @@ constructor-backing fields.
   as `json[k] == true` (so a missing/non-`true` value defaults `false`); `braStandard` cast directly
   as `String?`.
 - **Usage:** Called from `Partner.fromJson` (line 268: `BodyProfile.fromJson(json['body'] as
-  Map<String, dynamic>)`) and `IntimacyData.fromJson` (line 922, for `userBody`), both guarded by
+  Map<String, dynamic>)`) and `IntimacyData.fromJson` (line 955, for `userBody`), both guarded by
   `json['body'] is Map<String, dynamic>`.
 - **Notes:** None beyond what's covered above — every field degrades independently, so a partially
   malformed profile never fails the whole parse.
@@ -175,7 +177,7 @@ constructor-backing fields.
   ```dart
   _updateProfile(_profile.copyWith(cycleEnabled: v)),
   ```
-  (`lib/features/intimacy/widgets/body_section.dart:769`, the cycle-tracking toggle switch.)
+  (`lib/features/intimacy/widgets/body_section.dart:767`, the cycle-tracking toggle switch.)
 - **Notes:** Unlike `Partner.copyWith`, this method does not stamp any timestamp of its own —
   `BodyProfile` has no `modifiedAt`; the owning `Partner` or `IntimacyData.userBodyModifiedAt` is
   responsible for that.
@@ -200,7 +202,7 @@ constructor-backing fields.
     ),
   ]);
   ```
-  (`lib/features/intimacy/widgets/body_section.dart:379-385`, `_addCycleStart`.)
+  (`lib/features/intimacy/widgets/body_section.dart:377-383`, `_addCycleStart`.)
 - **Notes:** Records are add/delete only; there is no edit flow — changing a period start means
   deleting the old record and adding a new one. See
   [Three-Way Merge](../../../../algorithms/three-way-merge.md#deletionunion-semantics) for how
@@ -238,7 +240,7 @@ constructor-backing fields.
   ```dart
   date: CycleRecord.formatDate(date),
   ```
-  (`lib/features/intimacy/widgets/body_section.dart:383`, when adding a cycle start; also line 399
+  (`lib/features/intimacy/widgets/body_section.dart:382`, when adding a cycle start; also line 398
   when checking whether a record for that day already exists.)
 - **Notes:** Ignores any time component on the input, the inverse of [`day`](#day).
 
@@ -251,7 +253,7 @@ constructor-backing fields.
 - **Returns:** `{id, personId?, date, modifiedAt}`.
 - **Side effects:** None.
 - **Algorithm:** Map literal; `personId` omitted when `null` (the user's own records).
-- **Usage:** Called from `IntimacyData.toJson` (line 870): `cycleRecords.map((c) =>
+- **Usage:** Called from `IntimacyData.toJson` (line 904): `cycleRecords.map((c) =>
   c.toJson()).toList()`, only when `cycleRecords.isNotEmpty`.
 - **Notes:** None.
 
@@ -264,7 +266,7 @@ constructor-backing fields.
 - **Side effects:** None.
 - **Algorithm:** Cast `id`/`date` as required `String`s; `personId` nullable; `modifiedAt` falls back
   to the Unix epoch when absent.
-- **Usage:** Called from `IntimacyData.fromJson` (line 929):
+- **Usage:** Called from `IntimacyData.fromJson` (line 963):
   `(json['cycleRecords'] as List<dynamic>?)?.map((c) => CycleRecord.fromJson(c as Map<String,
   dynamic>))`.
 - **Notes:** None.
@@ -310,7 +312,7 @@ constructor-backing fields.
 - **Side effects:** None.
 - **Algorithm:** Map literal with `if` guards per optional field; nested `body!.toJson()` when
   present.
-- **Usage:** Called from `IntimacyData.toJson` (line 859): `partners.map((p) => p.toJson()).toList()`.
+- **Usage:** Called from `IntimacyData.toJson` (line 893): `partners.map((p) => p.toJson()).toList()`.
 - **Notes:** An empty (all-null) body profile is never nested in the output, matching
   [`BodyProfile.isEmpty`](#isempty)'s "stored as absent" rule.
 
@@ -325,7 +327,7 @@ constructor-backing fields.
   `endDate` parsed via `DateTime.parse` when present; `body` parsed via
   [`BodyProfile.fromJson`](#bodyprofile-fromjson) when `json['body'] is Map<String, dynamic>`;
   `modifiedAt` falls back to the Unix epoch when absent.
-- **Usage:** Called from `IntimacyData.fromJson` (line 890):
+- **Usage:** Called from `IntimacyData.fromJson` (line 924):
   `(json['partners'] as List<dynamic>?)?.map((p) => Partner.fromJson(p as Map<String, dynamic>))`.
 - **Notes:** None.
 
@@ -456,7 +458,7 @@ constructor-backing fields.
   non-null.
 - **Side effects:** None.
 - **Algorithm:** Map literal with `if (field != null)` guards; dates as `toIso8601String()`.
-- **Usage:** Called from `IntimacyData.toJson` (line 860): `toys.map((t) => t.toJson()).toList()`.
+- **Usage:** Called from `IntimacyData.toJson` (line 894): `toys.map((t) => t.toJson()).toList()`.
 - **Notes:** None.
 
 ### `factory Toy.fromJson(Map<String, dynamic> json)` <a id="toy-fromjson"></a>
@@ -468,7 +470,7 @@ constructor-backing fields.
 - **Side effects:** None.
 - **Algorithm:** Cast `id`/`name` required; every optional field null-safe; `price` via `(json['price']
   as num?)?.toDouble()`; `modifiedAt` falls back to the Unix epoch when absent.
-- **Usage:** Called from `IntimacyData.fromJson` (line 895): `(json['toys'] as
+- **Usage:** Called from `IntimacyData.fromJson` (line 929): `(json['toys'] as
   List<dynamic>?)?.map((t) => Toy.fromJson(t as Map<String, dynamic>))`.
 - **Notes:** None.
 
@@ -486,8 +488,8 @@ constructor-backing fields.
     Position(name: nameCtrl.text.trim(), emoji: selectedEmoji),
   );
   ```
-  (`lib/features/intimacy/views/intimacy_page.dart:4893-4895`, adding a new position; editing an
-  existing one at line 4886-4890 passes the existing `id` through instead.)
+  (`lib/features/intimacy/views/intimacy_page.dart:4340-4342`, adding a new position; editing an
+  existing one at lines 4333-4337 passes the existing `id` through instead.)
 - **Notes:** None.
 
 ### `Map<String, dynamic> toJson()` <a id="position-tojson"></a>
@@ -498,7 +500,7 @@ constructor-backing fields.
 - **Returns:** `{id, name, emoji?, modifiedAt}`.
 - **Side effects:** None.
 - **Algorithm:** Map literal; `emoji` omitted when `null`.
-- **Usage:** Called from `IntimacyData.toJson` (line 861): `positions.map((p) =>
+- **Usage:** Called from `IntimacyData.toJson` (line 895): `positions.map((p) =>
   p.toJson()).toList()`.
 - **Notes:** None.
 
@@ -511,7 +513,7 @@ constructor-backing fields.
 - **Side effects:** None.
 - **Algorithm:** Cast `id`/`name` required; `emoji` nullable; `modifiedAt` falls back to the Unix
   epoch when absent.
-- **Usage:** Called from `IntimacyData.fromJson` (line 900): `(json['positions'] as
+- **Usage:** Called from `IntimacyData.fromJson` (line 934): `(json['positions'] as
   List<dynamic>?)?.map((p) => Position.fromJson(p as Map<String, dynamic>))`.
 - **Notes:** None.
 
@@ -591,7 +593,7 @@ constructor-backing fields.
 
 ### `Map<String, dynamic> toJson()` <a id="intimacyrecord-tojson"></a>
 - **Kind:** method of `IntimacyRecord`
-- **Source:** `lib/features/intimacy/models/intimacy_record.dart` (line 510)
+- **Source:** `lib/features/intimacy/models/intimacy_record.dart` (line 535)
 - **Purpose:** Serialize an intimacy record into the JSON stored in `intimacy_data.json`'s `records`
   array.
 - **Inputs:** None.
@@ -601,13 +603,13 @@ constructor-backing fields.
 - **Side effects:** None.
 - **Algorithm:** Map literal with `if` guards; `duration` as `.inSeconds`; `thrustCountUnit` only
   written alongside a non-null `thrustCount`.
-- **Usage:** Called from `IntimacyData.toJson` (line 862): `records.map((r) =>
+- **Usage:** Called from `IntimacyData.toJson` (line 896): `records.map((r) =>
   r.toJson()).toList()`.
 - **Notes:** None.
 
 ### `factory IntimacyRecord.fromJson(Map<String, dynamic> json)` <a id="intimacyrecord-fromjson"></a>
 - **Kind:** factory constructor of `IntimacyRecord`
-- **Source:** `lib/features/intimacy/models/intimacy_record.dart` (line 535)
+- **Source:** `lib/features/intimacy/models/intimacy_record.dart` (line 560)
 - **Purpose:** Parse an intimacy record back out of its persisted/synced JSON form, tolerating an
   old schema.
 - **Inputs:** `json` — decoded map.
@@ -617,7 +619,7 @@ constructor-backing fields.
   `duration` from `Duration(seconds: json['duration'] as int)`; `thrustCountUnit` re-normalized to `1`
   or `100`; `isSolo` defaults `false` if absent (comment notes old records instead had a `'partner'`
   string field, no longer read); `modifiedAt` falls back to the Unix epoch when absent.
-- **Usage:** Called from `IntimacyData.fromJson` (line 905): `(json['records'] as
+- **Usage:** Called from `IntimacyData.fromJson` (line 939): `(json['records'] as
   List<dynamic>?)?.map((r) => IntimacyRecord.fromJson(r as Map<String, dynamic>))`.
 - **Notes:** A record whose `partnerId` no longer matches any existing partner (the partner was
   deleted) still parses fine — deleted-partner references are tolerated by design, per
@@ -625,7 +627,7 @@ constructor-backing fields.
 
 ### `TimerHistoryEntry({required DateTime start, required Duration duration, int thrustCount = 0, int? thrustCountUnit})` <a id="timerhistoryentry-new"></a>
 - **Kind:** constructor of `TimerHistoryEntry`
-- **Source:** `lib/features/intimacy/models/intimacy_record.dart` (line 582)
+- **Source:** `lib/features/intimacy/models/intimacy_record.dart` (line 607)
 - **Purpose:** Create a single timer history entry (independent of any `IntimacyRecord`): start time,
   duration, and optional thrust count.
 - **Inputs:** `start`, `duration` required; `thrustCount` defaults `0`; `thrustCountUnit` normalized.
@@ -642,13 +644,13 @@ constructor-backing fields.
     thrustCountUnit: _storedThrustCountUnit,
   );
   ```
-  (`lib/features/intimacy/widgets/timer_page.dart:458-463`, stopping/saving the stopwatch.)
+  (`lib/features/intimacy/widgets/timer_page.dart:456-461`, stopping/saving the stopwatch.)
 - **Notes:** Also constructed by [`TimerHistoryEntry.fromJson`](#timerhistoryentry-fromjson)'s legacy
   `end`-timestamp migration path.
 
 ### `Map<String, dynamic> toJson()` <a id="timerhistoryentry-tojson"></a>
 - **Kind:** method of `TimerHistoryEntry`
-- **Source:** `lib/features/intimacy/models/intimacy_record.dart` (line 595)
+- **Source:** `lib/features/intimacy/models/intimacy_record.dart` (line 620)
 - **Purpose:** Serialize a timer history entry into the JSON stored in `intimacy_data.json`'s
   `timerHistory` array.
 - **Inputs:** None.
@@ -657,13 +659,13 @@ constructor-backing fields.
 - **Side effects:** None.
 - **Algorithm:** Map literal; `duration` as `.inMilliseconds` under the `durationMs` key (not
   `duration`, to distinguish from the legacy `end`-based format).
-- **Usage:** Called from `IntimacyData.toJson` (line 863): `timerHistory.map((e) =>
+- **Usage:** Called from `IntimacyData.toJson` (line 897): `timerHistory.map((e) =>
   e.toJson()).toList()`.
 - **Notes:** None.
 
 ### `factory TimerHistoryEntry.fromJson(Map<String, dynamic> json)` <a id="timerhistoryentry-fromjson"></a>
 - **Kind:** factory constructor of `TimerHistoryEntry`
-- **Source:** `lib/features/intimacy/models/intimacy_record.dart` (line 607)
+- **Source:** `lib/features/intimacy/models/intimacy_record.dart` (line 632)
 - **Purpose:** Parse a timer history entry from JSON, migrating older entries that stored an `end`
   timestamp instead of a duration.
 - **Inputs:** `json` — decoded map.
@@ -685,14 +687,14 @@ constructor-backing fields.
   (`lib/features/intimacy/services/intimacy_storage.dart:117`, parsing the standalone legacy
   `timer_history.json` file during
   [`_migrateLegacyTimerHistory`](../services/intimacy_storage.md#_migratelegacytimerhistory).) Also
-  called from `IntimacyData.fromJson` (line 910) for the normal `timerHistory` array.
+  called from `IntimacyData.fromJson` (line 944) for the normal `timerHistory` array.
 - **Notes:** The legacy `end`-based branch is what lets `IntimacyStorage` migrate a pre-duration
   `timer_history.json` file transparently, without a separate migration code path for the entry
   format itself.
 
 ### `IntimacyTimerSession({required DateTime firstStartedAt, DateTime? startedAt, required Duration accumulated, required bool running, int thrustCount = 0, int? thrustCountUnit})` <a id="intimacytimersession-new"></a>
 - **Kind:** constructor of `IntimacyTimerSession`
-- **Source:** `lib/features/intimacy/models/intimacy_record.dart` (line 644)
+- **Source:** `lib/features/intimacy/models/intimacy_record.dart` (line 669)
 - **Purpose:** Create a persisted active/paused stopwatch session snapshot: original start time, last
   resume time, accumulated elapsed time, running flag, and optional thrust count.
 - **Inputs:** `firstStartedAt`, `accumulated`, `running` required; `startedAt` optional (the most
@@ -712,14 +714,14 @@ constructor-backing fields.
     thrustCountUnit: _storedThrustCountUnit,
   );
   ```
-  (`lib/features/intimacy/widgets/timer_page.dart:380-387`, the `_timerSession` getter that snapshots
+  (`lib/features/intimacy/widgets/timer_page.dart:378-385`, the `_timerSession` getter that snapshots
   the live timer for persistence.)
 - **Notes:** `accumulated` stores elapsed time before the latest running segment — see
   [`elapsedAt`](#elapsedat) for how the two combine.
 
 ### `Duration elapsedAt(DateTime now)` <a id="elapsedat"></a>
 - **Kind:** method of `IntimacyTimerSession`
-- **Source:** `lib/features/intimacy/models/intimacy_record.dart` (line 659)
+- **Source:** `lib/features/intimacy/models/intimacy_record.dart` (line 684)
 - **Purpose:** Calculate elapsed timer duration at a given wall-clock instant.
 - **Inputs:** `now`.
 - **Returns:** `Duration`.
@@ -736,7 +738,7 @@ constructor-backing fields.
 
 ### `Map<String, dynamic> toJson()` <a id="intimacytimersession-tojson"></a>
 - **Kind:** method of `IntimacyTimerSession`
-- **Source:** `lib/features/intimacy/models/intimacy_record.dart` (line 669)
+- **Source:** `lib/features/intimacy/models/intimacy_record.dart` (line 694)
 - **Purpose:** Serialize a timer session into the JSON stored in `intimacy_data.json`'s
   `timerSession` key.
 - **Inputs:** None.
@@ -744,13 +746,13 @@ constructor-backing fields.
   — `startedAt` and the thrust fields omitted when absent/zero.
 - **Side effects:** None.
 - **Algorithm:** Map literal; `accumulated` as `.inMilliseconds` under `accumulatedMs`.
-- **Usage:** Called from `IntimacyData.toJson` (line 864): `timerSession!.toJson()`, only when
+- **Usage:** Called from `IntimacyData.toJson` (line 898): `timerSession!.toJson()`, only when
   `timerSession != null`.
 - **Notes:** None.
 
 ### `factory IntimacyTimerSession.fromJson(Map<String, dynamic> json)` <a id="intimacytimersession-fromjson"></a>
 - **Kind:** factory constructor of `IntimacyTimerSession`
-- **Source:** `lib/features/intimacy/models/intimacy_record.dart` (line 683)
+- **Source:** `lib/features/intimacy/models/intimacy_record.dart` (line 708)
 - **Purpose:** Parse a timer session back out of its persisted JSON form, restoring an interrupted
   active/paused stopwatch.
 - **Inputs:** `json` — decoded map.
@@ -763,7 +765,7 @@ constructor-backing fields.
   3. `startedAt` in the result is `running ? (startedAt ?? firstStartedAt) : null` — a running
      session without its own `startedAt` falls back to `firstStartedAt`.
   4. `thrustCount` re-clamped non-negative; `thrustCountUnit` re-normalized.
-- **Usage:** Called from `IntimacyData.fromJson` (line 914-916), guarded by `json['timerSession'] is
+- **Usage:** Called from `IntimacyData.fromJson` (line 947-950), guarded by `json['timerSession'] is
   Map<String, dynamic>`.
 - **Notes:** Step 2's inference is what lets a session persisted before the explicit `running` key
   existed still restore correctly, per
@@ -820,7 +822,7 @@ constructor-backing fields.
 
 ### `IntimacyData({required List<Partner> partners, required List<Toy> toys, List<Position> positions = const [], required List<IntimacyRecord> records, List<TimerHistoryEntry> timerHistory = const [], IntimacyTimerSession? timerSession, DateTime? timerSessionModifiedAt, BodyProfile? userBody, DateTime? userBodyModifiedAt, List<CycleRecord> cycleRecords = const [], int? timerHistoryRetentionDays, Map<String, String> partnerSortModes = const {}, Map<String, List<String>> partnerCustomOrders = const {}, Map<String, String> toySortModes = const {}, Map<String, List<String>> toyCustomOrders = const {}, IntimacyChartSettings? chartSettings, DateTime? settingsModifiedAt})` <a id="intimacydata-new"></a>
 - **Kind:** constructor of `IntimacyData`
-- **Source:** `lib/features/intimacy/models/intimacy_record.dart` (line 828)
+- **Source:** `lib/features/intimacy/models/intimacy_record.dart` (line 827)
 - **Purpose:** Create the top-level intimacy data container: partners, toys, positions, records,
   timer history/session, the user's own body profile, cycle records, and partner/toy sort settings.
 - **Inputs:** `partners`, `toys`, `records` required; everything else optional with empty-collection
@@ -850,21 +852,44 @@ constructor-backing fields.
       partnerCustomOrders: _partnerCustomOrders,
       toySortModes: _toySortModes,
       toyCustomOrders: _toyCustomOrders,
+      chartSettings: _chartSettings,
       settingsModifiedAt: _settingsModifiedAt,
     ),
   );
   ```
-  (`lib/features/intimacy/views/intimacy_page.dart:234-253`, `_saveData()`.)
+  (`lib/features/intimacy/views/intimacy_page.dart:171-189`, `_currentIntimacyData()`, which
+  `_saveDataNow()` passes to `IntimacyStorage.save`.)
 - **Notes:** `timerSessionModifiedAt`/`userBodyModifiedAt` each track only their own field
   independently of `settingsModifiedAt`, so an LWW sync merge on one never clobbers the others — the
   same independent-timestamp pattern documented in
-  [Intimacy](../../../../features/intimacy.md#models). This model has no `copyWith`;
+  [Intimacy](../../../../features/intimacy.md#models). Since v1.5.2 the model has a narrow
+  [`copyWith`](#intimacydata-copywith) that replaces only the five record lists;
   [`IntimacyStorage._migrateLegacyTimerHistory`](../services/intimacy_storage.md#_migratelegacytimerhistory)
-  reconstructs a full new instance field-by-field instead.
+  still reconstructs a full new instance field-by-field instead.
+
+### `IntimacyData copyWith({List<Partner>? partners, List<Toy>? toys, List<Position>? positions, List<IntimacyRecord>? records, List<CycleRecord>? cycleRecords})` <a id="intimacydata-copywith"></a>
+- **Kind:** method of `IntimacyData`
+- **Source:** `lib/features/intimacy/models/intimacy_record.dart` (line 859)
+- **Purpose:** Return a copy with the given record lists replaced.
+- **Inputs:** Optional `partners`, `toys`, `positions`, `records`, `cycleRecords`; a `null` argument
+  keeps this instance's list.
+- **Returns:** A new `IntimacyData` sharing every other field with this one.
+- **Side effects:** None.
+- **Algorithm:** Calls the main constructor with each supplied list (else the current one) and passes
+  every other field — `timerHistory`, `timerSession`, `timerSessionModifiedAt`, `userBody`,
+  `userBodyModifiedAt`, `timerHistoryRetentionDays`, the four sort-mode/custom-order maps,
+  `chartSettings`, and `settingsModifiedAt` — through explicitly.
+- **Usage:** `_IntimacyPageState._commitSubPage` builds the merged dataset with
+  `base.copyWith(partners: partners?.applyTo(base.partners), ...)`
+  (`lib/features/intimacy/views/intimacy_page.dart`).
+- **Notes:** `settingsModifiedAt` is carried over explicitly because the constructor would otherwise
+  default it to `DateTime.now().toUtc()`; a merge-by-id sub-page save must not bump the general
+  settings timestamp. Unlike `Partner.copyWith`, no timestamp is stamped. The copy shares the
+  unreplaced lists by reference.
 
 ### `Map<String, dynamic> toJson()` <a id="intimacydata-tojson"></a>
 - **Kind:** method of `IntimacyData`
-- **Source:** `lib/features/intimacy/models/intimacy_record.dart` (line 858)
+- **Source:** `lib/features/intimacy/models/intimacy_record.dart` (line 892)
 - **Purpose:** Serialize the entire intimacy data tree into the top-level JSON written to
   `intimacy_data.json`.
 - **Inputs:** None.
@@ -882,7 +907,7 @@ constructor-backing fields.
 
 ### `factory IntimacyData.fromJson(Map<String, dynamic> json)` <a id="intimacydata-fromjson"></a>
 - **Kind:** factory constructor of `IntimacyData`
-- **Source:** `lib/features/intimacy/models/intimacy_record.dart` (line 886)
+- **Source:** `lib/features/intimacy/models/intimacy_record.dart` (line 921)
 - **Purpose:** Parse the entire intimacy data tree back out of `intimacy_data.json`.
 - **Inputs:** `json` — decoded top-level map.
 - **Returns:** A new `IntimacyData`.

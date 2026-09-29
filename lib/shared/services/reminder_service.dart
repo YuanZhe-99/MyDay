@@ -13,6 +13,8 @@ import '../../features/todo/services/todo_storage.dart';
 import '../../features/weight/models/weight_record.dart';
 import '../../features/weight/services/weight_storage.dart';
 import '../../l10n/app_localizations.dart';
+import '../utils/week_grouping.dart';
+import 'auto_sync_service.dart';
 import 'backup_service.dart';
 import 'mobile_notification_service.dart';
 
@@ -28,6 +30,9 @@ class ReminderService {
   static final instance = ReminderService._();
 
   Timer? _timer;
+
+  /// True while `_check` runs, so a slow pass never overlaps the next tick.
+  bool _checking = false;
   final Set<String> _notifiedIds = {};
   Locale _locale = const Locale('en');
 
@@ -588,7 +593,24 @@ class ReminderService {
     }
   }
 
-  /// Purpose: Provide the internal check helper for this file.
+  /// Purpose: Run one reminder pass unless the previous pass is still running.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: Runs `_checkNow`; toggles `_checking`.
+  /// Notes: Internal helper used within this file only. The 30-second timer fires even
+  /// while a slow pass (backup, large finance file) is in flight; overlapping passes
+  /// could process the same renewal twice, so a tick that finds one running is skipped.
+  Future<void> _check() async {
+    if (_checking) return;
+    _checking = true;
+    try {
+      await _checkNow();
+    } finally {
+      _checking = false;
+    }
+  }
+
+  /// Purpose: Provide the internal check helper for this file (one full pass).
   /// Inputs: None.
   /// Returns: `Future<void>`.
   /// Side effects: May read or mutate application state, storage, or service resources.
@@ -596,13 +618,19 @@ class ReminderService {
   /// (subscription renewals, auto-backup) runs on every platform; user-facing
   /// reminder notifications are desktop-only here because mobile delivers them
   /// through OS-level scheduled notifications and would otherwise be notified
-  /// twice. Unreadable Todo data skips that read-only reminder pass. A reminder
+  /// twice. A renewal failure is logged and skipped. Unreadable Todo data skips
+  /// that read-only reminder pass. A reminder
   /// fires when now >= its time and it has not fired today,
   /// so a busy or suspended process cannot skip its minute; fired keys persist
   /// across restarts via storage config.
-  Future<void> _check() async {
-    // Subscription auto-renewal transaction generation (once per hour).
-    await _processRenewals();
+  Future<void> _checkNow() async {
+    // Subscription auto-renewal transaction generation (once per hour). A
+    // corrupt finance file must not stop backups and reminders below.
+    try {
+      await _processRenewals();
+    } catch (e) {
+      debugPrint('ReminderService: subscription renewals skipped: $e');
+    }
 
     // Auto-backup (once per day).
     await BackupService.runAutoBackupIfNeeded();
@@ -776,7 +804,7 @@ class ReminderService {
   /// loop and the per-day mobile schedules so both produce day-accurate text.
   List<String> _upcomingRenewalLines(DateTime fromDay) {
     final fromDate = DateTime(fromDay.year, fromDay.month, fromDay.day);
-    final limit = fromDate.add(const Duration(days: 3));
+    final limit = addCalendarDays(fromDate, 3);
     final upcoming = <String>[];
     for (final sub in _subscriptions) {
       if (sub.cancelType == CancelType.atExpiry) continue;
@@ -785,7 +813,7 @@ class ReminderService {
       if (next == null) continue;
       final nextDay = DateTime(next.year, next.month, next.day);
       if (nextDay.isBefore(fromDate) || nextDay.isAfter(limit)) continue;
-      final days = nextDay.difference(fromDate).inDays;
+      final days = calendarDaysBetween(fromDate, nextDay);
       upcoming.add(
         days == 0
             ? _l10n.notifSubscriptionToday(sub.name)
@@ -830,12 +858,12 @@ class ReminderService {
   /// Notes: Config write failures are ignored so reminder delivery can continue.
   Future<void> _persistNotifiedKeys(String todayKey) async {
     try {
-      final config = await TodoStorage.readConfig();
-      config['reminderNotifiedKeys'] = {
-        'date': todayKey,
-        'keys': _notifiedIds.where((k) => k.endsWith(todayKey)).toList(),
-      };
-      await TodoStorage.writeConfig(config);
+      await TodoStorage.writeConfig({
+        'reminderNotifiedKeys': {
+          'date': todayKey,
+          'keys': _notifiedIds.where((k) => k.endsWith(todayKey)).toList(),
+        },
+      });
     } catch (_) {}
   }
 
@@ -948,7 +976,8 @@ class ReminderService {
   /// Purpose: Provide the internal process renewals helper for this file.
   /// Inputs: None.
   /// Returns: `Future<void>`.
-  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Side effects: May write finance data; after a renewal save it calls
+  /// `AutoSyncService.notifySaved` and `onRenewalsProcessed`.
   /// Notes: Internal helper used within this file only. Also refreshes the
   /// cached subscriptions and reminder time from storage and reschedules
   /// mobile renewal reminders, so reminders work even when the finance page
@@ -1003,7 +1032,8 @@ class ReminderService {
       ),
     );
 
-    // Notify finance page to reload if it's open
+    // Let auto-sync upload the renewals, then have the finance page reload.
+    AutoSyncService.instance.notifySaved();
     onRenewalsProcessed?.call();
   }
 

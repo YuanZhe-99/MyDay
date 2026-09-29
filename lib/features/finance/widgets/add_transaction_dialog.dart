@@ -381,6 +381,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
                       context: context,
                       initialTime: TimeOfDay.fromDateTime(_date),
                     );
+                    if (!mounted) return;
                     setState(() {
                       final time = pickedTime ?? TimeOfDay.fromDateTime(_date);
                       _date = DateTime(

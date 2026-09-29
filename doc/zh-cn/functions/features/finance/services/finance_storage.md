@@ -1,24 +1,25 @@
 # lib/features/finance/services/finance_storage.dart
 
-`finance_data.json` 的持久化层：`FinanceData` 模型（账户、分类、交易、订阅，加持久化的 UI 设置如订阅提醒时间和账户选择器偏好）和 `FinanceStorage`，它经单个串行化写队列加载/保存它——与 [`WeightStorage`](../../weight/services/weight_storage.md) 和 [`ExchangeRateStorage`](exchange_rate_storage.md) 相同的模式。`load()` 还在每次读取时运行一次性强制余额到调整交易迁移（[`migrateForcedBalances`](balance_util.md#migrateforcedbalances)），迁移改变任何东西时重新保存迁移结果。功能概览见 [财务](../../../../features/finance.md)，完整 `finance_data.json` 字段列表见 [数据格式](../../../../data-formats.md#finance--finance_datajson)。
+`finance_data.json` 的持久化层：`FinanceData` 模型（账户、分类、交易、订阅，加持久化的 UI 设置如订阅提醒时间和账户选择器偏好）和 `FinanceStorage`，它经单个串行化写队列加载/保存它——与 [`WeightStorage`](../../weight/services/weight_storage.md) 和 [`ExchangeRateStorage`](exchange_rate_storage.md) 相同的模式。`load()` 还在仍有账户携带旧强制余额时运行一次性强制余额到调整交易迁移（[`migrateForcedBalances`](balance_util.md#migrateforcedbalances)），并重新保存迁移结果；自 v1.5.2 起只在这种情况下读取 `exchange_rates.json`。功能概览见 [财务](../../../../features/finance.md)，完整 `finance_data.json` 字段列表见 [数据格式](../../../../data-formats.md#finance--finance_datajson)。
 
 ## 声明
 
 | 声明 | 种类 | Tier | 用途 |
 |---|---|---|---|
 | [`FinanceData()`](#financedata-new) | 构造函数（`FinanceData`） | A | 打包每个财务记录列表加持久化设置。 |
+| [`copyWith`](#financedata-copywith) | 方法（`FinanceData`） | A | 返回替换了给定记录列表的副本（v1.5.2）。 |
 | [`toJson`](#financedata-tojson) | 方法（`FinanceData`） | A | 把财务数据序列化为 JSON。 |
 | [`FinanceData.fromJson`](#financedata-fromjson) | 工厂构造函数（`FinanceData`） | A | 从 JSON 解析财务数据。 |
 | [`FinanceStorageException()`](#financestorageexception-new) | const 构造函数（`FinanceStorageException`） | A | 创建带用户可见消息的财务存储异常。 |
 | `toString` | 方法（`FinanceStorageException`） | B | 返回异常消息作为其字符串表示。 |
 | [`_getFile`](#getfile) | 静态方法（`FinanceStorage`） | A | 解析 `finance_data.json` 的磁盘路径。 |
-| [`load`](#load) | 静态方法（`FinanceStorage`） | A | 加载、解析并强制余额迁移 `finance_data.json`。 |
+| [`load`](#load) | 静态方法（`FinanceStorage`） | A | 加载、解析并强制余额迁移 `finance_data.json`，只在需要时读取汇率。 |
 | [`_migrateForcedBalances`](#migrateforcedbalances) | 静态方法（`FinanceStorage`） | A | 迁移改变任何东西时用迁移后的账户/交易重建 `FinanceData`。 |
 | [`save`](#save) | 静态方法（`FinanceStorage`） | A | 排队财务数据写入，对照并发保存串行化。 |
 | [`_saveNow`](#savenow) | 静态方法（`FinanceStorage`） | A | 进入写队列后持久化财务数据。 |
-| [`_atomicWriteJson`](#atomicwritejson) | 静态方法（`FinanceStorage`） | A | 只在替换内容校验通过后替换 JSON 文件。 |
+| [`_atomicWriteJson`](#atomicwritejson) | 静态方法（`FinanceStorage`） | A | 只在替换内容校验通过后替换 JSON 文件（原子写入）。 |
 
-**对账：** `grep -c 'Purpose:' lib/features/finance/services/finance_storage.dart` 返回 11，与上面 11 行精确匹配——每个块都恰好位于其真实声明（构造函数、工厂构造函数、方法或静态方法）正上方；未发现错附在调用点语句上方。文件中的剩余普通字段（`FinanceData` 自己的字段、`FinanceStorageException.message`、`FinanceStorage._fileName`/`_writeQueue`）不带 `/// Purpose:` 块，与本代码库记录可调用成员而非普通数据的约定一致，它们都不构成未文档化的可调用声明。`toString()` 分类为 Tier B，作为无自身逻辑的平凡单行访问器（与 `weight_storage.md` 的 `WeightStorageException.toString` 中相同模式给出的分类相同）；其他每个声明分类为 Tier A——模型构造函数/序列化，或 `FinanceStorage` 静态方法中的真实 IO/分支逻辑。
+**对账：** `grep -c 'Purpose:' lib/features/finance/services/finance_storage.dart` 返回 12，与上面 12 行精确匹配——每个块都恰好位于其真实声明（构造函数、工厂构造函数、方法或静态方法）正上方；未发现错附在调用点语句上方。文件中的剩余普通字段（`FinanceData` 自己的字段、`FinanceStorageException.message`、`FinanceStorage._fileName`/`_writeQueue`）不带 `/// Purpose:` 块，与本代码库记录可调用成员而非普通数据的约定一致，它们都不构成未文档化的可调用声明。`toString()` 分类为 Tier B，作为无自身逻辑的平凡单行访问器（与 `weight_storage.md` 的 `WeightStorageException.toString` 中相同模式给出的分类相同）；其他每个声明分类为 Tier A——模型构造函数/序列化，或 `FinanceStorage` 静态方法中的真实 IO/分支逻辑。
 
 ## 文档
 
@@ -32,30 +33,48 @@
 - **算法：** 字段赋值构造函数；`settingsModifiedAt` 未提供时默认 Unix 纪元（`DateTime.fromMillisecondsSinceEpoch(0)`），不同于本功能大多数其他模型默认"现在"。
 - **用法：**
   ```dart
-  await FinanceStorage.save(
-    FinanceData(
-      accounts: _accounts,
-      categories: _categories,
-      transactions: _transactions,
-      subscriptions: _subscriptions,
-      defaultCurrency: _defaultCurrency,
-      settingsModifiedAt: _settingsModifiedAt,
-      subscriptionReminderHour: _subscriptionReminderHour,
-      subscriptionReminderMinute: _subscriptionReminderMinute,
-      subscriptionSortMode: _subscriptionSortMode,
-      subscriptionCustomOrder: _subscriptionCustomOrder,
-      accountSortModes: _accountSortModes,
-      accountCustomOrders: _accountCustomOrders,
-      accountPickerSettings: _accountPickerSettings,
-    ),
+  FinanceData _currentFinanceData() => FinanceData(
+    accounts: _accounts,
+    categories: _categories,
+    transactions: _transactions,
+    subscriptions: _subscriptions,
+    defaultCurrency: _defaultCurrency,
+    settingsModifiedAt: _settingsModifiedAt,
+    subscriptionReminderHour: _subscriptionReminderHour,
+    subscriptionReminderMinute: _subscriptionReminderMinute,
+    subscriptionSortMode: _subscriptionSortMode,
+    subscriptionCustomOrder: _subscriptionCustomOrder,
+    accountSortModes: _accountSortModes,
+    accountCustomOrders: _accountCustomOrders,
+    accountPickerSettings: _accountPickerSettings,
   );
   ```
-  （`lib/features/finance/views/finance_page.dart:201-217`，财务主页的保存全部处理器。）
+  （`lib/features/finance/views/finance_page.dart:147-161`，财务主页对自身状态的快照，由其设置流程整体保存。）
 - **备注：** 把 `settingsModifiedAt` 默认为纪元（而不是"现在"）意味着设置从未被显式触碰的新构造 `FinanceData` 与任何同步设置更新相比算作"更旧"——与三方合并的设置侧相关（见 [三方合并](../../../../algorithms/three-way-merge.md)）。
+
+### `FinanceData copyWith({List<Account>? accounts, List<Category>? categories, List<Transaction>? transactions, List<Subscription>? subscriptions})` <a id="financedata-copywith"></a>
+- **种类：** `FinanceData` 的方法
+- **来源：** `lib/features/finance/services/finance_storage.dart`（第 54 行）
+- **用途：** 返回替换了给定记录列表的副本（v1.5.2）。
+- **输入：** 可选的 `accounts`、`categories`、`transactions`、`subscriptions`。
+- **返回：** 与本对象共享其他所有字段的新 `FinanceData`。
+- **副作用：** 无。
+- **算法：** 构建新的 `FinanceData`：每个记录列表在参数非 null 时取参数，否则取 `this` 的；`defaultCurrency`、`settingsModifiedAt` 和所有设置字段原样复制。
+- **用法：**
+  ```dart
+  final merged = base.copyWith(
+    accounts: accounts?.applyTo(base.accounts),
+    categories: categories?.applyTo(base.categories),
+    transactions: transactions?.applyTo(base.transactions),
+    subscriptions: subscriptions?.applyTo(base.subscriptions),
+  );
+  ```
+  （`lib/features/finance/views/finance_page.dart:290-295`，在 `_commitSubPage` 内。）
+- **备注：** 供财务页按 id 合并的子页面保存使用：只把子页面改动过的列表重放到刚重新读取的文件上，设置字段原样保留。
 
 ### `Map<String, dynamic> toJson()` <a id="financedata-tojson"></a>
 - **种类：** `FinanceData` 的方法
-- **来源：** `lib/features/finance/services/finance_storage.dart`（第 53 行）
+- **来源：** `lib/features/finance/services/finance_storage.dart`（第 82 行）
 - **用途：** 把完整财务数据集序列化为持久化为 `finance_data.json` 的 JSON。
 - **输入：** 无。
 - **返回：** `accounts`/`categories`/`transactions`/`subscriptions`/`defaultCurrency`/`settingsModifiedAt`/`accountPickerSettings` 总是存在、提醒/排序模式/自定义顺序设置字段只在非 null/非空时包含的映射。
@@ -66,7 +85,7 @@
 
 ### `factory FinanceData.fromJson(Map<String, dynamic> json)` <a id="financedata-fromjson"></a>
 - **种类：** `FinanceData` 的工厂构造函数
-- **来源：** `lib/features/finance/services/finance_storage.dart`（第 79 行）
+- **来源：** `lib/features/finance/services/finance_storage.dart`（第 108 行）
 - **用途：** 从 `finance_data.json` 解析回完整财务数据集。
 - **输入：** `json` — 解码映射。
 - **返回：** 新的 `FinanceData`。
@@ -77,12 +96,12 @@
   final json = jsonDecode(raw) as Map<String, dynamic>;
   final data = FinanceData.fromJson(json);
   ```
-  （`lib/features/finance/services/finance_storage.dart:174-175`，[`load`](#load) 内。）
+  （`lib/features/finance/services/finance_storage.dart:205-206`，[`load`](#load) 内。）
 - **备注：** 每个列表字段缺席时默认 `[]`（不是 `null`），因此部分填充或很旧的 `finance_data.json` 仍产出完全可用的 `FinanceData`，而不是需要下游 null 检查。
 
 ### `const FinanceStorageException(String message)` <a id="financestorageexception-new"></a>
 - **种类：** `FinanceStorageException` 的 const 构造函数
-- **来源：** `lib/features/finance/services/finance_storage.dart`（第 136 行）
+- **来源：** `lib/features/finance/services/finance_storage.dart`（第 165 行）
 - **用途：** 创建携带用户可见消息、在 `finance_data.json` 存在但无法安全读取或写入时抛出的异常。
 - **输入：** `message`。
 - **返回：** 新的 `FinanceStorageException`。
@@ -92,12 +111,12 @@
   ```dart
   throw FinanceStorageException('$_fileName is not valid JSON: $e');
   ```
-  （`lib/features/finance/services/finance_storage.dart:185`，[`load`](#load) 内；类似的 `'Failed to load $_fileName: $e'` 情形覆盖任何其他读取失败，[`_atomicWriteJson`](#atomicwritejson) 为写侧校验失败抛出同类型。）
+  （`lib/features/finance/services/finance_storage.dart:220`，[`load`](#load) 内；类似的 `'Failed to load $_fileName: $e'` 情形覆盖任何其他读取失败，[`_atomicWriteJson`](#atomicwritejson) 为写侧校验失败抛出同类型。）
 - **备注：** 实现 `Exception`，不是 `Error`——意在捕获并显示给用户（如经财务主页的 `_loadError` 状态），而不是当作编程错误。
 
 ### `static Future<File> _getFile()` <a id="getfile"></a>
 - **种类：** `FinanceStorage` 的静态方法
-- **来源：** `lib/features/finance/services/finance_storage.dart`（第 156 行）
+- **来源：** `lib/features/finance/services/finance_storage.dart`（第 185 行）
 - **用途：** 解析应用数据目录内 `finance_data.json` 的 `File` 句柄。
 - **输入：** 无。
 - **返回：** `Future<File>`。
@@ -108,28 +127,29 @@
 
 ### `static Future<FinanceData?> load()` <a id="load"></a>
 - **种类：** `FinanceStorage` 的静态方法
-- **来源：** `lib/features/finance/services/finance_storage.dart`（第 167 行）
+- **来源：** `lib/features/finance/services/finance_storage.dart`（第 198 行）
 - **用途：** 加载并解析 `finance_data.json`，运行强制余额迁移并在改变任何东西时持久化结果，使调用方总是看到已迁移的数据。
 - **输入：** 无。
 - **返回：** `Future<FinanceData?>` — 只在文件不存在时为 `null`；缺失文件绝不被混淆为损坏的，因为损坏文件会抛出。
-- **副作用：** 读取 `finance_data.json`；经 [`ExchangeRateStorage.load()`](exchange_rate_storage.md#load) 读取汇率数据；迁移改变任何东西时可能再次写 `finance_data.json`（经 [`save`](#save)）。
+- **副作用：** 读取 `finance_data.json`；只在必须迁移旧强制余额时，经 [`ExchangeRateStorage.load()`](exchange_rate_storage.md#load) 读取汇率数据，并可能再次写 `finance_data.json`（经 [`save`](#save)）。
 - **算法：**
   1. 文件不存在时立即返回 `null`。
   2. 解码其 JSON 并经 [`FinanceData.fromJson`](#financedata-fromjson) 解析。
-  3. 加载当前汇率数据并运行 [`_migrateForcedBalances`](#migrateforcedbalances)。
-  4. 迁移没有变化（`identical(migrated, data)`）时返回按加载的 `data`。
-  5. 否则尝试 `await save(migrated)`（吞掉任何保存失败）并无论重新保存是否成功都返回 `migrated`。
-  6. `FormatException`（无效 JSON）被捕获并重新抛出为 `FinanceStorageException('$_fileName is not valid JSON: $e')`；任何其他异常重新抛出为 `FinanceStorageException('Failed to load $_fileName: $e')`。
+  3. [`needsForcedBalanceMigration`](balance_util.md#needsforcedbalancemigration) 对 `data.accounts` 为 false 时，立即返回 `data`，不读取 `exchange_rates.json`（v1.5.2）。
+  4. 否则加载当前汇率数据并运行 [`_migrateForcedBalances`](#migrateforcedbalances)。
+  5. 迁移没有变化（`identical(migrated, data)`）时返回按加载的 `data`。
+  6. 否则尝试 `await save(migrated)`（吞掉任何保存失败）并无论重新保存是否成功都返回 `migrated`。
+  7. 汇率读取抛出的 [`ExchangeRateStorageException`](exchange_rate_storage.md#exchangeratestorageexception-new) 原样重新抛出（v1.5.2）。`FormatException`（无效 JSON）被捕获并重新抛出为 `FinanceStorageException('$_fileName is not valid JSON: $e')`；任何其他异常重新抛出为 `FinanceStorageException('Failed to load $_fileName: $e')`。
 - **用法：**
   ```dart
   data = await FinanceStorage.load();
   ```
-  （`lib/features/finance/views/finance_page.dart:99`，财务主页的加载路径；`lib/shared/services/local_api_server.dart` 的 HTTP 处理器和 `lib/shared/services/reminder_service.dart` 的每小时订阅检查也使用。）
-- **备注：** 缺失文件和损坏文件刻意区分，与 `WeightStorage.load` 相同模式——缺失意味着"尚无数据"（`null`），损坏/不可读是 UI 必须浮出的错误状态，绝不静默当作空数据集。
+  （`lib/features/finance/views/finance_page.dart:180`，财务主页的加载路径；`lib/shared/services/local_api_server.dart` 的 HTTP 处理器和 `lib/shared/services/reminder_service.dart` 的每小时订阅检查也使用。）
+- **备注：** 缺失文件和损坏文件刻意区分，与 `WeightStorage.load` 相同模式——缺失意味着"尚无数据"（`null`），损坏/不可读是 UI 必须浮出的错误状态，绝不静默当作空数据集。由于只为待处理的迁移读取汇率文件，不可读的 `exchange_rates.json` 只在这种情况下阻断加载，并以 `ExchangeRateStorageException` 而不是财务文件错误的形式浮出。
 
 ### `static FinanceData _migrateForcedBalances(FinanceData data, ExchangeRateData rateData)` <a id="migrateforcedbalances"></a>
 - **种类：** `FinanceStorage` 的静态方法
-- **来源：** `lib/features/finance/services/finance_storage.dart`（第 196 行）
+- **来源：** `lib/features/finance/services/finance_storage.dart`（第 231 行）
 - **用途：** 对一个 `FinanceData` 值运行 [`migrateForcedBalances`](balance_util.md#migrateforcedbalances)，改变任何东西时用迁移后的账户/交易和其他每个字段原样带过重建新 `FinanceData`。
 - **输入：** `data`；`rateData`。
 - **返回：** `FinanceData` — 迁移报告无变化时是 `data` 本身（同一对象，使 `identical()` 在 [`load`](#load) 中成功），否则是新值。
@@ -143,7 +163,7 @@
 
 ### `static Future<void> save(FinanceData data)` <a id="save"></a>
 - **种类：** `FinanceStorage` 的静态方法
-- **来源：** `lib/features/finance/services/finance_storage.dart`（第 229 行）
+- **来源：** `lib/features/finance/services/finance_storage.dart`（第 264 行）
 - **用途：** 排队 `data` 的写入，确保重叠 `save` 调用绝不交错它们对 `finance_data.json` 的写入。
 - **输入：** `data`。
 - **返回：** 在此特定写入完成时完成的 `Future<void>`。
@@ -152,14 +172,15 @@
 - **用法：**
   ```dart
   await FinanceStorage.save(next);
+  _notifyWritten();
   return _json({'success': true, ...});
   ```
-  （`lib/shared/services/local_api_server.dart:794-796`，本地 HTTP API 的"创建交易"处理器；相同调用形态从 `finance_page.dart` 的设置/编辑流程和 `reminder_service.dart` 的订阅追赶保存。）
+  （`lib/shared/services/local_api_server.dart:802-804`，本地 HTTP API 的"创建交易"处理器；相同调用形态从 `finance_page.dart` 的设置/编辑流程和 `reminder_service.dart` 的订阅追赶保存。）
 - **备注：** 并发 `save()` 调用严格按调用顺序串行化，与 `WeightStorage.save` 相同的保证。
 
 ### `static Future<void> _saveNow(FinanceData data)` <a id="savenow"></a>
 - **种类：** `FinanceStorage` 的静态方法
-- **来源：** `lib/features/finance/services/finance_storage.dart`（第 243 行）
+- **来源：** `lib/features/finance/services/finance_storage.dart`（第 278 行）
 - **用途：** 在调用方已在写队列中轮到它之后，执行一次 `data` 对 `finance_data.json` 的实际写入。
 - **输入：** `data`。
 - **返回：** `Future<void>`。
@@ -173,8 +194,8 @@
 
 ### `static Future<void> _atomicWriteJson(File file, String jsonStr)` <a id="atomicwritejson"></a>
 - **种类：** `FinanceStorage` 的静态方法
-- **来源：** `lib/features/finance/services/finance_storage.dart`（第 258 行）
-- **用途：** 只在确认新内容和刚写的临时文件都能实际解码为有效 JSON 后替换 `finance_data.json`，拒绝写入任何会损坏文件的东西。
+- **来源：** `lib/features/finance/services/finance_storage.dart`（第 293 行）
+- **用途：** 只在确认新内容能解码为 JSON 对象后替换 `finance_data.json`（原子写入），拒绝写入任何会损坏文件的东西。
 - **输入：** `file`；`jsonStr` — 候选新内容。
 - **返回：** `Future<void>`。
 - **副作用：** 缺失时创建父目录；写 `.tmp-<timestamp>` 临时文件并重命名覆盖 `file`；失败时删除临时文件。
@@ -182,7 +203,7 @@
   1. 预先 `jsonDecode(jsonStr)`——解析失败时立即抛 `FinanceStorageException('Refusing to write invalid $_fileName: $e')`，完全不碰磁盘。
   2. 确保父目录存在。
   3. 把 `jsonStr` 写入唯一命名临时文件（`'${file.path}.tmp-<microsecondsSinceEpoch>'`），刷到磁盘。
-  4. 重新读取并重新解码临时文件自己的内容作为第二遍校验；成功时 `rename` 到 `file.path`（底层文件系统上原子）。
-  5. 重新读取/解码失败时，删除临时文件（尽力而为）并重新抛出——要么传播既有 `FinanceStorageException`，要么把任何其他错误包装为 `FinanceStorageException('Failed to write $_fileName safely: $e')`。
+  4. 把临时文件 `rename` 到 `file.path`（底层文件系统上原子）。自 v1.5.2 起不再先重新读取并重新解码刷盘后的临时文件：内容已在步骤 1 校验过。
+  5. 重命名失败时，删除临时文件（尽力而为）并重新抛出——要么传播既有 `FinanceStorageException`，要么把任何其他错误包装为 `FinanceStorageException('Failed to write $_fileName safely: $e')`。
 - **用法：** 在 [`_saveNow`](#savenow) 内调用一次：`await _atomicWriteJson(file, jsonStr);`。
-- **备注：** 双重校验——写入前对字符串一次、写入后对临时文件一次——同时防护坏内存负载和文件系统级写入损坏，两者都绝不允许覆盖最后已知良好的 `finance_data.json`。
+- **备注：** 预先校验防护坏内存负载，先写临时文件再重命名的顺序保证中断的写入绝不会留下写了一半的 `finance_data.json`：最后已知良好的文件一直保留到重命名替换它为止。

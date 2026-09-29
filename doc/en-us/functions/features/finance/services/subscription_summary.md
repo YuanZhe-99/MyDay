@@ -30,7 +30,7 @@ rows because they are the file's public surface. 3 Tier A, 4 Tier B.
 
 ### `SubscriptionSummary summarizeSubscriptions({required List<Subscription> subscriptions, required List<Transaction> transactions, required ExchangeRateData rateData, required String defaultCurrency, DateTime? now})` <a id="summarizesubscriptions"></a>
 - **Kind:** top-level function
-- **Source:** `lib/features/finance/services/subscription_summary.dart` (line 37)
+- **Source:** `lib/features/finance/services/subscription_summary.dart` (line 38)
 - **Purpose:** Compute the three headline subscription figures in the default currency.
 - **Inputs:** `subscriptions` — inactive ones are ignored; `transactions` — only those with a
   `subscriptionId` count; `rateData`; `defaultCurrency`; `now`, injectable for tests.
@@ -54,7 +54,7 @@ rows because they are the file's public surface. 3 Tier A, 4 Tier B.
 
 ### `List<Subscription> sortSubscriptions(List<Subscription> list, {required String mode, required List<String> customOrder})` <a id="sortsubscriptions"></a>
 - **Kind:** top-level function
-- **Source:** `lib/features/finance/services/subscription_summary.dart` (line 100)
+- **Source:** `lib/features/finance/services/subscription_summary.dart` (line 102)
 - **Purpose:** Return a sorted copy of `list` for a subscription sort mode.
 - **Inputs:** `list`; `mode` — one of the three sort-mode constants; `customOrder` — ids in the
   user's drag order, read only in custom mode.
@@ -78,9 +78,10 @@ rows because they are the file's public surface. 3 Tier A, 4 Tier B.
 - **Returns:** `List<(Subscription, DateTime)>`, each paired with its next billing date, sorted
   ascending.
 - **Side effects:** None.
-- **Algorithm:** `limit = today + days`; skip `cancelType == atExpiry` regardless of `isActive`,
-  and skip `!isActive && cancelType == immediate`; include a subscription whose `nextBillingDate`'s
-  calendar day is on or before `limit`; sort by date.
+- **Algorithm:** `limit = addCalendarDays(today, days)` (v1.5.2; previously `today + days` as a
+  `Duration`, which could land an hour off across a DST change); skip `cancelType == atExpiry`
+  regardless of `isActive`, and skip `!isActive && cancelType == immediate`; include a subscription
+  whose `nextBillingDate`'s calendar day is on or before `limit`; sort by date.
 - **Usage:** `upcomingSubscriptions(_subscriptions, days: 3)` in both pages' `build`.
 - **Notes:** An at-expiry cancellation keeps showing in subscription lists but must not raise a
   renewal reminder for a charge that, from the user's perspective, is about to stop — so this

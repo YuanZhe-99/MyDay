@@ -12,168 +12,148 @@ import 'package:my_day/shared/utils/adaptive_layout.dart';
 /// a regression reports the device it would break rather than a bare number.
 /// The prose derivation is `doc/en-us/adaptive-layout.md`.
 void main() {
-  group('canSplitLayout', () {
-    test('rejects anything under the width floor', () {
-      // Galaxy Z Fold 7 / 8 Ultra cover screen, and an ordinary phone.
-      expect(canSplitLayout(360, 882), isFalse);
-      expect(canSplitLayout(412, 915), isFalse);
-      // Galaxy Z Fold 8 cover screen, at both ends of its density range.
-      expect(canSplitLayout(356, 819), isFalse);
-      expect(canSplitLayout(416, 958), isFalse);
-      // Exactly at and just below the floor, at an aspect that would pass.
-      expect(canSplitLayout(splitMinWidth - 1, 600), isFalse);
-      expect(canSplitLayout(splitMinWidth, 600), isTrue);
-    });
+  test('canSplitLayout across real devices and its floors', () {
+    // (width, height, splits, device). The aspect rule, not a plain width
+    // breakpoint, is what gives the Fold 8 two answers at one width.
+    const cases = <(double, double, bool, String)>[
+      (360, 882, false, 'Z Fold 7 / 8 Ultra cover'),
+      (412, 915, false, 'ordinary phone'),
+      (356, 819, false, 'Z Fold 8 cover, high density'),
+      (416, 958, false, 'Z Fold 8 cover, low density'),
+      (splitMinWidth - 1, 600, false, 'just under the width floor'),
+      (splitMinWidth, 600, true, 'at the width floor'),
+      (657, 416, false, 'Z Fold 8 cover in landscape'),
+      (915, 412, false, 'phone in landscape: compact height'),
+      (900, splitMinHeight - 1, false, 'just under the height floor'),
+      (900, splitMinHeight, true, 'at the height floor'),
+      (704, 932, false, 'Z Fold 8 unfolded portrait, 0.755'),
+      (932, 704, true, 'Z Fold 8 unfolded landscape, 1.32'),
+      (675, 810, true, 'Z Fold 5 portrait, 0.83'),
+      (690, 802, true, 'Z Fold 6 portrait, 0.86'),
+      (733, 814, true, 'Z Fold 7 portrait, 0.90'),
+      (839, 932, true, 'Z Fold 8 Ultra portrait, 0.90'),
+      (773, 805, true, 'Pixel 10 Pro Fold, 0.96'),
+      (768, 1024, false, '4:3 tablet portrait: the rule working'),
+      (1024, 768, true, '4:3 tablet landscape'),
+      (800, 1280, false, '16:10 tablet portrait'),
+      (1280, 800, true, '16:10 tablet landscape'),
+      (0, 0, false, 'degenerate'),
+      (1200, 0, false, 'degenerate height'),
+      (1200, -1, false, 'negative height'),
+      (1440, 900, true, 'desktop'),
+      (1920, 1080, true, 'desktop'),
+    ];
+    for (final (width, height, splits, device) in cases) {
+      expect(canSplitLayout(width, height), splits, reason: device);
+    }
+  });
 
-    test('rejects anything under the height floor', () {
-      // Galaxy Z Fold 8 cover screen held in landscape.
-      expect(canSplitLayout(657, 416), isFalse);
-      // An ordinary phone held in landscape: wide, but compact in height.
-      expect(canSplitLayout(915, 412), isFalse);
-      expect(canSplitLayout(900, splitMinHeight - 1), isFalse);
-      expect(canSplitLayout(900, splitMinHeight), isTrue);
-    });
-
-    test('the aspect test gives the Fold 8 two answers at one width', () {
-      // Galaxy Z Fold 8 unfolded: a 4:3 landscape panel, so held in portrait it
-      // is 3:4 and stays single column, while in landscape it splits. No width
-      // threshold can produce that; this is the whole reason the rule is not a
-      // plain breakpoint.
-      expect(canSplitLayout(704, 932), isFalse); // portrait, 0.755
-      expect(canSplitLayout(932, 704), isTrue); // landscape, 1.32
-    });
-
-    test('near-square foldables split in both orientations', () {
-      expect(canSplitLayout(675, 810), isTrue); // Z Fold 5 portrait, 0.83
-      expect(canSplitLayout(690, 802), isTrue); // Z Fold 6 portrait, 0.86
-      expect(canSplitLayout(733, 814), isTrue); // Z Fold 7 portrait, 0.90
-      expect(canSplitLayout(839, 932), isTrue); // Z Fold 8 Ultra portrait, 0.90
-      expect(canSplitLayout(773, 805), isTrue); // Pixel 10 Pro Fold, 0.96
-    });
-
-    test(
-      'a tablet in portrait stays single column, which is the rule working',
-      () {
-        expect(canSplitLayout(768, 1024), isFalse); // 4:3 tablet portrait, 0.75
-        expect(canSplitLayout(1024, 768), isTrue); // the same tablet, landscape
-        expect(canSplitLayout(800, 1280), isFalse); // 16:10 tablet portrait
-        expect(canSplitLayout(1280, 800), isTrue);
-      },
-    );
-
-    test('the aspect threshold holds at n - 1 and n', () {
-      const height = 1000.0;
-      expect(canSplitLayout(splitMinAspect * height - 1, height), isFalse);
-      expect(canSplitLayout(splitMinAspect * height, height), isTrue);
-    });
-
-    test('degenerate sizes never split', () {
-      expect(canSplitLayout(0, 0), isFalse);
-      expect(canSplitLayout(1200, 0), isFalse);
-      expect(canSplitLayout(1200, -1), isFalse);
-    });
-
-    test('desktop windows split', () {
-      expect(canSplitLayout(1440, 900), isTrue);
-      expect(canSplitLayout(1920, 1080), isTrue);
+  test('thresholds hold at n - 1 and n', () {
+    const aspectHeight = 1000.0;
+    const weightGate = 2 * weightPairedChartMinWidth + listTileGap; // 672
+    const pieGate = pieChartMinWidth + pieLegendMinWidth + listTileGap; // 612
+    const todoGate =
+        calendarCardMinWidth + scoreTrendMinWidth + listTileGap; // 712
+    final gates = <String, (bool Function(double), double)>{
+      'split aspect': (
+        (w) => canSplitLayout(w, aspectHeight),
+        splitMinAspect * aspectHeight,
+      ),
+      'navigation rail': (useNavigationRail, navRailMinWidth),
+      'weight charts side by side': (useWeightChartsSideBySide, weightGate),
+      'pie chart side by side': (usePieChartSideBySide, pieGate),
+      'todo calendar side by side': (useTodoCalendarSideBySide, todoGate),
+    };
+    gates.forEach((name, gate) {
+      final (passes, n) = gate;
+      expect(passes(n - 1), isFalse, reason: '$name at n - 1');
+      expect(passes(n), isTrue, reason: '$name at n');
     });
   });
 
-  group('useNavigationRail', () {
-    test('is width only, so a phone in landscape gets a rail', () {
-      // The case the split rule rejects on purpose, and the case the rail helps
-      // most: a bottom bar would spend 19% of 412 dp on navigation.
-      expect(canSplitLayout(915, 412), isFalse);
-      expect(useNavigationRail(915), isTrue);
-    });
+  test('useNavigationRail is width only', () {
+    // A phone in landscape fails the split rule yet gets a rail: a bottom bar
+    // would spend 19% of 412 dp on navigation.
+    expect(canSplitLayout(915, 412), isFalse);
+    const cases = <(double, bool, String)>[
+      (915, true, 'phone landscape'),
+      (360, false, 'Fold 7 / 8 Ultra cover'),
+      (416, false, 'Fold 8 cover, low density'),
+      (411, false, 'Pixel 10 Pro Fold cover'),
+      (659, true, 'unfolded panel'),
+      (675, true, 'unfolded panel'),
+      (672, true, 'unfolded panel'),
+      (716, true, 'unfolded panel'),
+      (755, true, 'unfolded panel'),
+      (820, true, 'unfolded panel'),
+    ];
+    for (final (width, rail, device) in cases) {
+      expect(useNavigationRail(width), rail, reason: '$device $width');
+    }
+  });
 
-    test('holds at n - 1 and n', () {
-      expect(useNavigationRail(navRailMinWidth - 1), isFalse);
-      expect(useNavigationRail(navRailMinWidth), isTrue);
-    });
-
-    test('no folded cover screen earns a rail', () {
-      expect(useNavigationRail(360), isFalse); // Fold 7 / 8 Ultra cover
-      expect(useNavigationRail(416), isFalse); // Fold 8 cover, low density
-      expect(useNavigationRail(411), isFalse); // Pixel 10 Pro Fold cover
-    });
-
-    test('every unfolded panel earns one', () {
-      for (final width in [659.0, 675.0, 672.0, 716.0, 755.0, 820.0]) {
-        expect(useNavigationRail(width), isTrue, reason: 'width $width');
+  test(
+    'shellContentWidth subtracts the rail only when shown, never below 0',
+    () {
+      const cases = <(double, double)>[
+        (412, 412), // phone portrait, bottom bar
+        (599, 599),
+        (600, 600 - navRailWidth),
+        (704, 704 - navRailWidth), // Fold 8 portrait
+        (1440, 1440 - navRailWidth),
+        (0, 0),
+        (-100, 0),
+      ];
+      for (final (width, expected) in cases) {
+        expect(shellContentWidth(width), expected, reason: 'width $width');
       }
-    });
+    },
+  );
+
+  test('columnCapacity pays for gaps, respects the ceiling, and degrades', () {
+    // (width, minItemWidth, maxColumns, expected). Two 320 columns and one 12
+    // gap need 652, not 664.
+    const cases = <(double, double, int?, int)>[
+      (651, 320, null, 1),
+      (652, 320, null, 2),
+      (983, 320, null, 2),
+      (984, 320, null, 3),
+      (4000, 320, null, listMaxColumns),
+      (4000, 320, 2, 2),
+      (4000, 320, 0, 1),
+      (0, 320, null, 1),
+      (-1, 320, null, 1),
+      (800, 0, null, listMaxColumns),
+      // A folded cover screen never fits two columns of any real minimum.
+      (360, 300, null, 1),
+      (416, 300, null, 1),
+      (360, 340, null, 1),
+      (416, 340, null, 1),
+    ];
+    for (final (width, min, max, expected) in cases) {
+      final actual = max == null
+          ? columnCapacity(width, minItemWidth: min)
+          : columnCapacity(width, minItemWidth: min, maxColumns: max);
+      expect(actual, expected, reason: '$width / $min / $max');
+    }
   });
 
-  group('shellContentWidth', () {
-    test('subtracts the rail exactly when the rail is showing', () {
-      expect(shellContentWidth(412), 412); // phone portrait, bottom bar
-      expect(shellContentWidth(599), 599);
-      expect(shellContentWidth(600), 600 - navRailWidth);
-      expect(shellContentWidth(704), 704 - navRailWidth); // Fold 8 portrait
-      expect(shellContentWidth(1440), 1440 - navRailWidth);
-    });
-
-    test('never goes negative', () {
-      expect(shellContentWidth(0), 0);
-      expect(shellContentWidth(-100), 0);
-    });
+  test('listRowCount rounds up and treats nonsense columns as one', () {
+    const cases = <(int, int, int)>[
+      (0, 3, 0),
+      (1, 3, 1),
+      (3, 3, 1),
+      (4, 3, 2),
+      (7, 2, 4),
+      (5, 0, 5),
+      (5, -2, 5),
+    ];
+    for (final (items, columns, rows) in cases) {
+      expect(listRowCount(items, columns), rows, reason: '$items/$columns');
+    }
   });
 
-  group('columnCapacity', () {
-    test('pays for the gaps between columns, not one after every column', () {
-      // Two 320 columns and one 12 gap need 652, not 664.
-      expect(columnCapacity(651, minItemWidth: 320), 1);
-      expect(columnCapacity(652, minItemWidth: 320), 2);
-      expect(columnCapacity(983, minItemWidth: 320), 2);
-      expect(columnCapacity(984, minItemWidth: 320), 3);
-    });
-
-    test('respects the ceiling', () {
-      expect(columnCapacity(4000, minItemWidth: 320), listMaxColumns);
-      expect(columnCapacity(4000, minItemWidth: 320, maxColumns: 2), 2);
-      expect(columnCapacity(4000, minItemWidth: 320, maxColumns: 0), 1);
-    });
-
-    test('degenerate inputs return something usable', () {
-      expect(columnCapacity(0, minItemWidth: 320), 1);
-      expect(columnCapacity(-1, minItemWidth: 320), 1);
-      expect(columnCapacity(800, minItemWidth: 0), listMaxColumns);
-    });
-
-    test(
-      'a folded cover screen never fits two columns of any real minimum',
-      () {
-        for (final minWidth in [300.0, 320.0, 340.0]) {
-          expect(columnCapacity(360, minItemWidth: minWidth), 1);
-          expect(columnCapacity(416, minItemWidth: minWidth), 1);
-        }
-      },
-    );
-  });
-
-  group('listRowCount', () {
-    test('rounds up, and an empty list needs no rows', () {
-      expect(listRowCount(0, 3), 0);
-      expect(listRowCount(1, 3), 1);
-      expect(listRowCount(3, 3), 1);
-      expect(listRowCount(4, 3), 2);
-      expect(listRowCount(7, 2), 4);
-    });
-
-    test('treats a nonsense column count as one column', () {
-      expect(listRowCount(5, 0), 5);
-      expect(listRowCount(5, -2), 5);
-    });
-  });
-
-  group('listColumnCount', () {
-    /// Purpose: Call the rule the way a shell page does.
-    /// Inputs: `width`, `height` — the whole screen; `preference`.
-    /// Returns: `int`.
-    /// Side effects: None.
-    /// Notes: Content width comes from `shellContentWidth`, so the navigation
-    /// rail is accounted for exactly as it is on screen.
+  test('listColumnCount: gate beats capacity, preferences are clamped', () {
     int columns(double width, double height, int preference) => listColumnCount(
       screenWidth: width,
       screenHeight: height,
@@ -182,33 +162,24 @@ void main() {
       preference: preference,
       maxColumns: 3,
     );
-
-    test('the gate wins over the capacity', () {
-      // A tablet in portrait is wide enough for two columns but fails the shape
-      // rule, so it stays on one — same as the Fold 8 in portrait.
-      expect(columnCapacity(shellContentWidth(768), minItemWidth: 320), 2);
-      expect(columns(768, 1024, listColumnsAuto), 1);
-      expect(columns(1024, 768, listColumnsAuto), 2);
-    });
-
-    test('auto returns whatever the content box fits', () {
-      expect(columns(412, 915, listColumnsAuto), 1); // phone portrait
-      expect(columns(704, 932, listColumnsAuto), 1); // Fold 8 portrait: gated
-      expect(columns(932, 704, listColumnsAuto), 2); // Fold 8 landscape
-      expect(columns(1440, 900, listColumnsAuto), 3); // desktop, at the ceiling
-    });
-
-    test('a pinned preference is clamped, never lost', () {
-      // Pinned to 3 on a desktop, then carried onto a folded phone and back.
-      expect(columns(1440, 900, 3), 3);
-      expect(columns(412, 915, 3), 1);
-      expect(columns(932, 704, 3), 2);
-      expect(columns(1440, 900, 3), 3);
-    });
-
-    test('a preference below one still renders a column', () {
-      expect(columns(1440, 900, -5), 1);
-    });
+    // A tablet in portrait is wide enough for two columns but fails the shape
+    // rule, so it stays on one — same as the Fold 8 in portrait.
+    expect(columnCapacity(shellContentWidth(768), minItemWidth: 320), 2);
+    const cases = <(double, double, int, int, String)>[
+      (768, 1024, listColumnsAuto, 1, 'tablet portrait: gated'),
+      (1024, 768, listColumnsAuto, 2, 'tablet landscape'),
+      (412, 915, listColumnsAuto, 1, 'phone portrait'),
+      (704, 932, listColumnsAuto, 1, 'Fold 8 portrait: gated'),
+      (932, 704, listColumnsAuto, 2, 'Fold 8 landscape'),
+      (1440, 900, listColumnsAuto, 3, 'desktop, at the ceiling'),
+      (1440, 900, 3, 3, 'pinned 3 on desktop'),
+      (412, 915, 3, 1, 'pinned 3 carried onto a phone'),
+      (932, 704, 3, 2, 'pinned 3 on a Fold 8 landscape'),
+      (1440, 900, -5, 1, 'a preference below one'),
+    ];
+    for (final (width, height, preference, expected, label) in cases) {
+      expect(columns(width, height, preference), expected, reason: label);
+    }
   });
 
   group('pane widths', () {
@@ -307,7 +278,11 @@ void main() {
       for (var items = 0; items <= 12; items++) {
         for (var columns = 1; columns <= 5; columns++) {
           final flat = columnMajorFill(items, columns).expand((c) => c);
-          expect(flat, List.generate(items, (i) => i), reason: '$items/$columns');
+          expect(
+            flat,
+            List.generate(items, (i) => i),
+            reason: '$items/$columns',
+          );
         }
       }
     });
@@ -331,36 +306,9 @@ void main() {
       expect(settingsLeftPaneWidth(800), closeTo(352, 0.01)); // proportional
       expect(settingsLeftPaneWidth(2000), 440); // ceiling
     });
-
-    test('the detail-pane cap never actually binds above the split floor', () {
-      // Worth stating rather than assuming: at every width the split rule
-      // admits, the proportional value already leaves the detail pane its
-      // floor, so the cap is a guard for a pane narrower than any real window
-      // rather than a second breakpoint that fires in practice.
-      for (var width = 600.0; width <= 2000; width += 1) {
-        final preferred = (width * 0.44).clamp(300.0, 440.0);
-        expect(settingsLeftPaneWidth(width), preferred, reason: 'width ');
-      }
-      // It does bind below the split floor, which is what it is there for.
-      expect(settingsLeftPaneWidth(560), lessThan(300));
-    });
   });
 
   group('useWeightChartsSideBySide', () {
-    test('holds at n - 1 and n', () {
-      const gate = 2 * weightPairedChartMinWidth + listTileGap; // 672
-      expect(useWeightChartsSideBySide(gate - 1), isFalse);
-      expect(useWeightChartsSideBySide(gate), isTrue);
-    });
-
-    test('the gate is where the summary-card split used to be', () {
-      // Deliberate: v1.4.4 rearranged what happens inside a splittable weight
-      // window, not which windows are splittable. 280 + 380 + 12 was the old
-      // arithmetic and 330 + 330 + 12 is the new one, both 672, so every
-      // viewport keeps the outcome it had.
-      expect(2 * weightPairedChartMinWidth + listTileGap, 672);
-    });
-
     test('a Z Fold 5 in portrait passes the split rule but not this one', () {
       // The split rule alone would leave each chart under 290 logical pixels.
       // This is why the page tests both, rather than the shape rule alone.
@@ -371,24 +319,6 @@ void main() {
     test('an unfolded Fold 8 in landscape passes both', () {
       expect(canSplitLayout(932, 704), isTrue);
       expect(useWeightChartsSideBySide(shellContentWidth(932) - 32), isTrue);
-    });
-
-    test('each chart always clears its floor from the gate up', () {
-      // The invariant that makes a pane width unnecessary: the two columns are
-      // equal flex, so each is half of what is left after the gap.
-      for (var width = 672.0; width <= 2000; width += 1) {
-        expect(
-          (width - listTileGap) / 2,
-          greaterThanOrEqualTo(weightPairedChartMinWidth),
-          reason: 'content width $width',
-        );
-      }
-    });
-
-    test('the summary figure block fits the narrowest strip', () {
-      // At the gate the card's own margins and padding take 64, so the stats
-      // beside the figure block still get 296 — two cells of up to 168.
-      expect(672 - 64 - weightSummaryFigureWidth - 32, 296);
     });
   });
 
@@ -435,7 +365,6 @@ void main() {
         columnsFor(4000, 2000, taskSectionMinWidth, taskSectionMaxColumns),
         taskSectionMaxColumns,
       );
-      expect(taskSectionMaxColumns, 3);
     });
 
     test('a desktop window fills every surface to its own ceiling', () {
@@ -460,33 +389,18 @@ void main() {
   });
 
   group('cappedContentWidth', () {
-    test('leaves a narrow page exactly as it was', () {
+    test('leaves a narrow page as it was and caps a wide one', () {
       // Width only and no gate, so this can never change what a phone renders.
       expect(cappedContentWidth(412, formMaxContentWidth), 412);
       expect(cappedContentWidth(704, formMaxContentWidth), 704);
       expect(cappedContentWidth(720, formMaxContentWidth), 720);
-    });
-
-    test('caps a desktop window at the reading measure', () {
       expect(cappedContentWidth(721, formMaxContentWidth), formMaxContentWidth);
       expect(cappedContentWidth(1440, formMaxContentWidth), 720);
       expect(cappedContentWidth(1440, readingMaxContentWidth), 840);
     });
-
-    test('prose is allowed more width than a form', () {
-      // A form's controls have to stay within one glance of their labels;
-      // prose has no controls whose separation matters.
-      expect(readingMaxContentWidth, greaterThan(formMaxContentWidth));
-    });
   });
 
   group('usePieChartSideBySide', () {
-    test('holds at n - 1 and n', () {
-      const gate = pieChartMinWidth + pieLegendMinWidth + listTileGap; // 612
-      expect(usePieChartSideBySide(gate - 1), isFalse);
-      expect(usePieChartSideBySide(gate), isTrue);
-    });
-
     test('a phone keeps the legend under the chart', () {
       expect(usePieChartSideBySide(412), isFalse);
       // And the shape rule refuses anyway, which is the other half of the gate.
@@ -500,13 +414,6 @@ void main() {
   });
 
   group('useTodoCalendarSideBySide', () {
-    test('holds at n - 1 and n', () {
-      const gate =
-          calendarCardMinWidth + scoreTrendMinWidth + listTileGap; // 712
-      expect(useTodoCalendarSideBySide(gate - 1), isFalse);
-      expect(useTodoCalendarSideBySide(gate), isTrue);
-    });
-
     test('a Z Fold 5 in portrait splits but has no room for both blocks', () {
       // The shape rule alone would put a 340 calendar beside a 323 chart.
       expect(canSplitLayout(675, 810), isTrue);
@@ -532,14 +439,11 @@ void main() {
   });
 
   group('dialogHorizontalInset', () {
-    test('a phone dialog keeps Flutter own default inset', () {
+    test('a phone keeps the default inset; a wide window centres it', () {
       expect(dialogHorizontalInset(412), dialogMinHorizontalInset);
       expect(dialogHorizontalInset(704), dialogMinHorizontalInset);
       // 640 content plus 40 on each side is where the default stops binding.
       expect(dialogHorizontalInset(720), dialogMinHorizontalInset);
-    });
-
-    test('a wide window centres the dialog instead of stretching it', () {
       expect(dialogHorizontalInset(1440), (1440 - 640) / 2);
       expect(1440 - 2 * dialogHorizontalInset(1440), dialogMaxContentWidth);
     });

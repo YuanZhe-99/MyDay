@@ -48,7 +48,7 @@ List<WeekGroup<T>> groupByWeek<T>(
         year: year,
         week: week,
         start: start,
-        end: start.add(const Duration(days: 6)),
+        end: addCalendarDays(start, 6),
         items: [item],
       );
     } else {
@@ -134,7 +134,7 @@ String localizedWeekdayLabel(
 DateTime startOfWeek(DateTime date, {int weekStartDay = DateTime.monday}) {
   final day = _dateOnly(date);
   final start = normalizeWeekStartDay(weekStartDay);
-  return day.subtract(Duration(days: (day.weekday - start + 7) % 7));
+  return addCalendarDays(day, -((day.weekday - start + 7) % 7));
 }
 
 /// Purpose: Return the Monday that starts the ISO week containing `date`.
@@ -152,10 +152,7 @@ DateTime startOfIsoWeek(DateTime date) {
 /// Side effects: None.
 /// Notes: Uses the same four-day week rule as ISO, shifted to the configured start day.
 int weekYear(DateTime date, {int weekStartDay = DateTime.monday}) {
-  return startOfWeek(
-    date,
-    weekStartDay: weekStartDay,
-  ).add(const Duration(days: 3)).year;
+  return addCalendarDays(startOfWeek(date, weekStartDay: weekStartDay), 3).year;
 }
 
 /// Purpose: Return the ISO week-numbering year for `date`.
@@ -174,7 +171,7 @@ int isoWeekYear(DateTime date) {
 /// Notes: Uses January 4 as the first-week anchor, matching ISO's four-day rule.
 int weekNumber(DateTime date, {int weekStartDay = DateTime.monday}) {
   final start = startOfWeek(date, weekStartDay: weekStartDay);
-  final anchor = start.add(const Duration(days: 3));
+  final anchor = addCalendarDays(start, 3);
   final firstWeekStart = startOfWeek(
     DateTime(anchor.year, 1, 4),
     weekStartDay: weekStartDay,
@@ -214,6 +211,46 @@ int leadingBlankDaysForMonth(
   final start = normalizeWeekStartDay(weekStartDay);
   return (first.weekday - start + 7) % 7;
 }
+
+/// Purpose: Shift a date by whole calendar days, keeping its wall-clock time.
+/// Inputs: `date` and signed `days`.
+/// Returns: `DateTime` in the same zone kind (local or UTC) as `date`.
+/// Side effects: None.
+/// Notes: Unlike `add(Duration(days: n))`, this never lands on 23:00 of the previous day or
+/// 01:00 of the next across a daylight-saving change. Use it for every local calendar step.
+DateTime addCalendarDays(DateTime date, int days) {
+  if (date.isUtc) {
+    return DateTime.utc(
+      date.year,
+      date.month,
+      date.day + days,
+      date.hour,
+      date.minute,
+      date.second,
+      date.millisecond,
+      date.microsecond,
+    );
+  }
+  return DateTime(
+    date.year,
+    date.month,
+    date.day + days,
+    date.hour,
+    date.minute,
+    date.second,
+    date.millisecond,
+    date.microsecond,
+  );
+}
+
+/// Purpose: Return whole calendar days from `start` to `end`, ignoring time of day.
+/// Inputs: `start`, `end`.
+/// Returns: `int` (negative when `end` is earlier).
+/// Side effects: None.
+/// Notes: Compares the local calendar dates through UTC so a 23- or 25-hour day never
+/// rounds the count down or up.
+int calendarDaysBetween(DateTime start, DateTime end) =>
+    _differenceInCalendarDays(start, end);
 
 /// Purpose: Provide the internal date only helper for this file.
 /// Inputs: `date`.

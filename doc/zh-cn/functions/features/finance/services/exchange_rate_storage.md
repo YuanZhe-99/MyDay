@@ -1,6 +1,6 @@
 # lib/features/finance/services/exchange_rate_storage.dart
 
-`exchange_rates.json` 的持久化层，把汇率存储为不可变 `RateSnapshot` 的去重历史加 `currentSnapshotId` 指针，而不是单个平铺币种对映射——这正是让 `Transaction.rateSnapshotId` 重建历史交易记录时生效的确切汇率的东西（见 [`ratesAt`](#ratesat) 和 [`balance_util.dart`](balance_util.md) 的 `_accountTransactionDelta`）。`load()` 透明地把旧平铺映射文件格式迁移进第一个快照。功能级概览见 [财务](../../../../features/finance.md#exchange-rates)，调用 [`updateRates`](#updaterates) 的实时获取客户端见 [`ExchangeRateApi`](exchange_rate_api.md)。
+`exchange_rates.json` 的持久化层，把汇率存储为不可变 `RateSnapshot` 的去重历史加 `currentSnapshotId` 指针，而不是单个平铺币种对映射——这正是让 `Transaction.rateSnapshotId` 重建历史交易记录时生效的确切汇率的东西（见 [`ratesAt`](#ratesat) 和 [`balance_util.dart`](balance_util.md) 的 `_accountTransactionDelta`）。`load()` 透明地把旧平铺映射文件格式迁移进第一个快照。自 v1.5.2 起，已存在但无法读取或解析的文件会抛出 [`ExchangeRateStorageException`](#exchangeratestorageexception-new)，不再静默回退到默认汇率；[`_saveNow`](#savenow) 也拒绝覆盖这样的文件。功能级概览见 [财务](../../../../features/finance.md#exchange-rates)，调用 [`updateRates`](#updaterates) 的实时获取客户端见 [`ExchangeRateApi`](exchange_rate_api.md)。
 
 ## 声明
 
@@ -14,16 +14,18 @@
 | [`ratesAt`](#ratesat) | 方法（`ExchangeRateData`） | A | 特定历史快照的汇率，回退当前。 |
 | [`toJson`](#exchangeratedata-tojson) | 方法（`ExchangeRateData`） | A | 把汇率数据序列化为 JSON。 |
 | [`ExchangeRateData.fromJson`](#exchangeratedata-fromjson) | 工厂构造函数（`ExchangeRateData`） | A | 从 JSON 解析汇率数据。 |
+| [`ExchangeRateStorageException()`](#exchangeratestorageexception-new) | const 构造函数（`ExchangeRateStorageException`） | A | 创建 `exchange_rates.json` 存在但无法读取或解析时抛出的异常（v1.5.2）。 |
+| [`toString`](#exchangeratestorageexception-tostring) | 方法（`ExchangeRateStorageException`） | A | 返回可读的异常消息。 |
 | [`_getFile`](#getfile) | 静态方法（`ExchangeRateStorage`） | A | 解析 `exchange_rates.json` 的磁盘路径。 |
-| [`load`](#load) | 静态方法（`ExchangeRateStorage`） | A | 加载、解析并迁移 `exchange_rates.json`。 |
+| [`load`](#load) | 静态方法（`ExchangeRateStorage`） | A | 加载、解析并迁移 `exchange_rates.json`；已存在的文件不可读时抛出。 |
 | [`save`](#save) | 静态方法（`ExchangeRateStorage`） | A | 排队汇率数据写入，对照并发保存串行化。 |
-| [`_saveNow`](#savenow) | 静态方法（`ExchangeRateStorage`） | A | 执行一次保留、校验、原子写入。 |
+| [`_saveNow`](#savenow) | 静态方法（`ExchangeRateStorage`） | A | 执行一次保留、校验、原子写入；拒绝覆盖无法解析的文件。 |
 | [`updateRates`](#updaterates) | 静态方法（`ExchangeRateStorage`） | A | 只在汇率实际变化时创建新快照。 |
 | [`_ratesEqual`](#ratesequal) | 静态方法（`ExchangeRateStorage`） | A | 精确相等地比较两个汇率映射。 |
 | [`_defaultData`](#defaultdata) | 静态方法（`ExchangeRateStorage`） | A | 构建内置默认汇率数据。 |
 | [`_createInitialData`](#createinitialdata) | 静态方法（`ExchangeRateStorage`） | A | 把平铺汇率映射包装为第一个快照。 |
 
-**对账：** `grep -c 'Purpose:' lib/features/finance/services/exchange_rate_storage.dart` 返回 16，与上面 16 行精确匹配——每个块都恰好位于其真实声明（构造函数、工厂构造函数、getter 或静态方法）正上方；未发现错附在调用点语句上方。文件中的剩余普通字段（`_fileName`、`_writeQueue`、`_defaultRates`）不带 `/// Purpose:` 块，与本代码库记录可调用成员而非普通数据的约定一致，它们都不构成未文档化的可调用声明。全部 16 个文档化声明分类为 Tier A：模型构造函数/序列化对匹配定级规则显式的 Tier A 桶，每个 `ExchangeRateStorage` 静态方法都执行真实 IO、分支或循环逻辑（包括 `currentRates`/`ratesAt`，其单行映射查找经 `balance_util.dart` 喂入功能中的每次币种转换；以及 `_defaultData`，其默认汇率是每个全新安装开始的回退）。
+**对账：** `grep -c 'Purpose:' lib/features/finance/services/exchange_rate_storage.dart` 返回 18，与上面 18 行精确匹配——每个块都恰好位于其真实声明（构造函数、工厂构造函数、getter、方法或静态方法）正上方；未发现错附在调用点语句上方。文件中的剩余普通字段（`_fileName`、`_writeQueue`、`_defaultRates` 以及 `ExchangeRateStorageException.message`）不带 `/// Purpose:` 块，与本代码库记录可调用成员而非普通数据的约定一致，它们都不构成未文档化的可调用声明。全部 18 个文档化声明分类为 Tier A：模型构造函数/序列化对匹配定级规则显式的 Tier A 桶，`ExchangeRateStorageException` 这一对是每个汇率读取方都必须处理的错误类型，每个 `ExchangeRateStorage` 静态方法都执行真实 IO、分支或循环逻辑（包括 `currentRates`/`ratesAt`，其单行映射查找经 `balance_util.dart` 喂入功能中的每次币种转换；以及 `_defaultData`，其默认汇率是每个全新安装开始的回退）。
 
 ## 文档
 
@@ -39,7 +41,7 @@
   ```dart
   final snapshot = RateSnapshot(rates: Map.unmodifiable(newRates));
   ```
-  （`lib/features/finance/services/exchange_rate_storage.dart:215`，[`updateRates`](#updaterates) 内；[`_createInitialData`](#createinitialdata) 也用它把平铺汇率映射包装为第一个快照。）
+  （`lib/features/finance/services/exchange_rate_storage.dart:260`，[`updateRates`](#updaterates) 内；[`_createInitialData`](#createinitialdata) 也用它把平铺汇率映射包装为第一个快照。）
 - **备注：** `updateRates` 总是传不可修改汇率映射，防止意外原地修改本应不可变历史的快照。
 
 ### `Map<String, dynamic> toJson()` <a id="ratesnapshot-tojson"></a>
@@ -81,7 +83,7 @@
   );
   await ExchangeRateStorage.save(withTimestamp);
   ```
-  （`lib/features/finance/views/exchange_rates_page.dart:72-77`，成功在线获取后盖章 `lastFetchedAt`。）
+  （`lib/features/finance/views/exchange_rates_page.dart:88-93`，成功在线获取后盖章 `lastFetchedAt`。）
 - **备注：** 无。
 
 ### `Map<String, double> get currentRates` <a id="currentrates"></a>
@@ -96,7 +98,7 @@
   ```dart
   final currentRates = widget.rateData.currentRates;
   ```
-  （`lib/features/finance/views/analysis_page.dart:860`，在需要"今天"的汇率而不是交易历史快照的任何地方使用，如转换重建的账户余额。）
+  （`lib/features/finance/views/analysis_page.dart:861`，在需要"今天"的汇率而不是交易历史快照的任何地方使用，如转换重建的账户余额。）
 - **备注：** 无。
 
 ### `Map<String, double> ratesAt(String? snapshotId)` <a id="ratesat"></a>
@@ -111,7 +113,7 @@
   ```dart
   final rates = rateData.ratesAt(tx.rateSnapshotId);
   ```
-  （`lib/features/finance/services/balance_util.dart:316`，`_accountTransactionDelta` 内——用记录时生效的汇率转换交易金额的中心位置。）
+  （`lib/features/finance/services/balance_util.dart:368`，`_accountTransactionDelta` 内——用记录时生效的汇率转换交易金额的中心位置。）
 - **备注：** 在汇率快照存在之前记录的交易（`rateSnapshotId == null`）透明回退今天的汇率。
 
 ### `Map<String, dynamic> toJson()` <a id="exchangeratedata-tojson"></a>
@@ -136,9 +138,35 @@
 - **用法：** 从 [`load`](#load) 调用：`return ExchangeRateData.fromJson(json);`，迁移检查确认文件已有 `snapshots` 键之后。
 - **备注：** 假设 `json['snapshots']` 存在——调用方必须首先检查旧平铺映射格式（见 [`load`](#load) 的迁移分支），否则这抛出。
 
+### `const ExchangeRateStorageException(String message)` <a id="exchangeratestorageexception-new"></a>
+- **种类：** `ExchangeRateStorageException` 的 const 构造函数
+- **来源：** `lib/features/finance/services/exchange_rate_storage.dart`（第 127 行）
+- **用途：** 创建 `exchange_rates.json` 存在但无法读取或解析时抛出的异常（v1.5.2）。
+- **输入：** `message` — 可读描述，包含文件名和底层错误。
+- **返回：** 新的 `ExchangeRateStorageException`。
+- **副作用：** 无。
+- **算法：** 平凡 `const` 字段赋值构造函数；该类实现 `Exception`。
+- **用法：**
+  ```dart
+  throw ExchangeRateStorageException('$_fileName is unreadable: $e');
+  ```
+  （`lib/features/finance/services/exchange_rate_storage.dart:184`，在 [`load`](#load) 内。）
+- **备注：** 抛出它而不是回退到默认汇率，因此快照历史绝不会在下次保存时被默认快照覆盖。`FinanceStorage.load` 和 `migrateFinanceForcedBalances` 重新抛出它，财务页和汇率页显示阻断式错误视图，本地 API 把它映射为 500 `data_unreadable` 响应。
+
+### `String toString()` <a id="exchangeratestorageexception-tostring"></a>
+- **种类：** `ExchangeRateStorageException` 的方法（覆盖 `Object.toString`）
+- **来源：** `lib/features/finance/services/exchange_rate_storage.dart`（第 135 行）
+- **用途：** 返回可读的异常消息。
+- **输入：** 无。
+- **返回：** `String` — 原样返回 `message`。
+- **副作用：** 无。
+- **算法：** `=> message`。
+- **用法：** 汇率页的 `_loadRates` 和财务页的 `_loadDataNow` 中的 `_loadError = e.toString();`，其错误视图显示该文本。
+- **备注：** 无。
+
 ### `static Future<File> _getFile()` <a id="getfile"></a>
 - **种类：** `ExchangeRateStorage` 的静态方法
-- **来源：** `lib/features/finance/services/exchange_rate_storage.dart`（第 127 行）
+- **来源：** `lib/features/finance/services/exchange_rate_storage.dart`（第 148 行）
 - **用途：** 解析应用数据目录内 `exchange_rates.json` 的 `File` 句柄。
 - **输入：** 无。
 - **返回：** `Future<File>`。
@@ -149,27 +177,28 @@
 
 ### `static Future<ExchangeRateData> load()` <a id="load"></a>
 - **种类：** `ExchangeRateStorage` 的静态方法
-- **来源：** `lib/features/finance/services/exchange_rate_storage.dart`（第 137 行）
-- **用途：** 加载 `exchange_rates.json`，透明地把旧平铺币种对映射格式迁移进单快照历史，任何失败回退内置默认值。
+- **来源：** `lib/features/finance/services/exchange_rate_storage.dart`（第 161 行）
+- **用途：** 加载 `exchange_rates.json`，透明地把旧平铺币种对映射格式迁移进单快照历史。缺失或空白文件得到内置默认值；已存在但无法读取或解析的文件抛出异常（v1.5.2）。
 - **输入：** 无。
-- **返回：** `Future<ExchangeRateData>` — 绝不 `null`；缺失或损坏文件解析为 [`_defaultData()`](#defaultdata)。
+- **返回：** `Future<ExchangeRateData>` — 绝不 `null`；缺失或空白文件解析为 [`_defaultData()`](#defaultdata)。文件不可读时抛出 [`ExchangeRateStorageException`](#exchangeratestorageexception-new)。
 - **副作用：** 从磁盘读取 `exchange_rates.json`。
 - **算法：**
   1. 文件不存在时返回 `_defaultData()`。
-  2. 解码其 JSON。
-  3. **迁移：** 解码映射没有 `snapshots` 键（旧平铺映射格式）时，把每个条目当作 `Map<String, double>` 并经 [`_createInitialData`](#createinitialdata) 包装为第一个快照。
-  4. 否则经 [`ExchangeRateData.fromJson`](#exchangeratedata-fromjson) 直接解析。
-  5. 此路径中的任何异常（缺失文件竞争、坏 JSON、格式错误快照）被捕获并映射为 `_defaultData()`。
+  2. 以字符串读取；读取失败抛出 `ExchangeRateStorageException('Failed to read ...')`。内容为空白（仅空白字符）时返回 `_defaultData()`。
+  3. 把其 JSON 解码为映射。
+  4. **迁移：** 解码映射没有 `snapshots` 键（旧平铺映射格式）时，把每个条目当作 `Map<String, double>` 并经 [`_createInitialData`](#createinitialdata) 包装为第一个快照。
+  5. 否则经 [`ExchangeRateData.fromJson`](#exchangeratedata-fromjson) 直接解析。
+  6. 步骤 3-5 中的任何异常（坏 JSON、非映射 JSON、格式错误快照）重新抛出为 `ExchangeRateStorageException('exchange_rates.json is unreadable: ...')`。v1.5.2 之前这里的每个失败都返回 `_defaultData()`。
 - **用法：**
   ```dart
   final data = await ExchangeRateStorage.load();
   ```
-  （`lib/features/finance/views/exchange_rates_page.dart:50`；`finance_storage.dart` 的 `load()` 也用它运行强制余额迁移，`webdav_service.dart` 的 `_migrateFinanceForcedBalances` 同步期间也出于同样原因使用。）
-- **备注：** 与 `FinanceStorage.load()` 和 `WeightStorage.load()` 不同，这绝不向调用方抛出——每个失败路径静默退化到内置默认汇率而不是浮出错误，因为汇率不如账户/交易那样是关键的用户数据。
+  （`lib/features/finance/views/exchange_rates_page.dart:58`，位于出错时切换到该页加载错误视图的 `try` 内；`finance_page.dart` 的 `_loadDataNow`、本地 API 服务器，以及 `finance_storage.dart` 的 `load()` 和 `data_modules.dart` 的 `migrateFinanceForcedBalances` 也使用它，后两者自 v1.5.2 起只在 [`needsForcedBalanceMigration`](balance_util.md#needsforcedbalancemigration) 为 true 时调用。）
+- **备注：** 自 v1.5.2 起与 `FinanceStorage.load()` 和 `WeightStorage.load()` 一致：已存在但不可读的文件会抛出，而不是静默退化到内置默认汇率。以前返回默认值会让下次保存替换整个快照历史，而历史交易经 `rateSnapshotId` 指向该历史。
 
 ### `static Future<void> save(ExchangeRateData data)` <a id="save"></a>
 - **种类：** `ExchangeRateStorage` 的静态方法
-- **来源：** `lib/features/finance/services/exchange_rate_storage.dart`（第 163 行）
+- **来源：** `lib/features/finance/services/exchange_rate_storage.dart`（第 193 行）
 - **用途：** 排队 `data` 的写入，确保重叠 `save` 调用绝不交错它们对 `exchange_rates.json` 的写入。
 - **输入：** `data`。
 - **返回：** 在此特定写入完成时完成的 `Future<void>`。
@@ -180,26 +209,26 @@
   await ExchangeRateStorage.save(withTimestamp);
   AutoSyncService.instance.notifySaved();
   ```
-  （`lib/features/finance/views/exchange_rates_page.dart:77-78`。）
+  （`lib/features/finance/views/exchange_rates_page.dart:96-97`。）
 - **备注：** 并发 `save()` 调用严格按调用顺序串行化——与 `WeightStorage.save` 文档化的相同重叠写入者保护。
 
 ### `static Future<void> _saveNow(ExchangeRateData data)` <a id="savenow"></a>
 - **种类：** `ExchangeRateStorage` 的静态方法
-- **来源：** `lib/features/finance/services/exchange_rate_storage.dart`（第 177 行）
+- **来源：** `lib/features/finance/services/exchange_rate_storage.dart`（第 209 行）
 - **用途：** 在调用方已在写队列中轮到它之后，执行一次 `data` 对 `exchange_rates.json` 的实际写入——包括一次性检测磁盘文件是否仍是旧平铺映射格式。
 - **输入：** `data`。
 - **返回：** `Future<void>`。
 - **副作用：** 经 `DataFileSafety.writeValidatedDataJson`（校验、原子替换）写 `exchange_rates.json`。
 - **算法：**
-  1. 解析文件；存在时解码并检查是否有 `snapshots` 键（`preserveUnknown`）。此处的任何解码失败被吞掉并当作 `preserveUnknown = true`。
+  1. 解析文件。存在时读取它（读取失败抛出 [`ExchangeRateStorageException`](#exchangeratestorageexception-new)）；内容非空白时解码并要求是 JSON 对象——否则抛出 `ExchangeRateStorageException('... refusing to overwrite it')`（v1.5.2；此前解码失败被吞掉，文件被覆盖）。`preserveUnknown` 表示该对象是否有 `snapshots` 键；缺失或空白文件保持 `preserveUnknown = true`。
   2. 磁盘文件仍是旧平铺映射格式（`preserveUnknown == false`）时，直接写 `jsonEncode(data.toJson())`——没有要对旧格式保留的未知字段模式。
   3. 否则在写入前对 `'exchange_rates.json'` 注册的模式运行 `JsonPreservation.encodeForFile`，使新版应用写入而本版模型不知道的字段在往返中存活。
 - **用法：** 只从 [`save`](#save) 的写队列链调用。
-- **备注：** 这是财务功能中保存路径按*当前磁盘格式*分支而不是总是运行未知字段保留的唯一存储类——直接源于支持平铺映射 -> 快照历史迁移。
+- **备注：** 这是财务功能中保存路径按*当前磁盘格式*分支而不是总是运行未知字段保留的唯一存储类——直接源于支持平铺映射 -> 快照历史迁移。无法解析的已有文件绝不会被覆盖：写入以 `ExchangeRateStorageException` 失败，文件保持原样供用户检查。
 
 ### `static ExchangeRateData updateRates(ExchangeRateData data, Map<String, double> newRates)` <a id="updaterates"></a>
 - **种类：** `ExchangeRateStorage` 的静态方法
-- **来源：** `lib/features/finance/services/exchange_rate_storage.dart`（第 208 行）
+- **来源：** `lib/features/finance/services/exchange_rate_storage.dart`（第 253 行）
 - **用途：** 应用一组新汇率，只在汇率与当前快照实际不同时创建新 `RateSnapshot`（并推进 `currentSnapshotId`）——因此相同的获取或保存绝不无意义地增长快照历史。
 - **输入：** `data` — 当前状态；`newRates` — 候选新汇率映射。
 - **返回：** `ExchangeRateData` — [`_ratesEqual`](#ratesequal) 说没有变化时 `data` 不变（同一对象），否则是带一个额外快照的新值。
@@ -211,12 +240,12 @@
   ```dart
   return ExchangeRateStorage.updateRates(data, newRates);
   ```
-  （`lib/features/finance/services/exchange_rate_api.dart:54`，[`ExchangeRateApi.fetchAndMerge`](exchange_rate_api.md#fetchandmerge) 的最后一步；用户手动编辑汇率时 `exchange_rates_page.dart:94` 也直接调用。）
+  （`lib/features/finance/services/exchange_rate_api.dart:54`，[`ExchangeRateApi.fetchAndMerge`](exchange_rate_api.md#fetchandmerge) 的最后一步；用户手动编辑汇率时 `exchange_rates_page.dart:115` 也直接调用。）
 - **备注：** 旧快照绝不移除——历史只增不减，这正是让 `ratesAt(oldSnapshotId)` 无限期正确解析历史交易的东西。
 
 ### `static bool _ratesEqual(Map<String, double> a, Map<String, double> b)` <a id="ratesequal"></a>
 - **种类：** `ExchangeRateStorage` 的静态方法
-- **来源：** `lib/features/finance/services/exchange_rate_storage.dart`（第 229 行）
+- **来源：** `lib/features/finance/services/exchange_rate_storage.dart`（第 274 行）
 - **用途：** 决定两个汇率映射是否精确相等，门控 [`updateRates`](#updaterates) 是否需要创建新快照。
 - **输入：** `a`、`b`。
 - **返回：** `bool`。
@@ -227,18 +256,18 @@
 
 ### `static ExchangeRateData _defaultData()` <a id="defaultdata"></a>
 - **种类：** `ExchangeRateStorage` 的静态方法
-- **来源：** `lib/features/finance/services/exchange_rate_storage.dart`（第 242 行）
-- **用途：** 构建尚不存在文件或加载失败时使用的内置默认汇率数据。
+- **来源：** `lib/features/finance/services/exchange_rate_storage.dart`（第 287 行）
+- **用途：** 构建尚不存在文件或文件为空白时使用的内置默认汇率数据。
 - **输入：** 无。
 - **返回：** `ExchangeRateData`。
 - **副作用：** 无。
 - **算法：** `_createInitialData(_defaultRates)`——用硬编码 `_defaultRates` 映射（USD/EUR/GBP/JPY/CAD/AUD 对 CNY，加 EUR_USD/GBP_USD）对 [`_createInitialData`](#createinitialdata) 的一行转发。
-- **用法：** 从 [`load`](#load) 的两个失败路径（缺失文件、任何异常）调用。
+- **用法：** 从 [`load`](#load) 的两个空文件路径（缺失文件、空白文件）调用；自 v1.5.2 起不可读文件不再回退到它。
 - **备注：** 硬编码默认值只是近似参考值——它们存在是为了让应用在用户首次成功在线获取或手动编辑之前有*东西*可转换。
 
 ### `static ExchangeRateData _createInitialData(Map<String, double> rates)` <a id="createinitialdata"></a>
 - **种类：** `ExchangeRateStorage` 的静态方法
-- **来源：** `lib/features/finance/services/exchange_rate_storage.dart`（第 249 行）
+- **来源：** `lib/features/finance/services/exchange_rate_storage.dart`（第 294 行）
 - **用途：** 把平铺币种对汇率映射包装为新 `ExchangeRateData` 历史的第一个（也是唯一）快照。
 - **输入：** `rates`。
 - **返回：** 恰好一个快照的 `ExchangeRateData`。

@@ -57,6 +57,17 @@ counter whose history and interrupted active/paused session are stored in `intim
 Partner and toy detail pages show a summary card with average pleasure, average duration, and
 average thrust rate; toy pages add total and daily cost.
 
+**Sub-page saves merge by id (v1.5.2).** Partner, toy and position management and the body
+settings page report whole edited lists (partners, toys, positions, records, cycle records) back to
+the home page. Those reports are no longer written as-is: `_commitSubPage` turns each one into an
+`IdListDelta` of only the records the sub-page added, changed or removed (see
+[`id_list_delta.dart`](../functions/shared/utils/id_list_delta.md)), re-reads `intimacy_data.json`
+inside the page's serial I/O queue, replays the delta onto it through `IntimacyData.copyWith`, and
+saves. Records added elsewhere while a management page was open — a sync, the timer page — are
+therefore kept, and renaming a partner no longer drops records written in the meantime. Settings
+callbacks (sort modes, user body, chart settings) still save the page's state. Loads, saves and
+commits run one at a time through that queue, and a commit is refused while the file is unreadable.
+
 ## The consolidated trend chart (v1.3.2)
 
 `IntimacyTrendChart` (`lib/features/intimacy/widgets/intimacy_trend_chart.dart`) is the module's

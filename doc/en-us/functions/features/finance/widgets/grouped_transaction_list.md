@@ -21,7 +21,7 @@ found.
 
 ### `Widget buildGroupedTransactionList(BuildContext context, List<Transaction> sorted, Widget Function(Transaction) tileBuilder)` <a id="buildgroupedtransactionlist"></a>
 - **Kind:** top-level function
-- **Source:** `lib/features/finance/widgets/grouped_transaction_list.dart` (line 12)
+- **Source:** `lib/features/finance/widgets/grouped_transaction_list.dart` (line 16)
 - **Purpose:** Render a date-sorted list of transactions as a scrollable list with a date-header row
   inserted every time the calendar date changes.
 - **Inputs:** `context` — used only to read the current `Theme`; `sorted` — the transactions,
@@ -63,7 +63,7 @@ found.
 
 ### `void flush()` (local to `buildGroupedTransactionList`) <a id="flush"></a>
 - **Kind:** nested local function
-- **Source:** `lib/features/finance/widgets/grouped_transaction_list.dart` (line 37)
+- **Source:** `lib/features/finance/widgets/grouped_transaction_list.dart` (line 41)
 - **Purpose:** Emit the transactions collected for the current date as one or more packed rows,
   then clear the accumulator.
 - **Inputs:** None — reads `current` and `perRow` from the enclosing scope.

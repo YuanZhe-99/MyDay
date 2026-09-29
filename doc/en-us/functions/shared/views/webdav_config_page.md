@@ -45,7 +45,7 @@ fields have no `Purpose:` block, consistent with them being state, not functions
 
 ### `Future<void> _saveConfig()` <a id="saveconfig"></a>
 - **Kind:** method of `_WebDAVConfigPageState`
-- **Source:** `lib/shared/views/webdav_config_page.dart` (line 112)
+- **Source:** `lib/shared/views/webdav_config_page.dart` (line 114)
 - **Purpose:** Persist the current form as the WebDAV config, and if the freshly saved config is
   both fully configured and has auto-sync on, immediately kick off a background sync rather than
   waiting for the next auto-sync trigger.
@@ -56,7 +56,8 @@ fields have no `Purpose:` block, consistent with them being state, not functions
   snackbar.
 - **Algorithm:**
   1. Build `config` from `_currentConfig` and save it via `WebDAVService.saveConfig(config)`.
-  2. Update `_isConfigured` from `config.isConfigured`.
+  2. If still mounted (v1.5.2; the save above is async), update `_isConfigured` from
+     `config.isConfigured`.
   3. If `config.isConfigured && config.autoSync`, call
      `AutoSyncService.instance.requestSyncNow()` to trigger sync immediately instead of waiting for
      the next periodic/resume/debounce trigger.
@@ -78,7 +79,7 @@ fields have no `Purpose:` block, consistent with them being state, not functions
 
 ### `Future<void> _syncNow()` <a id="syncnow"></a>
 - **Kind:** method of `_WebDAVConfigPageState`
-- **Source:** `lib/shared/views/webdav_config_page.dart` (line 161)
+- **Source:** `lib/shared/views/webdav_config_page.dart` (line 163)
 - **Purpose:** Run a manual WebDAV sync under the screen wake lock, and if it surfaces record
   conflicts, hand them to `SyncConflictDialog` and finalize the user's resolutions.
 - **Inputs:** None (reads `_currentConfig`).
@@ -120,7 +121,7 @@ fields have no `Purpose:` block, consistent with them being state, not functions
 
 ### `Future<void> _showSyncResult(SyncResult result)` <a id="showsyncresult"></a>
 - **Kind:** method of `_WebDAVConfigPageState`
-- **Source:** `lib/shared/views/webdav_config_page.dart` (line 230)
+- **Source:** `lib/shared/views/webdav_config_page.dart` (line 232)
 - **Purpose:** Present a non-conflict sync or force-operation result to the user, choosing between a
   scrollable error/warning dialog and a plain success snackbar depending on what happened.
 - **Inputs:** `result` — a `SyncResult` with no pending conflicts.
@@ -150,7 +151,7 @@ fields have no `Purpose:` block, consistent with them being state, not functions
 
 ### `Future<void> _forceUpload()` <a id="forceupload"></a>
 - **Kind:** method of `_WebDAVConfigPageState`
-- **Source:** `lib/shared/views/webdav_config_page.dart` (line 258)
+- **Source:** `lib/shared/views/webdav_config_page.dart` (line 260)
 - **Purpose:** After explicit destructive-action confirmation, overwrite the remote data with local
   data, holding the screen wake lock for the duration.
 - **Inputs:** None (reads `_currentConfig`).
@@ -182,7 +183,7 @@ fields have no `Purpose:` block, consistent with them being state, not functions
 
 ### `Future<void> _forceDownload()` <a id="forcedownload"></a>
 - **Kind:** method of `_WebDAVConfigPageState`
-- **Source:** `lib/shared/views/webdav_config_page.dart` (line 289)
+- **Source:** `lib/shared/views/webdav_config_page.dart` (line 291)
 - **Purpose:** After explicit destructive-action confirmation, overwrite local data with remote
   data, holding the screen wake lock for the duration.
 - **Inputs:** None (reads `_currentConfig`).
@@ -210,7 +211,7 @@ fields have no `Purpose:` block, consistent with them being state, not functions
 
 ### `String? _syncStatusText()` <a id="syncstatustext"></a>
 - **Kind:** method of `_WebDAVConfigPageState`
-- **Source:** `lib/shared/views/webdav_config_page.dart` (line 404)
+- **Source:** `lib/shared/views/webdav_config_page.dart` (line 406)
 - **Purpose:** Build the one-line auto-sync health summary shown above the sync controls,
   distinguishing a genuine two-sided conflict from an ordinary failure, and falling back to the last
   success time when there's no error at all.

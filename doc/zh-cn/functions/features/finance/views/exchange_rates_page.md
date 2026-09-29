@@ -1,6 +1,7 @@
 # lib/features/finance/views/exchange_rates_page.dart
 
 汇率列表/编辑页：显示每个配置的 `'FROM_TO'` 币种对及其汇率，让用户手动增/删/改对，并每天最多从实时 API 自动刷新一次。这是汇率历史的 UI 半边——持久化和快照历史模型在 [`ExchangeRateStorage`](../services/exchange_rate_storage.md)，实时获取客户端在 [`ExchangeRateApi`](../services/exchange_rate_api.md)。功能级概览见 [财务](../../../../features/finance.md#exchange-rates)，包括本页汇率喂入财务别处的回退/1:1 转换行为。
+自 v1.5.2 起，无法读取的 `exchange_rates.json` 会显示带重试按钮的阻断式错误视图，而不是静默从默认汇率开始。
 
 ## 声明
 
@@ -9,13 +10,14 @@
 | `ExchangeRatesPage({super.key})` | 构造函数（`ExchangeRatesPage`） | B | 创建汇率页实例。 |
 | `createState` | 方法（`ExchangeRatesPage`） | B | 为此组件创建可变状态对象。 |
 | `initState` | 方法（`_ExchangeRatesPageState`） | B | 启动 `_loadRates`。 |
-| [`_loadRates`](#loadrates) | 方法（`_ExchangeRatesPageState`） | A | 加载持久化汇率，今天未获取过则自动获取。 |
+| [`_loadRates`](#loadrates) | 方法（`_ExchangeRatesPageState`） | A | 加载持久化汇率（或记录加载错误），今天未获取过则自动获取。 |
 | [`_fetchOnline`](#fetchonline) | 方法（`_ExchangeRatesPageState`） | A | 获取实时汇率并持久化合并结果。 |
 | [`_saveRates`](#saverates) | 方法（`_ExchangeRatesPageState`） | A | 把当前内存汇率映射作为新快照持久化。 |
 | [`_addRate`](#addrate) | 方法（`_ExchangeRatesPageState`） | A | 经对话框添加新币种对汇率。 |
 | [`_editRate`](#editrate) | 方法（`_ExchangeRatesPageState`） | A | 经对话框编辑既有对的币种/汇率。 |
 | [`_deleteRate`](#deleterate) | 方法（`_ExchangeRatesPageState`） | A | 移除币种对汇率并持久化变更。 |
-| `build` | 方法（`_ExchangeRatesPageState`） | B | 构建应用栏（带刷新操作）、汇率列表和添加按钮。 |
+| `_buildLoadError` | 方法（`_ExchangeRatesPageState`） | B | 构建汇率文件不可读时显示的阻断式视图，带重新运行 `_loadRates` 的重试按钮（v1.5.2）。 |
+| `build` | 方法（`_ExchangeRatesPageState`） | B | 构建应用栏（带刷新操作）、汇率列表或加载错误视图，以及添加按钮。 |
 | `_RateDialog({...})` | 构造函数（`_RateDialog`） | B | 创建汇率对话框实例。 |
 | `createState` | 方法（`_RateDialog`） | B | 为此组件创建可变状态对象。 |
 | `initState` | 方法（`_RateDialogState`） | B | 从组件预填 from/to 币种和汇率控制器，捕获初始签名。 |
@@ -25,20 +27,20 @@
 | [`_signature`](#signature) | 方法（`_RateDialogState`） | A | 构建对话框字段的可比较字符串快照。 |
 | [`_submit`](#submit) | 方法（`_RateDialogState`） | A | 校验汇率/币种并带 `'FROM_TO'` 条目弹出。 |
 
-**对账：** `grep -c 'Purpose:' lib/features/finance/views/exchange_rates_page.dart` 返回 18，与上面 18 行精确匹配——每个块都恰好位于其真实声明（构造函数、`createState`、`initState`、`dispose` 或方法）正上方；未发现错附在调用点语句上方，也未发现未文档化的真实声明。类声明本身（`ExchangeRatesPage`、`_ExchangeRatesPageState`、`_RateDialog`、`_RateDialogState`）和 `static const _currencies` 列表不带 `/// Purpose:` 块，与本代码库记录可调用成员而非类或普通数据的约定一致。
+**对账：** `grep -c 'Purpose:' lib/features/finance/views/exchange_rates_page.dart` 返回 19，与上面 19 行精确匹配——每个块都恰好位于其真实声明（构造函数、`createState`、`initState`、`dispose` 或方法）正上方；未发现错附在调用点语句上方，也未发现未文档化的真实声明。类声明本身（`ExchangeRatesPage`、`_ExchangeRatesPageState`、`_RateDialog`、`_RateDialogState`）、`static const _currencies` 列表以及状态字段（包括 v1.5.2 的 `String? _loadError`，在 `exchange_rates.json` 存在但无法读取时设置）不带 `/// Purpose:` 块，与本代码库记录可调用成员而非类或普通数据的约定一致。
 
 ## 文档
 
 ### `Future<void> _loadRates()` <a id="loadrates"></a>
 - **种类：** `_ExchangeRatesPageState` 的方法
-- **来源：** `lib/features/finance/views/exchange_rates_page.dart`（第 49-60 行）
-- **用途：** 加载持久化汇率数据、立即显示，然后今天还没刷新过则触发在线刷新。
+- **来源：** `lib/features/finance/views/exchange_rates_page.dart`（第 55-78 行）
+- **用途：** 加载持久化汇率数据、立即显示，然后今天还没刷新过则触发在线刷新；汇率文件不可读时改为把页面切换到加载错误视图（v1.5.2）。
 - **输入：** 无。
 - **返回：** `Future<void>`。
 - **副作用：** 经 [`ExchangeRateStorage.load`](../services/exchange_rate_storage.md#load) 读取 `exchange_rates.json`；可能经 [`_fetchOnline`](#fetchonline) 触发网络获取。
 - **算法：**
-  1. 从存储加载 `ExchangeRateData`。
-  2. 立即从中填充 `_data`/`_rates`/`_loaded`，使页面不等网络就显示上次保存的汇率。
+  1. 在 `try` 内从存储加载 `ExchangeRateData`。出现任何错误（文件不可读时为 [`ExchangeRateStorageException`](../services/exchange_rate_storage.md#exchangeratestorageexception-new)）时，若仍 mounted 则设 `_loadError = e.toString()` 和 `_loaded = true`，然后返回——`_data` 保持 `null`，这会阻止 [`_fetchOnline`](#fetchonline) 和 [`_saveRates`](#saverates)。
+  2. 若仍 mounted，清除 `_loadError` 并立即从中填充 `_data`/`_rates`/`_loaded`，使页面不等网络就显示上次保存的汇率。
   3. 对照 `data.lastFetchedAt` 检查 [`ExchangeRateApi.shouldFetchToday`](../services/exchange_rate_api.md#shouldfetchtoday)；该获取了则 `await` [`_fetchOnline()`](#fetchonline)。
 - **用法：**
   ```dart
@@ -48,11 +50,11 @@
     _loadRates();
   }
   ```
-- **备注：** 因为第 2 步总是先显示先前保存的汇率再进入第 3 步的网络检查，慢或失败的背景获取绝不阻塞页面显示数据。
+- **备注：** 因为第 2 步总是先显示先前保存的汇率再进入第 3 步的网络检查，慢或失败的背景获取绝不阻塞页面显示数据。`mounted` 检查（v1.5.2）使页面关闭后才完成的加载不会在已销毁的 state 上调用 `setState`。错误视图中的重试按钮会重置 `_loaded` 并再次调用此方法。
 
 ### `Future<void> _fetchOnline()` <a id="fetchonline"></a>
 - **种类：** `_ExchangeRatesPageState` 的方法
-- **来源：** `lib/features/finance/views/exchange_rates_page.dart`（第 67-85 行）
+- **来源：** `lib/features/finance/views/exchange_rates_page.dart`（第 85-108 行）
 - **用途：** 为用户配置的币种对获取实时汇率并持久化合并结果，防护并发或重复获取。
 - **输入：** 无。
 - **返回：** `Future<void>`。
@@ -61,8 +63,8 @@
   1. 尚无加载数据（`_data == null`）或获取已在途（`_fetching`）时立即退出。
   2. 设 `_fetching = true` 显示应用栏转圈。
   3. 调用 `ExchangeRateApi.fetchAndMerge(_data!)`——只更新本地已配置的币种对。
-  4. 返回非 null 数据且组件仍 mounted 时：给结果盖章新鲜 `lastFetchedAt: DateTime.now()`，经 [`ExchangeRateStorage.save`](../services/exchange_rate_storage.md#save) 持久化它，通知 `AutoSyncService`，并更新本地 `_data`/`_rates`。
-  5. 无论结果如何，仍 mounted 时清除 `_fetching`。
+  4. 返回非 null 数据且组件仍 mounted 时：给结果盖章新鲜 `lastFetchedAt: DateTime.now()`，经 [`ExchangeRateStorage.save`](../services/exchange_rate_storage.md#save) 持久化它，通知 `AutoSyncService`，保存后若仍 mounted 则更新本地 `_data`/`_rates`。
+  5. 步骤 3-4 在 `try`/`finally` 内运行（v1.5.2）：`finally` 在仍 mounted 时清除 `_fetching`，因此获取或保存抛出错误时刷新转圈不再卡住。
 - **用法：**
   ```dart
   IconButton(
@@ -72,11 +74,11 @@
         : const Icon(Icons.refresh),
   ),
   ```
-- **备注：** `fetchAndMerge` 返回 `null`（无配置对，或每个 HTTP 请求都失败）时，此方法除清除 `_fetching` 外静默什么都不做——手动或自动刷新失败不向用户浮出错误。
+- **备注：** `fetchAndMerge` 返回 `null`（无配置对，或每个 HTTP 请求都失败）时，此方法除清除 `_fetching` 外静默什么都不做——手动或自动刷新失败不向用户浮出错误。保存抛出的异常（例如 `ExchangeRateStorageException`）会在清除 `_fetching` 之后传播给调用方。
 
 ### `Future<void> _saveRates()` <a id="saverates"></a>
 - **种类：** `_ExchangeRatesPageState` 的方法
-- **来源：** `lib/features/finance/views/exchange_rates_page.dart`（第 92-98 行）
+- **来源：** `lib/features/finance/views/exchange_rates_page.dart`（第 115-121 行）
 - **用途：** 把当前内存 `_rates` 映射作为新汇率快照持久化（只在它确实与当前不同时创建）并标记同步层有挂起的本地变更。
 - **输入：** 无（读取 `_data`、`_rates`）。
 - **返回：** `Future<void>`。
@@ -91,7 +93,7 @@
 
 ### `Future<void> _addRate()` <a id="addrate"></a>
 - **种类：** `_ExchangeRatesPageState` 的方法
-- **来源：** `lib/features/finance/views/exchange_rates_page.dart`（第 105-114 行）
+- **来源：** `lib/features/finance/views/exchange_rates_page.dart`（第 128-137 行）
 - **用途：** 打开空白汇率对话框，确认后添加新币种对汇率。
 - **输入：** 无。
 - **返回：** `Future<void>`。
@@ -110,7 +112,7 @@
 
 ### `Future<void> _editRate(String key, double value)` <a id="editrate"></a>
 - **种类：** `_ExchangeRatesPageState` 的方法
-- **来源：** `lib/features/finance/views/exchange_rates_page.dart`（第 121-139 行）
+- **来源：** `lib/features/finance/views/exchange_rates_page.dart`（第 144-162 行）
 - **用途：** 打开预填既有对的币种和值的汇率对话框，然后应用（可能改名后的）结果。
 - **输入：** `key` — 当前 `'FROM_TO'` 对键；`value` — 其当前汇率。
 - **返回：** `Future<void>`。
@@ -127,7 +129,7 @@
 
 ### `void _deleteRate(String key)` <a id="deleterate"></a>
 - **种类：** `_ExchangeRatesPageState` 的方法
-- **来源：** `lib/features/finance/views/exchange_rates_page.dart`（第 146-149 行）
+- **来源：** `lib/features/finance/views/exchange_rates_page.dart`（第 169-172 行）
 - **用途：** 移除币种对汇率并持久化变更。
 - **输入：** `key`。
 - **返回：** 无。
@@ -141,7 +143,7 @@
 
 ### `bool _hasUnsavedChanges()` <a id="hasunsavedchanges"></a>
 - **种类：** `_RateDialogState` 的方法
-- **来源：** `lib/features/finance/views/exchange_rates_page.dart`（第 424 行）
+- **来源：** `lib/features/finance/views/exchange_rates_page.dart`（第 514 行）
 - **用途：** 告诉 `UnsavedChangesGuard`（[`../../../shared/widgets/unsaved_changes_guard.md`](../../../shared/widgets/unsaved_changes_guard.md)）表单是否已偏离其初始状态。
 - **输入：** 无（只读实例状态）。
 - **返回：** `bool` — 当前签名与 `_initialSignature` 不同时为 `true`。
@@ -158,7 +160,7 @@
 
 ### `String _signature()` <a id="signature"></a>
 - **种类：** `_RateDialogState` 的方法
-- **来源：** `lib/features/finance/views/exchange_rates_page.dart`（第 431-432 行）
+- **来源：** `lib/features/finance/views/exchange_rates_page.dart`（第 521-522 行）
 - **用途：** 产生一个当且仅当 from/to 币种或汇率文本变化时变化的单字符串，用作脏检查基线/比较。
 - **输入：** 无（只读实例状态）。
 - **返回：** `String` — `formSignature`（`../../../shared/widgets/unsaved_changes_guard.md`）的连接签名。
@@ -174,7 +176,7 @@
 
 ### `void _submit(UnsavedChangesController guard)` <a id="submit"></a>
 - **种类：** `_RateDialogState` 的方法
-- **来源：** `lib/features/finance/views/exchange_rates_page.dart`（第 439-444 行）
+- **来源：** `lib/features/finance/views/exchange_rates_page.dart`（第 529-534 行）
 - **用途：** 校验输入的汇率和币种对，然后带 `'FROM_TO'` -> 汇率条目弹出对话框。
 - **输入：** `guard` — `UnsavedChangesGuard.builder` 提供的 `UnsavedChangesController`。
 - **返回：** 无。

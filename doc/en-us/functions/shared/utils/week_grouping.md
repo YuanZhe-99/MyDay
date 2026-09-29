@@ -3,7 +3,9 @@
 Shared calendar-week math for the whole app: grouping records by a configurable week start day,
 computing week-numbering year/week (a four-day-rule variant of ISO 8601 anchored to the configured
 start day instead of always Monday), weekday label/order helpers for calendar UIs, and blank-cell
-counting for month grids. `weekStartDay` is read from `appSettingsProvider` (see
+counting for month grids. Since v1.5.2 it also owns the app's DST-safe calendar-day arithmetic
+(`addCalendarDays`, `calendarDaysBetween`), which every local calendar step in the app uses instead
+of `add(Duration(days: n))`. `weekStartDay` is read from `appSettingsProvider` (see
 [../providers/app_settings.md](../providers/app_settings.md)) and threaded through Todo, Weight,
 and Intimacy history views plus `shared/widgets/app_date_picker.dart` so every calendar in the app
 agrees on the same first weekday.
@@ -26,10 +28,12 @@ agrees on the same first weekday.
 | [`isoWeekNumber`](#isoweeknumber) | top-level function | A | Return the ISO week number — compatibility wrapper. |
 | [`formatMonthDayRange`](#formatmonthdayrange) | top-level function | A | Format a `start`–`end` month/day range string. |
 | [`leadingBlankDaysForMonth`](#leadingblankdaysformonth) | top-level function | A | Return the blank leading cells before a month starts in a calendar grid. |
+| [`addCalendarDays`](#addcalendardays) | top-level function | A | Shift a date by whole calendar days, keeping its wall-clock time (v1.5.2). |
+| [`calendarDaysBetween`](#calendardaysbetween) | top-level function | A | Return whole calendar days from `start` to `end`, ignoring time of day (v1.5.2). |
 | [`_dateOnly`](#_dateonly) | top-level function | A | Strip the time component from a `DateTime`. |
 | [`_differenceInCalendarDays`](#_differenceincalendardays) | top-level function | A | Return whole calendar days between two date-only values. |
 
-`grep -c 'Purpose:' lib/shared/utils/week_grouping.dart` reports 16, matching all sixteen real
+`grep -c 'Purpose:' lib/shared/utils/week_grouping.dart` reports 18, matching all eighteen real
 declarations in this file exactly. No misattachment or undocumented declarations found. Every
 declaration is Tier A: the file's own `WeekGroup` constructor is a model constructor (explicit
 Tier A rule), and every other declaration is a top-level function under `shared/`, which is Tier A
@@ -72,7 +76,8 @@ counted as a separate declaration.
      (`startOfWeek`), week-numbering `year` (`weekYear`), and `week` number (`weekNumber`), all using
      the normalized start day.
   3. Key each item by `'$year-$week'` into a `Map<String, WeekGroup<T>>`; create a new group
-     (`end = start + 6 days`) on first sight of a key, otherwise append to the existing group's
+     (`end = addCalendarDays(start, 6)`, so `end` stays on local midnight across a DST change) on
+     first sight of a key, otherwise append to the existing group's
      `items`.
   4. Sort the resulting groups by `start`; reverse the list if `descending`.
 - **Usage:**
@@ -181,7 +186,9 @@ counted as a separate declaration.
 - **Returns:** `DateTime` — a date-only value (no time component), always `<= date`.
 - **Side effects:** None.
 - **Algorithm:** `day = _dateOnly(date)`; `start = normalizeWeekStartDay(weekStartDay)`; return
-  `day - ((day.weekday - start + 7) % 7)` days.
+  `addCalendarDays(day, -((day.weekday - start + 7) % 7))` — a calendar-day step, so the result is
+  local midnight even when a DST change falls inside the week (v1.5.2; previously
+  `day.subtract(Duration(days: n))`, which could land on 23:00 of the previous day).
 - **Usage:**
   ```dart
   DateTime _selectedWeekStart(int weekStartDay) =>
@@ -215,7 +222,7 @@ counted as a separate declaration.
 - **Inputs:** `date`; `weekStartDay`.
 - **Returns:** `int`.
 - **Side effects:** None.
-- **Algorithm:** `startOfWeek(date, weekStartDay: weekStartDay).add(3 days).year`.
+- **Algorithm:** `addCalendarDays(startOfWeek(date, weekStartDay: weekStartDay), 3).year`.
 - **Usage:** Called internally by `groupByWeek` (to build the week-group map key) and by
   `isoWeekYear`. No direct external call site was found.
 - **Notes:** This can differ from `date.year` for weeks that straddle a year boundary — this is
@@ -224,7 +231,7 @@ counted as a separate declaration.
 
 ### `int isoWeekYear(DateTime date)` <a id="isoweekyear"></a>
 - **Kind:** top-level function
-- **Source:** `lib/shared/utils/week_grouping.dart` (line 166)
+- **Source:** `lib/shared/utils/week_grouping.dart` (line 163)
 - **Purpose:** Return the ISO week-numbering year for `date` (always Monday-start).
 - **Inputs:** `date`.
 - **Returns:** `int`.
@@ -236,7 +243,7 @@ counted as a separate declaration.
 
 ### `int weekNumber(DateTime date, {int weekStartDay = DateTime.monday})` <a id="weeknumber"></a>
 - **Kind:** top-level function
-- **Source:** `lib/shared/utils/week_grouping.dart` (line 175)
+- **Source:** `lib/shared/utils/week_grouping.dart` (line 172)
 - **Purpose:** Return the 1-based week number within the week-numbering year returned by
   `weekYear`, using January 4 as the first-week anchor (ISO's four-day rule).
 - **Inputs:** `date`; `weekStartDay`.
@@ -244,7 +251,7 @@ counted as a separate declaration.
 - **Side effects:** None.
 - **Algorithm:**
   1. `start = startOfWeek(date, weekStartDay: weekStartDay)`.
-  2. `anchor = start + 3 days` (used only to derive the numbering year via the same logic as
+  2. `anchor = addCalendarDays(start, 3)` (used only to derive the numbering year via the same logic as
      `weekYear`).
   3. `firstWeekStart = startOfWeek(DateTime(anchor.year, 1, 4), weekStartDay: weekStartDay)` — the
      week containing January 4 is always week 1, per the ISO four-day rule.
@@ -257,7 +264,7 @@ counted as a separate declaration.
 
 ### `int isoWeekNumber(DateTime date)` <a id="isoweeknumber"></a>
 - **Kind:** top-level function
-- **Source:** `lib/shared/utils/week_grouping.dart` (line 190)
+- **Source:** `lib/shared/utils/week_grouping.dart` (line 187)
 - **Purpose:** Return the ISO week number for `date` (always Monday-start).
 - **Inputs:** `date`.
 - **Returns:** `int`.
@@ -269,7 +276,7 @@ counted as a separate declaration.
 
 ### `String formatMonthDayRange(DateTime start, DateTime end, {String? localeName})` <a id="formatmonthdayrange"></a>
 - **Kind:** top-level function
-- **Source:** `lib/shared/utils/week_grouping.dart` (line 199)
+- **Source:** `lib/shared/utils/week_grouping.dart` (line 196)
 - **Purpose:** Format a week's `start`–`end` dates as a locale-aware month/day range string (e.g.
   a week header like "1/6-1/12").
 - **Inputs:** `start`, `end`; `localeName` (optional; when omitted, `Intl` uses its default
@@ -289,7 +296,7 @@ counted as a separate declaration.
 
 ### `int leadingBlankDaysForMonth(DateTime date, {int weekStartDay = DateTime.monday})` <a id="leadingblankdaysformonth"></a>
 - **Kind:** top-level function
-- **Source:** `lib/shared/utils/week_grouping.dart` (line 209)
+- **Source:** `lib/shared/utils/week_grouping.dart` (line 206)
 - **Purpose:** Return how many empty leading cells a month-grid calendar needs before day 1, given
   the configured week start day.
 - **Inputs:** `date` (any date within the target month); `weekStartDay`.
@@ -307,9 +314,55 @@ counted as a separate declaration.
 - **Notes:** Same modulo trick as `startOfWeek`, applied to the month's first day instead of an
   arbitrary date.
 
+### `DateTime addCalendarDays(DateTime date, int days)` <a id="addcalendardays"></a>
+- **Kind:** top-level function
+- **Source:** `lib/shared/utils/week_grouping.dart` (line 221)
+- **Purpose:** Shift a date by whole calendar days while keeping its wall-clock time, so a local
+  calendar step never drifts by an hour across a daylight-saving (DST) change. Added in v1.5.2.
+- **Inputs:** `date`; `days` — signed (negative steps backwards).
+- **Returns:** `DateTime` in the same zone kind as `date` (UTC stays UTC, local stays local).
+- **Side effects:** None.
+- **Algorithm:** If `date.isUtc`, return `DateTime.utc(year, month, day + days, hour, minute,
+  second, millisecond, microsecond)`; otherwise the same fields through the local `DateTime(...)`
+  constructor. Dart normalizes an out-of-range `day` into the neighbouring month/year.
+- **Usage:**
+  ```dart
+  final weekEnd = addCalendarDays(weekStart, 6);
+  ```
+  (`lib/features/todo/views/todo_page.dart`, the week range label; the same helper drives
+  `_selectedWeekDates` and `_changeDate` there.) Also used by `groupByWeek`, `startOfWeek`,
+  `weekYear`, and `weekNumber` in this file, and outside it by `Subscription.firstBillingDate`
+  (`finance.dart`), `subscription_processor.dart`, `subscription_summary.dart`
+  (`upcomingSubscriptions`), `subscriptions_page.dart`, `analysis_page.dart`, `weight_page.dart`
+  (chart range), and `reminder_service.dart` (`_upcomingRenewalLines`).
+- **Notes:** Unlike `add(Duration(days: n))`, which adds `n × 24` hours, this never lands on 23:00
+  of the previous day or 01:00 of the next when a 23- or 25-hour day lies in between. On a date-only
+  (midnight) input the result is midnight too. Covered by the "calendar-day arithmetic across DST
+  (v1.5.2)" group in `test/week_grouping_test.dart`.
+
+### `int calendarDaysBetween(DateTime start, DateTime end)` <a id="calendardaysbetween"></a>
+- **Kind:** top-level function
+- **Source:** `lib/shared/utils/week_grouping.dart` (line 252)
+- **Purpose:** Return the whole number of calendar days from `start` to `end`, ignoring the time of
+  day. Added in v1.5.2.
+- **Inputs:** `start`, `end`.
+- **Returns:** `int` — negative when `end` is earlier than `start`.
+- **Side effects:** None.
+- **Algorithm:** Delegates to `_differenceInCalendarDays(start, end)`, which compares the two
+  calendar dates as UTC midnights.
+- **Usage:**
+  ```dart
+  final days = calendarDaysBetween(fromDate, nextDay);
+  ```
+  (`lib/shared/services/reminder_service.dart`, `_upcomingRenewalLines`; also used by
+  `analysis_page.dart` for day-step chart buckets.)
+- **Notes:** A public wrapper so callers outside this file get the same DST-proof day count as the
+  week-number math: a 23- or 25-hour day never rounds the count down or up, as
+  `end.difference(start).inDays` can.
+
 ### `DateTime _dateOnly(DateTime date)` <a id="_dateonly"></a>
 - **Kind:** top-level private function
-- **Source:** `lib/shared/utils/week_grouping.dart` (line 223)
+- **Source:** `lib/shared/utils/week_grouping.dart` (line 260)
 - **Purpose:** Strip the time-of-day component from a `DateTime`, keeping local-date semantics.
 - **Inputs:** `date`.
 - **Returns:** `DateTime` — `DateTime(date.year, date.month, date.day)`.
@@ -323,7 +376,7 @@ counted as a separate declaration.
 
 ### `int _differenceInCalendarDays(DateTime start, DateTime end)` <a id="_differenceincalendardays"></a>
 - **Kind:** top-level private function
-- **Source:** `lib/shared/utils/week_grouping.dart` (line 230)
+- **Source:** `lib/shared/utils/week_grouping.dart` (line 267)
 - **Purpose:** Return the whole number of calendar days between two date-only values, immune to
   daylight-saving-induced hour shifts.
 - **Inputs:** `start`, `end` (expected to already be date-only, e.g. via `_dateOnly`/`startOfWeek`).
@@ -331,7 +384,8 @@ counted as a separate declaration.
 - **Side effects:** None.
 - **Algorithm:** Rebuild both dates as `DateTime.utc(year, month, day)` (dropping any local
   timezone/DST offset), then take `.difference(...).inDays`.
-- **Usage:** Called only by `weekNumber` to count days between the first-week anchor and the
-  target week's start.
+- **Usage:** Called directly by `weekNumber` to count days between the first-week anchor and the
+  target week's start, and exposed to the rest of the app through the public wrapper
+  `calendarDaysBetween` (v1.5.2).
 - **Notes:** Using UTC here (rather than the ambient local `DateTime`) is what makes the day count
   robust to daylight-saving transitions that fall between `start` and `end`.

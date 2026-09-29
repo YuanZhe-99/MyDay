@@ -10,6 +10,7 @@ import '../services/balance_util.dart';
 import '../services/exchange_rate_storage.dart';
 import '../services/subscription_processor.dart';
 import '../services/subscription_summary.dart';
+import '../../../shared/utils/week_grouping.dart';
 import '../widgets/add_subscription_dialog.dart';
 import '../widgets/subscription_avatar.dart';
 import 'subscription_detail_page.dart';
@@ -179,9 +180,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     );
     final initialNBD = result.importHistory
         ? tempSub.calculateNextBillingDate(after: today)
-        : tempSub.calculateNextBillingDate(
-            after: today.subtract(const Duration(days: 1)),
-          );
+        : tempSub.calculateNextBillingDate(after: addCalendarDays(today, -1));
     final sub = Subscription(
       id: result.sub.id,
       name: result.sub.name,
@@ -247,7 +246,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
           accountId: result.sub.accountId,
         );
         nbd = tempSub.calculateNextBillingDate(
-          after: today.subtract(const Duration(days: 1)),
+          after: addCalendarDays(today, -1),
         );
       } else {
         nbd = sub.nextBillingDate;
@@ -353,9 +352,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
   DateTime? _nextBillingDateFromToday(Subscription sub) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    return sub.calculateNextBillingDate(
-      after: today.subtract(const Duration(days: 1)),
-    );
+    return sub.calculateNextBillingDate(after: addCalendarDays(today, -1));
   }
 
   /// Purpose: Provide the internal delete subscription helper for this file.

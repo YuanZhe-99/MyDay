@@ -2,7 +2,7 @@
 
 `ReminderService` is the global singleton reminder engine, started once from `main()` (see
 [Architecture](../../../architecture.md) startup sequence) and kept alive independent of which tab
-or page is currently open. Its 30-second `Timer.periodic` loop (`_check`) drives three things on
+or page is currently open. Its 30-second `Timer.periodic` loop (`_check`, one `_checkNow` pass at a time) drives three things on
 **every** platform — hourly subscription-renewal transaction generation, the daily auto-backup via
 `BackupService.runAutoBackupIfNeeded()`, and refreshing cached reminder data — but only fires
 user-facing reminder *notifications* itself on **desktop**, because mobile instead gets per-task/
@@ -42,7 +42,8 @@ service via `updateData`/`updateWeightData`/`updateSubscriptionData` whenever it
 | [`_scheduleMobileTodoReminders`](#_schedulemobiletodoreminders) | method (`ReminderService`) | A | Schedule or cancel the mobile morning/completion todo reminders and per-task reminders. |
 | [`_scheduleMobilePerTaskReminders`](#_schedulemobilepertaskreminders) | method (`ReminderService`) | A | Kick off (fire-and-forget) the per-task mobile reminder rebuild with generation tracking. |
 | [`_scheduleMobilePerTaskRemindersAsync`](#_schedulemobilepertaskremindersasync) | method (`ReminderService`) | A | Cancel stale per-task schedules and reschedule current daily/one-time task reminders. |
-| [`_check`](#_check) | method (`ReminderService`) | A | The 30-second tick: renewals, auto-backup, and (desktop-only) reminder firing. |
+| [`_check`](#_check) | method (`ReminderService`) | A | The 30-second tick: run `_checkNow` unless the previous pass is still running. |
+| [`_checkNow`](#_checknow) | method (`ReminderService`) | A | One full pass: renewals, auto-backup, and (desktop-only) reminder firing. |
 | [`_upcomingRenewalLines`](#_upcomingrenewallines) | method (`ReminderService`) | A | Build localized renewal lines for subscriptions due within 3 days of a day. |
 | [`_loadNotifiedKeys`](#_loadnotifiedkeys) | method (`ReminderService`) | A | Load today's already-fired reminder keys from storage config. |
 | [`_persistNotifiedKeys`](#_persistnotifiedkeys) | method (`ReminderService`) | A | Persist today's fired reminder keys into storage config. |
@@ -53,17 +54,17 @@ service via `updateData`/`updateWeightData`/`updateSubscriptionData` whenever it
 | [`_processRenewals`](#_processrenewals) | method (`ReminderService`) | A | Generate overdue subscription-renewal transactions, at most once per hour. |
 | [`_notify`](#_notify) | method (`ReminderService`) | A | Fire a single reminder notification (desktop `local_notifier` / mobile immediate) plus in-app snackbar. |
 
-**Reconciliation:** `grep -c 'Purpose:' lib/shared/services/reminder_service.dart` returns 33,
-matching the 33 rows above exactly — every block documents a real declaration (the constructor, the
+**Reconciliation:** `grep -c 'Purpose:' lib/shared/services/reminder_service.dart` returns 34,
+matching the 34 rows above exactly — every block documents a real declaration (the constructor, the
 `_l10n` getter, or a method) sitting immediately below it. No misattached blocks (a `Purpose:` block
 documenting a call-site statement instead of the real declaration) and no undocumented real
 declarations were found in this file. Only the private constructor, the trivial `_l10n` getter, and
 `updateLocale` (a single field assignment with no branching or side effect beyond that) are
 classified Tier B; every other method carries real branching, a loop, or a side-effecting call
 (storage IO, OS notification scheduling, or triggering another such call), consistent with the
-blanket "services" Tier A rule. The nested local function `shouldFire` declared inside `_check`'s
-body is not listed as its own declaration — it has no doc comment and is purely part of `_check`'s
-implementation, described under that method's Algorithm below. Fields (`_timer`, `_notifiedIds`,
+blanket "services" Tier A rule. The nested local function `shouldFire` declared inside `_checkNow`'s
+body is not listed as its own declaration — it has no doc comment and is purely part of `_checkNow`'s
+implementation, described under that method's Algorithm below. Fields (`_timer`, `_checking`, `_notifiedIds`,
 cached data fields, the notification-id constants, `onShowSnackbar`, `onRenewalsProcessed`, etc.)
 carry only plain `///` comments, not `Purpose:` blocks, and are not listed as separate declarations,
 consistent with how sibling pages in this directory (e.g. `backup_service.md`) treat plain-commented
@@ -73,7 +74,7 @@ fields as data rather than functions.
 
 ### `void start()` <a id="start"></a>
 - **Kind:** method of `ReminderService`
-- **Source:** `lib/shared/services/reminder_service.dart` (line 83)
+- **Source:** `lib/shared/services/reminder_service.dart` (line 88)
 - **Purpose:** Start (or restart) the 30-second periodic reminder loop and run one check
   immediately.
 - **Inputs:** None.
@@ -87,13 +88,13 @@ fields as data rather than functions.
   // Start global reminder timer — runs regardless of which tab is active
   ReminderService.instance.start();
   ```
-  (`lib/main.dart:51`, once at app startup, alongside `AutoSyncService.instance.start()`.)
+  (`lib/main.dart:52`, once at app startup, alongside `AutoSyncService.instance.start()`.)
 - **Notes:** Calling `start()` again (it isn't, currently) would safely replace the existing timer
   rather than stacking a second one, because of the `_timer?.cancel()` guard.
 
 ### `void stop()` <a id="stop"></a>
 - **Kind:** method of `ReminderService`
-- **Source:** `lib/shared/services/reminder_service.dart` (line 94)
+- **Source:** `lib/shared/services/reminder_service.dart` (line 99)
 - **Purpose:** Stop the periodic reminder loop.
 - **Inputs:** None.
 - **Returns:** None.
@@ -106,7 +107,7 @@ fields as data rather than functions.
 
 ### `void refreshMobileSchedules()` <a id="refreshmobileschedules"></a>
 - **Kind:** method of `ReminderService`
-- **Source:** `lib/shared/services/reminder_service.dart` (line 105)
+- **Source:** `lib/shared/services/reminder_service.dart` (line 110)
 - **Purpose:** Re-schedule all OS-level mobile reminder notifications (todo, subscription, weight)
   from the currently cached data.
 - **Inputs:** None.
@@ -118,21 +119,19 @@ fields as data rather than functions.
   `_scheduleMobile*` methods.
 - **Usage:**
   ```dart
-  if (state == AppLifecycleState.resumed) {
-    _trySync();
-    ReminderService.instance.refreshMobileSchedules();
-  }
+  // On resume, recompute per-day mobile notification bodies from current data.
+  onResume: () => ReminderService.instance.refreshMobileSchedules(),
   ```
-  (`lib/shared/services/auto_sync_service.dart:221-225`, `didChangeAppLifecycleState`, so per-day
-  schedules are recomputed from current data after the device was suspended. Also called from
-  `lib/shared/views/backup_page.dart:218` after a restore, since restored data can change reminder
+  (`lib/shared/services/auto_sync_service.dart:54-55`, the `onResume` callback passed to the shared
+  `AutoSyncScheduler`, so per-day schedules are recomputed from current data after the device was suspended. Also called from
+  `lib/shared/views/backup_page.dart:219` after a restore, since restored data can change reminder
   settings.)
 - **Notes:** This is the only place all three mobile schedule families are refreshed together;
   individual `update*Data` calls only refresh their own family.
 
 ### `void updateData({required List<Task> dailyTemplates, required List<Task> oneTimeTasks, required DailyCompletionLog dailyLog, TimeOfDay? morningReminderTime, TimeOfDay? completionReminderTime})` <a id="updatedata"></a>
 - **Kind:** method of `ReminderService`
-- **Source:** `lib/shared/services/reminder_service.dart` (line 118)
+- **Source:** `lib/shared/services/reminder_service.dart` (line 123)
 - **Purpose:** Cache the current Todo data (daily templates, one-time tasks, completion log) and
   reminder time settings, then reschedule mobile todo reminders from them.
 - **Inputs:** `dailyTemplates`, `oneTimeTasks`, `dailyLog`, `morningReminderTime`,
@@ -150,16 +149,16 @@ fields as data rather than functions.
     dailyLog: DailyCompletionLog(),
   );
   ```
-  (`lib/features/todo/views/todo_page.dart:98-102`, on a load failure, clearing cached reminder data
+  (`lib/features/todo/views/todo_page.dart:104-108`, on a load failure, clearing cached reminder data
   so a corrupt Todo file doesn't keep firing stale reminders; also called at
-  `todo_page.dart:190` on every successful load.)
-- **Notes:** This is the desktop loop's *only* source of Todo data outside of `_check()`'s own
+  `todo_page.dart:196` on every successful load.)
+- **Notes:** This is the desktop loop's *only* source of Todo data outside of `_checkNow()`'s own
   `TodoStorage.load()` fallback — the two stay independent so the reminder loop keeps working even
   if the Todo page was never opened this session.
 
 ### `void updateSubscriptionData({required List<Subscription> subscriptions, int? reminderHour, int? reminderMinute})` <a id="updatesubscriptiondata"></a>
 - **Kind:** method of `ReminderService`
-- **Source:** `lib/shared/services/reminder_service.dart` (line 139)
+- **Source:** `lib/shared/services/reminder_service.dart` (line 144)
 - **Purpose:** Cache the current subscription list and renewal-reminder time, then reschedule the
   mobile subscription reminder.
 - **Inputs:** `subscriptions`; `reminderHour`/`reminderMinute` (both required together to produce a
@@ -180,7 +179,7 @@ fields as data rather than functions.
     );
   }
   ```
-  (`lib/features/finance/views/finance_page.dart:227-233`, called whenever subscriptions or the
+  (`lib/features/finance/views/finance_page.dart:313-319`, called whenever subscriptions or the
   reminder time change while the Finance page is open.)
 - **Notes:** `_processRenewals()` also refreshes `_subscriptions`/`_subscriptionReminderTime`
   independently from storage, so subscription reminders work even when the Finance page was never
@@ -188,7 +187,7 @@ fields as data rather than functions.
 
 ### `void updateWeightData({List<WeightRecord>? records, int? morningHour, int? morningMinute, int? eveningHour, int? eveningMinute, int? reminderGraceMinutes})` <a id="updateweightdata"></a>
 - **Kind:** method of `ReminderService`
-- **Source:** `lib/shared/services/reminder_service.dart` (line 157)
+- **Source:** `lib/shared/services/reminder_service.dart` (line 162)
 - **Purpose:** Cache the current weight records and reminder settings, then reschedule mobile
   weight reminders.
 - **Inputs:** `records` (only overwrites the cache when non-null, and marks it loaded); the four
@@ -215,15 +214,15 @@ fields as data rather than functions.
     reminderGraceMinutes: _reminderGraceMinutes,
   );
   ```
-  (`lib/features/weight/views/weight_page.dart:133-140`, after every load; also called at
-  `weight_page.dart:106` with `records: const []` on a load failure.)
+  (`lib/features/weight/views/weight_page.dart:181-188`, after every load; also called at
+  `weight_page.dart:149` with `records: const []` on a load failure.)
 - **Notes:** The `records`-nullable design lets settings-only updates (e.g. changing the grace
   minutes from a settings dialog) push new reminder times without needing to also re-supply the
   full record list.
 
 ### `static int _stableHash(String value)` <a id="_stablehash"></a>
 - **Kind:** static method of `ReminderService`
-- **Source:** `lib/shared/services/reminder_service.dart` (line 204)
+- **Source:** `lib/shared/services/reminder_service.dart` (line 209)
 - **Purpose:** Compute a stable 31-bit FNV-1a-style hash of a string, since Dart's built-in
   `String.hashCode` is not guaranteed stable across app launches.
 - **Inputs:** `value` — the string to hash (a task id).
@@ -239,21 +238,21 @@ fields as data rather than functions.
 
 ### `static int _taskNotificationId(String taskId)` <a id="_tasknotificationid"></a>
 - **Kind:** static method of `ReminderService`
-- **Source:** `lib/shared/services/reminder_service.dart` (line 219)
+- **Source:** `lib/shared/services/reminder_service.dart` (line 224)
 - **Purpose:** Derive a stable OS notification id for a task, confined to the per-task id range.
 - **Inputs:** `taskId`.
 - **Returns:** `int` in `[_mobileTaskReminderMinId, _mobileTaskReminderMaxId]` (`[10000, 109999]`).
 - **Side effects:** None.
 - **Algorithm:** `_mobileTaskReminderMinId + _stableHash(taskId) % _mobileTaskReminderIdRange`.
 - **Usage:** Called from `_scheduleMobilePerTaskRemindersAsync` for every daily template and
-  one-time task: `final nid = _taskNotificationId(task.id);` (line 530 / line 566).
+  one-time task: `final nid = _taskNotificationId(task.id);` (line 535 / line 571).
 - **Notes:** A hash collision between two task ids would make one task silently overwrite the
   other's scheduled notification (last-scheduled wins); the 100000-wide id range keeps this
   unlikely in practice but it is not collision-proof.
 
 ### `static DateTime? firstOneTimeReminderDateTime(Task task)` <a id="firstonetimereminderdatetime"></a>
 - **Kind:** static method of `ReminderService` (`@visibleForTesting`)
-- **Source:** `lib/shared/services/reminder_service.dart` (line 229)
+- **Source:** `lib/shared/services/reminder_service.dart` (line 234)
 - **Purpose:** Return a one-time task's first (originally scheduled) reminder date/time.
 - **Inputs:** `task`.
 - **Returns:** The first reminder `DateTime`, or `null` if the task is daily, has no
@@ -269,7 +268,7 @@ fields as data rather than functions.
     DateTime(2026, 6, 10, 9),
   );
   ```
-  (`test/widget_test.dart:273-275`. Also called internally from
+  (`test/widget_test.dart:259-262`. Also called internally from
   [`nextOneTimeReminderDateTime`](#nextonetimereminderdatetime),
   [`shouldUseDailyMobileOneTimeReminder`](#shouldusedailymobileonetimereminder), and
   `_scheduleMobilePerTaskRemindersAsync`.)
@@ -278,7 +277,7 @@ fields as data rather than functions.
 
 ### `static DateTime? nextOneTimeReminderDateTime(Task task, DateTime now)` <a id="nextonetimereminderdatetime"></a>
 - **Kind:** static method of `ReminderService` (`@visibleForTesting`)
-- **Source:** `lib/shared/services/reminder_service.dart` (line 254)
+- **Source:** `lib/shared/services/reminder_service.dart` (line 259)
 - **Purpose:** Return a one-time task's next reminder date/time from a reference point, once it has
   started repeating daily.
 - **Inputs:** `task`; `now` — the reference point.
@@ -296,7 +295,7 @@ fields as data rather than functions.
     DateTime(2026, 6, 10, 9),
   );
   ```
-  (`test/widget_test.dart:259-264`. Also called from `_scheduleMobilePerTaskRemindersAsync` when
+  (`test/widget_test.dart:245-251`. Also called from `_scheduleMobilePerTaskRemindersAsync` when
   [`shouldUseDailyMobileOneTimeReminder`](#shouldusedailymobileonetimereminder) is true, to compute
   the daily schedule's start time.)
 - **Notes:** Once past the first reminder, behaves like a daily repeat anchored on
@@ -304,7 +303,7 @@ fields as data rather than functions.
 
 ### `static bool shouldUseDailyMobileOneTimeReminder(Task task, DateTime now)` <a id="shouldusedailymobileonetimereminder"></a>
 - **Kind:** static method of `ReminderService` (`@visibleForTesting`)
-- **Source:** `lib/shared/services/reminder_service.dart` (line 277)
+- **Source:** `lib/shared/services/reminder_service.dart` (line 282)
 - **Purpose:** Decide whether mobile can use a daily repeating OS schedule for a one-time task, as
   opposed to a one-shot.
 - **Inputs:** `task`; `now`.
@@ -323,7 +322,7 @@ fields as data rather than functions.
     isTrue,
   );
   ```
-  (`test/widget_test.dart:276-289`. Drives the one-shot-vs-daily branch inside
+  (`test/widget_test.dart:263-283`. Drives the one-shot-vs-daily branch inside
   `_scheduleMobilePerTaskRemindersAsync`.)
 - **Notes:** A daily repeating OS schedule only matches time-of-day, not date — so a *future*
   scheduled one-time task must use a one-shot first (see `scheduleAt` in
@@ -332,7 +331,7 @@ fields as data rather than functions.
 
 ### `static bool shouldNotifyOneTimeTask(Task task, DateTime now)` <a id="shouldnotifyonetimetask"></a>
 - **Kind:** static method of `ReminderService` (`@visibleForTesting`)
-- **Source:** `lib/shared/services/reminder_service.dart` (line 298)
+- **Source:** `lib/shared/services/reminder_service.dart` (line 303)
 - **Purpose:** Decide whether a one-time task's reminder is due at `now`, for the desktop in-process
   loop.
 - **Inputs:** `task`; `now`.
@@ -352,7 +351,7 @@ fields as data rather than functions.
     isTrue,
   );
   ```
-  (`test/widget_test.dart:246-253`. Called from `_check()`'s one-time-task loop:
+  (`test/widget_test.dart:233-240`. Called from `_checkNow()`'s one-time-task loop:
   `if (!shouldNotifyOneTimeTask(task, current)) continue;`.)
 - **Notes:** "Due" means now is at or after today's reminder time — per-day dedupe (so it fires only
   once) is the caller's job via `shouldFire`'s per-day key, not this function's. This is what lets a
@@ -361,7 +360,7 @@ fields as data rather than functions.
 
 ### `static bool _isActiveOneTimeTask(Task task, DateTime today)` <a id="_isactiveonetimetask"></a>
 - **Kind:** static method of `ReminderService`
-- **Source:** `lib/shared/services/reminder_service.dart` (line 329)
+- **Source:** `lib/shared/services/reminder_service.dart` (line 334)
 - **Purpose:** Decide whether an unfinished one-time task counts as pending for today's completion
   reminder.
 - **Inputs:** `task`; `today`.
@@ -369,14 +368,14 @@ fields as data rather than functions.
 - **Side effects:** None.
 - **Algorithm:** Return `false` if the task is daily, completed, or has no `scheduledDate`;
   otherwise return `!scheduledDate.isAfter(todayDate)` (date-only comparison).
-- **Usage:** Called only from `_check()`'s completion-reminder count:
-  `_oneTimeTasks.where((t) => _isActiveOneTimeTask(t, current)).length` (line 711).
+- **Usage:** Called only from `_checkNow()`'s completion-reminder count:
+  `_oneTimeTasks.where((t) => _isActiveOneTimeTask(t, current)).length` (line 739).
 - **Notes:** Future-scheduled one-time tasks are excluded so they don't inflate today's
   "uncompleted" count before their scheduled date arrives.
 
 ### `void _scheduleMobileSubscriptionReminder()` <a id="_schedulemobilesubscriptionreminder"></a>
 - **Kind:** method of `ReminderService`
-- **Source:** `lib/shared/services/reminder_service.dart` (line 354)
+- **Source:** `lib/shared/services/reminder_service.dart` (line 359)
 - **Purpose:** Kick off (without awaiting) the async rebuild of the mobile subscription renewal
   one-shots.
 - **Inputs:** None.
@@ -393,7 +392,7 @@ fields as data rather than functions.
 
 ### `Future<void> _scheduleMobileSubscriptionReminderAsync()` <a id="_schedulemobilesubscriptionreminderasync"></a>
 - **Kind:** method of `ReminderService`
-- **Source:** `lib/shared/services/reminder_service.dart` (line 364)
+- **Source:** `lib/shared/services/reminder_service.dart` (line 369)
 - **Purpose:** Rebuild the next 7 days of per-day mobile subscription renewal one-shot
   notifications from the current subscription list and reminder time.
 - **Inputs:** None (reads `_subscriptionReminderTime`/`_subscriptions`).
@@ -416,7 +415,7 @@ fields as data rather than functions.
 
 ### `void _scheduleMobileWeightReminders()` <a id="_schedulemobileweightreminders"></a>
 - **Kind:** method of `ReminderService`
-- **Source:** `lib/shared/services/reminder_service.dart` (line 401)
+- **Source:** `lib/shared/services/reminder_service.dart` (line 406)
 - **Purpose:** Schedule (or cancel) the mobile morning and evening weight reminders from the
   currently cached times.
 - **Inputs:** None (reads `_weightMorningReminder`/`_weightEveningReminder`).
@@ -432,7 +431,7 @@ fields as data rather than functions.
 
 ### `void _scheduleMobileWeightReminder(int id, TimeOfDay time)` <a id="_schedulemobileweightreminder"></a>
 - **Kind:** method of `ReminderService`
-- **Source:** `lib/shared/services/reminder_service.dart` (line 430)
+- **Source:** `lib/shared/services/reminder_service.dart` (line 435)
 - **Purpose:** Schedule one mobile weight reminder, keeping its daily repeat but shifting the start
   to tomorrow when a record already exists inside the grace window for today's candidate fire time.
 - **Inputs:** `id` — the OS notification id (`_mobileWeightMorningId`/`_mobileWeightEveningId`);
@@ -454,14 +453,14 @@ fields as data rather than functions.
   anchors on `current`, the actual fire moment), mobile anchors on `candidate` — the schedule being
   built ahead of time — because there is no "actual moment it fires" available to the app when
   pre-computing an OS schedule. Verified directly against this implementation: the desktop calls at
-  lines 733/747 pass `current`, this method's call at line 443 passes `candidate`, matching
+  lines 762/776 pass `current`, this method's call at line 448 passes `candidate`, matching
   `features/weight.md`'s description exactly. Replacing the daily schedule with a one-shot here
   (instead of shifting the daily start) would silently stop all future weight reminders after it
   fired once — the shift-based approach is what avoids that.
 
 ### `void _scheduleMobileTodoReminders()` <a id="_schedulemobiletodoreminders"></a>
 - **Kind:** method of `ReminderService`
-- **Source:** `lib/shared/services/reminder_service.dart` (line 466)
+- **Source:** `lib/shared/services/reminder_service.dart` (line 471)
 - **Purpose:** Schedule (or cancel) the mobile morning and completion todo reminders, then
   reschedule per-task reminders.
 - **Inputs:** None (reads `_morningReminderTime`/`_completionReminderTime`).
@@ -477,7 +476,7 @@ fields as data rather than functions.
 
 ### `void _scheduleMobilePerTaskReminders()` <a id="_schedulemobilepertaskreminders"></a>
 - **Kind:** method of `ReminderService`
-- **Source:** `lib/shared/services/reminder_service.dart` (line 500)
+- **Source:** `lib/shared/services/reminder_service.dart` (line 505)
 - **Purpose:** Kick off (without awaiting) a fresh per-task mobile reminder rebuild, tagged with a
   generation number so a stale in-flight rebuild can detect it's been superseded.
 - **Inputs:** None.
@@ -493,7 +492,7 @@ fields as data rather than functions.
 
 ### `Future<void> _scheduleMobilePerTaskRemindersAsync(int generation)` <a id="_schedulemobilepertaskremindersasync"></a>
 - **Kind:** method of `ReminderService`
-- **Source:** `lib/shared/services/reminder_service.dart` (line 510)
+- **Source:** `lib/shared/services/reminder_service.dart` (line 515)
 - **Purpose:** Cancel all previously scheduled per-task OS notifications and reschedule current
   daily-template and one-time-task reminders, bailing out early if a newer rebuild has since
   started.
@@ -525,17 +524,38 @@ fields as data rather than functions.
 ### `Future<void> _check()` <a id="_check"></a>
 - **Kind:** method of `ReminderService`
 - **Source:** `lib/shared/services/reminder_service.dart` (line 603)
-- **Purpose:** The 30-second timer tick: process subscription renewals and the daily auto-backup on
+- **Purpose:** The 30-second timer tick: run one reminder pass ([`_checkNow`](#_checknow)) unless
+  the previous pass is still running (v1.5.2).
+- **Inputs:** None.
+- **Returns:** `Future<void>`.
+- **Side effects:** Sets `_checking` to `true` for the duration of `_checkNow()` and back to `false`
+  afterwards; everything else is `_checkNow`'s.
+- **Algorithm:** `if (_checking) return;` then set `_checking = true`, `await _checkNow()` inside
+  `try`, and reset `_checking = false` in `finally` so a thrown pass never leaves the guard stuck.
+- **Usage:** Never called directly by application code — invoked every 30 seconds by the
+  `Timer.periodic` created in [`start`](#start), and once synchronously by `start()` itself.
+- **Notes:** `Timer.periodic` fires on schedule even while a slow pass (an auto-backup, a large
+  finance file) is still awaiting. Two overlapping passes could process the same subscription
+  renewal twice, so a tick that finds a pass in flight is skipped rather than queued; the next tick
+  30 seconds later runs normally.
+
+### `Future<void> _checkNow()` <a id="_checknow"></a>
+- **Kind:** method of `ReminderService`
+- **Source:** `lib/shared/services/reminder_service.dart` (line 626)
+- **Purpose:** One full reminder pass: process subscription renewals and the daily auto-backup on
   every platform, then — desktop only — reload Todo/weight data and fire any due reminder
   notifications, persisting which reminders have already fired today.
 - **Inputs:** None.
 - **Returns:** `Future<void>`.
 - **Side effects:** Calls `_processRenewals()` and `BackupService.runAutoBackupIfNeeded()`
   unconditionally; on desktop, reloads `TodoStorage`/weight data, may call `_notify(...)` one or
-  more times, and may persist `_notifiedIds` via `_persistNotifiedKeys`.
+  more times, and may persist `_notifiedIds` via `_persistNotifiedKeys`. Logs a skipped renewal
+  pass through `debugPrint`.
 - **Algorithm:**
-  1. `await _processRenewals();` then `await BackupService.runAutoBackupIfNeeded();` — both run on
-     every platform.
+  1. `await _processRenewals()` inside a `try`; any exception (e.g. an unreadable finance file) is
+     caught and logged with `debugPrint('ReminderService: subscription renewals skipped: $e')`
+     (v1.5.2). Then `await BackupService.runAutoBackupIfNeeded();` — both run on every platform,
+     and a renewal failure no longer stops the backup or the reminders below.
   2. Return immediately if `MobileNotificationService.isMobile` — the rest of this method is
      desktop-only, since mobile gets reminders through OS schedules instead.
   3. Try `TodoStorage.load()`; on exception or `null` result, mark Todo data unreadable and clear
@@ -566,8 +586,8 @@ fields as data rather than functions.
   8. Subscription reminder: `shouldFire('sub_reminder_$todayKey', ...)` then build
      `_upcomingRenewalLines(current)` and `_notify` if non-empty.
   9. If any key was newly marked fired, `await _persistNotifiedKeys(todayKey)`.
-- **Usage:** Never called directly by application code — invoked every 30 seconds by the
-  `Timer.periodic` created in [`start`](#start), and once synchronously by `start()` itself.
+- **Usage:** Called only from [`_check`](#_check), which skips the call while a previous pass is
+  still running.
 - **Notes:** Step 7's re-check of `current` (not the configured reminder minute) is exactly the
   desktop half of the grace-window anchoring documented in
   [Weight](../../../features/weight.md#reminder-grace-window) — a record logged after the scheduled
@@ -578,7 +598,7 @@ fields as data rather than functions.
 
 ### `List<String> _upcomingRenewalLines(DateTime fromDay)` <a id="_upcomingrenewallines"></a>
 - **Kind:** method of `ReminderService`
-- **Source:** `lib/shared/services/reminder_service.dart` (line 776)
+- **Source:** `lib/shared/services/reminder_service.dart` (line 805)
 - **Purpose:** Build localized "renewal due" lines for every subscription whose next billing date
   falls within 3 days of `fromDay` (inclusive), shared by both the desktop loop and the per-day
   mobile schedules so both produce day-accurate text.
@@ -587,21 +607,24 @@ fields as data rather than functions.
   per matching subscription, possibly empty.
 - **Side effects:** None.
 - **Algorithm:**
-  1. `fromDate` = date-only `fromDay`; `limit = fromDate + 3 days`.
+  1. `fromDate` = date-only `fromDay`; `limit = addCalendarDays(fromDate, 3)`.
   2. For each subscription: skip if `cancelType == CancelType.atExpiry`; skip if inactive and
      `cancelType == CancelType.immediate`; skip if `nextBillingDate` is `null`; skip if its date-only
      value is before `fromDate` or after `limit`.
-  3. Otherwise compute `days = nextDay.difference(fromDate).inDays` and add
+  3. Otherwise compute `days = calendarDaysBetween(fromDate, nextDay)` and add
      `notifSubscriptionToday(name)` if `days == 0`, else `notifSubscriptionDays(name, days)`.
-- **Usage:** Called from [`_check`](#_check) (subscription reminder, passing `current`) and from
+- **Usage:** Called from [`_checkNow`](#_checknow) (subscription reminder, passing `current`) and from
   [`_scheduleMobileSubscriptionReminderAsync`](#_schedulemobilesubscriptionreminderasync) (passing
   each of the next 7 days' `fireAt`).
 - **Notes:** Both callers use the same window/text logic, so desktop and mobile subscription
-  reminder wording agree exactly for the same day.
+  reminder wording agree exactly for the same day. Since v1.5.2 the window end and the day count use
+  the calendar-day helpers from `lib/shared/utils/week_grouping.dart` instead of
+  `add(Duration(days: 3))` and `difference(...).inDays`, so a daylight saving change inside the
+  window can no longer shift the limit by an hour or make "in N days" one day short.
 
 ### `Future<void> _loadNotifiedKeys(String todayKey)` <a id="_loadnotifiedkeys"></a>
 - **Kind:** method of `ReminderService`
-- **Source:** `lib/shared/services/reminder_service.dart` (line 806)
+- **Source:** `lib/shared/services/reminder_service.dart` (line 835)
 - **Purpose:** Ensure `_notifiedIds` reflects today's already-fired reminder keys, pruning stale
   keys from a previous day and loading persisted keys from storage config at most once per process.
 - **Inputs:** `todayKey` — `yyyy-MM-dd` of the current day.
@@ -615,43 +638,47 @@ fields as data rather than functions.
      process).
   3. Otherwise set it `true`, then try reading `config['reminderNotifiedKeys']`; if its `'date'`
      matches `todayKey`, add its `'keys'` list into `_notifiedIds`. Any exception is swallowed.
-- **Usage:** Called once per tick from [`_check`](#_check), before evaluating any reminder.
+- **Usage:** Called once per tick from [`_checkNow`](#_checknow), before evaluating any reminder.
 - **Notes:** Loading only once per process (step 2) means a key added to storage by some other means
   after startup would not be picked up mid-session — this is intentional, since this process is the
   sole writer of `reminderNotifiedKeys`.
 
 ### `Future<void> _persistNotifiedKeys(String todayKey)` <a id="_persistnotifiedkeys"></a>
 - **Kind:** method of `ReminderService`
-- **Source:** `lib/shared/services/reminder_service.dart` (line 830)
+- **Source:** `lib/shared/services/reminder_service.dart` (line 859)
 - **Purpose:** Persist today's fired reminder keys into `storage_config.json` so a desktop restart
   does not re-fire an already-fired reminder.
 - **Inputs:** `todayKey` — `yyyy-MM-dd` of the current day.
 - **Returns:** `Future<void>`.
-- **Side effects:** Writes `storage_config.json` via `TodoStorage.readConfig()`/`writeConfig()`.
-- **Algorithm:** Read the config, set `config['reminderNotifiedKeys'] = {'date': todayKey, 'keys':
-  _notifiedIds.where((k) => k.endsWith(todayKey)).toList()}`, write it back. Any exception is
-  swallowed.
-- **Usage:** Called from [`_check`](#_check) only when `notifiedChanged` is true for that tick (at
+- **Side effects:** Writes `storage_config.json` via `TodoStorage.writeConfig()`.
+- **Algorithm:** Call `TodoStorage.writeConfig({'reminderNotifiedKeys': {'date': todayKey, 'keys':
+  _notifiedIds.where((k) => k.endsWith(todayKey)).toList()}})` — a single-key write (v1.5.2);
+  `writeConfig` merges it into the current file on the config write queue. Any exception (including
+  the `TodoStorageException` an unreadable config file raises) is swallowed.
+- **Usage:** Called from [`_checkNow`](#_checknow) only when `notifiedChanged` is true for that tick (at
   least one reminder newly fired).
 - **Notes:** Filtering to keys ending in `todayKey` before writing avoids ever persisting a stale
-  key from a previous day, even if `_notifiedIds` briefly contained one.
+  key from a previous day, even if `_notifiedIds` briefly contained one. Before v1.5.2 this method
+  read the whole config and wrote it all back, so a concurrent write of another key (for example
+  `apiEnabled` from Settings) could be overwritten with the stale copy; passing only the changed
+  key removes that race.
 
 ### `DateTime _todayAt(TimeOfDay time)` <a id="_todayat"></a>
 - **Kind:** method of `ReminderService`
-- **Source:** `lib/shared/services/reminder_service.dart` (line 846)
+- **Source:** `lib/shared/services/reminder_service.dart` (line 875)
 - **Purpose:** Combine today's calendar date with a given time-of-day into a concrete `DateTime`.
 - **Inputs:** `time`.
 - **Returns:** `DateTime` for today at `time.hour`:`time.minute`.
 - **Side effects:** None (reads `DateTime.now()` for today's date only).
 - **Algorithm:** `final today = DateTime.now(); return DateTime(today.year, today.month, today.day,
   time.hour, time.minute);`
-- **Usage:** Called throughout [`_check`](#_check) to anchor the morning/completion/weight/
-  subscription reminder times to today, e.g. `_todayAt(_morningReminderTime!)` (line 693).
+- **Usage:** Called throughout [`_checkNow`](#_checknow) to anchor the morning/completion/weight/
+  subscription reminder times to today, e.g. `_todayAt(_morningReminderTime!)` (line 721).
 - **Notes:** None.
 
 ### `bool _shouldSkipWeightReminder(DateTime firesAt, {DateTime? scheduledAt})` <a id="_shouldskipweightreminder"></a>
 - **Kind:** method of `ReminderService`
-- **Source:** `lib/shared/services/reminder_service.dart` (line 867)
+- **Source:** `lib/shared/services/reminder_service.dart` (line 895)
 - **Purpose:** Instance-level wrapper that runs the grace-window suppression check over a caller-
   supplied window, using the currently cached weight records and grace-minutes setting.
 - **Inputs:** `firesAt` — the moment the check runs (`current` from the desktop loop, or the
@@ -662,17 +689,17 @@ fields as data rather than functions.
 - **Algorithm:** Forward to [`shouldSkipWeightReminderAt`](#shouldskipweightreminderat) with
   `firesAt`, `scheduledAt`, `records: _weightRecords`,
   `graceMinutes: _weightReminderGraceMinutes`.
-- **Usage:** Called from [`_check`](#_check) as
-  `_shouldSkipWeightReminder(current, scheduledAt: reminderAt)` (lines 734, 748) and from
-  [`_scheduleMobileWeightReminder`](#_scheduleMobileWeightReminder) as
-  `_shouldSkipWeightReminder(candidate)` (line 443).
+- **Usage:** Called from [`_checkNow`](#_checknow) as
+  `_shouldSkipWeightReminder(current, scheduledAt: reminderAt)` (lines 762, 776) and from
+  [`_scheduleMobileWeightReminder`](#_schedulemobileweightreminder) as
+  `_shouldSkipWeightReminder(candidate)` (line 448).
 - **Notes:** This is the production entry point; tests exercise the pure logic directly through
   [`shouldSkipWeightReminderAt`](#shouldskipweightreminderat) instead, since that doesn't require an
   instance.
 
 ### `static bool shouldSkipWeightReminderAt({required DateTime firesAt, required List<WeightRecord> records, required int graceMinutes, DateTime? scheduledAt})` <a id="shouldskipweightreminderat"></a>
 - **Kind:** static method of `ReminderService` (`@visibleForTesting`)
-- **Source:** `lib/shared/services/reminder_service.dart` (line 889)
+- **Source:** `lib/shared/services/reminder_service.dart` (line 917)
 - **Purpose:** Pure decision of whether a weight reminder should be suppressed because a record
   already exists inside `[(scheduledAt ?? firesAt) − graceMinutes, firesAt + 1 minute)`.
 - **Inputs:** `firesAt`; `records`; `graceMinutes` (suppression is disabled entirely when `<= 0`);
@@ -711,7 +738,7 @@ fields as data rather than functions.
 
 ### `Future<bool> _refreshWeightDataFromStorage()` <a id="_refreshweightdatafromstorage"></a>
 - **Kind:** method of `ReminderService`
-- **Source:** `lib/shared/services/reminder_service.dart` (line 896)
+- **Source:** `lib/shared/services/reminder_service.dart` (line 940)
 - **Purpose:** Reload weight records and reminder settings from `WeightStorage`, reporting whether
   valid data was loaded.
 - **Inputs:** None.
@@ -730,7 +757,7 @@ fields as data rather than functions.
      `_weightMorningReminder` (non-null only if `reminderMode != 'none'` and both hour/minute are
      set) and `_weightEveningReminder` (non-null only if `reminderMode == 'twice'` and both hour/
      minute are set); mark loaded; return `true`.
-- **Usage:** Called from [`_check`](#_check) — once lazily if `!_weightDataLoaded`, and again just
+- **Usage:** Called from [`_checkNow`](#_checknow) — once lazily if `!_weightDataLoaded`, and again just
   before each weight reminder's `shouldFire`/`_shouldSkipWeightReminder` check to catch a record
   logged moments earlier in the same tick.
 - **Notes:** An unreadable file leaves `_weightDataLoaded == false`, so the next tick retries the
@@ -739,7 +766,7 @@ fields as data rather than functions.
 
 ### `Future<void> _processRenewals()` <a id="_processrenewals"></a>
 - **Kind:** method of `ReminderService`
-- **Source:** `lib/shared/services/reminder_service.dart` (line 940)
+- **Source:** `lib/shared/services/reminder_service.dart` (line 985)
 - **Purpose:** Generate subscription-renewal transactions for overdue billing dates, refresh the
   cached subscription list/reminder time from storage, and reschedule the mobile subscription
   reminder — all at most once per hour.
@@ -747,7 +774,9 @@ fields as data rather than functions.
 - **Returns:** `Future<void>`.
 - **Side effects:** Reads `FinanceStorage`; may write new transactions back via
   `FinanceStorage.save`; updates `_subscriptions`/`_subscriptionReminderTime`; calls
-  `_scheduleMobileSubscriptionReminder()`; may call `onRenewalsProcessed?.call()`.
+  `_scheduleMobileSubscriptionReminder()`; after a renewal save, calls
+  `AutoSyncService.instance.notifySaved()` and then `onRenewalsProcessed?.call()`. Exceptions
+  (e.g. an unreadable finance file) propagate to the caller.
 - **Algorithm:**
   1. Return immediately if `_lastRenewalCheck` was less than 60 minutes ago; otherwise set
      `_lastRenewalCheck = now`.
@@ -760,9 +789,12 @@ fields as data rather than functions.
      `_subscriptions` to the result; reschedule the mobile reminder.
   6. If nothing changed, return. Otherwise write back a new `FinanceData` with the generated
      transactions appended and the updated subscriptions, preserving every other field unchanged;
-     then call `onRenewalsProcessed?.call()` so an open Finance page reloads.
-- **Usage:** Called once per tick from [`_check`](#_check) — its internal hourly gate is what
-  actually limits the work, not the caller.
+     then call `AutoSyncService.instance.notifySaved()` so WebDAV auto-sync uploads the renewals
+     (v1.5.2), and `onRenewalsProcessed?.call()` so an open Finance page reloads.
+- **Usage:** Called once per tick from [`_checkNow`](#_checknow) — its internal hourly gate is what
+  actually limits the work, not the caller. `_checkNow` wraps the call in `try`/`catch` and logs a
+  failure with `debugPrint`; because `_lastRenewalCheck` is set before the load, a failing file is
+  retried an hour later rather than on every tick.
 - **Notes:** Because this reloads subscriptions from `FinanceStorage` directly, renewal processing
   and mobile subscription reminders keep working even if the Finance page was never opened during
   this session — `updateSubscriptionData` (called when the page *is* open) is a faster-path
@@ -770,7 +802,7 @@ fields as data rather than functions.
 
 ### `void _notify(String message)` <a id="_notify"></a>
 - **Kind:** method of `ReminderService`
-- **Source:** `lib/shared/services/reminder_service.dart` (line 1001)
+- **Source:** `lib/shared/services/reminder_service.dart` (line 1047)
 - **Purpose:** Fire one reminder notification through the platform-appropriate backend, plus an
   in-app snackbar if one is registered.
 - **Inputs:** `message` — the notification body text (already localized/formatted by the caller).
@@ -780,10 +812,10 @@ fields as data rather than functions.
   always calls `onShowSnackbar?.call(message)` if a callback is registered.
 - **Algorithm:** `if (Platform.isAndroid || Platform.isIOS) { showNow(...) } else { local_notifier
   show() }`, then `onShowSnackbar?.call(message)` unconditionally.
-- **Usage:** Called from [`_check`](#_check) for every reminder family (per-task, morning,
+- **Usage:** Called from [`_checkNow`](#_checknow) for every reminder family (per-task, morning,
   completion, weight morning/evening, subscription).
 - **Notes:** `_notifyCounter` grows monotonically for the whole process lifetime, so mobile
   immediate notifications never collide with each other, but this path is only reachable on
-  desktop in practice since `_check` returns early on mobile before reaching any `_notify` call —
-  the mobile branch inside `_notify` itself is effectively unreachable from `_check` and would only
+  desktop in practice since `_checkNow` returns early on mobile before reaching any `_notify` call —
+  the mobile branch inside `_notify` itself is effectively unreachable from `_checkNow` and would only
   matter if `_notify` were called from elsewhere on a mobile build.

@@ -4,6 +4,10 @@ import 'package:intl/intl.dart';
 import '../../../shared/widgets/adaptive_tile_grid.dart';
 import '../models/finance.dart';
 
+/// Day-key formatter shared by every build; creating one per transaction was measurable
+/// on long histories. The pattern is locale-independent.
+final DateFormat _dayKeyFormat = DateFormat('yyyy-MM-dd');
+
 /// Builds a date-grouped transaction list with date headers.
 /// Purpose: Implement the build grouped transaction list behavior for this file.
 /// Inputs: `context`, `sorted`, `tileBuilder`, `columns`.
@@ -48,7 +52,7 @@ Widget buildGroupedTransactionList(
   }
 
   for (final tx in sorted) {
-    final dateKey = DateFormat('yyyy-MM-dd').format(tx.date);
+    final dateKey = _dayKeyFormat.format(tx.date);
     if (dateKey != lastDate) {
       flush();
       items.add((isHeader: true, label: dateKey, group: const []));

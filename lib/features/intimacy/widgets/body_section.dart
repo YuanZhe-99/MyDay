@@ -198,9 +198,7 @@ class _BodySectionViewState extends ConsumerState<BodySectionView> {
       _syncWarningDisabled = disabled;
       if (!disabled) _syncWarningAcknowledged = false;
     });
-    final config = await TodoStorage.readConfig();
-    config[bodyWeightSyncWarningDisabledKey] = disabled;
-    await TodoStorage.writeConfig(config);
+    await TodoStorage.writeConfig({bodyWeightSyncWarningDisabledKey: disabled});
   }
 
   /// Purpose: Gate the first measurement edit behind the sync warning.

@@ -39,7 +39,7 @@
     await ExchangeRateStorage.save(withTimestamp);
   }
   ```
-  （`lib/features/finance/views/exchange_rates_page.dart:70-77`，`_fetchOnline`，成功合并后盖章 `lastFetchedAt`，使 [`shouldFetchToday`](#shouldfetchtoday) 同一天不会重新获取。）
+  （`lib/features/finance/views/exchange_rates_page.dart:86-93`，`_fetchOnline`，成功合并后盖章 `lastFetchedAt`，使 [`shouldFetchToday`](#shouldfetchtoday) 同一天不会重新获取。）
 - **备注：** 基础币种获取失败（或目标币种不在获取表中）的对在 `newRates` 中原样保留而不是移除——部分网络失败绝不丢弃先前配置的对。
 
 ### `static Future<Map<String, double>?> _fetchRates(String base)` <a id="fetchrates"></a>
@@ -71,5 +71,5 @@
     await _fetchOnline();
   }
   ```
-  （`lib/features/finance/views/exchange_rates_page.dart:57-59`，汇率页加载数据后立即运行一次。）
+  （`lib/features/finance/views/exchange_rates_page.dart:73-75`，汇率页加载数据后立即运行一次。）
 - **备注：** 用本地日历日比较，不是滚动 24 小时窗口——午夜前一次获取和午夜后一次获取即使相隔不到一分钟也算"不同天"。

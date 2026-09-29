@@ -21,23 +21,25 @@ and `accountBalance` read rates from.
 | [`_findRate`](#findrate) | top-level function | A | Find a direct or reverse rate between two currencies. |
 | [`convertCurrency`](#convertcurrency) | top-level function | A | Convert an amount between currencies via direct/reverse/intermediate rates. |
 | [`accountBalance`](#accountbalance) | top-level function | A | Calculate an account's balance in its own currency. |
+| [`accountBalances`](#accountbalances) | top-level function | A | Compute every account's balance in one pass over the transactions (v1.5.2). |
 | [`accountBalanceBefore`](#accountbalancebefore) | top-level function | A | Calculate an account's balance immediately before a given date. |
 | [`isForcedBalanceSentinelDate`](#isforcedbalancesentineldate) | top-level function | A | Whether a date is the forced-balance migration sentinel. |
 | [`hasForcedBalanceSentinel`](#hasforcedbalancesentinel) | top-level function | A | Whether an account already uses the forced-balance sentinel. |
+| [`needsForcedBalanceMigration`](#needsforcedbalancemigration) | top-level function | A | Whether any account still carries a legacy forced balance to migrate (v1.5.2). |
 | [`accountWithForcedBalanceSentinel`](#accountwithforcedbalancesentinel) | top-level function | A | Return a copy of an account with forced-balance fields set to the sentinel. |
 | [`migrateForcedBalances`](#migrateforcedbalances) | top-level function | A | Migrate old forced balances into ordinary adjustment transactions. |
 | [`_forcedBalanceMigrationDelta`](#forcedbalancemigrationdelta) | top-level function | A | Compute the adjustment amount needed for one account's migration. |
 | [`_forcedBalanceMigrationTransactionId`](#forcedbalancemigrationtransactionid) | top-level function | A | Build the deterministic id for a migration adjustment transaction. |
 | [`_forcedBalanceAdjustmentDate`](#forcedbalanceadjustmentdate) | top-level function | A | Pick the date to record a migration adjustment transaction on. |
-| [`_accountTransactionDelta`](#accounttransactiondelta) | top-level function | A | Compute one transaction's signed contribution to an account's balance. |
+| [`_accountTransactionDelta`](#accounttransactiondelta) | top-level function | A | Compute one transaction's signed contribution to an account's balance (0.0 at once for an unrelated transaction). |
 
-**Reconciliation:** `grep -c 'Purpose:' lib/features/finance/services/balance_util.dart` returns 14,
-matching the 14 rows above exactly — each block sits immediately above its real declaration
+**Reconciliation:** `grep -c 'Purpose:' lib/features/finance/services/balance_util.dart` returns 16,
+matching the 16 rows above exactly — each block sits immediately above its real declaration
 (constructor or top-level function); none were found misattached above a call-site statement. The
 only other declaration in the file, the top-level `final DateTime forcedBalanceSentinelDate = ...`
 variable, carries no `/// Purpose:` block, consistent with this codebase's convention of documenting
 callable members rather than plain data, and does not constitute an undocumented callable
-declaration. All 14 documented declarations are classified Tier A: this file is the Finance feature's
+declaration. All 16 documented declarations are classified Tier A: this file is the Finance feature's
 core balance/conversion/migration logic, and every function contains real branching, looping, or
 (for the short id/date helpers) implements an invariant central to the forced-balance migration
 algorithm described in [Finance](../../../../features/finance.md#forced-balance-migration-to-adjustment-transactions)
@@ -63,7 +65,7 @@ algorithm described in [Finance](../../../../features/finance.md#forced-balance-
     changed: changed,
   );
   ```
-  (`lib/features/finance/services/balance_util.dart:250-254`, the return value of
+  (`lib/features/finance/services/balance_util.dart:300-304`, the return value of
   [`migrateForcedBalances`](#migrateforcedbalances).)
 - **Notes:** `changed` lets callers like `FinanceStorage.load()` and
   `WebDAVService._migrateFinanceForcedBalances` skip re-saving data that needed no migration.
@@ -134,7 +136,7 @@ algorithm described in [Finance](../../../../features/finance.md#forced-balance-
     onMissingRate: trackMissingRate,
   ),
   ```
-  (`lib/features/finance/views/finance_page.dart:413-419`, converting each month's transactions into
+  (`lib/features/finance/views/finance_page.dart:513-519`, converting each month's transactions into
   the default currency while tracking any pairs that fell back to 1:1, so the Finance home summary
   can warn about them.)
 - **Notes:** The intermediate-currency search order is fixed (`CNY` first, then `USD`, then `EUR`)
@@ -165,11 +167,41 @@ algorithm described in [Finance](../../../../features/finance.md#forced-balance-
   [Finance](../../../../features/finance.md#forced-balance-migration-to-adjustment-transactions).)
 - **Notes:** Iterates the *entire* transaction list on every call — callers displaying many
   accounts' balances (e.g. the accounts list page) call this once per account per rebuild rather
-  than computing all balances in a single pass.
+  than computing all balances in a single pass. The finance home's total-assets figure instead uses
+  [`accountBalances`](#accountbalances) (v1.5.2), which computes every account in one pass.
+
+### `Map<String, double> accountBalances(List<Account> accounts, List<Transaction> transactions, ExchangeRateData rateData)` <a id="accountbalances"></a>
+- **Kind:** top-level function
+- **Source:** `lib/features/finance/services/balance_util.dart` (line 122)
+- **Purpose:** Compute every account's balance in one pass over the transactions, instead of one
+  full pass per account through [`accountBalance`](#accountbalance) (v1.5.2).
+- **Inputs:** `accounts`; `transactions` — the full transaction list; `rateData`.
+- **Returns:** `Map<String, double>` keyed by account id, each value in that account's own currency.
+- **Side effects:** None.
+- **Algorithm:**
+  1. Index `accounts` by id with `putIfAbsent`, so a duplicate id keeps the first account.
+  2. Start every indexed id at `0.0`.
+  3. For each transaction in order: if `tx.accountId` is indexed, add
+     [`_accountTransactionDelta`](#accounttransactiondelta) for that account; then, if
+     `tx.toAccountId` is set, differs from `tx.accountId` and is indexed, add the delta for the
+     target account.
+  4. Return the map.
+- **Usage:**
+  ```dart
+  final balances = _accounts.isEmpty
+      ? const <String, double>{}
+      : accountBalances(_accounts, _transactions, _rateData);
+  ```
+  (`lib/features/finance/views/finance_page.dart:523-525`, the total-assets figure on the finance
+  home.)
+- **Notes:** Bit-identical to calling [`accountBalance`](#accountbalance) per account: each
+  account's deltas are summed in transaction order, and a transaction whose source and target are
+  the same account is counted once for it (the `toId != tx.accountId` check), because
+  `_accountTransactionDelta` already covers both sides.
 
 ### `double accountBalanceBefore(Account account, List<Transaction> transactions, ExchangeRateData rateData, DateTime before)` <a id="accountbalancebefore"></a>
 - **Kind:** top-level function
-- **Source:** `lib/features/finance/services/balance_util.dart` (line 121)
+- **Source:** `lib/features/finance/services/balance_util.dart` (line 155)
 - **Purpose:** Calculate what an account's balance would have been immediately before a given date,
   for the analysis page's total-assets trend reconstruction.
 - **Inputs:** `account`; `transactions`; `rateData`; `before` — the exclusive cutoff.
@@ -186,7 +218,7 @@ algorithm described in [Finance](../../../../features/finance.md#forced-balance-
     before,
   );
   ```
-  (`lib/features/finance/views/analysis_page.dart:862-867`, reconstructing each account's balance at
+  (`lib/features/finance/views/analysis_page.dart:894-899`, reconstructing each account's balance at
   a sample point along the total-assets trend chart.)
 - **Notes:** `before` is exclusive — a transaction dated exactly `before` is not counted, which is
   why the analysis page's sample-point iteration passes the start of the *next* period as `before`
@@ -194,7 +226,7 @@ algorithm described in [Finance](../../../../features/finance.md#forced-balance-
 
 ### `bool isForcedBalanceSentinelDate(DateTime date)` <a id="isforcedbalancesentineldate"></a>
 - **Kind:** top-level function
-- **Source:** `lib/features/finance/services/balance_util.dart` (line 142)
+- **Source:** `lib/features/finance/services/balance_util.dart` (line 176)
 - **Purpose:** Detect whether a date is the forced-balance migration sentinel (`1970-01-01T00:00:00`)
   regardless of whether it's encoded as UTC epoch zero or as a local-time midnight matching those
   calendar fields.
@@ -212,7 +244,7 @@ algorithm described in [Finance](../../../../features/finance.md#forced-balance-
 
 ### `bool hasForcedBalanceSentinel(Account account)` <a id="hasforcedbalancesentinel"></a>
 - **Kind:** top-level function
-- **Source:** `lib/features/finance/services/balance_util.dart` (line 159)
+- **Source:** `lib/features/finance/services/balance_util.dart` (line 193)
 - **Purpose:** Decide whether an account has already had its forced-balance fields replaced by the
   sentinel — i.e. whether old forced-balance state has already been discarded and the migration is a
   no-op for this account.
@@ -233,10 +265,34 @@ algorithm described in [Finance](../../../../features/finance.md#forced-balance-
   [`migrateForcedBalances`](#migrateforcedbalances).)
 - **Notes:** This is the single gate that decides — both in the UI and inside the migration loop —
   whether an account still carries pre-migration forced-balance state.
+  [`needsForcedBalanceMigration`](#needsforcedbalancemigration) applies the same gate across all accounts (v1.5.2).
+
+### `bool needsForcedBalanceMigration(List<Account> accounts)` <a id="needsforcedbalancemigration"></a>
+- **Kind:** top-level function
+- **Source:** `lib/features/finance/services/balance_util.dart` (line 203)
+- **Purpose:** Return whether any account still carries a legacy forced balance to migrate, so
+  callers can skip reading `exchange_rates.json` when there is nothing to migrate (v1.5.2).
+- **Inputs:** `accounts`.
+- **Returns:** `bool` — true exactly when [`migrateForcedBalances`](#migrateforcedbalances) would
+  report `changed`.
+- **Side effects:** None.
+- **Algorithm:** Return true at the first account that has a forced-balance marker
+  (`forcedBalance != null || forcedBalanceDate != null`) and does not already use the sentinel
+  ([`hasForcedBalanceSentinel`](#hasforcedbalancesentinel)); otherwise return false. This is the
+  same per-account test `migrateForcedBalances` uses to decide whether to migrate an account.
+- **Usage:**
+  ```dart
+  if (!needsForcedBalanceMigration(data.accounts)) return data;
+  final rateData = await ExchangeRateStorage.load();
+  ```
+  (`lib/features/finance/services/finance_storage.dart:208-209`, inside `FinanceStorage.load`; the
+  same early return guards `migrateFinanceForcedBalances` in `lib/app/data_modules.dart:148`.)
+- **Notes:** Because the rates file is only read when this returns true, an unreadable
+  `exchange_rates.json` no longer affects loading finance data that needs no migration.
 
 ### `Account accountWithForcedBalanceSentinel(Account account, {DateTime? modifiedAt})` <a id="accountwithforcedbalancesentinel"></a>
 - **Kind:** top-level function
-- **Source:** `lib/features/finance/services/balance_util.dart` (line 169)
+- **Source:** `lib/features/finance/services/balance_util.dart` (line 219)
 - **Purpose:** Return a copy of an account with its forced-balance fields replaced by the sentinel
   (`forcedBalance: 0`, `forcedBalanceDate: 1970-01-01T00:00:00.000Z`), preserving every other field.
 - **Inputs:** `account`; `modifiedAt` — optional override, otherwise `account.modifiedAt` is kept.
@@ -258,7 +314,7 @@ algorithm described in [Finance](../../../../features/finance.md#forced-balance-
 
 ### `ForcedBalanceMigrationResult migrateForcedBalances({required List<Account> accounts, required List<Transaction> transactions, required ExchangeRateData rateData, String adjustmentNote = 'Balance Adjustment'})` <a id="migrateforcedbalances"></a>
 - **Kind:** top-level function
-- **Source:** `lib/features/finance/services/balance_util.dart` (line 197)
+- **Source:** `lib/features/finance/services/balance_util.dart` (line 247)
 - **Purpose:** One-time migration that converts every account's legacy non-sentinel forced balance
   into a deterministic adjustment transaction, then stamps the account with the forced-balance
   sentinel so it is never re-migrated.
@@ -298,7 +354,7 @@ algorithm described in [Finance](../../../../features/finance.md#forced-balance-
 
 ### `double _forcedBalanceMigrationDelta(Account account, List<Transaction> transactions, ExchangeRateData rateData)` <a id="forcedbalancemigrationdelta"></a>
 - **Kind:** top-level function (private to this file)
-- **Source:** `lib/features/finance/services/balance_util.dart` (line 262)
+- **Source:** `lib/features/finance/services/balance_util.dart` (line 312)
 - **Purpose:** Compute the adjustment amount needed so that, after adding it as a transaction dated
   at the forced-balance cutoff, the account's transaction-derived balance matches the old forced
   balance value.
@@ -316,7 +372,7 @@ algorithm described in [Finance](../../../../features/finance.md#forced-balance-
 
 ### `String _forcedBalanceMigrationTransactionId(Account account)` <a id="forcedbalancemigrationtransactionid"></a>
 - **Kind:** top-level function (private to this file)
-- **Source:** `lib/features/finance/services/balance_util.dart` (line 284)
+- **Source:** `lib/features/finance/services/balance_util.dart` (line 334)
 - **Purpose:** Build a deterministic transaction id for one account's migration-adjustment
   transaction, so re-running the migration never creates a duplicate.
 - **Inputs:** `account`.
@@ -336,7 +392,7 @@ algorithm described in [Finance](../../../../features/finance.md#forced-balance-
 
 ### `DateTime _forcedBalanceAdjustmentDate(Account account)` <a id="forcedbalanceadjustmentdate"></a>
 - **Kind:** top-level function (private to this file)
-- **Source:** `lib/features/finance/services/balance_util.dart` (line 295)
+- **Source:** `lib/features/finance/services/balance_util.dart` (line 345)
 - **Purpose:** Pick the date to record a migration-adjustment transaction on, preferring the
   account's original forced-balance cutoff when it's meaningful.
 - **Inputs:** `account`.
@@ -353,7 +409,7 @@ algorithm described in [Finance](../../../../features/finance.md#forced-balance-
 
 ### `double _accountTransactionDelta(Account account, Transaction tx, ExchangeRateData rateData)` <a id="accounttransactiondelta"></a>
 - **Kind:** top-level function (private to this file)
-- **Source:** `lib/features/finance/services/balance_util.dart` (line 311)
+- **Source:** `lib/features/finance/services/balance_util.dart` (line 362)
 - **Purpose:** Compute one transaction's signed contribution to one account's balance, in the
   account's own currency — the fundamental unit both
   [`accountBalance`](#accountbalance) and [`accountBalanceBefore`](#accountbalancebefore) fold over.
@@ -362,19 +418,22 @@ algorithm described in [Finance](../../../../features/finance.md#forced-balance-
   same-account transfer.
 - **Side effects:** None.
 - **Algorithm:**
-  1. If `tx.accountId == account.id` (this account is the transaction's primary account): convert
+  1. If the transaction touches neither side of `account` (`tx.accountId` and `tx.toAccountId` both
+     differ from `account.id`), return `0.0` at once without looking up rates (v1.5.2).
+  2. If `tx.accountId == account.id` (this account is the transaction's primary account): convert
      `tx.amount` from `tx.currency` to `account.currency` via
      [`convertCurrency`](#convertcurrency); expense subtracts, income adds, transfer subtracts (money
      leaving the source account).
-  2. If `tx.toAccountId == account.id` and `tx.type == transfer` (this account is a transfer's
+  3. If `tx.toAccountId == account.id` and `tx.type == transfer` (this account is a transfer's
      target): add the converted amount — using `toAmount`/`toCurrency` if both are set (an explicit
      cross-currency transfer amount), otherwise converting `tx.amount`/`tx.currency` as a same-amount
      transfer.
-  3. Return the sum of whichever branches applied (a transaction can affect the same account via
+  4. Return the sum of whichever branches applied (a transaction can affect the same account via
      both branches only in the degenerate case `accountId == toAccountId`, which is not expected to
      occur in practice).
-- **Usage:** Called from both [`accountBalance`](#accountbalance) and
-  [`accountBalanceBefore`](#accountbalancebefore) as the fold body, and once more inside
+- **Usage:** Called from [`accountBalance`](#accountbalance),
+  [`accountBalanceBefore`](#accountbalancebefore) and [`accountBalances`](#accountbalances) as the
+  fold body, and once more inside
   [`_forcedBalanceMigrationDelta`](#forcedbalancemigrationdelta).
 - **Notes:** Internal helper used within this file only; this is where the expense/income/transfer
   sign convention for balance calculation is defined — nowhere else in the codebase re-implements it.

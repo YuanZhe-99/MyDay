@@ -47,7 +47,7 @@
 
 ### `Duration get _elapsed` <a id="elapsed"></a>
 - **种类：** `_TimerPageState` 的 getter
-- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 117 行）
+- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 118 行）
 - **用途：** 从挂钟时间戳而不是滴答内存计数器计算秒表当前已流逝时间。
 - **输入：** 无（读取 `_accumulated`、`_running`、`_startedAt`）。
 - **返回：** `Duration`。
@@ -65,7 +65,7 @@
 
 ### `void initState()` <a id="initstate"></a>
 - **种类：** `_TimerPageState` 的方法（`State.initState` 的覆盖）
-- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 131 行）
+- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 132 行）
 - **用途：** 恢复调用方传入的任何计时器会话——运行、暂停或无——并开始加载保持屏幕唤醒偏好。
 - **输入：** 无（读取 `widget.timerHistory`、`widget.timerHistoryRetentionDays`、`widget.timerSession`）。
 - **返回：** 无。
@@ -92,7 +92,7 @@
 
 ### `void didChangeAppLifecycleState(AppLifecycleState state)` <a id="didchangeapplifecyclestate"></a>
 - **种类：** `_TimerPageState` 的方法（`WidgetsBindingObserver.didChangeAppLifecycleState` 的覆盖）
-- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 174 行）
+- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 175 行）
 - **用途：** 应用回到前台后重新武装滴答器和唤醒锁。
 - **输入：** `state` — 新 `AppLifecycleState`。
 - **返回：** 无。
@@ -103,7 +103,7 @@
 
 ### `Future<void> _loadKeepScreenAwakeSetting()` <a id="loadkeepscreenawakesetting"></a>
 - **种类：** `_TimerPageState` 的方法
-- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 191 行）
+- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 192 行）
 - **用途：** 加载记住的仅本地保持屏幕唤醒偏好并立即应用。
 - **输入：** 无。
 - **返回：** `Future<void>`。
@@ -118,12 +118,12 @@
 
 ### `Future<void> _setKeepScreenAwake(bool enabled)` <a id="setkeepscreenawake"></a>
 - **种类：** `_TimerPageState` 的方法
-- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 204 行）
+- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 205 行）
 - **用途：** 处理用户切换保持屏幕唤醒开关。
 - **输入：** `enabled` — 新开关值。
 - **返回：** `Future<void>`。
 - **副作用：** 更新 `_keepScreenAwake`；切换平台唤醒锁；写 `storage_config.json`，保留配置映射中任何无关键。
-- **算法：** `setState` 新值；`await _applyWakelock()`；读取配置、设 `config[_keepScreenAwakeConfigKey] = enabled`、写回。
+- **算法：** `setState` 新值；`await _applyWakelock()`；然后 `await TodoStorage.writeConfig({_keepScreenAwakeConfigKey: enabled})`——单键合并写入（v1.5.2；此前读取整个配置、设置键、再写回整个映射，可能覆盖其他写入方在中间更改的键）。`writeConfig` 在其串行化的配置写队列内重新读取并合并，因此无关键得以保留。
 - **用法：**
   ```dart
   // build, line 682-684:
@@ -135,7 +135,7 @@
 
 ### `Future<void> _applyWakelock()` <a id="applywakelock"></a>
 - **种类：** `_TimerPageState` 的方法
-- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 217 行）
+- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 216 行）
 - **用途：** 让平台屏幕唤醒锁与当前 `_keepScreenAwake` 偏好一致，不踩其他功能可能持有的唤醒锁。
 - **输入：** 无。
 - **返回：** `Future<void>`。
@@ -155,7 +155,7 @@
 
 ### `void _releaseWakelock()` <a id="releasewakelock"></a>
 - **种类：** `_TimerPageState` 的方法
-- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 237 行）
+- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 236 行）
 - **用途：** 页面拆除时释放唤醒锁，但只在本页是启用它的那个时。
 - **输入：** 无。
 - **返回：** 无。
@@ -170,7 +170,7 @@
 
 ### `List<TimerHistoryEntry> _applyRetention(List<TimerHistoryEntry> entries)` <a id="applyretention"></a>
 - **种类：** `_TimerPageState` 的方法
-- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 250 行）
+- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 249 行）
 - **用途：** 修剪比配置保留窗口更旧的历史条目。
 - **输入：** `entries` — 要过滤的历史列表。
 - **返回：** `List<TimerHistoryEntry>` — 保留为永久时 `entries` 不变。
@@ -188,7 +188,7 @@
 
 ### `Future<void> _start()` <a id="start"></a>
 - **种类：** `_TimerPageState` 的方法
-- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 263 行）
+- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 262 行）
 - **用途：** 从零开始秒表，或从暂停状态恢复。
 - **输入：** 无。
 - **返回：** `Future<void>`。
@@ -206,7 +206,7 @@
 
 ### `Future<void> _pause()` <a id="pause"></a>
 - **种类：** `_TimerPageState` 的方法
-- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 277 行）
+- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 276 行）
 - **用途：** 暂停秒表，把刚流逝的运行段折进 `_accumulated`。
 - **输入：** 无。
 - **返回：** `Future<void>`。
@@ -228,7 +228,7 @@
 
 ### `Future<void> _changeThrustCount(int delta)` <a id="changethrustcount"></a>
 - **种类：** `_TimerPageState` 的方法
-- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 293 行）
+- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 292 行）
 - **用途：** 按带符号增量调整抽吸计数器（`+100`/`+50`/`+10`/`-100` 按钮）。
 - **输入：** `delta` — 要应用的带符号变更。
 - **返回：** `Future<void>`。
@@ -252,7 +252,7 @@
 
 ### `int _actualThrustCount(int count, int unit)` <a id="actualthrustcount"></a>
 - **种类：** `_TimerPageState` 的方法
-- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 305 行）
+- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 304 行）
 - **用途：** 把存储的 `(count, unit)` 对——如从持久化会话或历史条目读取的——转换回活动计数器的实际次数计数。
 - **输入：** `count`、`unit` — 存储值（`unit` 总是规范化为 `1` 或 `100`）。
 - **返回：** `int` — 实际次数计数。
@@ -270,7 +270,7 @@
 
 ### `int get _storedThrustCountUnit` <a id="storedthrustcountunit"></a>
 - **种类：** `_TimerPageState` 的 getter
-- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 315 行）
+- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 314 行）
 - **用途：** 决定当前活抽插计数必须存为精确 `x1` 值还是紧凑 `x100` 估计。
 - **输入：** 无（读取 `_thrustCount`）。
 - **返回：** `int` — `1` 或 `100`（`_estimatedThrustUnit`）。
@@ -288,7 +288,7 @@
 
 ### `int get _storedThrustCount` <a id="storedthrustcount"></a>
 - **种类：** `_TimerPageState` 的 getter
-- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 325 行）
+- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 324 行）
 - **用途：** 计算实际要持久化的计数值，与 `_storedThrustCountUnit` 一致。
 - **输入：** 无（读取 `_thrustCount`）。
 - **返回：** `int`。
@@ -303,7 +303,7 @@
 
 ### `Future<void> _reset()` <a id="reset"></a>
 - **种类：** `_TimerPageState` 的方法
-- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 342 行）
+- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 341 行）
 - **用途：** 完全清除秒表——已流逝时间和抽插次数——回到新鲜、未开始状态。
 - **输入：** 无。
 - **返回：** `Future<void>`。
@@ -322,7 +322,7 @@
 
 ### `void _ensureTicker()` <a id="ensureticker"></a>
 - **种类：** `_TimerPageState` 的方法
-- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 358 行）
+- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 357 行）
 - **用途：** （重新）启动让显示已流逝时间在秒表运行中持续推进的一秒周期计时器。
 - **输入：** 无。
 - **返回：** 无。
@@ -340,7 +340,7 @@
 
 ### `IntimacyTimerSession? get _timerSession` <a id="timersession"></a>
 - **种类：** `_TimerPageState` 的 getter
-- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 377 行）
+- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 376 行）
 - **用途：** 为 `_persistState`/页面 `TimerPageResult` 构建当前秒表状态的可持久化快照。
 - **输入：** 无（读取计时器字段加 `_storedThrustCount`/`_storedThrustCountUnit`）。
 - **返回：** `IntimacyTimerSession?` — 无可恢复会话时为 `null`。
@@ -358,7 +358,7 @@
 
 ### `Future<void> _persistState({bool historyChanged = false, bool timerSessionChanged = false, bool retentionChanged = false})` <a id="persiststate"></a>
 - **种类：** `_TimerPageState` 的方法
-- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 395 行）
+- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 394 行）
 - **用途：** 只在有实际变化时把每个影响计时器的操作桥接到调用方的持久化回调。
 - **输入：** 历史、计时器会话和保留的三个独立变更标志。
 - **返回：** `Future<void>`。
@@ -379,7 +379,7 @@
 
 ### `void _popWithHistoryIfChanged()` <a id="popwithhistoryifchanged"></a>
 - **种类：** `_TimerPageState` 的方法
-- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 421 行）
+- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 420 行）
 - **用途：** 关闭页面，只在确有调用方要持久化的东西时返回 `TimerPageResult`。
 - **输入：** 无。
 - **返回：** 无。
@@ -401,7 +401,7 @@
 
 ### `Future<void> _saveRecord({TimerHistoryEntry? prefillEntry})` <a id="saverecord"></a>
 - **种类：** `_TimerPageState` 的方法
-- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 446 行）
+- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 445 行）
 - **用途：** 经 `AddRecordDialog` 把当前秒表（或重新打开的历史条目）变成 `IntimacyRecord`。
 - **输入：** `prefillEntry` — 非 null 时从既有历史条目而不是活计时器保存（点击历史行而不是停止/保存按钮）。
 - **返回：** `Future<void>`。
@@ -429,7 +429,7 @@
 
 ### `String _formatDuration(Duration d)` <a id="formatduration"></a>
 - **种类：** `_TimerPageState` 的方法
-- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 519 行）
+- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 518 行）
 - **用途：** 把时长格式化为零填充 `HH:MM:SS` 字符串，供主计时器显示和历史行。
 - **输入：** `d` — 要格式化的时长。
 - **返回：** `String`。
@@ -445,7 +445,7 @@
 
 ### `Future<void> _confirmRestoreHistory(TimerHistoryEntry entry)` <a id="confirmrestorehistory"></a>
 - **种类：** `_TimerPageState` 的方法
-- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 539 行）
+- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 538 行）
 - **用途：** 确认后让用户把保存的历史条目变回活运行秒表。
 - **输入：** `entry` — 要恢复的历史条目。
 - **返回：** `Future<void>`。
@@ -474,7 +474,7 @@
 
 ### `Widget build(BuildContext context)`（`_TimerBody`） <a id="timerbody-build"></a>
 - **种类：** `_TimerBody` 的方法
-- **源：** `lib/features/intimacy/widgets/timer_page.dart`（约第 890 行）
+- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 915 行）
 - **用途：** 把秒表和它的会话历史排成堆叠布局或双栏布局。
 - **输入：** `context`；以及组件自己的 `twoPane`、`timer` 和 `history` 字段。
 - **返回：** 堆叠时为 `Column`，分栏时为 `Row`。

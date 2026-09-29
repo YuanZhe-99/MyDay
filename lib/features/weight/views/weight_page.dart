@@ -94,6 +94,9 @@ enum _ChartRange { oneWeek, oneMonth, threeMonths, sixMonths, oneYear, all }
 class _WeightPageState extends ConsumerState<WeightPage> {
   double? _height; // cm
   List<WeightRecord> _records = [];
+
+  /// `_records` sorted newest first; rebuilt lazily after every load or edit.
+  List<WeightRecord>? _newestFirstCache;
   bool _loaded = false;
   String? _loadError;
   _ChartRange _chartRange = _ChartRange.oneMonth;
@@ -157,6 +160,7 @@ class _WeightPageState extends ConsumerState<WeightPage> {
       if (data != null) {
         _height = data.height;
         _records = data.records;
+        _newestFirstCache = null;
         _reminderMode = data.reminderMode;
         _weightMorningReminder =
             data.reminderMode != 'none' &&
@@ -226,6 +230,16 @@ class _WeightPageState extends ConsumerState<WeightPage> {
     AutoSyncService.instance.notifySaved();
   }
 
+  /// Purpose: Return the records sorted newest first, sorting once per load or edit.
+  /// Inputs: None.
+  /// Returns: `List<WeightRecord>` shared between callers; do not mutate it.
+  /// Side effects: Fills `_newestFirstCache`.
+  /// Notes: Internal helper used within this file only. Every write to `_records` must
+  /// clear `_newestFirstCache`.
+  List<WeightRecord> get _recordsNewestFirst =>
+      _newestFirstCache ??= List<WeightRecord>.from(_records)
+        ..sort((a, b) => b.datetime.compareTo(a.datetime));
+
   /// Purpose: Return latest record.
   /// Inputs: None.
   /// Returns: `WeightRecord?`.
@@ -233,9 +247,7 @@ class _WeightPageState extends ConsumerState<WeightPage> {
   /// Notes: Internal helper used within this file only.
   WeightRecord? get _latestRecord {
     if (_records.isEmpty) return null;
-    final sorted = List<WeightRecord>.from(_records)
-      ..sort((a, b) => b.datetime.compareTo(a.datetime));
-    return sorted.first;
+    return _recordsNewestFirst.first;
   }
 
   /// Purpose: Return current bmi.
@@ -280,8 +292,7 @@ class _WeightPageState extends ConsumerState<WeightPage> {
   /// Notes: Internal helper used within this file only.
   (double, double)? get _recentRange {
     if (_records.isEmpty) return null;
-    final sorted = List<WeightRecord>.from(_records)
-      ..sort((a, b) => b.datetime.compareTo(a.datetime));
+    final sorted = _recordsNewestFirst;
     final recent = sorted.take(7).toList();
     final min = recent.map((r) => r.weight).reduce(math.min);
     final max = recent.map((r) => r.weight).reduce(math.max);
@@ -1063,16 +1074,35 @@ class _WeightPageState extends ConsumerState<WeightPage> {
   List<WeightRecord> get _chartRecords {
     final now = DateTime.now();
     final cutoff = switch (_chartRange) {
-      _ChartRange.oneWeek => now.subtract(const Duration(days: 7)),
-      _ChartRange.oneMonth => DateTime(now.year, now.month - 1, now.day),
-      _ChartRange.threeMonths => DateTime(now.year, now.month - 3, now.day),
-      _ChartRange.sixMonths => DateTime(now.year, now.month - 6, now.day),
-      _ChartRange.oneYear => DateTime(now.year - 1, now.month, now.day),
+      _ChartRange.oneWeek => addCalendarDays(now, -7),
+      _ChartRange.oneMonth => _monthsBackClamped(now, 1),
+      _ChartRange.threeMonths => _monthsBackClamped(now, 3),
+      _ChartRange.sixMonths => _monthsBackClamped(now, 6),
+      _ChartRange.oneYear => _monthsBackClamped(now, 12),
       _ChartRange.all => DateTime(2000),
     };
     final filtered = _records.where((r) => r.datetime.isAfter(cutoff)).toList()
       ..sort((a, b) => a.datetime.compareTo(b.datetime));
     return filtered;
+  }
+
+  /// Purpose: Return `now` moved back by whole months, clamping the day to the target month.
+  /// Inputs: `now`, `months`.
+  /// Returns: `DateTime` at local midnight of the target day.
+  /// Side effects: None.
+  /// Notes: Mar 31 minus one month is Feb 28/29, not Mar 2/3 as `DateTime` overflow would give.
+  static DateTime _monthsBackClamped(DateTime now, int months) {
+    final firstOfTarget = DateTime(now.year, now.month - months, 1);
+    final lastDay = DateTime(
+      firstOfTarget.year,
+      firstOfTarget.month + 1,
+      0,
+    ).day;
+    return DateTime(
+      firstOfTarget.year,
+      firstOfTarget.month,
+      now.day > lastDay ? lastDay : now.day,
+    );
   }
 
   /// Purpose: Provide the internal build chart helper for this file.
@@ -1614,8 +1644,7 @@ class _WeightPageState extends ConsumerState<WeightPage> {
     int weekStartDay,
     int columns,
   ) {
-    final sorted = List<WeightRecord>.from(_records)
-      ..sort((a, b) => b.datetime.compareTo(a.datetime));
+    final sorted = _recordsNewestFirst;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -1735,7 +1764,10 @@ class _WeightPageState extends ConsumerState<WeightPage> {
         AppLocalizations.of(context)!.commonThisRecord,
       ),
       onDismissed: (_) {
-        setState(() => _records.removeWhere((r) => r.id == record.id));
+        setState(() {
+          _records.removeWhere((r) => r.id == record.id);
+          _newestFirstCache = null;
+        });
         _saveData();
       },
       child: ListTile(
@@ -1809,8 +1841,7 @@ class _WeightPageState extends ConsumerState<WeightPage> {
       preference: ref.read(appSettingsProvider).weightListColumns,
       maxColumns: weightRecordMaxColumns,
     );
-    final sorted = List<WeightRecord>.from(_records)
-      ..sort((a, b) => b.datetime.compareTo(a.datetime));
+    final sorted = List<WeightRecord>.of(_recordsNewestFirst);
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -2074,7 +2105,10 @@ class _WeightPageState extends ConsumerState<WeightPage> {
       ),
     );
     if (result != null) {
-      setState(() => _records.add(result));
+      setState(() {
+        _records.add(result);
+        _newestFirstCache = null;
+      });
       await _saveData();
     }
   }
@@ -2094,6 +2128,7 @@ class _WeightPageState extends ConsumerState<WeightPage> {
       setState(() {
         final index = _records.indexWhere((item) => item.id == record.id);
         if (index >= 0) _records[index] = result;
+        _newestFirstCache = null;
       });
       await _saveData();
     }
@@ -2370,6 +2405,7 @@ class _WeightRecordDialogState extends State<_WeightRecordDialog> {
                       context: context,
                       initialTime: TimeOfDay.fromDateTime(_date),
                     );
+                    if (!mounted) return;
                     setState(() {
                       final time = pickedTime ?? TimeOfDay.fromDateTime(_date);
                       _date = DateTime(

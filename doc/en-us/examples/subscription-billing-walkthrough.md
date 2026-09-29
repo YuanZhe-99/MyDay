@@ -32,7 +32,7 @@ The subscription was just created, so `nextBillingDate` is still unset.
 `SubscriptionProcessor.process()` hits the migration branch:
 
 ```dart
-nbd = sub.calculateNextBillingDate(after: today.subtract(const Duration(days: 1)));
+nbd = sub.calculateNextBillingDate(after: addCalendarDays(today, -1));
 ```
 
 With `after = 2026-01-30`, `calculateNextBillingDate` starts `cursor` at the anchor

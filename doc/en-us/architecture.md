@@ -196,7 +196,10 @@ committed. Fresh clones need `git clone --recurse-submodules` or `git submodule 
 - **File I/O goes through `TodoStorage`.** `TodoStorage.getAppDir()` resolves the actual storage
   directory so a user-configured custom storage path is respected everywhere. Config reads/writes
   go through `TodoStorage.readConfig()` / `writeConfig()` specifically so one module's config write
-  cannot clobber keys another module previously wrote to `storage_config.json`.
+  cannot clobber keys another module previously wrote to `storage_config.json`. Since v1.5.2
+  `writeConfig` takes only the keys being changed, every config read-merge-write runs through one
+  serial config queue and is written atomically, and a write refuses to build on an existing file
+  that does not parse (throwing `TodoStorageException`) instead of replacing it with a near-empty map.
 - **Known JSON preserved on write.** `JsonPreservation` (`lib/shared/utils/json_preservation.dart`)
   is used when saving the known data files so that unknown top-level and per-record fields survive
   both local saves and WebDAV merge writes — this is what lets a newer app version's fields
@@ -209,12 +212,18 @@ committed. Fresh clones need `git clone --recurse-submodules` or `git submodule 
   tmp-then-rename helper, `DataFileSafety.writeValidatedDataJson` (`lib/shared/services/
   data_file_safety.dart`); Finance keeps its own equivalent `_atomicWriteJson`. This prevents
   overlapping un-awaited saves (e.g. several home-page callbacks firing after a partner deletion)
-  from interleaving truncate-writes and garbling the JSON file.
+  from interleaving truncate-writes and garbling the JSON file. Since v1.5.2 the Finance and
+  Intimacy home pages also run their own loads, saves and sub-page commits through a per-page serial
+  I/O queue, and sub-page list edits are merged by id onto a fresh read of the file (see
+  [`id_list_delta.dart`](functions/shared/utils/id_list_delta.md)) rather than written as a stale
+  whole list over changes made meanwhile by a renewal, the local API, or a sync.
 - **Typed storage exceptions and a blocking load-error UI pattern.** `load()` returns `null` only
   when the data file does not exist. An existing-but-unreadable file throws a typed exception —
   `FinanceStorageException` / `IntimacyStorageException` / `WeightStorageException` /
   `TodoStorageException` (`DataFileValidationException` underneath, from `data_file_safety.dart`) —
-  so corrupted data is never silently treated as an empty dataset. `DataFileSafety.validateDataJson`
+  so corrupted data is never silently treated as an empty dataset. Since v1.5.2
+  `exchange_rates.json` follows the same rule with `ExchangeRateStorageException` instead of
+  falling back to default rates. `DataFileSafety.validateDataJson`
   parses the JSON through the real model parser for that known file name and wraps any failure in
   `DataFileValidationException`. Each home page mirrors `finance_page.dart`: it shows a blocking
   load-error view, refuses `_saveData` with a `<module>DataWriteBlocked` SnackBar while the file is

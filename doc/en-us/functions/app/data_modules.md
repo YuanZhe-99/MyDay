@@ -61,8 +61,10 @@ counts rows, not underlying declarations, so it lists 11.
 - **Notes:** Moved here verbatim from `WebDAVService._migrateFinanceForcedBalances`. It is wired as
   the module's `postMergeTransform` because that is exactly where it ran before: **after** the merge
   and **after** conflict resolution, on both the normal-sync and finalize paths. It is not a
-  pre-merge remote migration. Finance also contributes referenced images from its `accounts` and
-  `subscriptions` sections.
+  pre-merge remote migration. Since v1.5.2 it returns the data unchanged, without reading
+  `exchange_rates.json`, when `needsForcedBalanceMigration(data.accounts)` is false; otherwise an
+  unreadable rates file surfaces as `ExchangeRateStorageException`. Finance also contributes
+  referenced images from its `accounts` and `subscriptions` sections.
 
 ### Exchange rates <a id="exchangerates"></a>
 - **Notes:** Built directly rather than through the structured builder. `mergeExchangeRateJson` is a

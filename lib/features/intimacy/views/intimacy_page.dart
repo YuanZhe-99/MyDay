@@ -11,6 +11,7 @@ import '../../../shared/providers/app_settings.dart';
 import '../../../shared/services/auto_sync_service.dart';
 import '../../../shared/services/image_service.dart';
 import '../../../shared/utils/adaptive_layout.dart';
+import '../../../shared/utils/id_list_delta.dart';
 import '../../../shared/utils/week_grouping.dart';
 import '../../../shared/widgets/adaptive_tile_grid.dart';
 import '../../../shared/widgets/app_date_picker.dart';
@@ -92,6 +93,9 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
   bool _loaded = false;
   String? _loadError;
 
+  /// Serializes loads, saves, and sub-page commits (see `_io`).
+  Future<void> _ioQueue = Future<void>.value();
+
   _SortMode _sortMode = _SortMode.dateDesc;
   _FilterMode _filterMode = _FilterMode.all;
 
@@ -118,13 +122,87 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
     super.dispose();
   }
 
-  /// Purpose: Provide the internal load data helper for this file.
+  /// Purpose: Run one intimacy load, save, or sub-page commit after the previous one.
+  /// Inputs: `op` — the queued work.
+  /// Returns: `Future<void>` completing (or failing) with `op`.
+  /// Side effects: Advances `_ioQueue`.
+  /// Notes: Internal helper used within this file only. `op` must never await
+  /// `_loadData`, `_saveData`, or `_commitSubPage` (they enqueue), or the queue deadlocks.
+  Future<void> _io(Future<void> Function() op) {
+    final next = _ioQueue.then((_) => op(), onError: (_) => op());
+    _ioQueue = next.catchError((_) {});
+    return next;
+  }
+
+  /// Purpose: Copy a loaded or merged intimacy dataset into page state.
+  /// Inputs: `data`.
+  /// Returns: None.
+  /// Side effects: Mutates the page's intimacy fields; callers wrap it in `setState`.
+  /// Notes: Internal helper used within this file only.
+  void _applyIntimacyData(IntimacyData data) {
+    _partners = data.partners;
+    _toys = data.toys;
+    _positions = data.positions;
+    _records = data.records;
+    _timerHistory = data.timerHistory;
+    _timerSession = data.timerSession;
+    _timerSessionModifiedAt = data.timerSessionModifiedAt;
+    _userBody = data.userBody;
+    _userBodyModifiedAt = data.userBodyModifiedAt;
+    _cycleRecords = List<CycleRecord>.of(data.cycleRecords);
+    _timerHistoryRetentionDays = data.timerHistoryRetentionDays;
+    _partnerSortModes = Map.of(data.partnerSortModes);
+    _partnerCustomOrders = data.partnerCustomOrders.map(
+      (key, value) => MapEntry(key, List<String>.of(value)),
+    );
+    _toySortModes = Map.of(data.toySortModes);
+    _toyCustomOrders = data.toyCustomOrders.map(
+      (key, value) => MapEntry(key, List<String>.of(value)),
+    );
+    _chartSettings = data.chartSettings ?? const IntimacyChartSettings();
+    _settingsModifiedAt = data.settingsModifiedAt;
+  }
+
+  /// Purpose: Snapshot the page's current intimacy state as an `IntimacyData`.
+  /// Inputs: None.
+  /// Returns: `IntimacyData`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  IntimacyData _currentIntimacyData() => IntimacyData(
+    partners: _partners,
+    toys: _toys,
+    positions: _positions,
+    records: _records,
+    timerHistory: _timerHistory,
+    timerSession: _timerSession,
+    timerSessionModifiedAt: _timerSessionModifiedAt,
+    userBody: _userBody,
+    userBodyModifiedAt: _userBodyModifiedAt,
+    cycleRecords: _cycleRecords,
+    timerHistoryRetentionDays: _timerHistoryRetentionDays,
+    partnerSortModes: _partnerSortModes,
+    partnerCustomOrders: _partnerCustomOrders,
+    toySortModes: _toySortModes,
+    toyCustomOrders: _toyCustomOrders,
+    chartSettings: _chartSettings,
+    settingsModifiedAt: _settingsModifiedAt,
+  );
+
+  /// Purpose: Reload intimacy data from disk.
   /// Inputs: None.
   /// Returns: `Future<void>`.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Existing but unreadable intimacy data is shown as an error and is
-  /// never treated as an empty dataset. Reloads disable writes until complete.
-  Future<void> _loadData() async {
+  /// Notes: Serialized with saves through `_io`. Existing but unreadable intimacy data is
+  /// shown as an error and is never treated as an empty dataset. Reloads disable writes
+  /// until complete.
+  Future<void> _loadData() => _io(_loadDataNow);
+
+  /// Purpose: Body of `_loadData`, run inside the I/O queue.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: Reads intimacy (and optionally weight) data and updates page state.
+  /// Notes: Internal helper used within this file only.
+  Future<void> _loadDataNow() async {
     if (_loaded && mounted) setState(() => _loaded = false);
     IntimacyData? data;
     try {
@@ -141,7 +219,8 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
     // AI card's body facts. A missing or unreadable weight file must never
     // block this page, so any failure just leaves those facts out.
     var weightRecords = const <WeightRecord>[];
-    if (platformMayHaveOnDeviceModel &&
+    if (mounted &&
+        platformMayHaveOnDeviceModel &&
         ref.read(appSettingsProvider).onDeviceAiEnabled) {
       try {
         weightRecords = (await WeightStorage.load())?.records ?? const [];
@@ -151,75 +230,96 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
     setState(() {
       _loadError = null;
       _weightRecordsForInsight = weightRecords;
-      if (data != null) {
-        _partners = data.partners;
-        _toys = data.toys;
-        _positions = data.positions;
-        _records = data.records;
-        _timerHistory = data.timerHistory;
-        _timerSession = data.timerSession;
-        _timerSessionModifiedAt = data.timerSessionModifiedAt;
-        _userBody = data.userBody;
-        _userBodyModifiedAt = data.userBodyModifiedAt;
-        _cycleRecords = List<CycleRecord>.of(data.cycleRecords);
-        _timerHistoryRetentionDays = data.timerHistoryRetentionDays;
-        _partnerSortModes = Map.of(data.partnerSortModes);
-        _partnerCustomOrders = data.partnerCustomOrders.map(
-          (key, value) => MapEntry(key, List<String>.of(value)),
-        );
-        _toySortModes = Map.of(data.toySortModes);
-        _toyCustomOrders = data.toyCustomOrders.map(
-          (key, value) => MapEntry(key, List<String>.of(value)),
-        );
-        _chartSettings = data.chartSettings ?? const IntimacyChartSettings();
-        _settingsModifiedAt = data.settingsModifiedAt;
-      }
+      if (data != null) _applyIntimacyData(data);
       _loaded = true;
     });
   }
 
-  /// Purpose: Provide the internal save data helper for this file.
+  /// Purpose: Tell the user that intimacy writes are blocked by an unreadable file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Shows a snackbar when mounted.
+  /// Notes: Internal helper used within this file only.
+  void _showWriteBlocked() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(AppLocalizations.of(context)!.intimacyDataWriteBlocked),
+      ),
+    );
+  }
+
+  /// Purpose: Save the page's in-memory intimacy state.
   /// Inputs: None.
   /// Returns: `Future<void>`.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Refuses to save while loading or while the intimacy file is
-  /// unreadable so incomplete in-memory state cannot overwrite it.
-  Future<void> _saveData() async {
+  /// Notes: Serialized with loads through `_io`. Refuses to save while loading or while
+  /// the intimacy file is unreadable so incomplete in-memory state cannot overwrite it.
+  Future<void> _saveData() => _io(_saveDataNow);
+
+  /// Purpose: Body of `_saveData`, run inside the I/O queue.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: Writes `intimacy_data.json` and notifies auto-sync.
+  /// Notes: Internal helper used within this file only.
+  Future<void> _saveDataNow() async {
     if (!_loaded) return;
     if (_loadError != null) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context)!.intimacyDataWriteBlocked,
-            ),
-          ),
-        );
-      }
+      _showWriteBlocked();
       return;
     }
-    await IntimacyStorage.save(
-      IntimacyData(
-        partners: _partners,
-        toys: _toys,
-        positions: _positions,
-        records: _records,
-        timerHistory: _timerHistory,
-        timerSession: _timerSession,
-        timerSessionModifiedAt: _timerSessionModifiedAt,
-        userBody: _userBody,
-        userBodyModifiedAt: _userBodyModifiedAt,
-        cycleRecords: _cycleRecords,
-        timerHistoryRetentionDays: _timerHistoryRetentionDays,
-        partnerSortModes: _partnerSortModes,
-        partnerCustomOrders: _partnerCustomOrders,
-        toySortModes: _toySortModes,
-        toyCustomOrders: _toyCustomOrders,
-        chartSettings: _chartSettings,
-        settingsModifiedAt: _settingsModifiedAt,
-      ),
-    );
+    await IntimacyStorage.save(_currentIntimacyData());
     AutoSyncService.instance.notifySaved();
+  }
+
+  /// Purpose: Merge one sub-page callback's list edits into the current file and save.
+  /// Inputs: optional per-list deltas.
+  /// Returns: `Future<void>`.
+  /// Side effects: Reads and writes `intimacy_data.json`, updates page state, notifies
+  /// auto-sync.
+  /// Notes: v1.5.2 merge-by-id: the file is re-read inside the I/O queue and only the
+  /// records the sub-page changed are replayed onto it, so records added elsewhere (a
+  /// sync, the timer page) while a management page was open are not overwritten by the
+  /// sub-page's stale whole list.
+  Future<void> _commitSubPage({
+    IdListDelta<Partner>? partners,
+    IdListDelta<Toy>? toys,
+    IdListDelta<Position>? positions,
+    IdListDelta<IntimacyRecord>? records,
+    IdListDelta<CycleRecord>? cycleRecords,
+  }) {
+    return _io(() async {
+      if (_loadError != null) {
+        _showWriteBlocked();
+        return;
+      }
+      IntimacyData? fresh;
+      try {
+        fresh = await IntimacyStorage.load();
+      } catch (e) {
+        if (mounted) setState(() => _loadError = e.toString());
+        _showWriteBlocked();
+        return;
+      }
+      final base = fresh ?? _currentIntimacyData();
+      final merged = base.copyWith(
+        partners: partners?.applyTo(base.partners),
+        toys: toys?.applyTo(base.toys),
+        positions: positions?.applyTo(base.positions),
+        records: records?.applyTo(base.records),
+        cycleRecords: cycleRecords?.applyTo(base.cycleRecords),
+      );
+      await IntimacyStorage.save(merged);
+      if (mounted) {
+        setState(() {
+          _applyIntimacyData(merged);
+          _loaded = true;
+        });
+      } else {
+        _applyIntimacyData(merged);
+      }
+      AutoSyncService.instance.notifySaved();
+    });
   }
 
   /// Purpose: Persist a new trend-chart metric and range selection.
@@ -458,7 +558,7 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
         positions: _positions,
       ),
     );
-    if (record != null) {
+    if (record != null && mounted) {
       setState(() => _records.insert(0, record));
       await _saveData();
     }
@@ -491,7 +591,7 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
         positions: _positions,
       ),
     );
-    if (updated != null) {
+    if (updated != null && mounted) {
       setState(() {
         final index = _records.indexWhere((r) => r.id == updated.id);
         if (index != -1) _records[index] = updated;
@@ -576,7 +676,7 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
                         ),
                       ),
                     );
-                    if (result != null) {
+                    if (result != null && mounted) {
                       bool needSave = false;
                       if (result.record != null) {
                         setState(() => _records.insert(0, result.record!));
@@ -1049,6 +1149,7 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
   /// Notes: User body edits bump the dedicated `userBodyModifiedAt` LWW
   /// timestamp instead of the general settings timestamp.
   Future<void> _openBodySettings() async {
+    final cycleBase = IdListBaseline<CycleRecord>(_cycleRecords, (c) => c.id);
     await Navigator.push(
       context,
       MaterialPageRoute(
@@ -1063,8 +1164,7 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
             _saveData();
           },
           onCycleRecordsChanged: (records) {
-            setState(() => _cycleRecords = List<CycleRecord>.of(records));
-            _saveData();
+            _commitSubPage(cycleRecords: cycleBase.take(records));
           },
         ),
       ),
@@ -1078,6 +1178,9 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
   /// Side effects: May update UI state or trigger user-facing flows.
   /// Notes: Internal helper used within this file only.
   Future<void> _openPartnerManagement() async {
+    final partnerBase = IdListBaseline<Partner>(_partners, (p) => p.id);
+    final recordBase = IdListBaseline<IntimacyRecord>(_records, (r) => r.id);
+    final cycleBase = IdListBaseline<CycleRecord>(_cycleRecords, (c) => c.id);
     await Navigator.push(
       context,
       MaterialPageRoute(
@@ -1089,17 +1192,14 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
           sortModes: _partnerSortModes,
           customOrders: _partnerCustomOrders,
           onChanged: (updated) {
-            setState(() => _partners = updated);
-            _saveData();
+            _commitSubPage(partners: partnerBase.take(updated));
           },
           onRecordsChanged: (updated) {
-            setState(() => _records = updated);
-            _saveData();
+            _commitSubPage(records: recordBase.take(updated));
           },
           cycleRecords: _cycleRecords,
           onCycleRecordsChanged: (updated) {
-            setState(() => _cycleRecords = List<CycleRecord>.of(updated));
-            _saveData();
+            _commitSubPage(cycleRecords: cycleBase.take(updated));
           },
           onSortChanged: (modes, orders) {
             setState(() {
@@ -1124,6 +1224,8 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
   /// Side effects: May update UI state or trigger user-facing flows.
   /// Notes: Internal helper used within this file only.
   Future<void> _openToyManagement() async {
+    final toyBase = IdListBaseline<Toy>(_toys, (t) => t.id);
+    final recordBase = IdListBaseline<IntimacyRecord>(_records, (r) => r.id);
     await Navigator.push(
       context,
       MaterialPageRoute(
@@ -1135,12 +1237,10 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
           sortModes: _toySortModes,
           customOrders: _toyCustomOrders,
           onChanged: (updated) {
-            setState(() => _toys = updated);
-            _saveData();
+            _commitSubPage(toys: toyBase.take(updated));
           },
           onRecordsChanged: (updated) {
-            setState(() => _records = updated);
-            _saveData();
+            _commitSubPage(records: recordBase.take(updated));
           },
           onSortChanged: (modes, orders) {
             setState(() {
@@ -1165,6 +1265,7 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
   /// Side effects: May update UI state or trigger user-facing flows.
   /// Notes: Internal helper used within this file only.
   Future<void> _openPositionManagement() async {
+    final positionBase = IdListBaseline<Position>(_positions, (p) => p.id);
     await Navigator.push(
       context,
       MaterialPageRoute(
@@ -1172,8 +1273,7 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
           positions: _positions,
           records: _records,
           onChanged: (updated) {
-            setState(() => _positions = updated);
-            _saveData();
+            _commitSubPage(positions: positionBase.take(updated));
           },
         ),
       ),

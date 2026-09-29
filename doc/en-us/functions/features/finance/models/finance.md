@@ -43,7 +43,7 @@ unique per the `<classname>-<namedConstructorLowercased>` anchor rule.
 | `BillingCycleType` (enum) | enum | B | `monthly` / `yearly` — no Purpose block (see Reconciliation). |
 | `CancelType` (enum) | enum | B | `immediate` / `atExpiry` — no Purpose block (see Reconciliation). |
 | [`Subscription()`](#subscription-new) | constructor (`Subscription`) | A | Create a subscription, generating `id`/`modifiedAt` if omitted. |
-| [`firstBillingDate`](#firstbillingdate) | getter (`Subscription`) | A | Return the anchor billing date (`startDate + trialDays`). |
+| [`firstBillingDate`](#firstbillingdate) | getter (`Subscription`) | A | Return the anchor billing date (`startDate` plus `trialDays` calendar days). |
 | [`nextBillingCursor`](#nextbillingcursor) | static method (`Subscription`) | A | Advance a billing cursor by one cycle with month-end clamping. |
 | [`calculateNextBillingDate`](#calculatenextbillingdate) | method (`Subscription`) | A | Compute the next billing date strictly after a given date. |
 | [`billingDatesBefore`](#billingdatesbefore) | method (`Subscription`) | A | Generate all billing dates from the anchor up to a cutoff. |
@@ -72,7 +72,7 @@ branching/loop logic.
 
 ### `const AccountPickerSettings({String sortMode = sortCustom, bool groupByType = false, List<String> customOrder = const [], List<String> moreAccountIds = const []})` <a id="accountpickersettings-new"></a>
 - **Kind:** const constructor of `AccountPickerSettings`
-- **Source:** `lib/features/finance/models/finance.dart` (line 20)
+- **Source:** `lib/features/finance/models/finance.dart` (line 22)
 - **Purpose:** Hold the transaction account-picker's sort mode, type-grouping flag, custom manual
   order, and "More" overflow list.
 - **Inputs:** `sortMode` defaults to `AccountPickerSettings.sortCustom`; `groupByType` defaults to
@@ -95,7 +95,7 @@ branching/loop logic.
 
 ### `Map<String, dynamic> toJson()` <a id="accountpickersettings-tojson"></a>
 - **Kind:** method of `AccountPickerSettings`
-- **Source:** `lib/features/finance/models/finance.dart` (line 32)
+- **Source:** `lib/features/finance/models/finance.dart` (line 34)
 - **Purpose:** Serialize picker settings into the JSON embedded under `finance_data.json`'s
   `accountPickerSettings` key.
 - **Inputs:** None.
@@ -103,14 +103,14 @@ branching/loop logic.
   omitted entirely when empty.
 - **Side effects:** None.
 - **Algorithm:** Map literal with `if (...isNotEmpty)` guards on `customOrder`/`moreAccountIds`.
-- **Usage:** Called from `FinanceData.toJson()` (`finance_storage.dart:71`):
+- **Usage:** Called from `FinanceData.toJson()` (`finance_storage.dart:100`):
   `'accountPickerSettings': accountPickerSettings.toJson()`.
 - **Notes:** Omitting empty lists keeps a freshly-created settings value's JSON minimal, but
   `fromJson` treats a missing key identically to an explicit empty list either way.
 
 ### `factory AccountPickerSettings.fromJson(Map<String, dynamic>? json)` <a id="accountpickersettings-fromjson"></a>
 - **Kind:** factory constructor of `AccountPickerSettings`
-- **Source:** `lib/features/finance/models/finance.dart` (line 44)
+- **Source:** `lib/features/finance/models/finance.dart` (line 46)
 - **Purpose:** Parse picker settings back out of JSON, defaulting to `sortCustom`/unset for any
   invalid or missing value rather than throwing.
 - **Inputs:** `json` — nullable decoded map (an absent `accountPickerSettings` key in older data
@@ -128,13 +128,13 @@ branching/loop logic.
     json['accountPickerSettings'] as Map<String, dynamic>?,
   ),
   ```
-  (`lib/features/finance/services/finance_storage.dart:122-124`, inside `FinanceData.fromJson`.)
+  (`lib/features/finance/services/finance_storage.dart:151-153`, inside `FinanceData.fromJson`.)
 - **Notes:** Never throws on malformed input — every field degrades to its default individually,
   the same defensive pattern used by every other `fromJson` in this file.
 
 ### `AccountPickerSettings copyWith({String? sortMode, bool? groupByType, List<String>? customOrder, List<String>? moreAccountIds})` <a id="copywith"></a>
 - **Kind:** method of `AccountPickerSettings`
-- **Source:** `lib/features/finance/models/finance.dart` (line 65)
+- **Source:** `lib/features/finance/models/finance.dart` (line 67)
 - **Purpose:** Return a copy of these settings with only the given fields replaced.
 - **Inputs:** All four parameters optional; unset ones fall back to `this`'s current value.
 - **Returns:** A new `AccountPickerSettings`.
@@ -148,7 +148,7 @@ branching/loop logic.
 
 ### `Account({String? id, required AccountType type, required String bankOrApp, required String name, String currency = 'CNY', String? cardNumber, String? expiryDate, String? securityCode, String? emoji, String? imagePath, double? feeWaiverMinimumBalance, double? feeWaiverMonthlyDeposit, double? forcedBalance, DateTime? forcedBalanceDate, DateTime? modifiedAt})` <a id="account-new"></a>
 - **Kind:** constructor of `Account`
-- **Source:** `lib/features/finance/models/finance.dart` (line 102)
+- **Source:** `lib/features/finance/models/finance.dart` (line 104)
 - **Purpose:** Create a bank/app account record, optionally with card metadata, an emoji/image, and
   the two alternative fee-waiver criteria described in
   [Finance](../../../../features/finance.md#model).
@@ -188,7 +188,7 @@ branching/loop logic.
 
 ### `Map<String, dynamic> toJson()` <a id="account-tojson"></a>
 - **Kind:** method of `Account`
-- **Source:** `lib/features/finance/models/finance.dart` (line 126)
+- **Source:** `lib/features/finance/models/finance.dart` (line 128)
 - **Purpose:** Serialize an account into the JSON stored in `finance_data.json`'s `accounts` array.
 - **Inputs:** None.
 - **Returns:** A map with `id`/`type`/`bankOrApp`/`name`/`currency`/`modifiedAt` always present, and
@@ -198,12 +198,12 @@ branching/loop logic.
 - **Algorithm:** Map literal with `if (field != null)` guards per optional field;
   `forcedBalanceDate` and `modifiedAt` are written as `toIso8601String()`.
 - **Usage:** Called from `FinanceData.toJson()`: `accounts.map((a) => a.toJson()).toList()`
-  (`lib/features/finance/services/finance_storage.dart:54`).
+  (`lib/features/finance/services/finance_storage.dart:83`).
 - **Notes:** None.
 
 ### `factory Account.fromJson(Map<String, dynamic> json)` <a id="account-fromjson"></a>
 - **Kind:** factory constructor of `Account`
-- **Source:** `lib/features/finance/models/finance.dart` (line 152)
+- **Source:** `lib/features/finance/models/finance.dart` (line 154)
 - **Purpose:** Parse an account back out of its persisted/synced JSON form.
 - **Inputs:** `json` — decoded map, normally one entry of `finance_data.json`'s `accounts` array.
 - **Returns:** A new `Account`.
@@ -214,13 +214,13 @@ branching/loop logic.
   record).
 - **Usage:** Called from `FinanceData.fromJson`:
   `(json['accounts'] as List<dynamic>?)?.map((a) => Account.fromJson(a as Map<String, dynamic>))`
-  (`lib/features/finance/services/finance_storage.dart:80-83`).
+  (`lib/features/finance/services/finance_storage.dart:109-112`).
 - **Notes:** `AccountType.values.byName` throws if `type` is an unrecognized string — unlike most of
   this file's `fromJson` methods, this one does not defensively fall back on a bad enum value.
 
 ### `Transaction({String? id, required TransactionType type, required double amount, String currency = 'CNY', String? rateSnapshotId, required String accountId, String? toAccountId, double? toAmount, String? toCurrency, String? categoryId, String? subscriptionId, String note = '', DateTime? date, DateTime? modifiedAt})` <a id="transaction-new"></a>
 - **Kind:** constructor of `Transaction`
-- **Source:** `lib/features/finance/models/finance.dart` (line 201)
+- **Source:** `lib/features/finance/models/finance.dart` (line 203)
 - **Purpose:** Create an expense/income/transfer record, optionally carrying a historical
   rate-snapshot id and (for transfers) a target account/amount/currency.
 - **Inputs:** `type`, `amount`, `accountId` required; `currency` defaults `'CNY'`; `toAccountId`/
@@ -247,7 +247,7 @@ branching/loop logic.
     date: _date,
   );
   ```
-  (`lib/features/finance/widgets/add_transaction_dialog.dart:654-667`, the add/edit transaction
+  (`lib/features/finance/widgets/add_transaction_dialog.dart:655-668`, the add/edit transaction
   dialog's submit handler.)
 - **Notes:** `rateSnapshotId` is what lets [`balance_util.dart`](../services/balance_util.md) convert
   a historical transaction using the exchange rates in effect when it was recorded, rather than
@@ -255,7 +255,7 @@ branching/loop logic.
 
 ### `Map<String, dynamic> toJson()` <a id="transaction-tojson"></a>
 - **Kind:** method of `Transaction`
-- **Source:** `lib/features/finance/models/finance.dart` (line 225)
+- **Source:** `lib/features/finance/models/finance.dart` (line 227)
 - **Purpose:** Serialize a transaction into the JSON stored in `finance_data.json`'s `transactions`
   array.
 - **Inputs:** None.
@@ -266,12 +266,12 @@ branching/loop logic.
 - **Algorithm:** Map literal with `if (field != null)` guards; `date`/`modifiedAt` as
   `toIso8601String()`.
 - **Usage:** Called from `FinanceData.toJson()`: `transactions.map((t) => t.toJson()).toList()`
-  (`lib/features/finance/services/finance_storage.dart:56`).
+  (`lib/features/finance/services/finance_storage.dart:85`).
 - **Notes:** None.
 
 ### `factory Transaction.fromJson(Map<String, dynamic> json)` <a id="transaction-fromjson"></a>
 - **Kind:** factory constructor of `Transaction`
-- **Source:** `lib/features/finance/models/finance.dart` (line 247)
+- **Source:** `lib/features/finance/models/finance.dart` (line 249)
 - **Purpose:** Parse a transaction back out of its persisted/synced JSON form.
 - **Inputs:** `json` — decoded map, normally one entry of `finance_data.json`'s `transactions`
   array.
@@ -282,14 +282,14 @@ branching/loop logic.
   falls back to the Unix epoch when absent.
 - **Usage:** Called from `FinanceData.fromJson`:
   `(json['transactions'] as List<dynamic>?)?.map((t) => Transaction.fromJson(t as Map<String, dynamic>))`
-  (`lib/features/finance/services/finance_storage.dart:90-93`).
+  (`lib/features/finance/services/finance_storage.dart:119-122`).
 - **Notes:** `date` is required and parsed unconditionally (`DateTime.parse(json['date'] as
   String)`), unlike every other date field in this file — a transaction with a missing `date` throws
   rather than defaulting.
 
 ### `Category({String? id, required String name, required IconRef icon, String? emoji, required TransactionType type, DateTime? modifiedAt})` <a id="category-new"></a>
 - **Kind:** constructor of `Category`
-- **Source:** `lib/features/finance/models/finance.dart` (line 280)
+- **Source:** `lib/features/finance/models/finance.dart` (line 282)
 - **Purpose:** Create a transaction category (expense, income, or transfer) with a Material icon
   reference and optional emoji.
 - **Inputs:** `name`, `icon`, `type` required; `emoji` optional.
@@ -313,7 +313,7 @@ branching/loop logic.
 
 ### `Map<String, dynamic> toJson()` <a id="category-tojson"></a>
 - **Kind:** method of `Category`
-- **Source:** `lib/features/finance/models/finance.dart` (line 295)
+- **Source:** `lib/features/finance/models/finance.dart` (line 297)
 - **Purpose:** Serialize a category into the JSON stored in `finance_data.json`'s `categories`
   array.
 - **Inputs:** None.
@@ -321,12 +321,12 @@ branching/loop logic.
 - **Side effects:** None.
 - **Algorithm:** Map literal; `icon` is nested via `IconRef.toJson()`.
 - **Usage:** Called from `FinanceData.toJson()`: `categories.map((c) => c.toJson()).toList()`
-  (`lib/features/finance/services/finance_storage.dart:55`).
+  (`lib/features/finance/services/finance_storage.dart:84`).
 - **Notes:** None.
 
 ### `factory Category.fromJson(Map<String, dynamic> json)` <a id="category-fromjson"></a>
 - **Kind:** factory constructor of `Category`
-- **Source:** `lib/features/finance/models/finance.dart` (line 309)
+- **Source:** `lib/features/finance/models/finance.dart` (line 311)
 - **Purpose:** Parse a category back out of its persisted/synced JSON form.
 - **Inputs:** `json` — decoded map, normally one entry of `finance_data.json`'s `categories` array.
 - **Returns:** A new `Category`.
@@ -335,12 +335,12 @@ branching/loop logic.
   `TransactionType.values.byName`; `modifiedAt` falls back to the Unix epoch when absent.
 - **Usage:** Called from `FinanceData.fromJson`:
   `(json['categories'] as List<dynamic>?)?.map((c) => Category.fromJson(c as Map<String, dynamic>))`
-  (`lib/features/finance/services/finance_storage.dart:86-89`).
+  (`lib/features/finance/services/finance_storage.dart:115-118`).
 - **Notes:** None.
 
 ### `Subscription({String? id, required String name, String? emoji, String? imagePath, required DateTime startDate, int trialDays = 0, required BillingCycleType billingCycleType, int billingInterval = 1, required double amount, String currency = 'CNY', required String accountId, String? categoryId, String note = '', bool isActive = true, DateTime? cancelledAt, CancelType? cancelType, DateTime? nextBillingDate, DateTime? modifiedAt})` <a id="subscription-new"></a>
 - **Kind:** constructor of `Subscription`
-- **Source:** `lib/features/finance/models/finance.dart` (line 350)
+- **Source:** `lib/features/finance/models/finance.dart` (line 352)
 - **Purpose:** Create a recurring subscription: trial period, billing cycle/interval, amount, target
   account/category, cancellation state, and the persisted `nextBillingDate` cursor.
 - **Inputs:** `name`, `startDate`, `billingCycleType`, `amount`, `accountId` required; `trialDays`
@@ -366,13 +366,16 @@ branching/loop logic.
 
 ### `DateTime get firstBillingDate` <a id="firstbillingdate"></a>
 - **Kind:** getter of `Subscription`
-- **Source:** `lib/features/finance/models/finance.dart` (line 378)
-- **Purpose:** Return the anchor billing date — `startDate + trialDays` — that every subsequent
+- **Source:** `lib/features/finance/models/finance.dart` (line 381)
+- **Purpose:** Return the anchor billing date — `startDate` plus `trialDays` calendar days — that every subsequent
   billing cycle's day-of-month is measured against.
 - **Inputs:** None.
 - **Returns:** `DateTime`.
 - **Side effects:** None.
-- **Algorithm:** `startDate.add(Duration(days: trialDays))`.
+- **Algorithm:** `addCalendarDays(startDate, trialDays)` (v1.5.2; previously
+  `startDate.add(Duration(days: trialDays))`) — adds `trialDays` calendar days, keeping the wall-clock
+  time of day and the UTC/local kind of `startDate` (see
+  [`addCalendarDays`](../../../shared/utils/week_grouping.md#addcalendardays)).
 - **Usage:**
   ```dart
   cursor = Subscription.nextBillingCursor(
@@ -382,15 +385,18 @@ branching/loop logic.
     anchor: sub.firstBillingDate,
   );
   ```
-  (`lib/features/finance/services/subscription_processor.dart:116-121`, the `anchor` argument to
+  (`lib/features/finance/services/subscription_processor.dart:115-120`, the `anchor` argument to
   every `nextBillingCursor` call in the processor's catch-up loop.)
 - **Notes:** Classified Tier A (despite being a one-line getter) because this is the anchor value
   the entire month-end clamping algorithm in
-  [Subscription Billing](../../../../algorithms/subscription-billing.md) is built around.
+  [Subscription Billing](../../../../algorithms/subscription-billing.md) is built around. Since v1.5.2 trial days
+  are calendar days: across a DST change the start time of day is kept instead of drifting by one
+  hour. Only the computed anchor changes; `nextBillingDate` values already stored on subscriptions
+  are not rewritten.
 
 ### `static DateTime nextBillingCursor({required DateTime cursor, required BillingCycleType cycleType, required int interval, required DateTime anchor})` <a id="nextbillingcursor"></a>
 - **Kind:** static method of `Subscription`
-- **Source:** `lib/features/finance/models/finance.dart` (line 389)
+- **Source:** `lib/features/finance/models/finance.dart` (line 392)
 - **Purpose:** Advance a billing cursor by exactly one cycle, clamping the anchor's day-of-month to
   the target month's actual length instead of letting `DateTime` day overflow roll into the
   following month.
@@ -414,7 +420,7 @@ branching/loop logic.
     anchor: first,
   );
   ```
-  (`lib/features/finance/models/finance.dart:421-426`, inside this class's own
+  (`lib/features/finance/models/finance.dart:424-429`, inside this class's own
   [`calculateNextBillingDate`](#calculatenextbillingdate); also called identically from
   [`billingDatesBefore`](#billingdatesbefore) and from
   [`SubscriptionProcessor.process`](../services/subscription_processor.md#process) — this is the
@@ -425,7 +431,7 @@ branching/loop logic.
 
 ### `DateTime? calculateNextBillingDate({DateTime? after})` <a id="calculatenextbillingdate"></a>
 - **Kind:** method of `Subscription`
-- **Source:** `lib/features/finance/models/finance.dart` (line 416)
+- **Source:** `lib/features/finance/models/finance.dart` (line 419)
 - **Purpose:** Compute the first billing date strictly after a given date (or now), respecting an
   `atExpiry` cancellation cutoff.
 - **Inputs:** `after` — defaults to `DateTime.now()` when omitted.
@@ -439,11 +445,9 @@ branching/loop logic.
   4. Otherwise return `cursor`.
 - **Usage:**
   ```dart
-  nbd = sub.calculateNextBillingDate(
-    after: today.subtract(const Duration(days: 1)),
-  );
+  nbd = sub.calculateNextBillingDate(after: addCalendarDays(today, -1));
   ```
-  (`lib/features/finance/services/subscription_processor.dart:70-72`, the migration path that
+  (`lib/features/finance/services/subscription_processor.dart:71`, the migration path that
   computes `nextBillingDate` for the first time on a subscription that predates the field; also used
   by `lib/features/finance/views/subscriptions_page.dart` for display-only "next billing date"
   previews.)
@@ -452,7 +456,7 @@ branching/loop logic.
 
 ### `List<DateTime> billingDatesBefore(DateTime until)` <a id="billingdatesbefore"></a>
 - **Kind:** method of `Subscription`
-- **Source:** `lib/features/finance/models/finance.dart` (line 442)
+- **Source:** `lib/features/finance/models/finance.dart` (line 445)
 - **Purpose:** Generate every billing date from the subscription's anchor up to (and including) a
   cutoff date.
 - **Inputs:** `until` — the inclusive cutoff.
@@ -467,7 +471,7 @@ branching/loop logic.
   ```dart
   final dates = sub.billingDatesBefore(now);
   ```
-  (`lib/features/finance/views/subscriptions_page.dart:545`, used to count/display how many times a
+  (`lib/features/finance/views/subscriptions_page.dart:446`, used to count/display how many times a
   subscription has billed to date.)
 - **Notes:** Unlike `calculateNextBillingDate`, this ignores `atExpiry` cancellation — it lists every
   cycle date up to `until` regardless of whether the subscription would actually have generated a
@@ -475,7 +479,7 @@ branching/loop logic.
 
 ### `Map<String, dynamic> toJson()` <a id="subscription-tojson"></a>
 - **Kind:** method of `Subscription`
-- **Source:** `lib/features/finance/models/finance.dart` (line 463)
+- **Source:** `lib/features/finance/models/finance.dart` (line 466)
 - **Purpose:** Serialize a subscription into the JSON stored in `finance_data.json`'s
   `subscriptions` array.
 - **Inputs:** None.
@@ -486,12 +490,12 @@ branching/loop logic.
 - **Algorithm:** Map literal with `if (field != null)` guards; date fields as
   `toIso8601String()`, enums as `.name`.
 - **Usage:** Called from `FinanceData.toJson()`: `subscriptions.map((s) => s.toJson()).toList()`
-  (`lib/features/finance/services/finance_storage.dart:57`).
+  (`lib/features/finance/services/finance_storage.dart:86`).
 - **Notes:** None.
 
 ### `factory Subscription.fromJson(Map<String, dynamic> json)` <a id="subscription-fromjson"></a>
 - **Kind:** factory constructor of `Subscription`
-- **Source:** `lib/features/finance/models/finance.dart` (line 490)
+- **Source:** `lib/features/finance/models/finance.dart` (line 493)
 - **Purpose:** Parse a subscription back out of its persisted/synced JSON form.
 - **Inputs:** `json` — decoded map, normally one entry of `finance_data.json`'s `subscriptions`
   array.
@@ -503,13 +507,13 @@ branching/loop logic.
   back to the Unix epoch when absent.
 - **Usage:** Called from `FinanceData.fromJson`:
   `(json['subscriptions'] as List<dynamic>?)?.map((s) => Subscription.fromJson(s as Map<String, dynamic>))`
-  (`lib/features/finance/services/finance_storage.dart:96-99`).
+  (`lib/features/finance/services/finance_storage.dart:125-128`).
 - **Notes:** A subscription loaded via this factory with no `nextBillingDate` key is exactly the
   "migration case" `SubscriptionProcessor.process` detects and handles on its first pass.
 
 ### `const IconRef({required int codePoint, String fontFamily = 'MaterialIcons'})` <a id="iconref-new"></a>
 - **Kind:** const constructor of `IconRef`
-- **Source:** `lib/features/finance/models/finance.dart` (line 532)
+- **Source:** `lib/features/finance/models/finance.dart` (line 535)
 - **Purpose:** Hold a Material icon's numeric code point and font family so it can be persisted and
   reconstructed without storing a full `IconData`.
 - **Inputs:** `codePoint` required; `fontFamily` defaults `'MaterialIcons'`.
@@ -528,19 +532,19 @@ branching/loop logic.
 
 ### `Map<String, dynamic> toJson()` <a id="iconref-tojson"></a>
 - **Kind:** method of `IconRef`
-- **Source:** `lib/features/finance/models/finance.dart` (line 539)
+- **Source:** `lib/features/finance/models/finance.dart` (line 542)
 - **Purpose:** Serialize an icon reference into the JSON nested under a category's `icon` key.
 - **Inputs:** None.
 - **Returns:** `{codePoint, fontFamily}`.
 - **Side effects:** None.
 - **Algorithm:** Direct map literal.
 - **Usage:** Called from `Category.toJson()`: `'icon': icon.toJson()`
-  (`lib/features/finance/models/finance.dart:298`).
+  (`lib/features/finance/models/finance.dart:300`).
 - **Notes:** None.
 
 ### `factory IconRef.fromJson(Map<String, dynamic> json)` <a id="iconref-fromjson"></a>
 - **Kind:** factory constructor of `IconRef`
-- **Source:** `lib/features/finance/models/finance.dart` (line 549)
+- **Source:** `lib/features/finance/models/finance.dart` (line 552)
 - **Purpose:** Parse an icon reference back out of a category's nested `icon` JSON.
 - **Inputs:** `json` — decoded map.
 - **Returns:** A new `IconRef`.
@@ -549,12 +553,12 @@ branching/loop logic.
   absent.
 - **Usage:** Called from `Category.fromJson`:
   `icon: IconRef.fromJson(json['icon'] as Map<String, dynamic>)`
-  (`lib/features/finance/models/finance.dart:312`).
+  (`lib/features/finance/models/finance.dart:314`).
 - **Notes:** None.
 
 ### `IconData toIconData()` <a id="toicondata"></a>
 - **Kind:** method of `IconRef`
-- **Source:** `lib/features/finance/models/finance.dart` (line 560)
+- **Source:** `lib/features/finance/models/finance.dart` (line 563)
 - **Purpose:** Reconstruct a usable Flutter `IconData` from the stored code point and font family,
   for rendering a category's icon.
 - **Inputs:** None.

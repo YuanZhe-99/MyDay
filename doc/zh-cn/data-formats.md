@@ -28,7 +28,7 @@
 - **`Transaction`**：`id`、`type`（`TransactionType`）、`amount`、`currency`（默认 `'CNY'`）、可选 `rateSnapshotId`（引用记录时捕获的历史 `RateSnapshot`）、`accountId`、可选 `toAccountId`/`toAmount`/`toCurrency`（跨币种转账的转账目标账户/金额/币种）、可选 `categoryId`、可选 `subscriptionId`、`note`（默认 `''`）、`date`、`modifiedAt`。
 - **`Category`**：`id`、`name`、`icon`（`IconRef`）、可选 `emoji`、`type`（`TransactionType`——支持转账分类）、`modifiedAt`。
 - **`BillingCycleType`** 枚举：`monthly`、`yearly`。**`CancelType`** 枚举：`immediate`、`atExpiry`。
-- **`Subscription`**：`id`、`name`、可选 `emoji`/`imagePath`、`startDate`、`trialDays`（默认 `0`）、`billingCycleType`、`billingInterval`（每 X 个月/年，默认 `1`）、`amount`、`currency`（默认 `'CNY'`）、`accountId`、可选 `categoryId`、`note`（默认 `''`）、`isActive`（默认 `true`）、可选 `cancelledAt`、可选 `cancelType`、可选持久化 `nextBillingDate`、`modifiedAt`。`firstBillingDate` = `startDate + trialDays`。`Subscription.nextBillingCursor(...)` 是模型和 `SubscriptionProcessor` 都使用的共享月末钳制游标推进——完整算法见 [订阅计费](algorithms/subscription-billing.md)。
+- **`Subscription`**：`id`、`name`、可选 `emoji`/`imagePath`、`startDate`、`trialDays`（默认 `0`）、`billingCycleType`、`billingInterval`（每 X 个月/年，默认 `1`）、`amount`、`currency`（默认 `'CNY'`）、`accountId`、可选 `categoryId`、`note`（默认 `''`）、`isActive`（默认 `true`）、可选 `cancelledAt`、可选 `cancelType`、可选持久化 `nextBillingDate`、`modifiedAt`。`firstBillingDate` = `startDate + trialDays`，按日历日计算（`addCalendarDays`，因此跨夏令时切换时保留开始时刻，v1.5.2）。`Subscription.nextBillingCursor(...)` 是模型和 `SubscriptionProcessor` 都使用的共享月末钳制游标推进——完整算法见 [订阅计费](algorithms/subscription-billing.md)。
 - **`IconRef`**：`codePoint`（Material 图标码点）、`fontFamily`（默认 `'MaterialIcons'`）。因为图标数据从这两个字段动态重建，发布构建需要 `--no-tree-shake-icons`。
 
 `FinanceStorage` 还在 `finance_data.json` 中持久化：账户列表（带可选免手续费标准）、分类、交易、订阅、默认币种、订阅提醒/排序、账户排序模式/自定义顺序、交易账户选择器的 `AccountPickerSettings` 和 `settingsModifiedAt`。
@@ -36,6 +36,8 @@
 ### `exchange_rates.json`
 
 `ExchangeRateStorage` 保留基于快照的历史：`RateSnapshot` 映射（去重）、一个 `currentSnapshotId` 和 `lastFetchedAt`。它从旧的平铺 currency→rate 映射格式向前迁移。`ExchangeRateApi` 如何填充它、`balance_util.dart` 如何消费它见 [财务](features/finance.md)。
+
+缺失或空白的文件读作默认快照。自 v1.5.2 起，既有文件无法读取或解析时抛出 `ExchangeRateStorageException`，而不是静默返回默认值；保存也拒绝覆盖这样的文件，因此快照历史绝不会被一个默认快照替换。财务页显示其数据不可读视图，汇率页显示带重试按钮的阻断式错误视图，本地 API 返回 `data_unreadable`。`FinanceStorage.load` 只在某个账户仍带有待迁移的旧版强制余额时才读取此文件，因此普通的财务加载不依赖它。磁盘格式不变。
 
 ## 亲密 — `intimacy_data.json`
 
@@ -69,6 +71,8 @@
 这两个端侧 AI 键只在为 `true` 时写入，关闭时移除，因此键不存在即表示关闭。它们只存在于本设备，因为是否有模型是设备的属性——见 [on-device-ai.md](on-device-ai.md)。
 
 这四个列数偏好存放在这里、因而从不同步，是刻意的：窗口尺寸是设备的属性，不是账户的属性——见 [自适应布局](adaptive-layout.md)。在用户固定列数之前每一个都不存在，存在时保存 1..4 的整数；其余情况（含不存在）一律读作「自动」。
+
+自 v1.5.2 起，对此文件的每次写入都是一次读取-合并-写入，由 `TodoStorage` 通过同一个配置写队列串行执行，并以原子写入（先写临时文件再重命名）落盘。`writeConfig` 只接收要修改的键（值为 `null` 表示移除该键），因此同时保存的两项设置不会再互相丢失。写入拒绝在不是可解析 JSON 对象的既有文件之上构建，改为抛出 `TodoStorageException`，因此 `storagePath` 和 API 凭据绝不会被一个近乎为空的映射替换；缺失或空白的文件视为 `{}`。经 `TodoStorage.readConfig()` 的读取保持宽松，对不可读的文件返回 `{}`。格式不变。
 
 ## 持久化数据清单 <a id="persisted-data-inventory"></a>
 

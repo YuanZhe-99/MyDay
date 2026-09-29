@@ -41,7 +41,14 @@ anchors for accounts that predate this migration.
 ## Exchange rates
 
 - **`ExchangeRateStorage`**: snapshot-based history — deduplicated `RateSnapshot`s plus a
-  `currentSnapshotId`, migrated forward from an older flat currency→rate map format.
+  `currentSnapshotId`, migrated forward from an older flat currency→rate map format. Since v1.5.2
+  an existing file that cannot be read or parsed raises `ExchangeRateStorageException` instead of
+  silently falling back to the default rates, and a save refuses to overwrite it, so the snapshot
+  history is never replaced by a default snapshot. The Finance page loads the rates inside its
+  load `try` and shows its unreadable-data view; the exchange-rates page shows a blocking error view
+  (reusing the Finance unreadable-data title and retry button) and allows no fetch or save until a
+  retry reads the file. `FinanceStorage.load` and the sync `postMergeTransform` read the rates only
+  when an account still carries a legacy forced balance (`needsForcedBalanceMigration`).
 - **`ExchangeRateApi`**: fetches from `https://open.er-api.com/v6/latest/{base}` with no API key,
   updates only configured currency pairs, and fetches **at most once per day**.
 - **`balance_util.dart` conversion logic**: currency symbols (`'CNY' => '¥'`, `'USD' => '\$'`,
@@ -173,7 +180,21 @@ into a **new** active subscription with today's date and a new id.
 The **analysis page** includes: clickable expense/income category breakdowns including
 uncategorized flows, category transaction drill-down with add/edit/delete support, expense/income
 trends, editable custom date ranges, and a total-assets trend that reconstructs account balances at
-sample points.
+sample points. Day steps, the one-day range and daily trend buckets count local calendar days, so a
+23- or 25-hour DST day never shifts a transaction into the neighbouring day (v1.5.2).
+
+**Sub-page saves merge by id (v1.5.2).** Accounts, analysis, subscriptions, subscription details
+and categories receive the home page's lists and report whole edited lists back. Writing such a list
+as-is used to overwrite anything another writer had changed while the sub-page was open — a
+subscription renewal from `ReminderService`, a local-API transaction, or a sync. Each list callback
+now goes through `_commitSubPage`: an `IdListBaseline` (see
+[`id_list_delta.dart`](../functions/shared/utils/id_list_delta.md)) turns the report into an
+`IdListDelta` of only the records the sub-page added, changed or removed; inside the page's serial
+I/O queue the file is re-read, the delta is replayed onto the fresh lists, and the result is saved.
+Records the sub-page did not touch keep their on-disk value; an edit to a record deleted meanwhile
+re-adds it (the edit wins). Settings callbacks (sort modes, reminder time, account-picker settings)
+still save the page's state as before. Loads, saves and commits all run one at a time through that
+queue, and a commit is refused while the file is unreadable.
 
 ## AI insight card (1.5.0)
 

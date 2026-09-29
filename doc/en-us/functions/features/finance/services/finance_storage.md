@@ -7,8 +7,9 @@ queue — the same pattern as
 [`WeightStorage`](../../weight/services/weight_storage.md) and
 [`ExchangeRateStorage`](exchange_rate_storage.md). `load()` additionally runs the one-time
 forced-balance-to-adjustment-transaction migration
-([`migrateForcedBalances`](balance_util.md#migrateforcedbalances)) on every read, re-saving the
-migrated result when it changes anything. See
+([`migrateForcedBalances`](balance_util.md#migrateforcedbalances)) whenever an account still carries
+a legacy forced balance, re-saving the migrated result; since v1.5.2 it reads `exchange_rates.json`
+only in that case. See
 [Finance](../../../../features/finance.md) for the feature overview and
 [Data Formats](../../../../data-formats.md#finance--finance_datajson) for the full `finance_data.json`
 field list.
@@ -18,19 +19,20 @@ field list.
 | Declaration | Kind | Tier | Purpose |
 |---|---|---|---|
 | [`FinanceData()`](#financedata-new) | constructor (`FinanceData`) | A | Bundle every Finance record list plus persisted settings. |
+| [`copyWith`](#financedata-copywith) | method (`FinanceData`) | A | Return a copy with the given record lists replaced (v1.5.2). |
 | [`toJson`](#financedata-tojson) | method (`FinanceData`) | A | Serialize finance data to JSON. |
 | [`FinanceData.fromJson`](#financedata-fromjson) | factory constructor (`FinanceData`) | A | Parse finance data from JSON. |
 | [`FinanceStorageException()`](#financestorageexception-new) | const constructor (`FinanceStorageException`) | A | Create a finance storage exception with a user-visible message. |
 | `toString` | method (`FinanceStorageException`) | B | Return the exception's message as its string representation. |
 | [`_getFile`](#getfile) | static method (`FinanceStorage`) | A | Resolve the on-disk path of `finance_data.json`. |
-| [`load`](#load) | static method (`FinanceStorage`) | A | Load, parse, and forced-balance-migrate `finance_data.json`. |
+| [`load`](#load) | static method (`FinanceStorage`) | A | Load, parse, and forced-balance-migrate `finance_data.json`, reading rates only when needed. |
 | [`_migrateForcedBalances`](#migrateforcedbalances) | static method (`FinanceStorage`) | A | Rebuild `FinanceData` with migrated accounts/transactions if the migration changed anything. |
 | [`save`](#save) | static method (`FinanceStorage`) | A | Queue a write of finance data, serialized against concurrent saves. |
 | [`_saveNow`](#savenow) | static method (`FinanceStorage`) | A | Persist finance data after entering the write queue. |
-| [`_atomicWriteJson`](#atomicwritejson) | static method (`FinanceStorage`) | A | Replace a JSON file only after the replacement content validates. |
+| [`_atomicWriteJson`](#atomicwritejson) | static method (`FinanceStorage`) | A | Replace a JSON file only after the replacement content validates (atomic write). |
 
 **Reconciliation:** `grep -c 'Purpose:' lib/features/finance/services/finance_storage.dart` returns
-11, matching the 11 rows above exactly — each block sits immediately above its real declaration
+12, matching the 12 rows above exactly — each block sits immediately above its real declaration
 (constructor, factory constructor, method, or static method); none were found misattached above a
 call-site statement. The remaining plain fields in the file (`FinanceData`'s own fields,
 `FinanceStorageException.message`, `FinanceStorage._fileName`/`_writeQueue`) carry no
@@ -58,34 +60,56 @@ constructors/serialization, or real IO/branching logic in `FinanceStorage`'s sta
   feature which default to "now."
 - **Usage:**
   ```dart
-  await FinanceStorage.save(
-    FinanceData(
-      accounts: _accounts,
-      categories: _categories,
-      transactions: _transactions,
-      subscriptions: _subscriptions,
-      defaultCurrency: _defaultCurrency,
-      settingsModifiedAt: _settingsModifiedAt,
-      subscriptionReminderHour: _subscriptionReminderHour,
-      subscriptionReminderMinute: _subscriptionReminderMinute,
-      subscriptionSortMode: _subscriptionSortMode,
-      subscriptionCustomOrder: _subscriptionCustomOrder,
-      accountSortModes: _accountSortModes,
-      accountCustomOrders: _accountCustomOrders,
-      accountPickerSettings: _accountPickerSettings,
-    ),
+  FinanceData _currentFinanceData() => FinanceData(
+    accounts: _accounts,
+    categories: _categories,
+    transactions: _transactions,
+    subscriptions: _subscriptions,
+    defaultCurrency: _defaultCurrency,
+    settingsModifiedAt: _settingsModifiedAt,
+    subscriptionReminderHour: _subscriptionReminderHour,
+    subscriptionReminderMinute: _subscriptionReminderMinute,
+    subscriptionSortMode: _subscriptionSortMode,
+    subscriptionCustomOrder: _subscriptionCustomOrder,
+    accountSortModes: _accountSortModes,
+    accountCustomOrders: _accountCustomOrders,
+    accountPickerSettings: _accountPickerSettings,
   );
   ```
-  (`lib/features/finance/views/finance_page.dart:201-217`, the Finance home page's save-all
-  handler.)
+  (`lib/features/finance/views/finance_page.dart:147-161`, the Finance home page's snapshot of its
+  state, saved whole by its settings flows.)
 - **Notes:** Defaulting `settingsModifiedAt` to the epoch (rather than "now") means a freshly
   constructed `FinanceData` whose settings were never explicitly touched compares as "older" than
   any synced settings update — relevant to the settings side of three-way merge (see
   [Three-Way Merge](../../../../algorithms/three-way-merge.md)).
 
+### `FinanceData copyWith({List<Account>? accounts, List<Category>? categories, List<Transaction>? transactions, List<Subscription>? subscriptions})` <a id="financedata-copywith"></a>
+- **Kind:** method of `FinanceData`
+- **Source:** `lib/features/finance/services/finance_storage.dart` (line 54)
+- **Purpose:** Return a copy with the given record lists replaced (v1.5.2).
+- **Inputs:** optional `accounts`, `categories`, `transactions`, `subscriptions`.
+- **Returns:** A new `FinanceData` sharing every other field with this one.
+- **Side effects:** None.
+- **Algorithm:** Build a new `FinanceData` with each record list taken from the argument when it is
+  non-null and from `this` otherwise; `defaultCurrency`, `settingsModifiedAt` and all the settings
+  fields are copied unchanged.
+- **Usage:**
+  ```dart
+  final merged = base.copyWith(
+    accounts: accounts?.applyTo(base.accounts),
+    categories: categories?.applyTo(base.categories),
+    transactions: transactions?.applyTo(base.transactions),
+    subscriptions: subscriptions?.applyTo(base.subscriptions),
+  );
+  ```
+  (`lib/features/finance/views/finance_page.dart:290-295`, inside `_commitSubPage`.)
+- **Notes:** Used by the finance page's merge-by-id sub-page saves: only the lists a sub-page
+  changed are replayed onto the freshly re-read file, and settings fields are carried over
+  unchanged.
+
 ### `Map<String, dynamic> toJson()` <a id="financedata-tojson"></a>
 - **Kind:** method of `FinanceData`
-- **Source:** `lib/features/finance/services/finance_storage.dart` (line 53)
+- **Source:** `lib/features/finance/services/finance_storage.dart` (line 82)
 - **Purpose:** Serialize the full Finance dataset into the JSON persisted as `finance_data.json`.
 - **Inputs:** None.
 - **Returns:** A map with `accounts`/`categories`/`transactions`/`subscriptions`/`defaultCurrency`/
@@ -100,7 +124,7 @@ constructors/serialization, or real IO/branching logic in `FinanceStorage`'s sta
 
 ### `factory FinanceData.fromJson(Map<String, dynamic> json)` <a id="financedata-fromjson"></a>
 - **Kind:** factory constructor of `FinanceData`
-- **Source:** `lib/features/finance/services/finance_storage.dart` (line 79)
+- **Source:** `lib/features/finance/services/finance_storage.dart` (line 108)
 - **Purpose:** Parse the full Finance dataset back out of `finance_data.json`.
 - **Inputs:** `json` — decoded map.
 - **Returns:** A new `FinanceData`.
@@ -115,14 +139,14 @@ constructors/serialization, or real IO/branching logic in `FinanceStorage`'s sta
   final json = jsonDecode(raw) as Map<String, dynamic>;
   final data = FinanceData.fromJson(json);
   ```
-  (`lib/features/finance/services/finance_storage.dart:174-175`, inside [`load`](#load).)
+  (`lib/features/finance/services/finance_storage.dart:205-206`, inside [`load`](#load).)
 - **Notes:** Every list field defaults to `[]` (not `null`) when absent, so a partially-populated or
   very old `finance_data.json` still produces a fully-usable `FinanceData` rather than requiring
   null checks downstream.
 
 ### `const FinanceStorageException(String message)` <a id="financestorageexception-new"></a>
 - **Kind:** const constructor of `FinanceStorageException`
-- **Source:** `lib/features/finance/services/finance_storage.dart` (line 136)
+- **Source:** `lib/features/finance/services/finance_storage.dart` (line 165)
 - **Purpose:** Create an exception carrying a user-visible message, thrown when `finance_data.json`
   exists but cannot be safely read or written.
 - **Inputs:** `message`.
@@ -133,7 +157,7 @@ constructors/serialization, or real IO/branching logic in `FinanceStorage`'s sta
   ```dart
   throw FinanceStorageException('$_fileName is not valid JSON: $e');
   ```
-  (`lib/features/finance/services/finance_storage.dart:185`, inside [`load`](#load); the analogous
+  (`lib/features/finance/services/finance_storage.dart:220`, inside [`load`](#load); the analogous
   `'Failed to load $_fileName: $e'` case covers any other read failure, and
   [`_atomicWriteJson`](#atomicwritejson) throws the same type for write-side validation failures.)
 - **Notes:** Implements `Exception`, not `Error` — intended to be caught and shown to the user (e.g.
@@ -141,7 +165,7 @@ constructors/serialization, or real IO/branching logic in `FinanceStorage`'s sta
 
 ### `static Future<File> _getFile()` <a id="getfile"></a>
 - **Kind:** static method of `FinanceStorage`
-- **Source:** `lib/features/finance/services/finance_storage.dart` (line 156)
+- **Source:** `lib/features/finance/services/finance_storage.dart` (line 185)
 - **Purpose:** Resolve the `File` handle for `finance_data.json` inside the app's data directory.
 - **Inputs:** None.
 - **Returns:** `Future<File>`.
@@ -152,39 +176,45 @@ constructors/serialization, or real IO/branching logic in `FinanceStorage`'s sta
 
 ### `static Future<FinanceData?> load()` <a id="load"></a>
 - **Kind:** static method of `FinanceStorage`
-- **Source:** `lib/features/finance/services/finance_storage.dart` (line 167)
+- **Source:** `lib/features/finance/services/finance_storage.dart` (line 198)
 - **Purpose:** Load and parse `finance_data.json`, running the forced-balance migration and
   persisting the result if it changed anything, so callers always see already-migrated data.
 - **Inputs:** None.
 - **Returns:** `Future<FinanceData?>` — `null` only if the file doesn't exist; a missing file is
   never confused with a corrupted one, since a corrupted file throws instead.
-- **Side effects:** Reads `finance_data.json`; reads exchange-rate data via
-  [`ExchangeRateStorage.load()`](exchange_rate_storage.md#load); may write `finance_data.json` again
-  (via [`save`](#save)) if migration changed anything.
+- **Side effects:** Reads `finance_data.json`; only when a legacy forced balance must be migrated,
+  reads exchange-rate data via [`ExchangeRateStorage.load()`](exchange_rate_storage.md#load) and may
+  write `finance_data.json` again (via [`save`](#save)).
 - **Algorithm:**
   1. Return `null` immediately if the file doesn't exist.
   2. Decode its JSON and parse via [`FinanceData.fromJson`](#financedata-fromjson).
-  3. Load current exchange-rate data and run [`_migrateForcedBalances`](#migrateforcedbalances).
-  4. If migration made no change (`identical(migrated, data)`), return `data` as loaded.
-  5. Otherwise attempt `await save(migrated)` (swallowing any save failure) and return `migrated`
+  3. If [`needsForcedBalanceMigration`](balance_util.md#needsforcedbalancemigration) is false for
+     `data.accounts`, return `data` at once without reading `exchange_rates.json` (v1.5.2).
+  4. Otherwise load current exchange-rate data and run
+     [`_migrateForcedBalances`](#migrateforcedbalances).
+  5. If migration made no change (`identical(migrated, data)`), return `data` as loaded.
+  6. Otherwise attempt `await save(migrated)` (swallowing any save failure) and return `migrated`
      regardless of whether the re-save succeeded.
-  6. A `FormatException` (invalid JSON) is caught and rethrown as
-     `FinanceStorageException('$_fileName is not valid JSON: $e')`; any other exception is rethrown
-     as `FinanceStorageException('Failed to load $_fileName: $e')`.
+  7. An [`ExchangeRateStorageException`](exchange_rate_storage.md#exchangeratestorageexception-new)
+     from the rates read is rethrown unchanged (v1.5.2). A `FormatException` (invalid JSON) is
+     caught and rethrown as `FinanceStorageException('$_fileName is not valid JSON: $e')`; any other
+     exception is rethrown as `FinanceStorageException('Failed to load $_fileName: $e')`.
 - **Usage:**
   ```dart
   data = await FinanceStorage.load();
   ```
-  (`lib/features/finance/views/finance_page.dart:99`, the Finance home page's load path; also used
+  (`lib/features/finance/views/finance_page.dart:180`, the Finance home page's load path; also used
   by `lib/shared/services/local_api_server.dart`'s HTTP handlers and
   `lib/shared/services/reminder_service.dart`'s hourly subscription check.)
 - **Notes:** A missing file and a corrupt file are deliberately distinguished, the same pattern as
   `WeightStorage.load` — missing means "no data yet" (`null`), corrupt/unreadable is an error state
-  the UI must surface, never silently mistaken for an empty dataset.
+  the UI must surface, never silently mistaken for an empty dataset. Because the rates file is
+  read only for a pending migration, an unreadable `exchange_rates.json` blocks loading only in that
+  case, and then surfaces as `ExchangeRateStorageException` rather than a finance-file error.
 
 ### `static FinanceData _migrateForcedBalances(FinanceData data, ExchangeRateData rateData)` <a id="migrateforcedbalances"></a>
 - **Kind:** static method of `FinanceStorage`
-- **Source:** `lib/features/finance/services/finance_storage.dart` (line 196)
+- **Source:** `lib/features/finance/services/finance_storage.dart` (line 231)
 - **Purpose:** Run [`migrateForcedBalances`](balance_util.md#migrateforcedbalances) over one
   `FinanceData` value and, if it changed anything, rebuild a new `FinanceData` with the migrated
   accounts/transactions and every other field carried over unchanged.
@@ -207,7 +237,7 @@ constructors/serialization, or real IO/branching logic in `FinanceStorage`'s sta
 
 ### `static Future<void> save(FinanceData data)` <a id="save"></a>
 - **Kind:** static method of `FinanceStorage`
-- **Source:** `lib/features/finance/services/finance_storage.dart` (line 229)
+- **Source:** `lib/features/finance/services/finance_storage.dart` (line 264)
 - **Purpose:** Queue a write of `data`, ensuring overlapping `save` calls never interleave their
   writes to `finance_data.json`.
 - **Inputs:** `data`.
@@ -221,9 +251,10 @@ constructors/serialization, or real IO/branching logic in `FinanceStorage`'s sta
 - **Usage:**
   ```dart
   await FinanceStorage.save(next);
+  _notifyWritten();
   return _json({'success': true, ...});
   ```
-  (`lib/shared/services/local_api_server.dart:794-796`, the local HTTP API's "create transaction"
+  (`lib/shared/services/local_api_server.dart:802-804`, the local HTTP API's "create transaction"
   handler; the same call shape saves from `finance_page.dart`'s settings/edit flows and
   `reminder_service.dart`'s subscription catch-up.)
 - **Notes:** Concurrent `save()` calls are strictly serialized in call order, same guarantee as
@@ -231,7 +262,7 @@ constructors/serialization, or real IO/branching logic in `FinanceStorage`'s sta
 
 ### `static Future<void> _saveNow(FinanceData data)` <a id="savenow"></a>
 - **Kind:** static method of `FinanceStorage`
-- **Source:** `lib/features/finance/services/finance_storage.dart` (line 243)
+- **Source:** `lib/features/finance/services/finance_storage.dart` (line 278)
 - **Purpose:** Perform one actual write of `data` to `finance_data.json`, after the caller has
   already taken its turn in the write queue.
 - **Inputs:** `data`.
@@ -248,10 +279,9 @@ constructors/serialization, or real IO/branching logic in `FinanceStorage`'s sta
 
 ### `static Future<void> _atomicWriteJson(File file, String jsonStr)` <a id="atomicwritejson"></a>
 - **Kind:** static method of `FinanceStorage`
-- **Source:** `lib/features/finance/services/finance_storage.dart` (line 258)
-- **Purpose:** Replace `finance_data.json` with new content only after confirming both the new
-  content and the just-written temp file actually decode as valid JSON, refusing to write anything
-  that would corrupt the file.
+- **Source:** `lib/features/finance/services/finance_storage.dart` (line 293)
+- **Purpose:** Replace `finance_data.json` with new content (atomic write) only after confirming the
+  new content decodes as a JSON object, refusing to write anything that would corrupt the file.
 - **Inputs:** `file`; `jsonStr` — the candidate new content.
 - **Returns:** `Future<void>`.
 - **Side effects:** Creates the parent directory if missing; writes and renames a `.tmp-<timestamp>`
@@ -262,12 +292,13 @@ constructors/serialization, or real IO/branching logic in `FinanceStorage`'s sta
   2. Ensure the parent directory exists.
   3. Write `jsonStr` to a uniquely-named temp file (`'${file.path}.tmp-<microsecondsSinceEpoch>'`),
      flushing to disk.
-  4. Re-read and re-decode the temp file's own content as a second validation pass; if that
-     succeeds, `rename` it onto `file.path` (atomic on the underlying filesystem).
-  5. If the re-read/decode fails, delete the temp file (best-effort) and rethrow — either
+  4. `rename` the temp file onto `file.path` (atomic on the underlying filesystem). Since v1.5.2
+     the flushed temp file is no longer re-read and re-decoded first: the content was already
+     validated in step 1.
+  5. If the rename fails, delete the temp file (best-effort) and rethrow — either
      propagating an existing `FinanceStorageException` or wrapping any other error as
      `FinanceStorageException('Failed to write $_fileName safely: $e')`.
 - **Usage:** Called once inside [`_saveNow`](#savenow): `await _atomicWriteJson(file, jsonStr);`.
-- **Notes:** The double validation — once on the string before writing, once on the temp file after
-  writing — guards against both a bad in-memory payload and a filesystem-level write corruption,
-  neither of which is ever allowed to overwrite the last-known-good `finance_data.json`.
+- **Notes:** The up-front validation guards against a bad in-memory payload, and the
+  temp-file-then-rename sequence means an interrupted write never leaves a half-written
+  `finance_data.json`: the last-known-good file stays until the rename replaces it.

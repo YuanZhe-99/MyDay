@@ -114,6 +114,27 @@ class ExchangeRateData {
   }
 }
 
+/// Raised when `exchange_rates.json` exists but cannot be read or parsed.
+class ExchangeRateStorageException implements Exception {
+  final String message;
+
+  /// Purpose: Create an exchange-rate storage exception with a readable message.
+  /// Inputs: `message`.
+  /// Returns: A new `ExchangeRateStorageException` instance.
+  /// Side effects: None.
+  /// Notes: Thrown instead of falling back to default rates so the snapshot history is
+  /// never overwritten (v1.5.2).
+  const ExchangeRateStorageException(this.message);
+
+  /// Purpose: Return a readable exception message.
+  /// Inputs: None.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Shown by finance load-error views and the local API error body.
+  @override
+  String toString() => message;
+}
+
 /// Persists exchange rate snapshots with history.
 class ExchangeRateStorage {
   static const _fileName = 'exchange_rates.json';
@@ -129,16 +150,25 @@ class ExchangeRateStorage {
     return File('${appDir.path}/$_fileName');
   }
 
-  /// Purpose: Implement the load behavior for this file.
+  /// Purpose: Load exchange-rate history from `exchange_rates.json`.
   /// Inputs: None.
   /// Returns: `Future<ExchangeRateData>`.
-  /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: None.
+  /// Side effects: Reads `exchange_rates.json`.
+  /// Notes: A missing or blank file yields the defaults and a legacy flat map is migrated.
+  /// Since v1.5.2 an existing file that cannot be parsed throws
+  /// `ExchangeRateStorageException` instead of silently returning defaults, so the
+  /// snapshot history is never replaced by a default snapshot on the next save.
   static Future<ExchangeRateData> load() async {
+    final file = await _getFile();
+    if (!await file.exists()) return _defaultData();
+    final String raw;
     try {
-      final file = await _getFile();
-      if (!await file.exists()) return _defaultData();
-      final raw = await file.readAsString();
+      raw = await file.readAsString();
+    } catch (e) {
+      throw ExchangeRateStorageException('Failed to read $_fileName: $e');
+    }
+    if (raw.trim().isEmpty) return _defaultData();
+    try {
       final json = jsonDecode(raw) as Map<String, dynamic>;
 
       // Migration: old format is a flat map without "snapshots" key
@@ -150,8 +180,8 @@ class ExchangeRateStorage {
       }
 
       return ExchangeRateData.fromJson(json);
-    } catch (_) {
-      return _defaultData();
+    } catch (e) {
+      throw ExchangeRateStorageException('$_fileName is unreadable: $e');
     }
   }
 
@@ -173,17 +203,32 @@ class ExchangeRateStorage {
   /// Inputs: `data`.
   /// Returns: `Future<void>`.
   /// Side effects: Writes `exchange_rates.json` through a validated temporary file.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Internal helper used within this file only. Throws
+  /// `ExchangeRateStorageException` instead of overwriting an existing file that cannot be
+  /// parsed (v1.5.2); a blank file is treated like a missing one.
   static Future<void> _saveNow(ExchangeRateData data) async {
     final file = await _getFile();
     var preserveUnknown = true;
-    try {
-      if (await file.exists()) {
-        final existing =
-            jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+    if (await file.exists()) {
+      final String raw;
+      try {
+        raw = await file.readAsString();
+      } catch (e) {
+        throw ExchangeRateStorageException('Failed to read $_fileName: $e');
+      }
+      if (raw.trim().isNotEmpty) {
+        Object? existing;
+        try {
+          existing = jsonDecode(raw);
+        } catch (_) {}
+        if (existing is! Map<String, dynamic>) {
+          throw const ExchangeRateStorageException(
+            '$_fileName is unreadable; refusing to overwrite it',
+          );
+        }
         preserveUnknown = existing.containsKey('snapshots');
       }
-    } catch (_) {}
+    }
     if (!preserveUnknown) {
       await DataFileSafety.writeValidatedDataJson(
         file,

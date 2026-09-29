@@ -39,7 +39,7 @@ loop/branching logic; `_now` is classified Tier B as a trivial one-line null-coa
 
 ### `static String billingDateKey(String subscriptionId, DateTime date)` <a id="billingdatekey"></a>
 - **Kind:** static method of `SubscriptionProcessor`
-- **Source:** `lib/features/finance/services/subscription_processor.dart` (line 17)
+- **Source:** `lib/features/finance/services/subscription_processor.dart` (line 18)
 - **Purpose:** Build the business key `'<subscriptionId>|yyyy-MM-dd'` used to detect whether a
   subscription has already billed on a given calendar day, independent of any transaction id.
 - **Inputs:** `subscriptionId`; `date` — only the year/month/day are used.
@@ -52,7 +52,7 @@ loop/branching logic; `_now` is classified Tier B as a trivial one-line null-coa
   final billingKey = billingDateKey(sub.id, cursor);
   if (!billedKeys.contains(billingKey)) { ... }
   ```
-  (`lib/features/finance/services/subscription_processor.dart:97-98`, inside [`process`](#process);
+  (`lib/features/finance/services/subscription_processor.dart:96-97`, inside [`process`](#process);
   also used to build the `billedKeys` set in
   [`_existingBillingKeys`](#existingbillingkeys).)
 - **Notes:** See [Subscription Billing](../../../../algorithms/subscription-billing.md#idempotent-billing-day-generation)
@@ -62,7 +62,7 @@ loop/branching logic; `_now` is classified Tier B as a trivial one-line null-coa
 
 ### `static String transactionIdForBilling(String subscriptionId, DateTime date)` <a id="transactionidforbilling"></a>
 - **Kind:** static method of `SubscriptionProcessor`
-- **Source:** `lib/features/finance/services/subscription_processor.dart` (line 29)
+- **Source:** `lib/features/finance/services/subscription_processor.dart` (line 30)
 - **Purpose:** Build the deterministic transaction id `'subscription_<subscriptionId>_yyyy-MM-dd'`
   assigned to newly-generated billing transactions, so the same subscription+day always produces the
   same id.
@@ -82,7 +82,7 @@ loop/branching logic; `_now` is classified Tier B as a trivial one-line null-coa
     ),
   );
   ```
-  (`lib/features/finance/services/subscription_processor.dart:100-101`, inside [`process`](#process).)
+  (`lib/features/finance/services/subscription_processor.dart:98-100`, inside [`process`](#process).)
 - **Notes:** Because this id is deterministic per subscription+day, generating it independently on
   two devices (e.g. once locally, once after a sync merge sees the same subscription) produces the
   *same* id both times, so an id-keyed merge treats them as one record instead of duplicating —
@@ -90,7 +90,7 @@ loop/branching logic; `_now` is classified Tier B as a trivial one-line null-coa
 
 ### `static ({List<Subscription> subs, List<Transaction> txs, bool changed}) process(List<Subscription> subscriptions, List<Transaction> existingTransactions)` <a id="process"></a>
 - **Kind:** static method of `SubscriptionProcessor`
-- **Source:** `lib/features/finance/services/subscription_processor.dart` (line 48)
+- **Source:** `lib/features/finance/services/subscription_processor.dart` (line 49)
 - **Purpose:** Run one hourly (or on-demand) renewal pass over every subscription: generate a
   transaction for each overdue billing day, catching up multiple missed cycles in one call, and mark
   `atExpiry`-cancelled subscriptions inactive once their cutoff has passed.
@@ -106,7 +106,8 @@ loop/branching logic; `_now` is classified Tier B as a trivial one-line null-coa
   1. Pass through unchanged if immediately cancelled.
   2. **Migration case:** if `nextBillingDate` was never persisted, compute it once via
      `calculateNextBillingDate(after: yesterday)` and persist it without generating a transaction for
-     this pass.
+     this pass. `yesterday` is `addCalendarDays(today, -1)` (v1.5.2), so it stays on local midnight
+     across a DST change.
   3. **Catch-up loop:** starting from the persisted `nextBillingDate`, advance one cycle at a time via
      [`Subscription.nextBillingCursor`](../models/finance.md#nextbillingcursor) (stopping early at an
      `atExpiry` cutoff), generating one transaction per overdue day via
@@ -125,8 +126,8 @@ loop/branching logic; `_now` is classified Tier B as a trivial one-line null-coa
     });
   }
   ```
-  (`lib/features/finance/views/finance_page.dart:145-150`, `_processSubscriptions`; the same shape
-  runs from `lib/shared/services/reminder_service.dart:964-968` on the hourly reminder loop
+  (`lib/features/finance/views/finance_page.dart:213-218`, `_processSubscriptions`; the same shape
+  runs from `lib/shared/services/reminder_service.dart:1009-1013` on the hourly reminder loop
   referenced in `AGENTS.md`.)
 - **Notes:** If the app was closed for three missed monthly cycles, this single call generates all
   three transactions and lands the cursor on the correct next-future date — the "multi-cycle
@@ -134,7 +135,7 @@ loop/branching logic; `_now` is classified Tier B as a trivial one-line null-coa
 
 ### `static Set<String> _existingBillingKeys(List<Transaction> transactions)` <a id="existingbillingkeys"></a>
 - **Kind:** static method of `SubscriptionProcessor`
-- **Source:** `lib/features/finance/services/subscription_processor.dart` (line 154)
+- **Source:** `lib/features/finance/services/subscription_processor.dart` (line 153)
 - **Purpose:** Collect the set of subscription billing-day keys already represented among existing
   transactions, regardless of whether each transaction's own `id` is an older random UUID or a newer
   stable id.
@@ -151,7 +152,7 @@ loop/branching logic; `_now` is classified Tier B as a trivial one-line null-coa
 
 ### `static Subscription _withNextBillingDate(Subscription sub, DateTime date, {bool? isActive})` <a id="withnextbillingdate"></a>
 - **Kind:** static method of `SubscriptionProcessor`
-- **Source:** `lib/features/finance/services/subscription_processor.dart` (line 167)
+- **Source:** `lib/features/finance/services/subscription_processor.dart` (line 166)
 - **Purpose:** Return a copy of a subscription with `nextBillingDate` replaced and `isActive`
   optionally overridden, carrying every other field over unchanged.
 - **Inputs:** `sub`; `date` — the new `nextBillingDate`; `isActive` — optional override (used to flip

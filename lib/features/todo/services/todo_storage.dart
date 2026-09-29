@@ -142,6 +142,9 @@ class TodoStorage {
   static const _configFileName = 'storage_config.json';
   static Future<void> _writeQueue = Future<void>.value();
 
+  /// Serializes every read-merge-write of `storage_config.json`.
+  static Future<void> _configQueue = Future<void>.value();
+
   /// Custom storage directory path override.
   static String? _customPath;
 
@@ -202,7 +205,8 @@ class TodoStorage {
   /// Inputs: None.
   /// Returns: `Future<Map<String, dynamic>>`.
   /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: None.
+  /// Notes: Lenient: a missing or unreadable file yields `{}` so readers keep working.
+  /// Writers use `_readConfigForWrite`, which refuses to build on an unreadable file.
   static Future<Map<String, dynamic>> readConfig() async {
     final file = await _getConfigFile();
     try {
@@ -218,22 +222,75 @@ class TodoStorage {
   /// Inputs: `config`.
   /// Returns: `Future<void>`.
   /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: None.
-  static Future<void> writeConfig(Map<String, dynamic> config) async {
+  /// Notes: Pass only the keys being changed; a `null` value removes that key. Serialized
+  /// with every other config write and written atomically. Throws `TodoStorageException`
+  /// when the existing file is unreadable, so `storagePath` and API credentials are never
+  /// replaced by a near-empty map. Must not be awaited from inside `_enqueueConfig`.
+  static Future<void> writeConfig(Map<String, dynamic> config) {
+    final patch = Map<String, dynamic>.of(config);
+    return _enqueueConfig(() async {
+      final existing = await _readConfigForWrite();
+      existing.addAll(patch);
+      // Remove null-valued keys
+      existing.removeWhere((_, v) => v == null);
+      await _writeConfigFile(existing);
+      // Invalidate cached config so next _loadConfig() re-reads
+      _configLoaded = false;
+    });
+  }
+
+  /// Purpose: Run one config read-merge-write after every earlier one has finished.
+  /// Inputs: `op` — the work to run inside the queue.
+  /// Returns: `Future<void>` completing (or failing) with `op`.
+  /// Side effects: Advances `_configQueue`.
+  /// Notes: Internal helper used within this file only. `op` must call the private
+  /// helpers, never `writeConfig` or `_saveConfig`, or the queue deadlocks.
+  static Future<void> _enqueueConfig(Future<void> Function() op) {
+    final next = _configQueue.then((_) => op(), onError: (_) => op());
+    _configQueue = next.catchError((_) {});
+    return next;
+  }
+
+  /// Purpose: Read the current config as the base for a merge-write.
+  /// Inputs: None.
+  /// Returns: `Future<Map<String, dynamic>>` — `{}` when the file is missing or blank.
+  /// Side effects: Reads `storage_config.json`.
+  /// Notes: Internal helper used within this file only. Throws `TodoStorageException`
+  /// for unparseable content instead of treating it as empty.
+  static Future<Map<String, dynamic>> _readConfigForWrite() async {
     final file = await _getConfigFile();
-    Map<String, dynamic> existing = {};
+    if (!await file.exists()) return <String, dynamic>{};
+    final String raw;
     try {
-      if (await file.exists()) {
-        existing =
-            jsonDecode(await file.readAsString()) as Map<String, dynamic>;
-      }
-    } catch (_) {}
-    existing.addAll(config);
-    // Remove null-valued keys
-    existing.removeWhere((_, v) => v == null);
-    await file.writeAsString(jsonEncode(existing));
-    // Invalidate cached config so next _loadConfig() re-reads
-    _configLoaded = false;
+      raw = await file.readAsString();
+    } catch (e) {
+      throw TodoStorageException('Failed to read $_configFileName: $e');
+    }
+    if (raw.trim().isEmpty) return <String, dynamic>{};
+    Object? decoded;
+    try {
+      decoded = jsonDecode(raw);
+    } catch (e) {
+      throw TodoStorageException(
+        '$_configFileName is not valid JSON; refusing to overwrite it: $e',
+      );
+    }
+    if (decoded is! Map<String, dynamic>) {
+      throw const TodoStorageException(
+        '$_configFileName is not a JSON object; refusing to overwrite it',
+      );
+    }
+    return decoded;
+  }
+
+  /// Purpose: Atomically replace `storage_config.json` with `config`.
+  /// Inputs: `config`.
+  /// Returns: `Future<void>`.
+  /// Side effects: Writes `storage_config.json` through a temporary file.
+  /// Notes: Internal helper used within this file only; call it from inside the queue.
+  static Future<void> _writeConfigFile(Map<String, dynamic> config) async {
+    final file = await _getConfigFile();
+    await DataFileSafety.atomicWriteString(file, jsonEncode(config));
   }
 
   /// Load the config from config file.
@@ -272,15 +329,18 @@ class TodoStorage {
   /// Inputs: None.
   /// Returns: `Future<void>`.
   /// Side effects: May read or mutate application state, storage, or service resources.
-  /// Notes: Internal helper used within this file only.
-  static Future<void> _saveConfig() async {
-    final file = await _getConfigFile();
-    Map<String, dynamic> json = {};
-    try {
-      if (await file.exists()) {
-        json = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
-      }
-    } catch (_) {}
+  /// Notes: Internal helper used within this file only. Runs inside the config queue,
+  /// writes atomically, and throws `TodoStorageException` rather than overwrite an
+  /// unreadable file.
+  static Future<void> _saveConfig() => _enqueueConfig(_saveConfigNow);
+
+  /// Purpose: Merge the cached settings into `storage_config.json` (queue body).
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: Reads and atomically rewrites `storage_config.json`.
+  /// Notes: Internal helper used within this file only; only `_saveConfig` calls it.
+  static Future<void> _saveConfigNow() async {
+    final json = await _readConfigForWrite();
     if (_customPath != null) {
       json['storagePath'] = _customPath;
     } else {
@@ -317,7 +377,7 @@ class TodoStorage {
     } else {
       json.remove('closeToTray');
     }
-    await file.writeAsString(jsonEncode(json));
+    await _writeConfigFile(json);
   }
 
   /// Get persisted intimacy visible state.
@@ -472,16 +532,10 @@ class TodoStorage {
   /// Side effects: Writes `storage_config.json`.
   /// Notes: The default `listColumnsAuto` removes the key rather than storing
   /// a zero, matching how `_saveConfig` handles its own defaults.
-  static Future<void> _setListColumns(String key, int columns) async {
-    if (columns >= 1 && columns <= listMaxColumns) {
-      await writeConfig({key: columns});
-      return;
-    }
-    final config = await readConfig();
-    config.remove(key);
-    final file = await _getConfigFile();
-    await file.writeAsString(jsonEncode(config));
-    _configLoaded = false;
+  static Future<void> _setListColumns(String key, int columns) {
+    final valid = columns >= 1 && columns <= listMaxColumns;
+    // A null value removes the key inside the serialized merge-write.
+    return writeConfig({key: valid ? columns : null});
   }
 
   /// Purpose: Read the Todo page's section-column preference.

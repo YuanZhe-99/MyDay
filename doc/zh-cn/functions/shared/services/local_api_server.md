@@ -1,6 +1,6 @@
 # lib/shared/services/local_api_server.dart
 
-仅桌面静态服务（`LocalApiServer`）运行 MyDay 本地 HTTP API：基于 Shelf 的服务器在纯 JSON 上暴露 `/ping`、`/todo/*`、`/finance/*` 和 `/weight/*` 端点，使本地工具（快捷方式、组件、脚本）能读写应用自己使用的相同磁盘数据。从 `main()` 启动（见 [架构 — 启动序列](../../../architecture.md#startup-sequence)）并从设置页桌面小节控制（[设置](../../../features/settings.md)）。配置（`apiPort`、`apiListenAddress`、`apiEnabled`、`apiUsername`、`apiPassword`）、非回环凭据要求、宽松 CORS/Basic 认证中间件栈和 `data_unreadable` 500 契约全部在 [平台说明 — 本地 HTTP API](../../../platform-notes.md#local-http-api) 文档化——本页覆盖那个契约背后的实现。端点列表本身也总结在 `AGENTS.md` 的"Local HTTP API"小节和 [同步](../../../sync.md)。
+仅桌面静态服务（`LocalApiServer`）运行 MyDay 本地 HTTP API：基于 Shelf 的服务器在纯 JSON 上暴露 `/ping`、`/todo/*`、`/finance/*` 和 `/weight/*` 端点，使本地工具（快捷方式、组件、脚本）能读写应用自己使用的相同磁盘数据。从 `main()` 启动（见 [架构 — 启动序列](../../../architecture.md#startup-sequence)）并从设置页桌面小节控制（[设置](../../../features/settings.md)）。配置（`apiPort`、`apiListenAddress`、`apiEnabled`、`apiUsername`、`apiPassword`）、非回环凭据要求、Origin 守卫 / 仅回显 CORS / Basic 认证中间件栈和 `data_unreadable` 500 契约全部在 [平台说明 — 本地 HTTP API](../../../platform-notes.md#local-http-api) 文档化——本页覆盖那个契约背后的实现。端点列表本身也总结在 `AGENTS.md` 的"Local HTTP API"小节和 [同步](../../../sync.md)。
 
 本文件与 `TodoStorage`、`FinanceStorage`、`ExchangeRateStorage` 和 `WeightStorage` 协作持久化（每个都能在不可解析数据上抛类型化 `*StorageException`，被 `_errorMiddleware` 捕获），并与 `balance_util.dart` 的 `accountBalance`/`convertCurrency` 协作财务货币转换。
 
@@ -64,7 +64,11 @@
 | [`_json`](#_json) | 静态方法（`LocalApiServer`） | A | 编码成功 JSON 响应。 |
 | [`_error`](#_error) | 静态方法（`LocalApiServer`） | A | 编码 JSON 错误响应。 |
 | [`_parseBody`](#_parsebody) | 静态方法（`LocalApiServer`） | A | 把请求体解析为 JSON。 |
-| [`_corsMiddleware`](#_corsmiddleware) | 静态方法（`LocalApiServer`） | A | 添加宽松 CORS 页头并应答 `OPTIONS`。 |
+| [`_notifyWritten`](#_notifywritten) | 静态方法（`LocalApiServer`） | A | 告知应用本地 API 请求更改了数据文件（v1.5.2）。 |
+| [`isAllowedLocalOrigin`](#isallowedlocalorigin) | 静态方法（`LocalApiServer`） | A | 返回浏览器 `Origin` 值是否属于本机（v1.5.2）。 |
+| [`_originGuardMiddleware`](#_originguardmiddleware) | 静态方法（`LocalApiServer`） | A | 以 403 拒绝非本地网页源（v1.5.2）。 |
+| [`_corsMiddleware`](#_corsmiddleware) | 静态方法（`LocalApiServer`） | A | 为允许的本地源回显 CORS 页头并应答 `OPTIONS`。 |
+| [`_corsHeadersFor`](#_corsheadersfor) | 静态方法（`LocalApiServer`） | A | 为一个请求的源构建 CORS 页头（v1.5.2）。 |
 | [`_authMiddleware`](#_authmiddleware) | 静态方法（`LocalApiServer`） | A | 执行 Basic 认证 / 仅回环策略。 |
 | [`_hasCredentials`](#_hascredentials) | 静态 getter（`LocalApiServer`） | A | 返回两个 API 凭据字段是否都已配置。 |
 | [`_validateBasicAuth`](#_validatebasicauth) | 静态方法（`LocalApiServer`） | A | 验证 `Basic` Authorization 页头。 |
@@ -72,13 +76,13 @@
 | [`_CategoryTotal.new`](#_categorytotal-new) | 构造函数（`_CategoryTotal`） | A | 存储累积财务类别总计。 |
 | [`add`](#add) | 方法（`_CategoryTotal`） | A | 返回把 `value` 加到总计上的副本。 |
 
-`grep -c 'Purpose:' lib/shared/services/local_api_server.dart` 报告 63，与本文件发现的全部 63 个真实声明匹配（5 个普通 getter 加 58 个带真实分支、解析、序列化或 IO 逻辑的方法/getter/构造函数）。未发现错附块和未文档化真实声明——每个 `/// Purpose:` 块都恰好位于其描述的类成员正上方。五个单行字段返回 getter（`port`、`listenAddress`、`enabled`、`isRunning`、`lastError`）是唯一 Tier B 行；此服务文件其他一切都有真实逻辑（验证、存储 IO、JSON 塑形或中间件行为）并按一揽子"服务"规则为 Tier A。两个私有静态字段（`_corsHeaders`）和七个普通私有状态字段（`_server`、`_port`、`_listenAddress`、`_enabled`、`_username`、`_password`、`_lastError`）不单独索引——它们不带文档注释，不是函数/getter/构造函数。
+`grep -c 'Purpose:' lib/shared/services/local_api_server.dart` 报告 67，与本文件发现的全部 67 个真实声明匹配（5 个普通 getter 加 62 个带真实分支、解析、序列化或 IO 逻辑的方法/getter/构造函数）。未发现错附块和未文档化真实声明——每个 `/// Purpose:` 块都恰好位于其描述的类成员正上方。五个单行字段返回 getter（`port`、`listenAddress`、`enabled`、`isRunning`、`lastError`）是唯一 Tier B 行；此服务文件其他一切都有真实逻辑（验证、存储 IO、JSON 塑形或中间件行为）并按一揽子"服务"规则为 Tier A。七个普通私有状态字段（`_server`、`_port`、`_listenAddress`、`_enabled`、`_username`、`_password`、`_lastError`）不单独索引——它们不带文档注释，不是函数/getter/构造函数。
 
 ## 文档
 
 ### `static Future<void> loadConfig()` <a id="loadconfig"></a>
 - **种类：** `LocalApiServer` 的静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 67 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 69 行）
 - **用途：** 经 `TodoStorage.readConfig()` 从 `storage_config.json` 加载缓存 API 设置（`_port`、`_listenAddress`、`_enabled`、`_username`、`_password`）。
 - **输入：** 无。
 - **返回：** `Future<void>`。
@@ -92,7 +96,7 @@
 
 ### `static Future<void> start()` <a id="start"></a>
 - **种类：** `LocalApiServer` 的静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 83 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 85 行）
 - **用途：** 本地 HTTP API 服务器在配置中启用且允许绑定 时启动。
 - **输入：** 无。
 - **返回：** `Future<void>`。
@@ -113,7 +117,7 @@
 
 ### `static Future<void> stop()` <a id="stop"></a>
 - **种类：** `LocalApiServer` 的静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 114 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 116 行）
 - **用途：** 关闭活动 HTTP 监听器（如有）。
 - **输入：** 无。
 - **返回：** `Future<void>`。
@@ -128,7 +132,7 @@
 
 ### `static Future<void> restart()` <a id="restart"></a>
 - **种类：** `LocalApiServer` 的静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 124 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 126 行）
 - **用途：** 从存储重新加载 API 配置并用新设置重启监听器。
 - **输入：** 无。
 - **返回：** `Future<void>`。
@@ -143,7 +147,7 @@
 
 ### `static Handler buildHandlerForTesting({String? username, String? password})` <a id="buildhandlerfortesting"></a>
 - **种类：** `LocalApiServer` 的静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 134 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 136 行）
 - **用途：** 构建生产中使用的相同请求处理器，带直接注入凭据，供组件/单元测试不经 `loadConfig()` 使用。
 - **输入：** 可选 `username`/`password`。
 - **返回：** `Handler`。
@@ -161,20 +165,20 @@
 
 ### `static Handler _buildHandler()` <a id="_buildhandler"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 145 行）
-- **用途：** 构建 Shelf 路由器（全部 16 条路由）并把它包进 CORS / 认证 / 错误中间件管线。
+- **来源：** `lib/shared/services/local_api_server.dart`（第 147 行）
+- **用途：** 构建 Shelf 路由器（全部 16 条路由）并把它包进Origin 守卫 / CORS / 认证 / 错误中间件管线。
 - **输入：** 无。
 - **返回：** `Handler`。
 - **副作用：** 无（纯构造）。
 - **算法：**
   1. 创建 `Router` 并把 `GET /ping`、七个 `/todo/*` 路由、六个 `/finance/*` 路由和三个 `/weight/*` 路由注册到其 `_handleXxx` 方法（完整端点列表见 [平台说明 — 本地 HTTP API](../../../platform-notes.md#local-http-api)）。
-  2. 用 `Pipeline().addMiddleware(_corsMiddleware()).addMiddleware(_authMiddleware()).addMiddleware(_errorMiddleware()).addHandler(router.call)` 包裹——CORS 最外层运行，然后认证、然后错误处理、然后路由器。
+  2. 用 `Pipeline().addMiddleware(_originGuardMiddleware()).addMiddleware(_corsMiddleware()).addMiddleware(_authMiddleware()).addMiddleware(_errorMiddleware()).addHandler(router.call)` 包裹——Origin 守卫最外层运行，然后 CORS、然后认证、然后错误处理、然后路由器（Origin 守卫自 v1.5.2 起新增）。
 - **用法：** 从 `start()`（真实监听器）和 `buildHandlerForTesting()`（测试内存处理器）调用，使两条路径共享相同路由/中间件行为。
-- **备注：** 中间件顺序重要：CORS 页头/`OPTIONS` 短路在认证检查前发生，因此预检请求从不需要凭据。
+- **备注：** 中间件顺序重要：Origin 守卫先于其余一切运行（非本地源得到 403，预检也一样）；CORS 页头/`OPTIONS` 短路在认证检查前发生，因此来自本地源的预检请求从不需要凭据。
 
 ### `static InternetAddress _bindAddress()` <a id="_bindaddress"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 179 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 182 行）
 - **用途：** 把配置的 `_listenAddress` 字符串翻译为适合 `shelf_io.serve` 的 `InternetAddress`。
 - **输入：** 无（读取 `_listenAddress`）。
 - **返回：** `InternetAddress`。
@@ -185,7 +189,7 @@
 
 ### `static Future<Response> _handlePing(Request request)` <a id="_handleping"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 194 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 197 行）
 - **用途：** 应答 `GET /ping`，使调用方检查 API 可达且已认证。
 - **输入：** `request`（路由外未用）。
 - **返回：** `Future<Response>`。
@@ -196,7 +200,7 @@
 
 ### `static Future<Response> _handleTodoList(Request request)` <a id="_handletodolist"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 205 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 208 行）
 - **用途：** 实现 `GET /todo/list?date=YYYY-MM-DD`——那天可见任务的扁平数组。
 - **输入：** `request` 查询 `date`（默认现在）和可选 `type`。
 - **返回：** `Future<Response>`。
@@ -207,7 +211,7 @@
 
 ### `static Future<Response> _handleTodoDay(Request request)` <a id="_handletododay"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 218 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 221 行）
 - **用途：** 实现 `GET /todo/day?date=YYYY-MM-DD`——日评分、总计和富化任务。
 - **输入：** `request` 查询 `date`（默认现在）。
 - **返回：** `Future<Response>`。
@@ -221,11 +225,12 @@
 
 ### `static Future<Response> _handleTodoAdd(Request request)` <a id="_handletodoadd"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 245 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 248 行）
 - **用途：** 实现 `POST /todo/add`——创建每日模板或一次性任务。
 - **输入：** JSON 体：`title`（必填）、`type`（默认 `'workOnce'`）、可选 `dueDate`、`scheduledDate`、`reminderTime`、`note`、`emoji`、`subtasks`、`recurrence`。
 - **返回：** `Future<Response>`。
 - **副作用：** 写 todo 存储（`TodoStorage.save`）。
+  随后调用 `_notifyWritten()`。
 - **算法：**
   1. 解析体；缺失/无效 JSON、缺失/空 `title`、未知 `type` 或任何提供的日期/重复字段无法解析时 400。
   2. 构建 `Task`；`TaskType.daily` 时解析日期成为 `startDate`（非 `scheduledDate`）且 `recurrence` 被强制 `null`；其他类型时解析日期成为 `scheduledDate`（默认现在）且 `recurrence` 保留。
@@ -240,11 +245,12 @@
 
 ### `static Future<Response> _handleTodoComplete(Request request)` <a id="_handletodocomplete"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 310 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 314 行）
 - **用途：** 实现 `POST /todo/complete`——完成/重开任务或其子任务之一，并可选生成下一次重复实例。
 - **输入：** JSON 体：`id`（必填）、可选 `subtaskId`、`completed`（默认 `true`）、`createNextRecurrence`、`date`（默认现在）。
 - **返回：** `Future<Response>`。
 - **副作用：** 写 todo 存储；切换日期范围每日日志条目或修改一次性任务完成字段。
+  随后调用 `_notifyWritten()`。
 - **算法：**
   1. 解析体；缺失/无效 JSON、缺失 `id` 或无效 `date` 时 400。
   2. 加载数据；无则 404。
@@ -262,11 +268,12 @@
 
 ### `static Future<Response> _handleTodoScore(Request request)` <a id="_handletodoscore"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 409 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 416 行）
 - **用途：** 实现 `POST /todo/score`——为日期设置日评分。
 - **输入：** JSON 体：`score`（必填数字）、可选 `date`（默认现在）。
 - **返回：** `Future<Response>`。
 - **副作用：** 写 todo 存储。
+  随后调用 `_notifyWritten()`。
 - **算法：** 验证 `score` 是数字且 `date`（若给）可解析；加载/创建数据；`data.dailyScores.setScore(date, scoreValue.round())`；保存；返回结果 `{success, date, score}`（getter 经 `scoreFor(date)` 重读，它钳制到模型 -5..5 范围）。
 - **用法：**
   ```dart
@@ -277,7 +284,7 @@
 
 ### `static Future<Response> _handleTodoStats(Request request)` <a id="_handletodostats"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 440 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 448 行）
 - **用途：** 实现 `GET /todo/stats`——今天的总/完成/过期计数。
 - **输入：** `request`（路由外未用）。
 - **返回：** `Future<Response>`。
@@ -291,7 +298,7 @@
 
 ### `static Future<Response> _handleFinanceSummary(Request request)` <a id="_handlefinancesummary"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 472 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 480 行）
 - **用途：** 实现 `GET /finance/summary?month=yyyy-MM`——一个月的转换收入/支出/余额、总资产、逐账户余额和逐类别总计。
 - **输入：** `request` 查询 `month`（默认当前月）。
 - **返回：** `Future<Response>`。
@@ -310,7 +317,7 @@
 
 ### `static Future<Response> _handleFinanceAccounts(Request request)` <a id="_handlefinanceaccounts"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 576 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 584 行）
 - **用途：** 实现 `GET /finance/accounts?type=...`——省略卡机密 的账户详情。
 - **输入：** `request` 查询可选 `type`（`AccountType` 名）。
 - **返回：** `Future<Response>`。
@@ -321,7 +328,7 @@
 
 ### `static Future<Response> _handleFinanceCategories(Request request)` <a id="_handlefinancecategories"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 611 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 619 行）
 - **用途：** 实现 `GET /finance/categories?type=expense|income|transfer`。
 - **输入：** `request` 查询可选 `type`（`TransactionType` 名）。
 - **返回：** `Future<Response>`。
@@ -332,7 +339,7 @@
 
 ### `static Future<Response> _handleFinanceTransactions(Request request)` <a id="_handlefinancetransactions"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 632 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 640 行）
 - **用途：** 实现带分页和多个过滤器的 `GET /finance/transactions`。
 - **输入：** `request` 查询 `limit`（默认 20，钳制 0..200）、`offset`（默认 0，钳制 0..1,000,000）、可选 `type`、`month`（覆盖 `startDate`/`endDate`）、`startDate`/`start`、`endDate`/`end`、`accountId`、`categoryId`。
 - **返回：** `Future<Response>`。
@@ -351,11 +358,12 @@
 
 ### `static Future<Response> _handleFinanceAddTransaction(Request request)` <a id="_handlefinanceaddtransaction"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 699 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 707 行）
 - **用途：** 实现带完整字段验证（含转账）的 `POST /finance/add_transaction`。
 - **输入：** JSON 体：`type`（必填）、`amount`（必填正）、`accountId`（必填，必须存在）、可选 `categoryId`（若给必须存在且匹配 `type`）、转账的 `toAccountId`（必填，必须存在、必须不同于 `accountId`）、可选 `toAmount`（若给正）、可选 `currency`/`toCurrency`、可选 `date`、可选 `note`。
 - **返回：** `Future<Response>`。
 - **副作用：** 写财务存储。
+  随后调用 `_notifyWritten()`。
 - **算法：**
   1. 验证 `type`、`amount`、`accountId`/账户查找、`categoryId`/类别查找 + 类型匹配，和（转账）`toAccountId`/目标查找 + 不同性——第一个失败处返回 400/404。
   2. 验证可选 `toAmount` 和 `date`。
@@ -376,7 +384,7 @@
 
 ### `static Future<Response> _handleFinanceSubscriptions(Request request)` <a id="_handlefinancesubscriptions"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 807 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 816 行）
 - **用途：** 实现带解析账户和类别名称的 `GET /finance/subscriptions?includeInactive=true`。
 - **输入：** `request` 查询可选 `includeInactive`（`true`/`1`/`yes`）。
 - **返回：** `Future<Response>`。
@@ -387,7 +395,7 @@
 
 ### `static Future<Response> _handleWeightList(Request request)` <a id="_handleweightlist"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 853 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 862 行）
 - **用途：** 实现 `GET /weight/list?limit=n`——带有效（继承）测量的最近体重记录。
 - **输入：** `request` 查询 `limit`（默认 30，钳制 0..200）。
 - **返回：** `Future<Response>`。
@@ -398,11 +406,12 @@
 
 ### `static Future<Response> _handleWeightAdd(Request request)` <a id="_handleweightadd"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 869 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 880 行）
 - **用途：** 实现 `POST /weight/add`——记录带可选身体成分和周长测量的新体重条目。
 - **输入：** JSON 体：`weight`（必填正）、可选 `bodyFat`/`bustCm`/`waistCm`/`hipCm`（存在但不是正数时各自被 400 拒绝）、可选 `date`、可选 `notes`。
 - **返回：** `Future<Response>`。
 - **副作用：** 写体重存储并重建移动端提醒日程。
+  随后调用 `_notifyWritten()`。
 - **算法：**
   1. 独立验证 `weight` 和每个提供的可选数字字段——键完全缺席时各为 `null`，但键存在且值非正或非数字时 400 错误。
   2. 给定时验证 `date`。
@@ -417,7 +426,7 @@
 
 ### `static Future<Response> _handleWeightStats(Request request)` <a id="_handleweightstats"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 929 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 942 行）
 - **用途：** 实现 `GET /weight/stats`——最新/平均/趋势加 BMI、腰臀比和有效测量。
 - **输入：** `request`（路由外未用）。
 - **返回：** `Future<Response>`。
@@ -432,7 +441,7 @@
 
 ### `static List<Map<String, dynamic>> _visibleTodoTasks(TodoData data, DateTime date, {String? typeStr})` <a id="_visibletodotasks"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 1008 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 1021 行）
 - **用途：** 计算 `date` 上应可见的任务列表（每日模板 + 一次性任务），序列化为 JSON，被 `_handleTodoList`、`_handleTodoDay` 和 `_handleTodoStats` 共享。
 - **输入：** `data`、`date`、可选 `typeStr` 过滤（对照 `task.type.name` 匹配）。
 - **返回：** `_todoTaskJson` 结果的 `List<Map<String, dynamic>>`。
@@ -449,7 +458,7 @@
 
 ### `static Map<String, dynamic> _todoTaskJson(Task task, {DateTime? date, bool? isCompleted, DailyCompletionLog? dailyLog})` <a id="_todotaskjson"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 1058 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 1071 行）
 - **用途：** 把 `Task`（加其子任务）序列化为 API 的 JSON 任务形态。
 - **输入：** `task`；日期范围完成的可选 `date`/`isCompleted`/`dailyLog`。
 - **返回：** `Map<String, dynamic>`。
@@ -464,7 +473,7 @@
 
 ### `static Map<String, dynamic> _accountJson(Account account, {double? balance, double? convertedBalance, required String defaultCurrency})` <a id="_accountjson"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 1100 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 1113 行）
 - **用途：** 序列化 `Account` 供 API 输出，同时省略敏感卡字段。
 - **输入：** `account`；可选 `balance`/`convertedBalance`；必填 `defaultCurrency`。
 - **返回：** `Map<String, dynamic>`。
@@ -480,7 +489,7 @@
 
 ### `static Map<String, dynamic> _categoryJson(Category category)` <a id="_categoryjson"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 1129 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 1142 行）
 - **用途：** 序列化 `Category` 供 API 输出。
 - **输入：** `category`。
 - **返回：** `Map<String, dynamic>`。
@@ -495,7 +504,7 @@
 
 ### `static Map<String, dynamic> _transactionJson(Transaction tx, {Map<String, Account> accountsById = const {}, Map<String, Category> categoriesById = const {}})` <a id="_transactionjson"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 1145 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 1158 行）
 - **用途：** 序列化 `Transaction`，提供查找映射时解析人类可读账户/类别名称。
 - **输入：** `tx`；可选 `accountsById`/`categoriesById`（默认空）。
 - **返回：** `Map<String, dynamic>`。
@@ -510,7 +519,7 @@
 
 ### `static Map<String, dynamic> _weightRecordJson(WeightRecord record, WeightData data)` <a id="_weightrecordjson"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 1180 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 1193 行）
 - **用途：** 带显示有效测量序列化 `WeightRecord`。
 - **输入：** `record`、`data`（完整记录集，计算继承需要）。
 - **返回：** `Map<String, dynamic>`。
@@ -525,7 +534,7 @@
 
 ### `static Map<String, dynamic> _measurementsJson(EffectiveWeightMeasurements measurements)` <a id="_measurementsjson"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 1208 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 1221 行）
 - **用途：** 把 `EffectiveWeightMeasurements` 值序列化为 JSON。
 - **输入：** `measurements`。
 - **返回：** 带 `bustCm`/`waistCm`/`hipCm` 的 `Map<String, dynamic>`。
@@ -540,7 +549,7 @@
 
 ### `static TodoData _todoDataWith(TodoData data, {List<Task>? dailyTemplates, List<Task>? oneTimeTasks})` <a id="_tododatawith"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 1225 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 1238 行）
 - **用途：** 克隆 `TodoData`，可选替换其 `dailyTemplates`/`oneTimeTasks` 列表。
 - **输入：** `data`；可选替换 `dailyTemplates`/`oneTimeTasks`。
 - **返回：** `TodoData`。
@@ -557,7 +566,7 @@
 
 ### `static Task _copyOneTimeTask(Task task, {bool? isCompleted, DateTime? completedDate, List<SubTask>? subtasks})` <a id="_copyonetimetask"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 1250 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 1263 行）
 - **用途：** 复制一次性 `Task`，允许 `completedDate` 显式清除为 `null`。
 - **输入：** `task`；可选 `isCompleted`/`completedDate`/`subtasks` 覆盖。
 - **返回：** `Task`。
@@ -573,7 +582,7 @@
 
 ### `static void _addCategoryTotal(Map<String, _CategoryTotal> totals, Transaction tx, double converted)` <a id="_addcategorytotal"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 1281 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 1294 行）
 - **用途：** 把转换交易金额累积进 `type:categoryId` 键控总计映射。
 - **输入：** `totals`（被修改）、`tx`、`converted`（已货币转换金额）。
 - **返回：** `void`。
@@ -588,7 +597,7 @@
 
 ### `static DateTime? _queryMonth(Request request)` <a id="_querymonth"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 1305 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 1318 行）
 - **用途：** 把 `?month=yyyy-MM` 查询参数解析为该月第一天。
 - **输入：** `request`。
 - **返回：** `DateTime?`。
@@ -603,7 +612,7 @@
 
 ### `static int _queryInt(Request request, String name, {required int defaultValue})` <a id="_queryint"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 1321 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 1334 行）
 - **用途：** 解析命名整数查询参数，回退默认。
 - **输入：** `request`、`name`、`defaultValue`。
 - **返回：** `int`。
@@ -618,7 +627,7 @@
 
 ### `static bool _queryBool(Request request, String name)` <a id="_querybool"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 1335 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 1348 行）
 - **用途：** 解析命名布尔式查询参数。
 - **输入：** `request`、`name`。
 - **返回：** `bool`。
@@ -633,7 +642,7 @@
 
 ### `static DateTime? _queryDate(Request request, String name)` <a id="_querydate"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 1345 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 1358 行）
 - **用途：** 解析命名 ISO 式日期查询参数。
 - **输入：** `request`、`name`。
 - **返回：** `DateTime?`。
@@ -648,7 +657,7 @@
 
 ### `static DateTime? _optionalBodyDate(Map<String, dynamic> body, String name)` <a id="_optionalbodydate"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 1356 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 1369 行）
 - **用途：** 从解码 JSON 请求体解析命名日期字段。
 - **输入：** `body`、`name`。
 - **返回：** `DateTime?`。
@@ -664,7 +673,7 @@
 
 ### `static double? _positiveDouble(Object? value)` <a id="_positivedouble"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 1368 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 1381 行）
 - **用途：** 从无类型 JSON 输入解析必填严格正数值。
 - **输入：** `value`（预期 `num` 或数字 `String`）。
 - **返回：** `double?`（失败 `null`）。
@@ -680,7 +689,7 @@
 
 ### `static double? _optionalPositiveDouble(Object? value)` <a id="_optionalpositivedouble"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 1383 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 1396 行）
 - **用途：** 解析可选严格正数字段，缺席键当作 `null`。
 - **输入：** `value`。
 - **返回：** `double?`。
@@ -696,7 +705,7 @@
 
 ### `static String? _optionalTrimmedString(Object? value)` <a id="_optionaltrimmedstring"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 1393 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 1406 行）
 - **用途：** 解析可选字符串字段，修剪空白并把空白坍缩为 `null`。
 - **输入：** `value`。
 - **返回：** `String?`。
@@ -711,7 +720,7 @@
 
 ### `static List<SubTask> _parseSubtasks(Object? value)` <a id="_parsesubtasks"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 1404 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 1417 行）
 - **用途：** 把 JSON `subtasks` 数组解析为 `SubTask` 对象。
 - **输入：** `value`（预期 `String` 和/或 `Map` 的 `List`）。
 - **返回：** `List<SubTask>`（`value` 非 `List` 时为空）。
@@ -726,7 +735,7 @@
 
 ### `static TaskRecurrence? _parseRecurrence(Object? value)` <a id="_parserecurrence"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 1428 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 1441 行）
 - **用途：** 把 JSON 重复对象解析为 `TaskRecurrence`。
 - **输入：** `value`（预期 `{type, ...}`）。
 - **返回：** `TaskRecurrence?`（任何结构问题 `null`）。
@@ -742,7 +751,7 @@
 
 ### `static TaskType? _taskTypeByName(String? name)` <a id="_tasktypebyname"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 1459 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 1472 行）
 - **用途：** 从其 API 名称字符串解析 `TaskType` 枚举值。
 - **输入：** `name`。
 - **返回：** `TaskType?`。
@@ -758,7 +767,7 @@
 
 ### `static TransactionType? _transactionTypeByName(String? name)` <a id="_transactiontypebyname"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 1472 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 1485 行）
 - **用途：** 从其 API 名称字符串解析 `TransactionType` 枚举值。
 - **输入：** `name`。
 - **返回：** `TransactionType?`。
@@ -773,7 +782,7 @@
 
 ### `static AccountType? _accountTypeByName(String name)` <a id="_accounttypebyname"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 1485 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 1498 行）
 - **用途：** 从其 API 名称字符串解析 `AccountType` 枚举值。
 - **输入：** `name`（非可空，不同于上面两个兄弟）。
 - **返回：** `AccountType?`。
@@ -788,7 +797,7 @@
 
 ### `static double _round(double value, {int digits = 2})` <a id="_round"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 1497 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 1510 行）
 - **用途：** 为稳定 JSON 输出把 `double` 舍入到固定小数位。
 - **输入：** `value`、`digits`（默认 2）。
 - **返回：** `double`。
@@ -803,7 +812,7 @@
 
 ### `static double? _nullableRound(double? value, {int digits = 2})` <a id="_nullableround"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 1506 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 1519 行）
 - **用途：** `_round` 的 `null` 安全包装。
 - **输入：** `value`、`digits`（默认 2）。
 - **返回：** `double?`。
@@ -818,7 +827,7 @@
 
 ### `static Response _json(Object? data)` <a id="_json"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 1515 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 1528 行）
 - **用途：** 把任何 JSON 兼容值编码为 `200 OK` 响应。
 - **输入：** `data`。
 - **返回：** `Response`。
@@ -829,7 +838,7 @@
 
 ### `static Response _error(int status, String message)` <a id="_error"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 1525 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 1538 行）
 - **用途：** 用给定 HTTP 状态编码 JSON 错误响应。
 - **输入：** `status`、`message`。
 - **返回：** `Response`。
@@ -844,7 +853,7 @@
 
 ### `static Future<Map<String, dynamic>?> _parseBody(Request request)` <a id="_parsebody"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 1536 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 1549 行）
 - **用途：** 读取并 JSON 解码请求体，容忍空或格式错误输入。
 - **输入：** `request`。
 - **返回：** `Future<Map<String, dynamic>?>`（空/格式错误体 `null`）。
@@ -858,20 +867,68 @@
   （`_handleTodoAdd` 和本文件每个其他 POST 处理器。）
 - **备注：** 顶层非对象的 JSON 体（如裸数组或数字）被当作与格式错误 JSON 相同，因为到 `Map<String, dynamic>` 的转换抛。
 
+### `static void _notifyWritten()` <a id="_notifywritten"></a>
+- **种类：** `LocalApiServer` 的私有静态方法
+- **来源：** `lib/shared/services/local_api_server.dart`（第 1567 行）
+- **用途：** 告知应用一个本地 API 请求更改了数据文件。
+- **输入：** 无。
+- **返回：** 无。
+- **副作用：** 调用 `AutoSyncService.instance.notifySaved()`（重启自动同步防抖）和 `AutoSyncService.instance.notifyLocalDataChangedNow()`（触发本地数据变更监听器，使打开的页面重新加载）。
+- **算法：** 按此顺序对 `AutoSyncService` 单例做两次直接调用。
+- **用法：** 在写入处理器每次成功 `Storage.save` 之后立即调用：`_handleTodoAdd`、`_handleTodoComplete`（全部三条保存路径：每日日志切换、重复任务下一次出现、普通一次性更新）、`_handleTodoScore`、`_handleFinanceAddTransaction` 和 `_handleWeightAdd`。由 `test/local_api_server_test.dart:361`（`API writes fire the local-data-changed listeners`）覆盖：它注册一个监听器，并期望 `POST /todo/add` 之后被调用一次。
+- **备注：** 没有它，打开的页面会保留过期的内存副本，之后该页面的保存会覆盖 API 写入，且该写入从未被排入同步（v1.5.2）。`AutoSyncService.start()` 运行之前 `notifySaved()` 被忽略，因此在测试中不做任何事；`notifyLocalDataChangedNow()` 仍会调用每个已注册的监听器。
+
+### `static bool isAllowedLocalOrigin(String origin)` <a id="isallowedlocalorigin"></a>
+- **种类：** `LocalApiServer` 的公开静态方法
+- **来源：** `lib/shared/services/local_api_server.dart`（第 1579 行）
+- **用途：** 返回浏览器 `Origin` 页头值是否属于本机。
+- **输入：** `origin`——原始页头值。
+- **返回：** `bool`——对 `localhost`、`*.localhost` 或回环 IP 字面量（`127.0.0.0/8`、`::1`）上的 `http`/`https` 源为 true。
+- **副作用：** 无。
+- **算法：**
+  1. `Uri.tryParse(origin.trim())`；拒绝 `null` 结果和 `http`/`https` 以外的任何 scheme。
+  2. 把主机转小写；拒绝空主机。
+  3. 接受 `localhost` 和以 `.localhost` 结尾的主机。
+  4. 否则仅当 `InternetAddress.tryParse(host)?.isLoopback` 为 true 时接受。
+- **用法：** `_originGuardMiddleware` 中的 `if (origin != null && !isAllowedLocalOrigin(origin))`。由 `test/local_api_server_test.dart:272`（`isAllowedLocalOrigin accepts only this machine`）直接测试。
+- **备注：** 字面源 `null`（沙箱或 `file://` 页面）和所有其他主机都被拒绝，因此互联网上的网页无法从用户浏览器驱动 API（v1.5.2）。公开以便测试调用。
+
+### `static Middleware _originGuardMiddleware()` <a id="_originguardmiddleware"></a>
+- **种类：** `LocalApiServer` 的私有静态方法
+- **来源：** `lib/shared/services/local_api_server.dart`（第 1597 行）
+- **用途：** 拒绝来自非本地网页源的浏览器请求。
+- **输入：** 无。
+- **返回：** `Middleware`。
+- **副作用：** 构建时无。
+- **算法：** 读取 `request.headers['origin']`；存在且 `isAllowedLocalOrigin` 为 false 时，返回 `Response(403)`，正文为 `{"error":"origin_not_allowed"}`，带 `Content-Type: application/json` 和 `Vary: Origin`；否则调用内层处理器。
+- **用法：** `_buildHandler()` 中的第一个中间件：`.addMiddleware(_originGuardMiddleware())`。由 `test/local_api_server_test.dart` 中的 `browser Origin guard (v1.5.2)` 组（第 271 行）覆盖：`a foreign Origin gets 403 on requests and preflights`（第 298 行）、`a foreign Origin cannot write even when unauthenticated`（第 314 行）和 `the guard runs before auth`（第 327 行）。
+- **备注：** 因为排第一，它也覆盖 `OPTIONS` 预检并在认证之前运行。没有 `Origin` 页头的请求（curl、脚本、其他应用）原样通过。守卫只检查 `Origin`；没有 `Host` 页头检查。见 [平台说明 — 本地 HTTP API](../../../platform-notes.md#local-http-api)。
+
 ### `static Middleware _corsMiddleware()` <a id="_corsmiddleware"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 1553 行）
-- **用途：** 给每个响应添加宽松 CORS 页头并直接应答 `OPTIONS` 预检请求。
+- **来源：** `lib/shared/services/local_api_server.dart`（第 1620 行）
+- **用途：** 为允许的本地浏览器源添加 CORS 页头并直接应答 `OPTIONS` 预检请求。
 - **输入：** 无。
 - **返回：** `Middleware`。
 - **副作用：** 无（返回中间件在请求时有副作用，但构建它没有）。
-- **算法：** 对 `OPTIONS` 请求立即返回 `Response.ok('', headers: _corsHeaders)`（完全跳过包裹处理器）；否则调用内层处理器并经 `.change(headers: ...)` 把 `_corsHeaders` 应用到其响应。
-- **用法：** 在 `_buildHandler()` 中应用：`.addMiddleware(_corsMiddleware())`，作为最外层中间件。
-- **备注：** `_corsHeaders` 允许任何源（`Access-Control-Allow-Origin: '*'`）——对回环绑定本地工具为何认为这可接受见 [平台说明 — 本地 HTTP API](../../../platform-notes.md#local-http-api)。
+- **算法：** 计算 `headers = _corsHeadersFor(request.headers['origin'])`。对 `OPTIONS` 请求立即返回 `Response.ok('', headers: headers)`（完全跳过包裹处理器）；否则调用内层处理器并经 `.change(headers: ...)` 把 `headers` 应用到其响应——`headers` 为空时跳过。
+- **用法：** 在 `_buildHandler()` 中应用：`.addMiddleware(_corsMiddleware())`，紧接 Origin 守卫之后。由 `test/local_api_server_test.dart` 中的 `a local Origin is echoed with Vary, never "*"`（第 338 行）和 `requests without Origin get no CORS allow header`（第 354 行）覆盖。
+- **备注：** 仅回显（v1.5.2）：请求自身的 `Origin`（已被守卫审查）连同 `Vary: Origin` 回显；没有 `Origin` 的请求不会得到 `Access-Control-Allow-Origin`。从不发送 `*` 通配符。取代原先的常量 `_corsHeaders` 映射。见 [平台说明 — 本地 HTTP API](../../../platform-notes.md#local-http-api)。
+
+### `static Map<String, String> _corsHeadersFor(String? origin)` <a id="_corsheadersfor"></a>
+- **种类：** `LocalApiServer` 的私有静态方法
+- **来源：** `lib/shared/services/local_api_server.dart`（第 1638 行）
+- **用途：** 为一个请求的源构建 CORS 响应页头。
+- **输入：** `origin`——请求的 `Origin` 页头，已被守卫允许。
+- **返回：** `Map<String, String>`——`origin` 为 `null` 时为 `const {}`；否则为 `Access-Control-Allow-Origin: <origin>`、`Access-Control-Allow-Methods: GET, POST, OPTIONS`、`Access-Control-Allow-Headers: Content-Type, Authorization` 和 `Vary: Origin`。
+- **副作用：** 无。
+- **算法：** `origin` 为 `null` 返回空映射，否则返回上面的四项映射。
+- **用法：** `_corsMiddleware()`，每个请求一次。
+- **备注：** 仅在本文件内使用的内部辅助；它本身不验证源。
 
 ### `static Middleware _authMiddleware()` <a id="_authmiddleware"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 1576 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 1653 行）
 - **用途：** 执行本地 API 认证策略：配置凭据时 Basic 认证，否则仅回环。
 - **输入：** 无。
 - **返回：** `Middleware`。
@@ -886,7 +943,7 @@
 
 ### `static bool get _hasCredentials` <a id="_hascredentials"></a>
 - **种类：** `LocalApiServer` 的私有静态 getter
-- **来源：** `lib/shared/services/local_api_server.dart`（第 1611 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 1688 行）
 - **用途：** 报告 API 用户名和密码是否都已配置且非空。
 - **输入：** 无（读取 `_username`/`_password`）。
 - **返回：** `bool`。
@@ -901,7 +958,7 @@
 
 ### `static bool _validateBasicAuth(String header)` <a id="_validatebasicauth"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 1622 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 1699 行）
 - **用途：** 对照配置凭据验证 HTTP `Authorization: Basic ...` 页头。
 - **输入：** `header`（原始页头值）。
 - **返回：** `bool`。
@@ -916,18 +973,18 @@
 
 ### `static Middleware _errorMiddleware()` <a id="_errormiddleware"></a>
 - **种类：** `LocalApiServer` 的私有静态方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 1641 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 1718 行）
 - **用途：** 把路由处理器的未捕获异常转换为 JSON 错误响应，包括损坏存储文件的专用 `data_unreadable` 契约。
 - **输入：** 无。
 - **返回：** `Middleware`。
 - **副作用：** 构建时无。
-- **算法：** `try` 内层处理器；`TodoStorageException`、`WeightStorageException` 或 `FinanceStorageException` 时返回 `_error(500, 'data_unreadable')`；任何其他异常返回 `_error(500, 'internal error: $e')`。
-- **用法：** 在 `_buildHandler()` 最内层应用：`.addMiddleware(_errorMiddleware())`，直接包裹路由器。
+- **算法：** `try` 内层处理器；`TodoStorageException`、`WeightStorageException`、`FinanceStorageException` 或 `ExchangeRateStorageException`（v1.5.2 新增；不可读的 `exchange_rates.json`）时返回 `_error(500, 'data_unreadable')`；任何其他异常返回 `_error(500, 'internal error: $e')`。
+- **用法：** 在 `_buildHandler()` 最内层应用：`.addMiddleware(_errorMiddleware())`，直接包裹路由器。由 `test/local_api_server_test.dart` 中的 `corrupt data returns 500 and write endpoints preserve files`（第 228 行）和 `corrupt exchange rates return 500 and are left untouched`（第 376 行）覆盖。
 - **备注：** 这是 [平台说明 — 本地 HTTP API](../../../platform-notes.md#local-http-api) 文档化 `data_unreadable` 500 背后的机制：`*Storage.load()`/`save()` 调用在*既有*数据文件解析失败时抛类型化异常（缺失文件不是错误，用端点自己的空数据行为代替），POST 处理器在持久化任何变更前抛，因此写入绝不部分应用。
 
 ### `const _CategoryTotal({required this.categoryId, required this.type, required this.amount, required this.count})` <a id="_categorytotal-new"></a>
 - **种类：** `_CategoryTotal` 的构造函数
-- **来源：** `lib/shared/services/local_api_server.dart`（第 1671 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 1750 行）
 - **用途：** 构造不可变累积财务类别总计。
 - **输入：** `categoryId`、`type`、`amount`、`count`（都必填）。
 - **返回：** 新 `_CategoryTotal`。
@@ -943,7 +1000,7 @@
 
 ### `_CategoryTotal add(double value)` <a id="add"></a>
 - **种类：** `_CategoryTotal` 的方法
-- **来源：** `lib/shared/services/local_api_server.dart`（第 1683 行）
+- **来源：** `lib/shared/services/local_api_server.dart`（第 1762 行）
 - **用途：** 返回把 `value` 加到运行金额且计数递增的新 `_CategoryTotal`。
 - **输入：** `value`。
 - **返回：** `_CategoryTotal`。

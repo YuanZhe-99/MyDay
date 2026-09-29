@@ -11,6 +11,7 @@ import 'package:my_day/features/finance/services/finance_storage.dart';
 import 'package:my_day/features/todo/services/todo_storage.dart';
 import 'package:my_day/features/weight/models/weight_record.dart';
 import 'package:my_day/features/weight/services/weight_storage.dart';
+import 'package:my_day/shared/services/auto_sync_service.dart';
 import 'package:my_day/shared/services/local_api_server.dart';
 
 /// Purpose: Exercise the MyDay local HTTP API contract.
@@ -265,6 +266,127 @@ void main() {
       'error': 'data_unreadable',
     });
     expect(await weightFile.readAsString(), corruptWeight);
+  });
+
+  group('browser Origin guard (v1.5.2)', () {
+    test('isAllowedLocalOrigin accepts only this machine', () {
+      const cases = {
+        'http://localhost': true,
+        'http://localhost:5173': true,
+        'https://app.localhost:8443': true,
+        'http://127.0.0.1:3000': true,
+        'http://127.5.6.7': true,
+        'http://[::1]:8080': true,
+        'HTTP://LOCALHOST': true,
+        'https://evil.example': false,
+        'http://localhost.evil.example': false,
+        'http://192.168.1.10': false,
+        'null': false,
+        'file://': false,
+        'ftp://localhost': false,
+        '': false,
+      };
+      cases.forEach((origin, allowed) {
+        expect(
+          LocalApiServer.isAllowedLocalOrigin(origin),
+          allowed,
+          reason: origin,
+        );
+      });
+    });
+
+    test('a foreign Origin gets 403 on requests and preflights', () async {
+      for (final method in ['GET', 'OPTIONS']) {
+        final response = await handler(
+          _request(
+            method,
+            '/ping',
+            headers: {'origin': 'https://evil.example'},
+          ),
+        );
+        expect(await _decodeObject(response, statusCode: 403), {
+          'error': 'origin_not_allowed',
+        }, reason: method);
+        expect(response.headers['access-control-allow-origin'], isNull);
+      }
+    });
+
+    test('a foreign Origin cannot write even when unauthenticated', () async {
+      final appDir = await TodoStorage.getAppDir();
+      final todoFile = File('${appDir.path}/todo_data.json');
+      final response = await handler(
+        _jsonRequest('POST', '/todo/add', {
+          'title': 'CSRF',
+          'type': 'daily',
+        }).change(headers: {'origin': 'https://evil.example'}),
+      );
+      expect(response.statusCode, 403);
+      expect(await todoFile.exists(), isFalse);
+    });
+
+    test('the guard runs before auth', () async {
+      handler = LocalApiServer.buildHandlerForTesting(
+        username: 'api',
+        password: 'secret',
+      );
+      final response = await handler(
+        _request('GET', '/ping', headers: {'origin': 'https://evil.example'}),
+      );
+      expect(response.statusCode, 403);
+    });
+
+    test('a local Origin is echoed with Vary, never "*"', () async {
+      const origin = 'http://localhost:5173';
+      final get = await handler(
+        _request('GET', '/ping', headers: {'origin': origin}),
+      );
+      expect(get.statusCode, 200);
+      expect(get.headers['access-control-allow-origin'], origin);
+      expect(get.headers['vary'], 'Origin');
+
+      final preflight = await handler(
+        _request('OPTIONS', '/todo/add', headers: {'origin': origin}),
+      );
+      expect(preflight.statusCode, 200);
+      expect(preflight.headers['access-control-allow-origin'], origin);
+    });
+
+    test('requests without Origin get no CORS allow header', () async {
+      final response = await handler(_request('GET', '/ping'));
+      expect(response.statusCode, 200);
+      expect(response.headers['access-control-allow-origin'], isNull);
+    });
+  });
+
+  test('API writes fire the local-data-changed listeners', () async {
+    var fired = 0;
+    void listener() => fired++;
+    AutoSyncService.instance.addOnLocalDataChanged(listener);
+    addTearDown(
+      () => AutoSyncService.instance.removeOnLocalDataChanged(listener),
+    );
+
+    final response = await handler(
+      _jsonRequest('POST', '/todo/add', {'title': 'From API', 'type': 'daily'}),
+    );
+    expect(response.statusCode, 200);
+    expect(fired, 1);
+  });
+
+  test('corrupt exchange rates return 500 and are left untouched', () async {
+    await FinanceStorage.save(
+      FinanceData(accounts: [], categories: [], transactions: []),
+    );
+    final appDir = await TodoStorage.getAppDir();
+    final ratesFile = File('${appDir.path}/exchange_rates.json');
+    const corruptRates = '{"snapshots": {';
+    await ratesFile.writeAsString(corruptRates);
+
+    final summary = await handler(_request('GET', '/finance/summary'));
+    expect(await _decodeObject(summary, statusCode: 500), {
+      'error': 'data_unreadable',
+    });
+    expect(await ratesFile.readAsString(), corruptRates);
   });
 }
 

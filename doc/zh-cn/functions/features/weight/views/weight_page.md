@@ -15,6 +15,7 @@
 | `_WeightPageState.dispose` | 方法（`_WeightPageState`） | B | 退订本地数据变更通知。 |
 | [`_loadData`](#_loaddata) | 方法（`_WeightPageState`） | A | 把 `weight_data.json` 加载进状态，或浮出阻塞读取错误。 |
 | [`_saveData`](#_savedata) | 方法（`_WeightPageState`） | A | 把当前状态持久化为 `WeightData` 并通知同步/提醒服务。 |
+| [`_recordsNewestFirst`](#_recordsnewestfirst) | getter（`_WeightPageState`） | A | 返回按最新在前排序的记录，每次加载或编辑只排序一次。 |
 | [`_latestRecord`](#_latestrecord) | getter（`_WeightPageState`） | A | 返回日期最近的记录。 |
 | [`_currentBMI`](#_currentbmi) | getter（`_WeightPageState`） | A | 从最新记录体重和存储身高计算 BMI。 |
 | [`_weightChange`](#_weightchange) | getter（`_WeightPageState`） | A | 计算所选图表范围上的体重变化。 |
@@ -32,6 +33,7 @@
 | `_buildChartSection` | 方法（组件辅助） | B | 渲染范围 chip、图例和两个趋势图，堆叠或并排。 |
 | `_buildChartLegendItem` | 方法（组件辅助） | B | 渲染一个实线/虚线线色图例条目。 |
 | [`_chartRecords`](#_chartrecords) | getter（`_WeightPageState`） | A | 过滤并排序记录到所选图表范围内。 |
+| [`_monthsBackClamped`](#_monthsbackclamped) | 静态方法（`_WeightPageState`） | A | 把日期回退整月数，并把日钳制到目标月内。 |
 | `_buildChart` | 方法（组件辅助） | B | 渲染原始 + EWMA 体重 `LineChart`。 |
 | `_buildMeasurementChart` | 方法（组件辅助） | B | 渲染原始 + EWMA 胸/腰/臀 `LineChart`。 |
 | `_buildDateTitle` | 方法（组件辅助） | B | 渲染一个底部轴日期标签，格式按范围密度选择。 |
@@ -63,7 +65,7 @@
 | `_isEditing` | getter（`_WeightRecordDialogState`） | B | 返回此对话框是否编辑既有记录。 |
 | `_WeightRecordDialogState.initState` | 方法（`_WeightRecordDialogState`） | B | 从 `initialRecord`/`lastWeight` 初始化控制器并捕获 `_initialSignature`。 |
 | `_WeightRecordDialogState.dispose` | 方法（`_WeightRecordDialogState`） | B | 释放所有文本控制器。 |
-| `_WeightRecordDialogState.build` | 方法（`_WeightRecordDialogState`） | B | 构建增/改表单（体重、测量、备注、日期、操作）。 |
+| `_WeightRecordDialogState.build` | 方法（`_WeightRecordDialogState`） | B | 构建增/改表单（体重、测量、备注、日期、操作）；时间选择器回调在 `setState` 前检查 `mounted`（v1.5.2）。 |
 | `_hasUnsavedChanges` | 方法（`_WeightRecordDialogState`） | B | 比较当前签名与初始签名。 |
 | `_signature` | 方法（`_WeightRecordDialogState`） | B | 构建表单当前字段值的 `formSignature` 快照。 |
 | `_buildMeasurementField` | 方法（组件辅助） | B | 渲染一个可选胸/腰/臀输入字段。 |
@@ -80,7 +82,7 @@
 | `weightSummaryFigureKey` | 顶层 `const ValueKey` | B | 标识摘要卡片的数字块。 |
 | `weightSummaryStatsKey` | 顶层 `const ValueKey` | B | 标识摘要卡片的统计格。 |
 
-`grep -c 'Purpose:' lib/features/weight/views/weight_page.dart` 报告 65，对应 71 行：六个顶层 `const ValueKey`——v1.4.1 新增的两个（`weightSummaryKey`、`weightChartKey`）和 v1.4.4 新增的四个（`weightTrendChartKey`、`weightMeasurementChartKey`、`weightSummaryFigureKey`、`weightSummaryStatsKey`）——带的是散文文档注释而不是 `Purpose:` 块，但它们是文件表面的一部分因而有对应行（31 个 Tier A、40 个 Tier B）。每个 `/// Purpose:` 块都恰好位于其文档化的真实声明正上方——未发现错附块（记录调用点而非声明的块）——也不存在未文档化真实声明：五个顶层 `const Color ...` 图表颜色常量（第 56-60 行）和 `_ChartRange` 枚举（第 92 行）是无行为的普通数据/类型声明，因此与 [`weight_record.md`](../models/weight_record.md) 处理普通类型别名的方式一致，刻意不给表格行。唯一嵌套本地函数 `_setHeight` 内的 `saveHeight`（第 2119 行）确实带自己的 `/// Purpose:` 块并被计为真实声明。
+`grep -c 'Purpose:' lib/features/weight/views/weight_page.dart` 报告 67，对应 73 行：六个顶层 `const ValueKey`——v1.4.1 新增的两个（`weightSummaryKey`、`weightChartKey`）和 v1.4.4 新增的四个（`weightTrendChartKey`、`weightMeasurementChartKey`、`weightSummaryFigureKey`、`weightSummaryStatsKey`）——带的是散文文档注释而不是 `Purpose:` 块，但它们是文件表面的一部分因而有对应行（33 个 Tier A、40 个 Tier B）。每个 `/// Purpose:` 块都恰好位于其文档化的真实声明正上方——未发现错附块（记录调用点而非声明的块）——也不存在未文档化真实声明：五个顶层 `const Color ...` 图表颜色常量（第 56-60 行）和 `_ChartRange` 枚举（第 92 行）是无行为的普通数据/类型声明，因此与 [`weight_record.md`](../models/weight_record.md) 处理普通类型别名的方式一致，刻意不给表格行。唯一嵌套本地函数 `_setHeight` 内的 `saveHeight`（第 2154 行）确实带自己的 `/// Purpose:` 块并被计为真实声明。状态字段（包括 v1.5.2 新增的 `_newestFirstCache` 字段，第 99 行）只带普通 `///` 注释，不列为行。
 
 ## 文档
 
@@ -104,20 +106,20 @@
     decoration: InputDecoration(labelText: l10n.weightHeightCm, suffixText: 'cm'),
   )
   ```
-  （`_setHeight`，第 2134-2146 行；带 1 位小数的相同格式化器被 `_editReminderGrace`、`_buildMeasurementField` 和对话框体重字段复用。）
+  （`_setHeight`，第 2169-2181 行；带 1 位小数的相同格式化器被 `_editReminderGrace`、`_buildMeasurementField` 和对话框体重字段复用。）
 - **备注：** 正则允许编辑中途尾部/悬空 `.`（如 `"12."`），因为 `\.?` 与 `\d{0,decimalPlaces}` 结合允许零尾随位数——别处的最终解析（`double.tryParse`）容忍它。
 
 ### `Future<void> _loadData()` <a id="_loaddata"></a>
 - **种类：** `_WeightPageState` 的 async 方法
-- **来源：** `lib/features/weight/views/weight_page.dart`（第 140 行）
+- **来源：** `lib/features/weight/views/weight_page.dart`（第 143 行）
 - **用途：** 经 `WeightStorage.load()` 把 `weight_data.json` 加载进状态，或——文件存在但无法解析时——浮出阻塞读取错误而非静默当作空数据集。
 - **输入：** 无（读取 `WeightStorage.load()`）。
 - **返回：** `Future<void>`。
-- **副作用：** 调用 `setState`（切换 `_loaded`、填充 `_height`/`_records`/提醒字段，或设 `_loadError`）；两种情况下都调用 `ReminderService.instance.updateWeightData`（错误时带空记录列表）。
+- **副作用：** 调用 `setState`（切换 `_loaded`、填充 `_height`/`_records`/提醒字段并清除 `_newestFirstCache`，或设 `_loadError`）；两种情况下都调用 `ReminderService.instance.updateWeightData`（错误时带空记录列表）。
 - **算法：**
   1. 已加载且 mounted 时把 `_loaded` 翻回 `false`（`AutoSyncService` 的本地数据变更通知触发的重载在途时显示加载转圈）。
   2. `await WeightStorage.load()`。异常时：告诉 `ReminderService` 无记录、`mounted` 守卫、`setState` 记录 `_loadError = e.toString()` 和 `_loaded = true`，然后返回——错误视图接管而非显示空状态。
-  3. 成功时（`mounted` 守卫）：清除 `_loadError`；`data != null` 时把 `height`/`records`/`reminderMode` 复制进状态，存储小时和分钟都非 null **且** `reminderMode` 启用该提醒（早间 `!= 'none'`，晚间 `== 'twice'`）时才把 `_weightMorningReminder`/`_weightEveningReminder` 重建为 `TimeOfDay`——与 `ReminderService._refreshWeightDataFromStorage` 施加的门控相同，因此仍为已禁用模式携带时间的文件无法把它们推进调度器；设 `_loaded = true`。
+  3. 成功时（`mounted` 守卫）：清除 `_loadError`；`data != null` 时把 `height`/`records`/`reminderMode` 复制进状态、清除 `_newestFirstCache`，存储小时和分钟都非 null **且** `reminderMode` 启用该提醒（早间 `!= 'none'`，晚间 `== 'twice'`）时才把 `_weightMorningReminder`/`_weightEveningReminder` 重建为 `TimeOfDay`——与 `ReminderService._refreshWeightDataFromStorage` 施加的门控相同，因此仍为已禁用模式携带时间的文件无法把它们推进调度器；设 `_loaded = true`。
   4. 把新加载提醒字段推给 `ReminderService.instance.updateWeightData`。
 - **用法：**
   ```dart
@@ -128,12 +130,12 @@
     AutoSyncService.instance.addOnLocalDataChanged(_loadData);
   }
   ```
-  （第 113-117 行；也作为 `onRetry: _loadData` 传给 `_WeightDataError`，第 365 行。）
-- **备注：** 抛出的加载绝不回退到 UI 中的"无记录"——`build` 主体 switch 中 `_loadError` 优先于 `_records.isEmpty`（第 362-374 行），因此写入保持禁用直到文件再次可读（见 `_saveData`）。
+  （第 116-120 行；也作为 `onRetry: _loadData` 传给 `_WeightDataError`，第 376 行。）
+- **备注：** 抛出的加载绝不回退到 UI 中的"无记录"——`build` 主体 switch 中 `_loadError` 优先于 `_records.isEmpty`（第 373-385 行），因此写入保持禁用直到文件再次可读（见 `_saveData`）。
 
 ### `Future<void> _saveData()` <a id="_savedata"></a>
 - **种类：** `_WeightPageState` 的 async 方法
-- **来源：** `lib/features/weight/views/weight_page.dart`（第 193 行）
+- **来源：** `lib/features/weight/views/weight_page.dart`（第 197 行）
 - **用途：** 把内存状态持久化为 `WeightData` 文档，加载在途或已知加载文件不可读时拒绝。
 - **输入：** 无（读取当前状态字段）。
 - **返回：** `Future<void>`。
@@ -147,75 +149,86 @@
 - **用法：** 每个修改操作后 `await _saveData();`——`_addRecord`、`_editRecord`、`saveHeight`、`_saveReminderGrace`、`_showReminderSettings` 中的提醒模式/时间选择器回调，以及 `_buildRecordTile` 的滑动删除处理器。
 - **备注：** 因为步骤 1/2 静默返回（除 snackbar 外），总是 await `_saveData()` 的调用方不能假设写入实际发生——守卫刻意默认静默，使不可读时只读浏览不每次尝试写入都刷 snackbar。
 
+### `List<WeightRecord> get _recordsNewestFirst` <a id="_recordsnewestfirst"></a>
+- **种类：** `_WeightPageState` 的 getter
+- **来源：** `lib/features/weight/views/weight_page.dart`（第 239 行）
+- **用途：** 返回按最新在前排序的 `_records`，每次加载或编辑只排序一次，而非每次访问都排序（v1.5.2）。
+- **输入：** 无（读取 `_records`）。
+- **返回：** `List<WeightRecord>`，按 `datetime` 降序。该列表在调用方之间共享，不得修改。
+- **副作用：** 被清除后的首次访问填充 `_newestFirstCache` 字段。
+- **算法：** `_newestFirstCache ??= List<WeightRecord>.from(_records)..sort((a, b) => b.datetime.compareTo(a.datetime))`。
+- **用法：** 被 [`_latestRecord`](#_latestrecord)、[`_recentRange`](#_recentrange) 和 `_buildRecordsList`（`final sorted = _recordsNewestFirst;`，第 1647 行）读取；`_showAllRecords` 用 `List<WeightRecord>.of(_recordsNewestFirst)`（第 1844 行）为其底部表单取一份私有副本。
+- **备注：** 每次写 `_records` 都必须清除 `_newestFirstCache`。这样做的写入方是 [`_loadData`](#_loaddata)、[`_addRecord`](#_addrecord)、[`_editRecord`](#_editrecord)，以及 `_buildRecordTile` 中的滑动删除 `onDismissed` 处理器（第 1769 行）。v1.5.2 之前，最新记录、近期范围和每个记录列表在每次构建时都各自复制并排序完整历史。
+
 ### `WeightRecord? get _latestRecord` <a id="_latestrecord"></a>
 - **种类：** `_WeightPageState` 的 getter
-- **来源：** `lib/features/weight/views/weight_page.dart`（第 234 行）
+- **来源：** `lib/features/weight/views/weight_page.dart`（第 248 行）
 - **用途：** 返回 `datetime` 最近的记录。
 - **输入：** 无。
 - **返回：** `WeightRecord?` — `_records` 为空时 `null`。
 - **副作用：** 无。
-- **算法：** 复制 `_records`、按 `datetime` 降序排序、返回第一个元素（列表为空时 `null`）。
-- **用法：** `final latest = _latestRecord!;`（`_buildContent`，第 436 行——`build` 中 `_records.isEmpty` 已被检查为 false 后才会到达）。
-- **备注：** 每次访问重新排序完整列表而非缓存结果；鉴于典型体重历史规模可接受。
+- **算法：** `_records` 为空时返回 `null`；否则返回 `_recordsNewestFirst.first`。
+- **用法：** `final latest = _latestRecord!;`（`_buildContent`，第 447 行——`build` 中 `_records.isEmpty` 已被检查为 false 后才会到达）。
+- **备注：** 读取 [`_recordsNewestFirst`](#_recordsnewestfirst) 缓存的排序结果（v1.5.2）；此前每次访问都重新排序完整列表。
 
 ### `double? get _currentBMI` <a id="_currentbmi"></a>
 - **种类：** `_WeightPageState` 的 getter
-- **来源：** `lib/features/weight/views/weight_page.dart`（第 246 行）
+- **来源：** `lib/features/weight/views/weight_page.dart`（第 258 行）
 - **用途：** 从最新记录体重和存储身高计算 BMI，供摘要卡片。
 - **输入：** 无。
 - **返回：** `double?` — 无记录时 `null`，否则 `WeightData.calculateBMI(_height, latest.weight)`（`_height` 未设/`<= 0` 时其本身 `null`；见 [`WeightData.calculateBMI`](../models/weight_record.md#calculatebmi)）。
 - **副作用：** 无。
 - **算法：** 对 `_latestRecord == null` 守卫，然后委托 `WeightData.calculateBMI`。
-- **用法：** `final bmi = _currentBMI;`（`_buildContent`，第 437 行，喂进 `_buildSummaryCard` 并从那里进 `_buildBMIBar`）。
+- **用法：** `final bmi = _currentBMI;`（`_buildContent`，第 448 行，喂进 `_buildSummaryCard` 并从那里进 `_buildBMIBar`）。
 - **备注：** 无。
 
 ### `double? get _weightChange` <a id="_weightchange"></a>
 - **种类：** `_WeightPageState` 的 getter
-- **来源：** `lib/features/weight/views/weight_page.dart`（第 258 行）
+- **来源：** `lib/features/weight/views/weight_page.dart`（第 270 行）
 - **用途：** 计算当前所选图表范围（如 1M、3M、全部）上的体重变化。
 - **输入：** 无（读取 `_chartRecords`）。
 - **返回：** `double?` — 所选范围内少于 2 条记录时 `null`，否则 `data.last.weight - data.first.weight`（按时间顺序最后减最先，正即增重）。
 - **副作用：** 无。
 - **算法：** 对 `_chartRecords.length < 2` 守卫，然后对按时间排序范围简单减法。
-- **用法：** `final change = _weightChange;`（`_buildContent`，第 438 行，摘要卡片中显示按符号红/蓝着色的上下箭头）。
+- **用法：** `final change = _weightChange;`（`_buildContent`，第 449 行，摘要卡片中显示按符号红/蓝着色的上下箭头）。
 - **备注：** 依赖与图表相同的所选 `_chartRange`，不是固定窗口——切换范围选择器也会改变摘要卡片上"体重变化"的含义。
 
 ### `int? get _trackingDays` <a id="_trackingdays"></a>
 - **种类：** `_WeightPageState` 的 getter
-- **来源：** `lib/features/weight/views/weight_page.dart`（第 269 行）
+- **来源：** `lib/features/weight/views/weight_page.dart`（第 281 行）
 - **用途：** 计算所选图表范围记录跨多少天。
 - **输入：** 无（读取 `_chartRecords`）。
 - **返回：** `int?` — 所选范围内少于 2 条记录时 `null`，否则 `data.last.datetime.difference(data.first.datetime).inDays`。
 - **副作用：** 无。
 - **算法：** 对长度 `< 2` 守卫，然后普通 `DateTime` 整数天差值。
-- **用法：** `final days = _trackingDays;`（`_buildContent`，第 439 行；显示在体重变化箭头旁为 `"$days ${l10n.weightDays}"`）。
+- **用法：** `final days = _trackingDays;`（`_buildContent`，第 450 行；显示在体重变化箭头旁为 `"$days ${l10n.weightDays}"`）。
 - **备注：** 无。
 
 ### `(double, double)? get _recentRange` <a id="_recentrange"></a>
 - **种类：** `_WeightPageState` 的 getter
-- **来源：** `lib/features/weight/views/weight_page.dart`（第 281 行）
+- **来源：** `lib/features/weight/views/weight_page.dart`（第 293 行）
 - **用途：** 计算最近 7 条按日期排序记录上的最小/最大体重，独立于图表范围选择器。
 - **输入：** 无（读取 `_records`）。
 - **返回：** `(double, double)?` — 无记录时 `null`；否则最多 7 条最新记录 `weight` 的 `(min, max)`。
 - **副作用：** 无。
-- **算法：** 复制并按 `datetime` 降序排序 `_records`、`take(7)`、然后对 `.weight` 用 `math.min`/`math.max` 归约。
-- **用法：** `final range = _recentRange;`（`_buildContent`，第 440 行，渲染为显示 `"min–max"` 的"近期"统计）。
+- **算法：** `_records` 为空时返回 `null`；否则取 [`_recordsNewestFirst`](#_recordsnewestfirst) 的前 7 条，然后对 `.weight` 用 `math.min`/`math.max` 归约。
+- **用法：** `final range = _recentRange;`（`_buildContent`，第 451 行，渲染为显示 `"min–max"` 的"近期"统计）。
 - **备注：** 与 `_weightChange`/`_trackingDays` 不同，这总是看最新 7 条*记录*（不是所选图表范围），因此无论选哪个范围 chip 都保持稳定。
 
 ### `List<(String, String)> _latestMeasurementStats(EffectiveWeightMeasurements measurements, AppLocalizations l10n)` <a id="_latestmeasurementstats"></a>
 - **种类：** `_WeightPageState` 的方法
-- **来源：** `lib/features/weight/views/weight_page.dart`（第 698 行）
+- **来源：** `lib/features/weight/views/weight_page.dart`（第 709 行）
 - **用途：** 把有效（继承）胸/腰/臀值变成摘要卡片的本地化 `(label, value)` 对，省略无当前继承值的任何字段。
 - **输入：** `measurements` — 来自 [`WeightData.effectiveMeasurementsUpTo`](../models/weight_record.md#effectivemeasurementsupto) 的 `EffectiveWeightMeasurements` 记录；`l10n`。
 - **返回：** `List<(String, String)>` — 零到三个对，各为 `"${value.toStringAsFixed(1)} cm"`。
 - **副作用：** 无。
 - **算法：** 每个胸/腰/臀字段一个 `if (field != null)` 条目的列表字面量，按该顺序。
-- **用法：** `final measurements = _latestMeasurementStats(effectiveMeasurements, l10n);`（`_buildSummaryCard`，第 520 行，经 `for` 循环为每对喂一个 `_buildStatLabel`）。
+- **用法：** `final measurements = _latestMeasurementStats(effectiveMeasurements, l10n);`（`_buildSummaryCard`，第 531 行，经 `for` 循环为每对喂一个 `_buildStatLabel`）。
 - **备注：** 这只省略已继承 `measurements` 值中缺席的字段——继承本身（回退较早记录的最近正值）由 `effectiveMeasurementsUpTo` 完成，不在这里。见 [体重](../../../../features/weight.md#bustwaisthip-inheritance-from-the-latest-positive-value)。
 
 ### `Widget _buildBMIBar(ThemeData theme, double bmi)` <a id="_buildbmibar"></a>
 - **种类：** `_WeightPageState` 的方法
-- **来源：** `lib/features/weight/views/weight_page.dart`（第 764 行）
+- **来源：** `lib/features/weight/views/weight_page.dart`（第 775 行）
 - **用途：** 渲染带给定 BMI 位置标记的紧凑 4 段彩色条（偏瘦/正常/超重/肥胖）。
 - **输入：** `theme`；`bmi`。
 - **返回：** `Widget`。
@@ -228,12 +241,12 @@
   if (bmi != null)
     _buildStatLabel(theme, 'BMI', bmi.toStringAsFixed(1), trailing: _buildBMIBar(theme, bmi)),
   ```
-  （`_buildSummaryCard`，第 532-538 行。）
-- **备注：** 第 765 行注释陈述预期临床边界（`<18.5 偏瘦、18.5-25 正常、25-30 超重、30+ 肥胖`），但实际段 `flex` 值（`(bmi-15)/25` 刻度上的 `7, 6, 5, 7`）是固定视觉近似而非那些精确阈值到 15-40 刻度的计算映射。
+  （`_buildSummaryCard`，第 543-549 行。）
+- **备注：** 第 776 行注释陈述预期临床边界（`<18.5 偏瘦、18.5-25 正常、25-30 超重、30+ 肥胖`），但实际段 `flex` 值（`(bmi-15)/25` 刻度上的 `7, 6, 5, 7`）是固定视觉近似而非那些精确阈值到 15-40 刻度的计算映射。
 
 ### `Widget _buildWaistHipRatioBar(ThemeData theme, double ratio)` <a id="_buildwaisthipratiobar"></a>
 - **种类：** `_WeightPageState` 的方法
-- **来源：** `lib/features/weight/views/weight_page.dart`（第 780 行）
+- **来源：** `lib/features/weight/views/weight_page.dart`（第 791 行）
 - **用途：** 为腰臀比风险类别渲染带给定比例位置标记的紧凑 4 段彩色条。
 - **输入：** `theme`；`ratio`。
 - **返回：** `Widget`。
@@ -247,25 +260,39 @@
     _buildStatLabel(theme, l10n.weightWaistHipRatio, waistHipRatio.toStringAsFixed(2),
         trailing: _buildWaistHipRatioBar(theme, waistHipRatio)),
   ```
-  （`_buildSummaryCard`，第 541-547 行；`waistHipRatio` 本身来自喂*有效*（继承）腰/臀值而非原始记录字段的 [`WeightData.calculateWaistHipRatio`](../models/weight_record.md#calculatewaisthipratio)。）
+  （`_buildSummaryCard`，第 552-558 行；`waistHipRatio` 本身来自喂*有效*（继承）腰/臀值而非原始记录字段的 [`WeightData.calculateWaistHipRatio`](../models/weight_record.md#calculatewaisthipratio)。）
 - **备注：** 与 `_buildBMIBar` 一样，段 flex 值是 0.80/0.90/1.00 边界的固定视觉近似，不是计算放置。
 
 ### `List<WeightRecord> get _chartRecords` <a id="_chartrecords"></a>
 - **种类：** `_WeightPageState` 的 getter
-- **来源：** `lib/features/weight/views/weight_page.dart`（第 1063 行）
+- **来源：** `lib/features/weight/views/weight_page.dart`（第 1074 行）
 - **用途：** 把 `_records` 过滤到当前所选图表范围（`_chartRange`）并按时间排序供图表渲染。
 - **输入：** 无（读取 `_records`、`_chartRange`）。
 - **返回：** `List<WeightRecord>`，按 `datetime` 升序。
 - **副作用：** 无。
 - **算法：**
-  1. 经对 `_chartRange` 的 `switch` 计算 `cutoff` `DateTime`：`oneWeek` → 现在减 7 天；`oneMonth`/`threeMonths`/`sixMonths`/`oneYear` → 对 `now` 做日历月/年算术（`DateTime(now.year, now.month - N, now.day)`，`DateTime` 为负月规范化）；`all` → 2000 年（对本应用数据实际无截止）。
+  1. 经对 `_chartRange` 的 `switch` 计算 `cutoff` `DateTime`：`oneWeek` → `addCalendarDays(now, -7)`（回退七个日历日，保持挂钟时间）；`oneMonth`/`threeMonths`/`sixMonths`/`oneYear` → [`_monthsBackClamped`](#_monthsbackclamped)`(now, 1/3/6/12)`，即 N 个月前同一天的本地午夜，日被钳制到目标月的长度；`all` → 2000 年（对本应用数据实际无截止）。
   2. 过滤到 `r.datetime.isAfter(cutoff)`，然后按 `datetime` 升序排序。
-- **用法：** `final data = _chartRecords;`（`_buildChart` 第 1084 行、`_buildMeasurementChart` 第 1223 行，并间接经 `_weightChange`/`_trackingDays`）。
-- **备注：** 用 `isAfter(cutoff)`（严格在之后），因此恰在截止时刻的记录被排除——实践中无关紧要，因为截止在渲染时从 `DateTime.now()` 计算，不是从存储边界值。
+- **用法：** `final data = _chartRecords;`（`_buildChart` 第 1114 行、`_buildMeasurementChart` 第 1253 行，并间接经 `_weightChange`/`_trackingDays`）。
+- **备注：** 用 `isAfter(cutoff)`（严格在之后），因此恰在截止时刻的记录被排除——实践中无关紧要，因为截止在渲染时从 `DateTime.now()` 计算，不是从存储边界值。v1.5.2 之前，一周范围用 `now.subtract(Duration(days: 7))`，跨夏令时切换会偏一小时；月/年范围用 `DateTime(now.year, now.month - N, now.day)`，在短月份会溢出（3 月 31 日减一个月变成 3 月 2 日或 3 日，因此「1M」少了几天）。
+
+### `static DateTime _monthsBackClamped(DateTime now, int months)` <a id="_monthsbackclamped"></a>
+- **种类：** `_WeightPageState` 的私有静态方法
+- **来源：** `lib/features/weight/views/weight_page.dart`（第 1094 行）
+- **用途：** 返回回退整月数后的 `now`，并把日钳制到目标月内（v1.5.2）。
+- **输入：** `now` — 参考日期；`months` — 回退的整月数。
+- **返回：** 目标日本地午夜的 `DateTime`。
+- **副作用：** 无。
+- **算法：**
+  1. `firstOfTarget = DateTime(now.year, now.month - months, 1)`——`DateTime` 把零或负的月份规范化到上一年。
+  2. `lastDay = DateTime(firstOfTarget.year, firstOfTarget.month + 1, 0).day`——下个月的第 0 天就是目标月的最后一天。
+  3. 返回 `DateTime(firstOfTarget.year, firstOfTarget.month, min(now.day, lastDay))`。
+- **用法：** `_ChartRange.oneMonth => _monthsBackClamped(now, 1),`（`_chartRecords`，第 1078-1081 行；一年范围传 `12`）。
+- **备注：** 3 月 31 日减一个月是 2 月 28 日（闰年为 29 日），而不是 `DateTime` 日溢出给出的 3 月 2 日或 3 日。一年前按 12 个钳制月计算，因此 2 月 29 日减一年是 2 月 28 日。结果丢弃时刻，这与保留时刻的一周范围不同。
 
 ### `List<FlSpot> _buildMeasurementSpots(List<EffectiveWeightMeasurementPoint> data, double? Function(EffectiveWeightMeasurementPoint point) selectValue)` <a id="_buildmeasurementspots"></a>
 - **种类：** `_WeightPageState` 的方法
-- **来源：** `lib/features/weight/views/weight_page.dart`（第 1435 行）
+- **来源：** `lib/features/weight/views/weight_page.dart`（第 1465 行）
 - **用途：** 把一个有效测量时间线转换为单个字段（胸、腰或臀）的原始（未平滑）图表点，跳过该字段尚无继承值的点。
 - **输入：** `data` — 有效测量时间线（已继承解析，见 [`WeightData.effectiveMeasurementTimeline`](../models/weight_record.md#effectivemeasurementtimeline)）；`selectValue` — 字段选择器回调（如 `(point) => point.bustCm`）。
 - **返回：** `List<FlSpot>` — `selectValue(point)` 非 null 的每个点一个，`x` 为纪元毫秒。
@@ -275,12 +302,12 @@
   ```dart
   final bustSpots = _buildMeasurementSpots(visibleTimeline, (point) => point.bustCm);
   ```
-  （`_buildMeasurementChart`，第 1238-1249 行，对已过滤到可见截止的时间线每字段调用一次。）
+  （`_buildMeasurementChart`，第 1268-1279 行，对已过滤到可见截止的时间线每字段调用一次。）
 - **备注：** 因为输入时间线已携带继承值（来自 `effectiveMeasurementTimeline`），这里只有在字段到那个点*从未*有过显式正值时才跳过点——不只是因为当前记录省略它。
 
 ### `(double, double) _measurementAxisRange(List<FlSpot> spots)` <a id="_measurementaxisrange"></a>
 - **种类：** `_WeightPageState` 的方法
-- **来源：** `lib/features/weight/views/weight_page.dart`（第 1457 行）
+- **来源：** `lib/features/weight/views/weight_page.dart`（第 1487 行）
 - **用途：** 跨所有胸/腰/臀（原始 + EWMA）点计算填充 y 轴范围（cm），使近乎相同测量保持视觉可区分。
 - **输入：** `spots` — 所有测量图表点（原始和 EWMA、全部三个字段）的组合列表。
 - **返回：** `(double, double)` — `spots` 为空时 `(0, 1)`；否则 `(low, maxCm + pad)`。
@@ -289,12 +316,12 @@
   1. 对所有点 `y` 值经 `reduce(math.min)`/`reduce(math.max)` 得 `minCm`/`maxCm`。
   2. `pad = max((maxCm - minCm) * 0.15, 2.0)`——即使范围近乎平坦也至少 2 cm 填充。
   3. `low = max(0, minCm - pad)`（绝不为负）；高界为 `maxCm + pad`。
-- **用法：** `final (minY, maxY) = _measurementAxisRange(allSpots);`（`_buildMeasurementChart`，第 1287 行，`allSpots` 连接全部三字段原始和 EWMA 点，使共享轴适合每条线）。
+- **用法：** `final (minY, maxY) = _measurementAxisRange(allSpots);`（`_buildMeasurementChart`，第 1317 行，`allSpots` 连接全部三字段原始和 EWMA 点，使共享轴适合每条线）。
 - **备注：** 最小 2 cm 填充正是让胸/腰/臀在可见范围几乎不变时图表可用性的东西——没有它，近乎零的 `(maxCm - minCm)` 会产生极薄（或退化）的轴带。
 
 ### `List<FlSpot> _buildWeightEwmaSpots(List<WeightRecord> allData, DateTime visibleFrom, {double halfLifeDays = 7})` <a id="_buildweightewmaspots"></a>
 - **种类：** `_WeightPageState` 的方法
-- **来源：** `lib/features/weight/views/weight_page.dart`（第 1495 行）
+- **来源：** `lib/features/weight/views/weight_page.dart`（第 1525 行）
 - **用途：** 计算带可配置半衰期的体重指数加权移动平均（EWMA），在*完整*记录历史上预热但只从 `visibleFrom` 起发出点。
 - **输入：** `allData` — **所有**按最旧→最新排序的记录（不只是可见范围：预热准确性需要）；`visibleFrom` — 实际发出点的第一个 datetime；`halfLifeDays` — 默认 7。
 - **返回：** `List<FlSpot>`，`visibleFrom` 或之后的每条记录一个，`x` 为纪元毫秒、`y` 为运行 EWMA 值。
@@ -310,12 +337,12 @@
     ..sort((a, b) => a.datetime.compareTo(b.datetime));
   final ewmaSpots = _buildWeightEwmaSpots(allSorted, data.first.datetime);
   ```
-  （`_buildChart`，第 1101-1103 行——`allSorted` 是*整个*记录历史，而 `data.first.datetime` 只是当前所选图表范围起点，因此切换图表范围改变可见窗口而不重启平滑。）
+  （`_buildChart`，第 1131-1133 行——`allSorted` 是*整个*记录历史，而 `data.first.datetime` 只是当前所选图表范围起点，因此切换图表范围改变可见窗口而不重启平滑。）
 - **备注：** 因为 `alpha` 依赖自上一条记录的实际间隔而非固定每滴答速率，不规则记录间隔（如一周每天、然后两周间隔）被正确处理——长间隔让新值几乎完全支配（`alpha → 1`）而非被稀释得仿佛又一个均匀间隔样本。相同 EWMA 模式（时间自适应 `alpha = 1 - exp(-dt/tau)`）也独立出现在 `lib/features/intimacy/views/intimacy_page.dart`。
 
 ### `List<FlSpot> _buildMeasurementEwmaSpots(List<EffectiveWeightMeasurementPoint> allData, DateTime visibleFrom, double? Function(EffectiveWeightMeasurementPoint point) selectValue, {double halfLifeDays = 7})` <a id="_buildmeasurementewmaspots"></a>
 - **种类：** `_WeightPageState` 的方法
-- **来源：** `lib/features/weight/views/weight_page.dart`（第 1522 行）
+- **来源：** `lib/features/weight/views/weight_page.dart`（第 1552 行）
 - **用途：** 与 `_buildWeightEwmaSpots` 相同的 EWMA 平滑，应用于一个有效测量字段（胸、腰或臀）而非体重，跳过该字段首次继承值前的点。
 - **输入：** `allData` — 完整有效测量时间线；`visibleFrom`；`selectValue` — 字段选择器；`halfLifeDays` — 默认 7。
 - **返回：** `List<FlSpot>`。
@@ -325,56 +352,56 @@
   ```dart
   final bustEwmaSpots = _buildMeasurementEwmaSpots(timeline, cutoff, (point) => point.bustCm);
   ```
-  （`_buildMeasurementChart`，第 1250-1264 行，对*完整* `timeline` 每字段调用一次，与 `_buildWeightEwmaSpots` 被喂完整记录历史而非只可见范围的方式平行。）
+  （`_buildMeasurementChart`，第 1280-1294 行，对*完整* `timeline` 每字段调用一次，与 `_buildWeightEwmaSpots` 被喂完整记录历史而非只可见范围的方式平行。）
 - **备注：** 除 `_buildWeightEwmaSpots` 备注所述外无。
 
 ### `double _weightInterval(double range)` <a id="_weightinterval"></a>
 - **种类：** `_WeightPageState` 的方法
-- **来源：** `lib/features/weight/views/weight_page.dart`（第 1561 行）
+- **来源：** `lib/features/weight/views/weight_page.dart`（第 1591 行）
 - **用途：** 基于可见体重跨度为体重图挑选可读 y 轴网格/标签间隔（kg）。
 - **输入：** `range` — 可见数据上的 `maxWeight - minWeight`。
 - **返回：** `double` — `range <= 2` 时 `0.5`；`<= 5` 时 `1`；`<= 10` 时 `2`；否则 `5`。
 - **副作用：** 无。
 - **算法：** 顺序阈值检查，先匹配胜出。
-- **用法：** `horizontalInterval: _weightInterval(maxW - minW)` 和 `interval: _weightInterval(maxW - minW)`（`_buildChart`，第 1116 和 1149 行，分别供网格线和左轴标签）。
+- **用法：** `horizontalInterval: _weightInterval(maxW - minW)` 和 `interval: _weightInterval(maxW - minW)`（`_buildChart`，第 1146 和 1179 行，分别供网格线和左轴标签）。
 - **备注：** 无。
 
 ### `double _measurementInterval(double range)` <a id="_measurementinterval"></a>
 - **种类：** `_WeightPageState` 的方法
-- **来源：** `lib/features/weight/views/weight_page.dart`（第 1573 行）
+- **来源：** `lib/features/weight/views/weight_page.dart`（第 1603 行）
 - **用途：** 为测量图挑选可读 y 轴间隔（cm），比体重图更稀疏，因为胸/腰/臀跨度通常更大。
 - **输入：** `range` — 来自 `_measurementAxisRange` 的 y 轴跨度。
 - **返回：** `double` — `range <= 5` 时 `1`；`<= 10` 时 `2`；`<= 25` 时 `5`；否则 `10`。
 - **副作用：** 无。
 - **算法：** 顺序阈值检查，先匹配胜出。
-- **用法：** `horizontalInterval: _measurementInterval(maxY - minY)`（`_buildMeasurementChart`，第 1294 和 1321 行）。
+- **用法：** `horizontalInterval: _measurementInterval(maxY - minY)`（`_buildMeasurementChart`，第 1324 和 1351 行）。
 - **备注：** 无。
 
 ### `double _dateInterval(List<WeightRecord> data)` <a id="_dateinterval"></a>
 - **种类：** `_WeightPageState` 的方法
-- **来源：** `lib/features/weight/views/weight_page.dart`（第 1585 行）
+- **来源：** `lib/features/weight/views/weight_page.dart`（第 1615 行）
 - **用途：** 基于可见数据总时间跨度挑选可读 x 轴（日期）标签间隔（毫秒）——从一周跨度的每 3 天到多年跨度的 2 年标签。
 - **输入：** `data` — 可见（已范围过滤）记录列表。
 - **返回：** `double` — 轴标签间毫秒；少于 2 条记录时 `1`（毫秒，实际"总是标签"）。
 - **副作用：** 无。
 - **算法：** 从 `data.first`/`data.last` datetime 计算 `spanDays`，然后以天为单位的顺序阈值梯子 → 以天为间隔的毫秒：`≤7→3d, ≤30→10d, ≤90→30d, ≤180→60d, ≤365→120d, ≤730→240d, ≤1825→365d (annual), else→730d (2-year)`。
-- **用法：** `interval: _dateInterval(data)`（`_buildChart` 第 1132 行、`_buildMeasurementChart` 第 1310 行）——两个图表共享相同日期间隔逻辑，因为它们共享相同 `_chartRecords` 范围。
+- **用法：** `interval: _dateInterval(data)`（`_buildChart` 第 1162 行、`_buildMeasurementChart` 第 1340 行）——两个图表共享相同日期间隔逻辑，因为它们共享相同 `_chartRecords` 范围。
 - **备注：** 无。
 
 ### `String? _formatMeasurements(WeightRecord record, AppLocalizations l10n)` <a id="_formatmeasurements"></a>
 - **种类：** `_WeightPageState` 的方法
-- **来源：** `lib/features/weight/views/weight_page.dart`（第 1779 行）
+- **来源：** `lib/features/weight/views/weight_page.dart`（第 1811 行）
 - **用途：** 把单个历史记录*自己*的（非继承）胸/腰/臀字段格式化为历史行副标题的一个斜杠分隔字符串。
 - **输入：** `record`；`l10n`。
 - **返回：** `String?` — 三个字段都缺席或非正时 `null`。
 - **副作用：** 无。
 - **算法：** 构建 `"${label} ${value.toStringAsFixed(1)} cm"` 条目列表，各由 `field != null && field! > 0` 守卫；为空返回 `null`，否则 `parts.join(' / ')`。
-- **用法：** `final measurements = _formatMeasurements(record, l10n);`（`_buildRecordTile`，第 1723 行，经 null 感知展开 `?measurements` 拼进副标题行）。
+- **用法：** `final measurements = _formatMeasurements(record, l10n);`（`_buildRecordTile`，第 1752 行，经 null 感知展开 `?measurements` 拼进副标题行）。
 - **备注：** 与 `_latestMeasurementStats`（摘要卡片显示*继承*值）不同，这直接读取记录自己的字段——未记录腰围的记录的历史行简单省略腰围，不显示较早记录的继承值。
 
 ### `Future<void> _showReminderSettings()` <a id="_showremindersettings"></a>
 - **种类：** `_WeightPageState` 的 async 方法
-- **来源：** `lib/features/weight/views/weight_page.dart`（第 1846 行）
+- **来源：** `lib/features/weight/views/weight_page.dart`（第 1877 行）
 - **用途：** 打开提醒设置底部面板，并拥有决定提醒模式变化时早间/晚间提醒时间发生什么 的模式切换逻辑。
 - **输入：** 无。
 - **返回：** `Future<void>`。
@@ -394,23 +421,23 @@
     onPressed: _loaded && _loadError == null ? _showReminderSettings : null,
   )
   ```
-  （`build`，第 344-354 行，应用栏的提醒铃铛操作。）
+  （`build`，第 355-365 行，应用栏的提醒铃铛操作。）
 - **备注：** 切入 `'once'`/`'twice'` 时用 `??=` 意味着既有早间/晚间时间跨模式切换保留（关掉提醒再打开不把先前选的时间重置回 08:00/21:00 默认）——只有无先前值的字段获得默认。宽限窗口磁贴是面板的最后一个子项，因此未来添加在它下方的任何内容都继承同一裁切风险，滚动视图现在正防着这一点——`test/weight_reminder_sheet_test.dart` 通过在 400x640 表面上打开面板并断言磁贴被布局在视口内且确实可点击，把这一点钉住。
 
 ### `String _formatReminderGraceHours()` <a id="_formatremindergracehours"></a>
 - **种类：** `_WeightPageState` 的方法
-- **来源：** `lib/features/weight/views/weight_page.dart`（第 1993 行）
+- **来源：** `lib/features/weight/views/weight_page.dart`（第 2024 行）
 - **用途：** 把存储 `_reminderGraceMinutes` 格式化为修剪小时字符串供显示/编辑（精确整数时、否则一位小数）。
 - **输入：** 无（读取 `_reminderGraceMinutes`）。
 - **返回：** `String`。
 - **副作用：** 无。
 - **算法：** `hours = _reminderGraceMinutes / 60`；`hours` 已是整数时格式化为整数（`hours.toInt().toString()`）；否则 `hours.toStringAsFixed(1)`。
-- **用法：** `TextEditingController(text: _formatReminderGraceHours())`（`_editReminderGrace`，第 2010 行，播种编辑字段）和 `l10n.weightReminderSkipWindowValue(_formatReminderGraceHours())`（`_showReminderSettings`，第 1971 行，设置面板副标题）。
+- **用法：** `TextEditingController(text: _formatReminderGraceHours())`（`_editReminderGrace`，第 2041 行，播种编辑字段）和 `l10n.weightReminderSkipWindowValue(_formatReminderGraceHours())`（`_showReminderSettings`，第 2002 行，设置面板副标题）。
 - **备注：** 默认 `_reminderGraceMinutes` 是 180（3 小时），因此这开箱格式化为 `"3"` 而非 `"3.0"`。宽限窗口本身做什么见 [体重](../../../../features/weight.md#reminder-grace-window)。
 
 ### `void _saveReminderGrace(BuildContext dialogContext, TextEditingController controller, StateSetter setSheetState)` <a id="_saveremindergrace"></a>
 - **种类：** `_WeightPageState` 的方法
-- **来源：** `lib/features/weight/views/weight_page.dart`（第 2050 行）
+- **来源：** `lib/features/weight/views/weight_page.dart`（第 2081 行）
 - **用途：** 验证输入小时值，有效时持久化为新 `_reminderGraceMinutes`。
 - **输入：** `dialogContext`；`controller` — 持有输入小时文本；`setSheetState` — 父提醒设置面板的重建回调。
 - **返回：** 无。
@@ -426,17 +453,17 @@
     child: Text(l10n.commonSave),
   )
   ```
-  （`_editReminderGrace`，第 2033-2038 行；也接到字段 `onSubmitted`，第 2024 行。）
+  （`_editReminderGrace`，第 2064-2069 行；也接到字段 `onSubmitted`，第 2055 行。）
 - **备注：** 有效范围是硬 `[0, 24]` 小时——输入 `25` 或负数静默让对话框保持打开，除值不被接受外无反馈。
 
 ### `Future<void> _addRecord()` <a id="_addrecord"></a>
 - **种类：** `_WeightPageState` 的 async 方法
-- **来源：** `lib/features/weight/views/weight_page.dart`（第 2068 行）
+- **来源：** `lib/features/weight/views/weight_page.dart`（第 2099 行）
 - **用途：** 打开添加记录对话框，用户保存新记录时追加进状态并持久化。
 - **输入：** 无。
 - **返回：** `Future<void>`。
-- **副作用：** 显示 `_WeightRecordDialog`；非 null 结果时 `setState` 追加进 `_records` 并调用 `_saveData()`。
-- **算法：** `await showDialog<WeightRecord>`，带 `_WeightRecordDialog(height: _height, lastWeight: _latestRecord?.weight)`（无 `initialRecord`，因此对话框处于添加模式）；对话框返回记录（即未取消/丢弃）时 `setState(() => _records.add(result))` 然后 `await _saveData()`。
+- **副作用：** 显示 `_WeightRecordDialog`；非 null 结果时 `setState` 追加进 `_records`、清除 `_newestFirstCache` 并调用 `_saveData()`。
+- **算法：** `await showDialog<WeightRecord>`，带 `_WeightRecordDialog(height: _height, lastWeight: _latestRecord?.weight)`（无 `initialRecord`，因此对话框处于添加模式）；对话框返回记录（即未取消/丢弃）时 `setState` 执行 `_records.add(result)` 和 `_newestFirstCache = null`，然后 `await _saveData()`。
 - **用法：**
   ```dart
   floatingActionButton: FloatingActionButton(
@@ -444,23 +471,23 @@
     child: const Icon(Icons.add),
   )
   ```
-  （`build`，第 375-378 行。）
+  （`build`，第 386-389 行。）
 - **备注：** 把 `_latestRecord?.weight` 作为 `lastWeight` 传入，使对话框能用先前条目预填体重字段（见 `_WeightRecordDialogState.initState`）。
 
 ### `Future<void> _editRecord(WeightRecord record)` <a id="_editrecord"></a>
 - **种类：** `_WeightPageState` 的 async 方法
-- **来源：** `lib/features/weight/views/weight_page.dart`（第 2087 行）
+- **来源：** `lib/features/weight/views/weight_page.dart`（第 2121 行）
 - **用途：** 为既有记录打开编辑对话框，保存时原地替换并保持其原始 `id`。
 - **输入：** `record` — 被编辑的记录。
 - **返回：** `Future<void>`。
-- **副作用：** 显示 `_WeightRecordDialog`；非 null 结果时 `setState` 替换匹配记录并调用 `_saveData()`。
-- **算法：** `await showDialog<WeightRecord>`，带 `_WeightRecordDialog(height: _height, initialRecord: record)`；有结果返回时找 `_records.indexWhere((item) => item.id == record.id)`，找到（`index >= 0`）时覆盖 `_records[index] = result`；然后 `await _saveData()`。
-- **用法：** `onTap: () => _editRecord(record)`（`_buildRecordTile`，第 1769 行）。
+- **副作用：** 显示 `_WeightRecordDialog`；非 null 结果时 `setState` 替换匹配记录、清除 `_newestFirstCache` 并调用 `_saveData()`。
+- **算法：** `await showDialog<WeightRecord>`，带 `_WeightRecordDialog(height: _height, initialRecord: record)`；有结果返回时找 `_records.indexWhere((item) => item.id == record.id)`，找到（`index >= 0`）时覆盖 `_records[index] = result`；在同一 `setState` 中清除 `_newestFirstCache`；然后 `await _saveData()`。
+- **用法：** `onTap: () => _editRecord(record)`（`_buildRecordTile`，第 1801 行）。
 - **备注：** 对话框自己的 `_submit` 用 `initialRecord?.copyWith(...)`，保留原始 `id` 并重新生成 `modifiedAt`——此方法对 `id` 的 `indexWhere` 匹配依赖它不变。
 
 ### `void saveHeight(UnsavedChangesController guard)` <a id="saveheight"></a>
 - **种类：** 嵌套在 `_WeightPageState._setHeight` 内的本地函数
-- **来源：** `lib/features/weight/views/weight_page.dart`（第 2119 行）
+- **来源：** `lib/features/weight/views/weight_page.dart`（第 2154 行）
 - **用途：** 验证输入身高，有效时持久化并关闭设身高对话框。
 - **输入：** `guard` — 外层 `UnsavedChangesGuard` 的 `UnsavedChangesController`。
 - **返回：** 无。
@@ -473,23 +500,23 @@
     child: Text(l10n.commonSave),
   )
   ```
-  （`_setHeight`，第 2152-2155 行；也接到身高字段 `onSubmitted`，第 2143 行。）
+  （`_setHeight`，第 2187-2190 行；也接到身高字段 `onSubmitted`，第 2178 行。）
 - **备注：** 定义在 `_setHeight` 内正为闭包 `controller` 和外层 `context`/`l10n`，而非需要传入它们的 `_WeightPageState` 方法。
 
 ### `String _timeSinceLastRecord(DateTime dt, AppLocalizations l10n)` <a id="_timesincelastrecord"></a>
 - **种类：** `_WeightPageState` 的方法
-- **来源：** `lib/features/weight/views/weight_page.dart`（第 2167 行）
+- **来源：** `lib/features/weight/views/weight_page.dart`（第 2202 行）
 - **用途：** 把距记录 `datetime` 的已流逝时间格式化为简短相对文本（"今天"、"昨天"、"N 天前"、"N 周前"）。
 - **输入：** `dt`；`l10n`。
 - **返回：** `String`。
 - **副作用：** 无。
 - **算法：** `diff = DateTime.now().difference(dt)`；顺序检查：`inDays == 0` → `weightToday`；`== 1` → `weightYesterday`；`< 7` → `"${diff.inDays} ${weightDaysAgo}"`；否则整数除以 7 返回 `"$weeks ${weightWeeksAgo}"`。
-- **用法：** `final timeSince = _timeSinceLastRecord(latest.datetime, l10n);`（`_buildContent`，第 441 行，显示在摘要卡片顶部）。
+- **用法：** `final timeSince = _timeSinceLastRecord(latest.datetime, l10n);`（`_buildContent`，第 452 行，显示在摘要卡片顶部）。
 - **备注：** 周总是向下舍入（`~/7`），无"N 个月前"档——10 周前的记录读作 `"10 weeks ago"` 而非切换到基于月的措辞。
 
 ### `double? get _previewBMI` <a id="_previewbmi"></a>
 - **种类：** `_WeightRecordDialogState` 的 getter
-- **来源：** `lib/features/weight/views/weight_page.dart`（第 2454 行）
+- **来源：** `lib/features/weight/views/weight_page.dart`（第 2490 行）
 - **用途：** 从增/改对话框当前正在输入的体重文本计算实时 BMI 预览，用从页面传入的身高。
 - **输入：** 无（读取 `_weightController.text` 和 `widget.height`）。
 - **返回：** `double?` — 当前体重文本解析不为正数时 `null`，或 `WeightData.calculateBMI` 本身返回 `null`（无身高）。
@@ -505,12 +532,12 @@
     helperText: bmi != null ? 'BMI: ${bmi.toStringAsFixed(1)}' : null,
   ),
   ```
-  （`build`，第 2269 和 2295-2301 行——显示为体重字段辅助文本，经字段 `onChanged: (_) => setState(() {})` 实时更新。）
+  （`build`，第 2304 和 2330-2336 行——显示为体重字段辅助文本，经字段 `onChanged: (_) => setState(() {})` 实时更新。）
 - **备注：** 镜像页面状态的 `_currentBMI`，但从进行中文本控制器读取而非最后保存记录，因此每次击键更新而非只在保存后。
 
 ### `String _formatInitialMeasurement(double? value)` <a id="_formatinitialmeasurement"></a>
 - **种类：** `_WeightRecordDialogState` 的方法
-- **来源：** `lib/features/weight/views/weight_page.dart`（第 2465 行）
+- **来源：** `lib/features/weight/views/weight_page.dart`（第 2501 行）
 - **用途：** 为对话框打开时播种文本控制器格式化持久化测量值，非正值当作缺席。
 - **输入：** `value` — 持久化 `bustCm`/`waistCm`/`hipCm`，或 `null`。
 - **返回：** `String` — `value` 为 `null` 或 `<= 0` 时 `''`，否则 `value.toStringAsFixed(1)`。
@@ -520,12 +547,12 @@
   ```dart
   _bustController = TextEditingController(text: _formatInitialMeasurement(record?.bustCm));
   ```
-  （`initState`，第 2231-2239 行，胸/腰/臀各一次。）
+  （`initState`，第 2266-2274 行，胸/腰/臀各一次。）
 - **备注：** 与 `_optionalMeasurement`（反向，文本 → 值）对称——两者都把非正当作"未测量"。
 
 ### `double? _optionalMeasurement(TextEditingController controller)` <a id="_optionalmeasurement"></a>
 - **种类：** `_WeightRecordDialogState` 的方法
-- **来源：** `lib/features/weight/views/weight_page.dart`（第 2475 行）
+- **来源：** `lib/features/weight/views/weight_page.dart`（第 2511 行）
 - **用途：** 解析可选测量字段当前文本，把空、零、负或格式错误输入当作缺席而非错误。
 - **输入：** `controller`。
 - **返回：** `double?` — 除非解析值 `> 0` 否则 `null`。
@@ -537,12 +564,12 @@
   final waistCm = _optionalMeasurement(_waistController);
   final hipCm = _optionalMeasurement(_hipController);
   ```
-  （`_submit`，第 2490-2492 行。）
+  （`_submit`，第 2526-2528 行。）
 - **备注：** 因为零/负/不可解析条目静默变成 `null`（缺席）而非阻塞提交，测量字段没有自己的验证错误状态——无效条目被当作与留空字段相同。
 
 ### `void _submit(UnsavedChangesController guard)` <a id="_submit"></a>
 - **种类：** `_WeightRecordDialogState` 的方法
-- **来源：** `lib/features/weight/views/weight_page.dart`（第 2486 行）
+- **来源：** `lib/features/weight/views/weight_page.dart`（第 2522 行）
 - **用途：** 验证必填体重字段、收集可选测量/备注/日期字段、构建结果 `WeightRecord`（编辑时更新 `initialRecord`，添加时构造新的）并带它弹出对话框。
 - **输入：** `guard`。
 - **返回：** 无。
@@ -559,7 +586,7 @@
     child: Text(_isEditing ? l10n.commonSave : l10n.commonAdd),
   )
   ```
-  （`build`，第 2397-2400 行；也接到体重字段和备注字段两者的 `onSubmitted`，第 2303 和 2350 行。）
+  （`build`，第 2433-2436 行；也接到体重字段和备注字段两者的 `onSubmitted`，第 2338 和 2385 行。）
 - **备注：** 只有体重字段实际被验证（必须解析为 `> 0`）；测量字段绝不可能阻塞提交，因为 `_optionalMeasurement` 把任何无效条目映射为 `null` 而非浮出错误。
 
 ## 相关页面

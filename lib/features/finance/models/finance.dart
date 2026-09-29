@@ -1,6 +1,8 @@
 import 'package:flutter/widgets.dart' show IconData;
 import 'package:uuid/uuid.dart';
 
+import '../../../shared/utils/week_grouping.dart';
+
 enum AccountType { fund, credit, recharge, financial }
 
 class AccountPickerSettings {
@@ -374,8 +376,9 @@ class Subscription {
   /// Inputs: None.
   /// Returns: `DateTime`.
   /// Side effects: None.
-  /// Notes: None.
-  DateTime get firstBillingDate => startDate.add(Duration(days: trialDays));
+  /// Notes: Trial days are calendar days (v1.5.2): across a DST change the start time of day
+  /// is kept instead of drifting by one hour.
+  DateTime get firstBillingDate => addCalendarDays(startDate, trialDays);
 
   /// Purpose: Advance a billing cursor by one cycle with month-length clamping.
   /// Inputs: `cursor` current billing date, `cycleType`, `interval`, `anchor` first billing date.

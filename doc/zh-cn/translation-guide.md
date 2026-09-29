@@ -140,6 +140,12 @@
 | fallback facts | 回退事实 | 模型拒绝带标题的事实时卡片再试一次所发送的更简朴事实 |
 | regenerate | 重新生成 | 卡片的刷新按钮 |
 | weak linking | 弱链接 | FoundationModels 以 `LC_LOAD_WEAK_DYLIB` 链接 |
+| merge-by-id (sub-page save) | 按 id 合并（子页面保存） | 财务/亲密：把子页面的列表编辑重放到重新读取的文件上（`IdListDelta`，v1.5.2） |
+| sub-page | 子页面 | 从模块主页推入的页面（账户、伴侣管理……） |
+| Origin guard | Origin 守卫 | 以 403 拒绝非本地浏览器 `Origin` 的本地 API 中间件（v1.5.2） |
+| calendar day (step) | 日历日 | 跨夏令时切换仍保留钟面时间的日期步进（`addCalendarDays`） |
+| single-key patch | 单键补丁 | `TodoStorage.writeConfig` 只传要更改的键（`null` 值移除该键），v1.5.2 |
+| config queue | 配置队列 | 每次 `storage_config.json` 读-合并-写都经过的串行队列，使并发的设置保存不会互相丢失（v1.5.2） |
 
 ## 6. 复查清单（提交中文页面之前运行）
 

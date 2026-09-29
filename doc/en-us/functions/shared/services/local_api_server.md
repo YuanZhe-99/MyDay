@@ -8,7 +8,7 @@ Started from `main()` (see
 controlled from the Settings page's desktop section
 ([../../features/settings.md](../../../features/settings.md)). Config (`apiPort`,
 `apiListenAddress`, `apiEnabled`, `apiUsername`, `apiPassword`), the non-loopback
-credential requirement, the permissive-CORS/Basic-Auth middleware stack, and the
+credential requirement, the Origin-guard / echo-only-CORS / Basic-Auth middleware stack, and the
 `data_unreadable` 500 contract are all documented at
 [../../../platform-notes.md#local-http-api](../../../platform-notes.md#local-http-api) — this page
 covers the implementation behind that contract. The endpoint list itself is also summarized in
@@ -79,7 +79,11 @@ for finance currency conversion.
 | [`_json`](#_json) | static method (`LocalApiServer`) | A | Encode a successful JSON response. |
 | [`_error`](#_error) | static method (`LocalApiServer`) | A | Encode a JSON error response. |
 | [`_parseBody`](#_parsebody) | static method (`LocalApiServer`) | A | Parse the request body as JSON. |
-| [`_corsMiddleware`](#_corsmiddleware) | static method (`LocalApiServer`) | A | Add permissive CORS headers and answer `OPTIONS`. |
+| [`_notifyWritten`](#_notifywritten) | static method (`LocalApiServer`) | A | Tell the app a local API request changed a data file (v1.5.2). |
+| [`isAllowedLocalOrigin`](#isallowedlocalorigin) | static method (`LocalApiServer`) | A | Return whether a browser `Origin` value belongs to this machine (v1.5.2). |
+| [`_originGuardMiddleware`](#_originguardmiddleware) | static method (`LocalApiServer`) | A | Reject non-local web origins with 403 (v1.5.2). |
+| [`_corsMiddleware`](#_corsmiddleware) | static method (`LocalApiServer`) | A | Echo CORS headers for the allowed local origin and answer `OPTIONS`. |
+| [`_corsHeadersFor`](#_corsheadersfor) | static method (`LocalApiServer`) | A | Build the CORS headers for one request's origin (v1.5.2). |
 | [`_authMiddleware`](#_authmiddleware) | static method (`LocalApiServer`) | A | Enforce Basic Auth / loopback-only policy. |
 | [`_hasCredentials`](#_hascredentials) | static getter (`LocalApiServer`) | A | Return whether both API credential fields are configured. |
 | [`_validateBasicAuth`](#_validatebasicauth) | static method (`LocalApiServer`) | A | Validate a `Basic` Authorization header. |
@@ -87,14 +91,14 @@ for finance currency conversion.
 | [`_CategoryTotal.new`](#_categorytotal-new) | constructor (`_CategoryTotal`) | A | Store an accumulated finance category total. |
 | [`add`](#add) | method (`_CategoryTotal`) | A | Return a copy with `value` added to the total. |
 
-`grep -c 'Purpose:' lib/shared/services/local_api_server.dart` reports 63, matching all 63 real
-declarations found in this file (5 plain getters plus 58 methods/getters/constructors with real
+`grep -c 'Purpose:' lib/shared/services/local_api_server.dart` reports 67, matching all 67 real
+declarations found in this file (5 plain getters plus 62 methods/getters/constructors with real
 branching, parsing, serialization, or IO logic). No misattached blocks and no undocumented real
 declarations were found — every `/// Purpose:` block sits directly above the class member it
 describes. The five one-line field-return getters (`port`, `listenAddress`, `enabled`, `isRunning`,
 `lastError`) are the only Tier B rows; everything else in this service file has real logic
 (validation, storage IO, JSON shaping, or middleware behavior) and is Tier A per the blanket
-"services" rule. Two private static fields (`_corsHeaders`) and the seven plain private state
+"services" rule. The seven plain private state
 fields (`_server`, `_port`, `_listenAddress`, `_enabled`, `_username`, `_password`, `_lastError`)
 are not separately indexed — they carry no doc comment and are not functions/getters/constructors.
 
@@ -102,7 +106,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static Future<void> loadConfig()` <a id="loadconfig"></a>
 - **Kind:** static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 67)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 69)
 - **Purpose:** Load the cached API settings (`_port`, `_listenAddress`, `_enabled`, `_username`,
   `_password`) from `storage_config.json` via `TodoStorage.readConfig()`.
 - **Inputs:** None.
@@ -120,7 +124,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static Future<void> start()` <a id="start"></a>
 - **Kind:** static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 83)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 85)
 - **Purpose:** Start the local HTTP API server when it is enabled in config and allowed to bind.
 - **Inputs:** None.
 - **Returns:** `Future<void>`.
@@ -150,7 +154,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static Future<void> stop()` <a id="stop"></a>
 - **Kind:** static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 114)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 116)
 - **Purpose:** Close the active HTTP listener, if one exists.
 - **Inputs:** None.
 - **Returns:** `Future<void>`.
@@ -166,7 +170,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static Future<void> restart()` <a id="restart"></a>
 - **Kind:** static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 124)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 126)
 - **Purpose:** Reload API config from storage and restart the listener with the new settings.
 - **Inputs:** None.
 - **Returns:** `Future<void>`.
@@ -183,7 +187,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static Handler buildHandlerForTesting({String? username, String? password})` <a id="buildhandlerfortesting"></a>
 - **Kind:** static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 134)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 136)
 - **Purpose:** Build the same request handler used in production, with directly-injected
   credentials, for use in widget/unit tests without going through `loadConfig()`.
 - **Inputs:** Optional `username`/`password`.
@@ -204,9 +208,9 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static Handler _buildHandler()` <a id="_buildhandler"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 145)
-- **Purpose:** Build the Shelf router (all 16 routes) and wrap it in the CORS / auth / error
-  middleware pipeline.
+- **Source:** `lib/shared/services/local_api_server.dart` (line 147)
+- **Purpose:** Build the Shelf router (all 16 routes) and wrap it in the Origin-guard / CORS /
+  auth / error middleware pipeline.
 - **Inputs:** None.
 - **Returns:** `Handler`.
 - **Side effects:** None (pure construction).
@@ -215,17 +219,19 @@ are not separately indexed — they carry no doc comment and are not functions/g
      routes, and the three `/weight/*` routes to their `_handleXxx` methods (see
      [../../../platform-notes.md#local-http-api](../../../platform-notes.md#local-http-api) for the
      full endpoint list).
-  2. Wrap with `Pipeline().addMiddleware(_corsMiddleware()).addMiddleware(_authMiddleware())
-     .addMiddleware(_errorMiddleware()).addHandler(router.call)` — CORS runs outermost, then auth,
-     then error handling, then the router.
+  2. Wrap with `Pipeline().addMiddleware(_originGuardMiddleware()).addMiddleware(_corsMiddleware())
+     .addMiddleware(_authMiddleware()).addMiddleware(_errorMiddleware()).addHandler(router.call)` —
+     the Origin guard runs outermost, then CORS, then auth, then error handling, then the router
+     (the guard is new in v1.5.2).
 - **Usage:** Called from `start()` (real listener) and `buildHandlerForTesting()` (in-memory
   handler for tests) so both paths share identical routing/middleware behavior.
-- **Notes:** Middleware order matters: CORS headers/`OPTIONS` short-circuit happens before auth is
-  checked, so preflight requests never need credentials.
+- **Notes:** Middleware order matters: the Origin guard runs before everything else (a non-local
+  origin gets 403, preflights included), and the CORS headers/`OPTIONS` short-circuit happens before
+  auth is checked, so preflight requests from a local origin never need credentials.
 
 ### `static InternetAddress _bindAddress()` <a id="_bindaddress"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 179)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 182)
 - **Purpose:** Translate the configured `_listenAddress` string into an `InternetAddress` suitable
   for `shelf_io.serve`.
 - **Inputs:** None (reads `_listenAddress`).
@@ -240,7 +246,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static Future<Response> _handlePing(Request request)` <a id="_handleping"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 194)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 197)
 - **Purpose:** Answer `GET /ping` so callers can check the API is reachable and authenticated.
 - **Inputs:** `request` (unused beyond routing).
 - **Returns:** `Future<Response>`.
@@ -251,7 +257,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static Future<Response> _handleTodoList(Request request)` <a id="_handletodolist"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 205)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 208)
 - **Purpose:** Implement `GET /todo/list?date=YYYY-MM-DD` — a flat array of tasks visible that day.
 - **Inputs:** `request` query `date` (defaults to now) and optional `type`.
 - **Returns:** `Future<Response>`.
@@ -264,7 +270,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static Future<Response> _handleTodoDay(Request request)` <a id="_handletododay"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 218)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 221)
 - **Purpose:** Implement `GET /todo/day?date=YYYY-MM-DD` — day score, totals, and enriched tasks.
 - **Inputs:** `request` query `date` (defaults to now).
 - **Returns:** `Future<Response>`.
@@ -279,12 +285,13 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static Future<Response> _handleTodoAdd(Request request)` <a id="_handletodoadd"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 245)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 248)
 - **Purpose:** Implement `POST /todo/add` — create a daily template or one-time task.
 - **Inputs:** JSON body: `title` (required), `type` (default `'workOnce'`), optional `dueDate`,
   `scheduledDate`, `reminderTime`, `note`, `emoji`, `subtasks`, `recurrence`.
 - **Returns:** `Future<Response>`.
 - **Side effects:** Writes todo storage (`TodoStorage.save`).
+  Then calls `_notifyWritten()`.
 - **Algorithm:**
   1. Parse body; 400 if missing/invalid JSON, missing/empty `title`, unknown `type`, or any
      provided date/recurrence field that fails to parse.
@@ -304,7 +311,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static Future<Response> _handleTodoComplete(Request request)` <a id="_handletodocomplete"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 310)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 314)
 - **Purpose:** Implement `POST /todo/complete` — complete/reopen a task or one of its subtasks, and
   optionally spawn the next recurrence instance.
 - **Inputs:** JSON body: `id` (required), optional `subtaskId`, `completed` (default `true`),
@@ -312,6 +319,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 - **Returns:** `Future<Response>`.
 - **Side effects:** Writes todo storage; toggles date-scoped daily-log entries or mutates a
   one-time task's completion fields.
+  Then calls `_notifyWritten()`.
 - **Algorithm:**
   1. Parse body; 400 on missing/invalid JSON, missing `id`, or an invalid `date`.
   2. Load data; 404 if none.
@@ -342,11 +350,12 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static Future<Response> _handleTodoScore(Request request)` <a id="_handletodoscore"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 409)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 416)
 - **Purpose:** Implement `POST /todo/score` — set the day score for a date.
 - **Inputs:** JSON body: `score` (required numeric), optional `date` (default now).
 - **Returns:** `Future<Response>`.
 - **Side effects:** Writes todo storage.
+  Then calls `_notifyWritten()`.
 - **Algorithm:** Validate `score` is numeric and `date` (if given) parses; load/create data;
   `data.dailyScores.setScore(date, scoreValue.round())`; save; return the resulting
   `{success, date, score}` (the getter re-reads via `scoreFor(date)`, which clamps to the model's
@@ -361,7 +370,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static Future<Response> _handleTodoStats(Request request)` <a id="_handletodostats"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 440)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 448)
 - **Purpose:** Implement `GET /todo/stats` — today's total/completed/overdue counts.
 - **Inputs:** `request` (unused beyond routing).
 - **Returns:** `Future<Response>`.
@@ -377,7 +386,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static Future<Response> _handleFinanceSummary(Request request)` <a id="_handlefinancesummary"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 472)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 480)
 - **Purpose:** Implement `GET /finance/summary?month=yyyy-MM` — converted income/expense/balance,
   total assets, per-account balances, and per-category totals for a month.
 - **Inputs:** `request` query `month` (defaults to the current month).
@@ -406,7 +415,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static Future<Response> _handleFinanceAccounts(Request request)` <a id="_handlefinanceaccounts"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 576)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 584)
 - **Purpose:** Implement `GET /finance/accounts?type=...` — account details with card secrets
   omitted.
 - **Inputs:** `request` query optional `type` (an `AccountType` name).
@@ -419,7 +428,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static Future<Response> _handleFinanceCategories(Request request)` <a id="_handlefinancecategories"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 611)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 619)
 - **Purpose:** Implement `GET /finance/categories?type=expense|income|transfer`.
 - **Inputs:** `request` query optional `type` (a `TransactionType` name).
 - **Returns:** `Future<Response>`.
@@ -431,7 +440,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static Future<Response> _handleFinanceTransactions(Request request)` <a id="_handlefinancetransactions"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 632)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 640)
 - **Purpose:** Implement `GET /finance/transactions` with pagination and multiple filters.
 - **Inputs:** `request` query `limit` (default 20, clamped 0..200), `offset` (default 0, clamped
   0..1,000,000), optional `type`, `month` (overrides `startDate`/`endDate`), `startDate`/`start`,
@@ -456,7 +465,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static Future<Response> _handleFinanceAddTransaction(Request request)` <a id="_handlefinanceaddtransaction"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 699)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 707)
 - **Purpose:** Implement `POST /finance/add_transaction` with full field validation, including
   transfers.
 - **Inputs:** JSON body: `type` (required), `amount` (required positive), `accountId` (required,
@@ -465,6 +474,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
   (positive if given), optional `currency`/`toCurrency`, optional `date`, optional `note`.
 - **Returns:** `Future<Response>`.
 - **Side effects:** Writes finance storage.
+  Then calls `_notifyWritten()`.
 - **Algorithm:**
   1. Validate `type`, `amount`, `accountId`/account lookup, `categoryId`/category lookup + type
      match, and (for transfers) `toAccountId`/target lookup + distinctness — returning 400/404 on
@@ -493,7 +503,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static Future<Response> _handleFinanceSubscriptions(Request request)` <a id="_handlefinancesubscriptions"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 807)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 816)
 - **Purpose:** Implement `GET /finance/subscriptions?includeInactive=true` with resolved account
   and category names.
 - **Inputs:** `request` query optional `includeInactive` (`true`/`1`/`yes`).
@@ -510,7 +520,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static Future<Response> _handleWeightList(Request request)` <a id="_handleweightlist"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 853)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 862)
 - **Purpose:** Implement `GET /weight/list?limit=n` — recent weight records with effective
   (inherited) measurements.
 - **Inputs:** `request` query `limit` (default 30, clamped 0..200).
@@ -523,7 +533,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static Future<Response> _handleWeightAdd(Request request)` <a id="_handleweightadd"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 869)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 880)
 - **Purpose:** Implement `POST /weight/add` — record a new weight entry with optional body
   composition and circumference measurements.
 - **Inputs:** JSON body: `weight` (required positive), optional `bodyFat`/`bustCm`/`waistCm`/
@@ -531,6 +541,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
   `notes`.
 - **Returns:** `Future<Response>`.
 - **Side effects:** Writes weight storage and rebuilds mobile reminder schedules.
+  Then calls `_notifyWritten()`.
 - **Algorithm:**
   1. Validate `weight` and every provided optional numeric field independently — each is `null`
      when the key is entirely absent, but a 400 error when the key is present with a non-positive
@@ -551,7 +562,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static Future<Response> _handleWeightStats(Request request)` <a id="_handleweightstats"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 929)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 942)
 - **Purpose:** Implement `GET /weight/stats` — latest/average/trend plus BMI, waist-hip ratio, and
   effective measurements.
 - **Inputs:** `request` (unused beyond routing).
@@ -577,7 +588,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static List<Map<String, dynamic>> _visibleTodoTasks(TodoData data, DateTime date, {String? typeStr})` <a id="_visibletodotasks"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 1008)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 1021)
 - **Purpose:** Compute the list of tasks (daily templates + one-time tasks) that should be visible
   on `date`, serialized to JSON, shared by `_handleTodoList`, `_handleTodoDay`, and
   `_handleTodoStats`.
@@ -604,7 +615,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static Map<String, dynamic> _todoTaskJson(Task task, {DateTime? date, bool? isCompleted, DailyCompletionLog? dailyLog})` <a id="_todotaskjson"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 1058)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 1071)
 - **Purpose:** Serialize a `Task` (plus its subtasks) into the API's JSON task shape.
 - **Inputs:** `task`; optional `date`/`isCompleted`/`dailyLog` for date-scoped completion.
 - **Returns:** A `Map<String, dynamic>`.
@@ -624,7 +635,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static Map<String, dynamic> _accountJson(Account account, {double? balance, double? convertedBalance, required String defaultCurrency})` <a id="_accountjson"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 1100)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 1113)
 - **Purpose:** Serialize an `Account` for API output while omitting sensitive card fields.
 - **Inputs:** `account`; optional `balance`/`convertedBalance`; required `defaultCurrency`.
 - **Returns:** A `Map<String, dynamic>`.
@@ -644,7 +655,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static Map<String, dynamic> _categoryJson(Category category)` <a id="_categoryjson"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 1129)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 1142)
 - **Purpose:** Serialize a `Category` for API output.
 - **Inputs:** `category`.
 - **Returns:** A `Map<String, dynamic>`.
@@ -660,7 +671,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static Map<String, dynamic> _transactionJson(Transaction tx, {Map<String, Account> accountsById = const {}, Map<String, Category> categoriesById = const {}})` <a id="_transactionjson"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 1145)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 1158)
 - **Purpose:** Serialize a `Transaction`, resolving human-readable account/category names when
   lookup maps are supplied.
 - **Inputs:** `tx`; optional `accountsById`/`categoriesById` (default empty).
@@ -679,7 +690,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static Map<String, dynamic> _weightRecordJson(WeightRecord record, WeightData data)` <a id="_weightrecordjson"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 1180)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 1193)
 - **Purpose:** Serialize a `WeightRecord` with its display-effective measurements.
 - **Inputs:** `record`, `data` (the full record set, needed to compute inheritance).
 - **Returns:** A `Map<String, dynamic>`.
@@ -697,7 +708,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static Map<String, dynamic> _measurementsJson(EffectiveWeightMeasurements measurements)` <a id="_measurementsjson"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 1208)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 1221)
 - **Purpose:** Serialize an `EffectiveWeightMeasurements` value to JSON.
 - **Inputs:** `measurements`.
 - **Returns:** A `Map<String, dynamic>` with `bustCm`/`waistCm`/`hipCm`.
@@ -713,7 +724,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static TodoData _todoDataWith(TodoData data, {List<Task>? dailyTemplates, List<Task>? oneTimeTasks})` <a id="_tododatawith"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 1225)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 1238)
 - **Purpose:** Clone a `TodoData` while optionally replacing its `dailyTemplates`/`oneTimeTasks`
   lists.
 - **Inputs:** `data`; optional replacement `dailyTemplates`/`oneTimeTasks`.
@@ -734,7 +745,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static Task _copyOneTimeTask(Task task, {bool? isCompleted, DateTime? completedDate, List<SubTask>? subtasks})` <a id="_copyonetimetask"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 1250)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 1263)
 - **Purpose:** Copy a one-time `Task`, allowing `completedDate` to be explicitly cleared to `null`.
 - **Inputs:** `task`; optional `isCompleted`/`completedDate`/`subtasks` overrides.
 - **Returns:** `Task`.
@@ -753,7 +764,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static void _addCategoryTotal(Map<String, _CategoryTotal> totals, Transaction tx, double converted)` <a id="_addcategorytotal"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 1281)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 1294)
 - **Purpose:** Accumulate a converted transaction amount into a `type:categoryId`-keyed totals map.
 - **Inputs:** `totals` (mutated), `tx`, `converted` (already currency-converted amount).
 - **Returns:** `void`.
@@ -770,7 +781,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static DateTime? _queryMonth(Request request)` <a id="_querymonth"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 1305)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 1318)
 - **Purpose:** Parse a `?month=yyyy-MM` query parameter into the first day of that month.
 - **Inputs:** `request`.
 - **Returns:** `DateTime?`.
@@ -787,7 +798,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static int _queryInt(Request request, String name, {required int defaultValue})` <a id="_queryint"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 1321)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 1334)
 - **Purpose:** Parse a named integer query parameter, falling back to a default.
 - **Inputs:** `request`, `name`, `defaultValue`.
 - **Returns:** `int`.
@@ -803,7 +814,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static bool _queryBool(Request request, String name)` <a id="_querybool"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 1335)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 1348)
 - **Purpose:** Parse a named boolean-ish query parameter.
 - **Inputs:** `request`, `name`.
 - **Returns:** `bool`.
@@ -818,7 +829,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static DateTime? _queryDate(Request request, String name)` <a id="_querydate"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 1345)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 1358)
 - **Purpose:** Parse a named ISO-ish date query parameter.
 - **Inputs:** `request`, `name`.
 - **Returns:** `DateTime?`.
@@ -833,7 +844,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static DateTime? _optionalBodyDate(Map<String, dynamic> body, String name)` <a id="_optionalbodydate"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 1356)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 1369)
 - **Purpose:** Parse a named date field out of a decoded JSON request body.
 - **Inputs:** `body`, `name`.
 - **Returns:** `DateTime?`.
@@ -852,7 +863,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static double? _positiveDouble(Object? value)` <a id="_positivedouble"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 1368)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 1381)
 - **Purpose:** Parse a required strictly-positive numeric value from untyped JSON input.
 - **Inputs:** `value` (expected `num` or numeric `String`).
 - **Returns:** `double?` (`null` on failure).
@@ -870,7 +881,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static double? _optionalPositiveDouble(Object? value)` <a id="_optionalpositivedouble"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 1383)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 1396)
 - **Purpose:** Parse an optional strictly-positive numeric field, treating an absent key as `null`.
 - **Inputs:** `value`.
 - **Returns:** `double?`.
@@ -887,7 +898,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static String? _optionalTrimmedString(Object? value)` <a id="_optionaltrimmedstring"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 1393)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 1406)
 - **Purpose:** Parse an optional string field, trimming whitespace and collapsing blanks to `null`.
 - **Inputs:** `value`.
 - **Returns:** `String?`.
@@ -903,7 +914,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static List<SubTask> _parseSubtasks(Object? value)` <a id="_parsesubtasks"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 1404)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 1417)
 - **Purpose:** Parse a JSON `subtasks` array into `SubTask` objects.
 - **Inputs:** `value` (expected a `List` of `String`s and/or `Map`s).
 - **Returns:** `List<SubTask>` (empty if `value` isn't a `List`).
@@ -921,7 +932,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static TaskRecurrence? _parseRecurrence(Object? value)` <a id="_parserecurrence"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 1428)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 1441)
 - **Purpose:** Parse a JSON recurrence object into a `TaskRecurrence`.
 - **Inputs:** `value` (expected `{type, ...}`).
 - **Returns:** `TaskRecurrence?` (`null` on any structural problem).
@@ -943,7 +954,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static TaskType? _taskTypeByName(String? name)` <a id="_tasktypebyname"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 1459)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 1472)
 - **Purpose:** Resolve a `TaskType` enum value from its API name string.
 - **Inputs:** `name`.
 - **Returns:** `TaskType?`.
@@ -960,7 +971,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static TransactionType? _transactionTypeByName(String? name)` <a id="_transactiontypebyname"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 1472)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 1485)
 - **Purpose:** Resolve a `TransactionType` enum value from its API name string.
 - **Inputs:** `name`.
 - **Returns:** `TransactionType?`.
@@ -975,7 +986,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static AccountType? _accountTypeByName(String name)` <a id="_accounttypebyname"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 1485)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 1498)
 - **Purpose:** Resolve an `AccountType` enum value from its API name string.
 - **Inputs:** `name` (non-nullable, unlike its two siblings above).
 - **Returns:** `AccountType?`.
@@ -992,7 +1003,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static double _round(double value, {int digits = 2})` <a id="_round"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 1497)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 1510)
 - **Purpose:** Round a `double` to a fixed number of decimal digits for stable JSON output.
 - **Inputs:** `value`, `digits` (default 2).
 - **Returns:** `double`.
@@ -1009,7 +1020,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static double? _nullableRound(double? value, {int digits = 2})` <a id="_nullableround"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 1506)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 1519)
 - **Purpose:** `null`-safe wrapper around `_round`.
 - **Inputs:** `value`, `digits` (default 2).
 - **Returns:** `double?`.
@@ -1024,7 +1035,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static Response _json(Object? data)` <a id="_json"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 1515)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 1528)
 - **Purpose:** Encode any JSON-compatible value as a `200 OK` response.
 - **Inputs:** `data`.
 - **Returns:** `Response`.
@@ -1036,7 +1047,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static Response _error(int status, String message)` <a id="_error"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 1525)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 1538)
 - **Purpose:** Encode a JSON error response with a given HTTP status.
 - **Inputs:** `status`, `message`.
 - **Returns:** `Response`.
@@ -1051,7 +1062,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static Future<Map<String, dynamic>?> _parseBody(Request request)` <a id="_parsebody"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 1536)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 1549)
 - **Purpose:** Read and JSON-decode a request body, tolerating empty or malformed input.
 - **Inputs:** `request`.
 - **Returns:** `Future<Map<String, dynamic>?>` (`null` on empty/malformed body).
@@ -1068,27 +1079,104 @@ are not separately indexed — they carry no doc comment and are not functions/g
 - **Notes:** A JSON body whose top level isn't an object (e.g. a bare array or number) is treated
   the same as malformed JSON, since the cast to `Map<String, dynamic>` throws.
 
+### `static void _notifyWritten()` <a id="_notifywritten"></a>
+- **Kind:** private static method of `LocalApiServer`
+- **Source:** `lib/shared/services/local_api_server.dart` (line 1567)
+- **Purpose:** Tell the app that a local API request changed a data file.
+- **Inputs:** None.
+- **Returns:** None.
+- **Side effects:** Calls `AutoSyncService.instance.notifySaved()` (restarts the auto-sync debounce)
+  and `AutoSyncService.instance.notifyLocalDataChangedNow()` (fires the local-data-changed
+  listeners so open pages reload).
+- **Algorithm:** Two direct calls on the `AutoSyncService` singleton, in that order.
+- **Usage:** Called right after every successful `Storage.save` in the write handlers:
+  `_handleTodoAdd`, `_handleTodoComplete` (all three save paths: daily-log toggle, recurring
+  next-occurrence, plain one-time update), `_handleTodoScore`, `_handleFinanceAddTransaction`, and
+  `_handleWeightAdd`. Covered by `test/local_api_server_test.dart:361` (`API writes fire the
+  local-data-changed listeners`), which registers a listener and expects one call after
+  `POST /todo/add`.
+- **Notes:** Without it an open page kept its stale in-memory copy and a later save from that page
+  overwrote the API write, and the write was never scheduled for sync (v1.5.2). `notifySaved()` is
+  ignored until `AutoSyncService.start()` has run, so it does nothing in tests;
+  `notifyLocalDataChangedNow()` still invokes every registered listener.
+
+### `static bool isAllowedLocalOrigin(String origin)` <a id="isallowedlocalorigin"></a>
+- **Kind:** public static method of `LocalApiServer`
+- **Source:** `lib/shared/services/local_api_server.dart` (line 1579)
+- **Purpose:** Return whether a browser `Origin` header value belongs to this machine.
+- **Inputs:** `origin` — the raw header value.
+- **Returns:** `bool` — true for `http`/`https` origins on `localhost`, `*.localhost`, or a loopback
+  IP literal (`127.0.0.0/8`, `::1`).
+- **Side effects:** None.
+- **Algorithm:**
+  1. `Uri.tryParse(origin.trim())`; reject `null` results and any scheme other than `http`/`https`.
+  2. Lower-case the host; reject an empty host.
+  3. Accept `localhost` and hosts ending in `.localhost`.
+  4. Otherwise accept only when `InternetAddress.tryParse(host)?.isLoopback` is true.
+- **Usage:** `if (origin != null && !isAllowedLocalOrigin(origin))` in `_originGuardMiddleware`.
+  Exercised directly by `test/local_api_server_test.dart:272` (`isAllowedLocalOrigin accepts only
+  this machine`).
+- **Notes:** The literal origin `null` (sandboxed or `file://` pages) and every other host are
+  rejected, so a web page on the internet cannot drive the API from the user's browser (v1.5.2).
+  Public so tests can call it.
+
+### `static Middleware _originGuardMiddleware()` <a id="_originguardmiddleware"></a>
+- **Kind:** private static method of `LocalApiServer`
+- **Source:** `lib/shared/services/local_api_server.dart` (line 1597)
+- **Purpose:** Reject browser requests coming from a non-local web origin.
+- **Inputs:** None.
+- **Returns:** `Middleware`.
+- **Side effects:** None at build time.
+- **Algorithm:** Read `request.headers['origin']`; when it is present and
+  `isAllowedLocalOrigin` is false, return `Response(403)` with body
+  `{"error":"origin_not_allowed"}`, `Content-Type: application/json` and `Vary: Origin`; otherwise
+  call the inner handler.
+- **Usage:** First middleware in `_buildHandler()`: `.addMiddleware(_originGuardMiddleware())`.
+  Covered by the `browser Origin guard (v1.5.2)` group in `test/local_api_server_test.dart`
+  (line 271): `a foreign Origin gets 403 on requests and preflights` (line 298), `a foreign Origin
+  cannot write even when unauthenticated` (line 314), and `the guard runs before auth` (line 327).
+- **Notes:** Being first, it also covers `OPTIONS` preflights and runs before auth. Requests without
+  an `Origin` header (curl, scripts, other apps) pass unchanged. The guard checks only `Origin`;
+  there is no `Host` header check. See
+  [../../../platform-notes.md#local-http-api](../../../platform-notes.md#local-http-api).
+
 ### `static Middleware _corsMiddleware()` <a id="_corsmiddleware"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 1553)
-- **Purpose:** Add permissive CORS headers to every response and answer `OPTIONS` preflight
+- **Source:** `lib/shared/services/local_api_server.dart` (line 1620)
+- **Purpose:** Add CORS headers for the allowed local browser origin and answer `OPTIONS` preflight
   requests directly.
 - **Inputs:** None.
 - **Returns:** `Middleware`.
 - **Side effects:** None (the returned middleware has side effects at request time, but building it
   does not).
-- **Algorithm:** For `OPTIONS` requests, return `Response.ok('', headers: _corsHeaders)`
-  immediately (skipping the wrapped handler entirely); otherwise call the inner handler and apply
-  `_corsHeaders` to its response via `.change(headers: ...)`.
-- **Usage:** Applied in `_buildHandler()`: `.addMiddleware(_corsMiddleware())`, as the outermost
-  middleware.
-- **Notes:** `_corsHeaders` allows any origin (`Access-Control-Allow-Origin: '*'`) — see
-  [../../../platform-notes.md#local-http-api](../../../platform-notes.md#local-http-api) for why
-  this is considered acceptable for a loopback-bound local tool.
+- **Algorithm:** Compute `headers = _corsHeadersFor(request.headers['origin'])`. For `OPTIONS`
+  requests return `Response.ok('', headers: headers)` immediately (skipping the wrapped handler
+  entirely); otherwise call the inner handler and apply `headers` to its response via
+  `.change(headers: ...)` — skipped when `headers` is empty.
+- **Usage:** Applied in `_buildHandler()`: `.addMiddleware(_corsMiddleware())`, right after the
+  origin guard. Covered by `a local Origin is echoed with Vary, never "*"` (line 338) and `requests
+  without Origin get no CORS allow header` (line 354) in `test/local_api_server_test.dart`.
+- **Notes:** Echo-only (v1.5.2): the request's own `Origin` (already vetted by the guard) is echoed
+  with `Vary: Origin`; a request without `Origin` gets no `Access-Control-Allow-Origin`. The
+  `*` wildcard is never sent. Replaces the former constant `_corsHeaders` map. See
+  [../../../platform-notes.md#local-http-api](../../../platform-notes.md#local-http-api).
+
+### `static Map<String, String> _corsHeadersFor(String? origin)` <a id="_corsheadersfor"></a>
+- **Kind:** private static method of `LocalApiServer`
+- **Source:** `lib/shared/services/local_api_server.dart` (line 1638)
+- **Purpose:** Build the CORS response headers for one request's origin.
+- **Inputs:** `origin` — the request's `Origin` header, already allowed by the guard.
+- **Returns:** `Map<String, String>` — `const {}` when `origin` is `null`; otherwise
+  `Access-Control-Allow-Origin: <origin>`, `Access-Control-Allow-Methods: GET, POST, OPTIONS`,
+  `Access-Control-Allow-Headers: Content-Type, Authorization`, and `Vary: Origin`.
+- **Side effects:** None.
+- **Algorithm:** Return an empty map for a `null` origin, else the four-entry map above.
+- **Usage:** `_corsMiddleware()`, once per request.
+- **Notes:** Internal helper used within this file only; it does not validate the origin itself.
 
 ### `static Middleware _authMiddleware()` <a id="_authmiddleware"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 1576)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 1653)
 - **Purpose:** Enforce the local API's authentication policy: Basic Auth when credentials are
   configured, loopback-only otherwise.
 - **Inputs:** None.
@@ -1111,7 +1199,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static bool get _hasCredentials` <a id="_hascredentials"></a>
 - **Kind:** private static getter of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 1611)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 1688)
 - **Purpose:** Report whether both an API username and password are configured and non-empty.
 - **Inputs:** None (reads `_username`/`_password`).
 - **Returns:** `bool`.
@@ -1129,7 +1217,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static bool _validateBasicAuth(String header)` <a id="_validatebasicauth"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 1622)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 1699)
 - **Purpose:** Validate an HTTP `Authorization: Basic ...` header against the configured
   credentials.
 - **Inputs:** `header` (the raw header value).
@@ -1149,17 +1237,20 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `static Middleware _errorMiddleware()` <a id="_errormiddleware"></a>
 - **Kind:** private static method of `LocalApiServer`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 1641)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 1718)
 - **Purpose:** Convert uncaught exceptions from route handlers into JSON error responses, including
   the dedicated `data_unreadable` contract for corrupted storage files.
 - **Inputs:** None.
 - **Returns:** `Middleware`.
 - **Side effects:** None at build time.
-- **Algorithm:** `try` the inner handler; on `TodoStorageException`, `WeightStorageException`, or
-  `FinanceStorageException`, return `_error(500, 'data_unreadable')`; on any other exception,
+- **Algorithm:** `try` the inner handler; on `TodoStorageException`, `WeightStorageException`,
+  `FinanceStorageException`, or `ExchangeRateStorageException` (added v1.5.2; an unreadable
+  `exchange_rates.json`), return `_error(500, 'data_unreadable')`; on any other exception,
   return `_error(500, 'internal error: $e')`.
 - **Usage:** Applied innermost in `_buildHandler()`: `.addMiddleware(_errorMiddleware())`, wrapping
-  the router directly.
+  the router directly. Covered by `corrupt data returns 500 and write endpoints preserve files`
+  (line 228) and `corrupt exchange rates return 500 and are left untouched` (line 376) in
+  `test/local_api_server_test.dart`.
 - **Notes:** This is the mechanism behind the `data_unreadable` 500 documented at
   [../../../platform-notes.md#local-http-api](../../../platform-notes.md#local-http-api): the
   `*Storage.load()`/`save()` calls throw a typed exception when an *existing* data file fails to
@@ -1168,7 +1259,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `const _CategoryTotal({required this.categoryId, required this.type, required this.amount, required this.count})` <a id="_categorytotal-new"></a>
 - **Kind:** constructor of `_CategoryTotal`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 1671)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 1750)
 - **Purpose:** Construct an immutable accumulated finance category total.
 - **Inputs:** `categoryId`, `type`, `amount`, `count` (all required).
 - **Returns:** A new `_CategoryTotal`.
@@ -1185,7 +1276,7 @@ are not separately indexed — they carry no doc comment and are not functions/g
 
 ### `_CategoryTotal add(double value)` <a id="add"></a>
 - **Kind:** method of `_CategoryTotal`
-- **Source:** `lib/shared/services/local_api_server.dart` (line 1683)
+- **Source:** `lib/shared/services/local_api_server.dart` (line 1762)
 - **Purpose:** Return a new `_CategoryTotal` with `value` added to the running amount and the count
   incremented.
 - **Inputs:** `value`.

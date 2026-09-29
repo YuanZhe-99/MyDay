@@ -14,6 +14,7 @@ import '../../features/todo/models/task.dart';
 import '../../features/todo/services/todo_storage.dart';
 import '../../features/weight/models/weight_record.dart';
 import '../../features/weight/services/weight_storage.dart';
+import 'auto_sync_service.dart';
 import 'reminder_service.dart';
 
 class LocalApiServer {
@@ -166,6 +167,7 @@ class LocalApiServer {
     router.get('/weight/stats', _handleWeightStats);
 
     return const Pipeline()
+        .addMiddleware(_originGuardMiddleware())
         .addMiddleware(_corsMiddleware())
         .addMiddleware(_authMiddleware())
         .addMiddleware(_errorMiddleware())
@@ -300,6 +302,7 @@ class LocalApiServer {
         ? _todoDataWith(data, dailyTemplates: [...data.dailyTemplates, task])
         : _todoDataWith(data, oneTimeTasks: [...data.oneTimeTasks, task]);
     await TodoStorage.save(next);
+    _notifyWritten();
     return _json({'success': true, 'id': task.id, 'task': _todoTaskJson(task)});
   }
 
@@ -343,6 +346,7 @@ class LocalApiServer {
         if (currentlyCompleted != completed) data.dailyLog.toggle(date, id);
       }
       await TodoStorage.save(data);
+      _notifyWritten();
       return _json({'success': true});
     }
 
@@ -389,6 +393,7 @@ class LocalApiServer {
           ..[idx] = updated
           ..add(nextTask);
         await TodoStorage.save(_todoDataWith(data, oneTimeTasks: oneTimeTasks));
+        _notifyWritten();
         return _json({
           'success': true,
           'nextTaskId': nextTask.id,
@@ -399,6 +404,7 @@ class LocalApiServer {
 
     final oneTimeTasks = List<Task>.from(data.oneTimeTasks)..[idx] = updated;
     await TodoStorage.save(_todoDataWith(data, oneTimeTasks: oneTimeTasks));
+    _notifyWritten();
     return _json({'success': true});
   }
 
@@ -426,6 +432,7 @@ class LocalApiServer {
         );
     data.dailyScores.setScore(date, scoreValue.round());
     await TodoStorage.save(data);
+    _notifyWritten();
     return _json({
       'success': true,
       'date': DailyCompletionLog.dateKey(date),
@@ -793,6 +800,7 @@ class LocalApiServer {
       accountPickerSettings: finData.accountPickerSettings,
     );
     await FinanceStorage.save(next);
+    _notifyWritten();
     return _json({
       'success': true,
       'id': tx.id,
@@ -917,6 +925,7 @@ class LocalApiServer {
       settingsModifiedAt: data.settingsModifiedAt,
     );
     await WeightStorage.save(next);
+    _notifyWritten();
     ReminderService.instance.refreshMobileSchedules();
     return _json({
       'success': true,
@@ -1549,28 +1558,92 @@ class LocalApiServer {
 
   // Middleware
 
-  /// Purpose: Add permissive CORS headers for local tooling.
+  /// Purpose: Tell the app that a local API request changed a data file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Restarts the auto-sync debounce and fires the local-data-changed
+  /// listeners, so open pages reload instead of later overwriting the API write.
+  /// Notes: Call after every successful data write; both calls are no-ops in tests.
+  static void _notifyWritten() {
+    AutoSyncService.instance.notifySaved();
+    AutoSyncService.instance.notifyLocalDataChangedNow();
+  }
+
+  /// Purpose: Return whether a browser `Origin` header value belongs to this machine.
+  /// Inputs: `origin` — the raw header value.
+  /// Returns: `bool` — true for http(s) origins on `localhost`, `*.localhost`, or a
+  /// loopback IP literal (127.0.0.0/8, ::1).
+  /// Side effects: None.
+  /// Notes: `null` (sandboxed or file pages) and every other host are rejected, so a
+  /// web page on the internet cannot drive the API from the user's browser (v1.5.2).
+  static bool isAllowedLocalOrigin(String origin) {
+    final uri = Uri.tryParse(origin.trim());
+    if (uri == null || (uri.scheme != 'http' && uri.scheme != 'https')) {
+      return false;
+    }
+    final host = uri.host.toLowerCase();
+    if (host.isEmpty) return false;
+    if (host == 'localhost' || host.endsWith('.localhost')) return true;
+    return InternetAddress.tryParse(host)?.isLoopback ?? false;
+  }
+
+  /// Purpose: Reject browser requests coming from a non-local web origin.
   /// Inputs: None.
   /// Returns: `Middleware`.
   /// Side effects: None.
-  /// Notes: OPTIONS requests are answered before auth checks.
-  static Middleware _corsMiddleware() {
+  /// Notes: First in the pipeline, so it also covers OPTIONS preflights and runs before
+  /// auth. Requests without an `Origin` header (curl, scripts, apps) pass unchanged.
+  /// A disallowed origin gets 403 `{"error":"origin_not_allowed"}` (v1.5.2).
+  static Middleware _originGuardMiddleware() {
     return (Handler innerHandler) {
       return (Request request) async {
-        if (request.method == 'OPTIONS') {
-          return Response.ok('', headers: _corsHeaders);
+        final origin = request.headers['origin'];
+        if (origin != null && !isAllowedLocalOrigin(origin)) {
+          return Response(
+            403,
+            body: jsonEncode({'error': 'origin_not_allowed'}),
+            headers: {'Content-Type': 'application/json', 'Vary': 'Origin'},
+          );
         }
-        final response = await innerHandler(request);
-        return response.change(headers: _corsHeaders);
+        return innerHandler(request);
       };
     };
   }
 
-  static const _corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  };
+  /// Purpose: Add CORS headers for allowed local browser origins.
+  /// Inputs: None.
+  /// Returns: `Middleware`.
+  /// Side effects: None.
+  /// Notes: OPTIONS requests are answered before auth checks. The allowed origin is
+  /// echoed back with `Vary: Origin`; without an `Origin` header no
+  /// `Access-Control-Allow-Origin` is sent. Never answers with `*` (v1.5.2).
+  static Middleware _corsMiddleware() {
+    return (Handler innerHandler) {
+      return (Request request) async {
+        final headers = _corsHeadersFor(request.headers['origin']);
+        if (request.method == 'OPTIONS') {
+          return Response.ok('', headers: headers);
+        }
+        final response = await innerHandler(request);
+        return headers.isEmpty ? response : response.change(headers: headers);
+      };
+    };
+  }
+
+  /// Purpose: Build the CORS response headers for one request's origin.
+  /// Inputs: `origin` — the request's `Origin` header, already allowed by the guard.
+  /// Returns: `Map<String, String>` — empty when there is no origin.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  static Map<String, String> _corsHeadersFor(String? origin) {
+    if (origin == null) return const {};
+    return {
+      'Access-Control-Allow-Origin': origin,
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Vary': 'Origin',
+    };
+  }
 
   /// Purpose: Enforce local API authentication policy.
   /// Inputs: None.
@@ -1652,6 +1725,8 @@ class LocalApiServer {
         } on WeightStorageException {
           return _error(500, 'data_unreadable');
         } on FinanceStorageException {
+          return _error(500, 'data_unreadable');
+        } on ExchangeRateStorageException {
           return _error(500, 'data_unreadable');
         } catch (e) {
           return _error(500, 'internal error: $e');

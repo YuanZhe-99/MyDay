@@ -40,6 +40,8 @@ flutter test
 flutter test test/balance_util_test.dart
 flutter test test/json_preservation_test.dart
 flutter test test/widget_test.dart
+flutter test test/id_list_delta_test.dart test/subpage_merge_test.dart test/storage_hardening_test.dart test/local_api_server_test.dart
+flutter test test/golden/webdav_golden_test.dart
 flutter test test/on_device_ai_test.dart test/insight_facts_test.dart test/insight_service_test.dart test/ai_insights_cache_test.dart test/ai_insight_card_ui_test.dart test/ai_settings_tiles_ui_test.dart
 bash tool/check_weak_link.sh build/ios/iphoneos/Runner.app
 flutter gen-l10n
@@ -67,6 +69,8 @@ iscc /DARM64 installer.iss
 ```
 
 使用最窄的相关命令集做校验。同步、模型或持久化变更时，包含针对性测试，并考虑为 `JsonPreservation`、合并行为或余额计算添加覆盖。银行标志工具（`fetch_bank_logos`、`bank_logo_sheet`、`apply_bank_logo_choices`、`gen_bank_logo_manifest`）是本地维护工具（获取候选和 `@png` 安装需要联网），从不在 CI 中运行；其工作流见 [财务](features/finance.md#bankpresetservice)。
+
+`test/golden/webdav_golden_test.dart` 保留六个请求序列场景（首次同步、仅本地变更、仅远端变更、冲突后定稿、强制上传、两端各自添加图片），其记录保持逐字节一致。自 v1.5.2 起，它从 `packages/myapps_data/test/golden/` 导入规范的假服务器和请求记录器，不再保留本地副本；无变更、两端相同、强制下载、中断恢复、备份 v2、损坏包、ZIP 导出和 ZIP 路径穿越场景交由共享包自己的黄金测试覆盖。`test/id_list_delta_test.dart` 和 `test/subpage_merge_test.dart` 覆盖财务与亲密模块的按 id 合并子页面保存。`test/week_grouping_test.dart` 和 `test/audit_fixes_test.dart` 中的夏令时测试只有在实行夏令时的时区里才能证明问题；在 Windows 或 UTC 时区中它们必然通过。请在 Linux 或 macOS 上以 `TZ=America/New_York flutter test test/week_grouping_test.dart test/audit_fixes_test.dart` 运行。发布工作流本身不运行 `flutter test`。
 
 ## 全新克隆
 

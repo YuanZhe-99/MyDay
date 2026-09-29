@@ -20,7 +20,7 @@
 
 ### `static String billingDateKey(String subscriptionId, DateTime date)` <a id="billingdatekey"></a>
 - **种类：** `SubscriptionProcessor` 的静态方法
-- **来源：** `lib/features/finance/services/subscription_processor.dart`（第 17 行）
+- **来源：** `lib/features/finance/services/subscription_processor.dart`（第 18 行）
 - **用途：** 构建用于检测订阅是否已在给定日历日计费的业务键 `'<subscriptionId>|yyyy-MM-dd'`，与任何交易 id 无关。
 - **输入：** `subscriptionId`；`date` — 只用年/月/日。
 - **返回：** `String`。
@@ -31,12 +31,12 @@
   final billingKey = billingDateKey(sub.id, cursor);
   if (!billedKeys.contains(billingKey)) { ... }
   ```
-  （`lib/features/finance/services/subscription_processor.dart:97-98`，[`process`](#process) 内；[`_existingBillingKeys`](#existingbillingkeys) 中构建 `billedKeys` 集合也用它。）
+  （`lib/features/finance/services/subscription_processor.dart:96-97`，[`process`](#process) 内；[`_existingBillingKeys`](#existingbillingkeys) 中构建 `billedKeys` 集合也用它。）
 - **备注：** 为什么是这个业务键——而不是交易自己的 `id`——让对已计费日重新运行 `process` 成为空操作、同样识别较旧随机 id 和较新稳定 id 交易，见 [订阅计费](../../../../algorithms/subscription-billing.md#idempotent-billing-day-generation)。
 
 ### `static String transactionIdForBilling(String subscriptionId, DateTime date)` <a id="transactionidforbilling"></a>
 - **种类：** `SubscriptionProcessor` 的静态方法
-- **来源：** `lib/features/finance/services/subscription_processor.dart`（第 29 行）
+- **来源：** `lib/features/finance/services/subscription_processor.dart`（第 30 行）
 - **用途：** 构建分配给新生成计费交易的确定性交易 id `'subscription_<subscriptionId>_yyyy-MM-dd'`，使同一订阅+天总是产生相同 id。
 - **输入：** `subscriptionId`；`date` — 只用年/月/日。
 - **返回：** `String`。
@@ -53,19 +53,19 @@
     ),
   );
   ```
-  （`lib/features/finance/services/subscription_processor.dart:100-101`，[`process`](#process) 内。）
+  （`lib/features/finance/services/subscription_processor.dart:98-100`，[`process`](#process) 内。）
 - **备注：** 因为此 id 对每个订阅+天是确定的，在两台设备上独立生成（如本地一次、同步合并看到同一订阅后再一次）两次都产生*相同* id，因此按 id 键控的合并把它们当作一条记录而不是重复——详见 [订阅计费](../../../../algorithms/subscription-billing.md#idempotent-billing-day-generation)。
 
 ### `static ({List<Subscription> subs, List<Transaction> txs, bool changed}) process(List<Subscription> subscriptions, List<Transaction> existingTransactions)` <a id="process"></a>
 - **种类：** `SubscriptionProcessor` 的静态方法
-- **来源：** `lib/features/finance/services/subscription_processor.dart`（第 48 行）
+- **来源：** `lib/features/finance/services/subscription_processor.dart`（第 49 行）
 - **用途：** 对每个订阅运行一次每小时（或按需）续费趟：为每个逾期计费日生成一笔交易，一次调用追赶多个错过的周期，并在 `atExpiry` 取消的订阅截止已过时把它们标记为非激活。
 - **输入：** `subscriptions` — 完整当前列表；`existingTransactions` — 用于经 [`_existingBillingKeys`](#existingbillingkeys) 检测已计费日。
 - **返回：** `({subs, txs, changed})` — `subs` 是完整更新订阅列表（同长度、保序），`txs` 只是新生成的交易，`changed` 在任何订阅的持久化状态变化时为 `true`（使调用方无事可做时跳过保存）。
 - **副作用：** 无（对其输入的纯函数——唯一隐式输入是 `_now`，即 `debugNowOverride ?? DateTime.now()`）。
 - **算法：** 完整走查见 [订阅计费](../../../../algorithms/subscription-billing.md#hourly-renewal-catch-up-and-multi-cycle-catch-up)。简言之，逐订阅：
   1. 立即取消的原样通过。
-  2. **迁移情形：** `nextBillingDate` 从未持久化时，经 `calculateNextBillingDate(after: yesterday)` 计算一次并持久化，这一趟不生成交易。
+  2. **迁移情形：** `nextBillingDate` 从未持久化时，经 `calculateNextBillingDate(after: yesterday)` 计算一次并持久化，这一趟不生成交易。`yesterday` 为 `addCalendarDays(today, -1)`（v1.5.2），因此跨越夏令时切换时仍落在本地午夜。
   3. **追赶循环：** 从持久化的 `nextBillingDate` 开始，经 [`Subscription.nextBillingCursor`](../models/finance.md#nextbillingcursor) 一次推进一个周期（在 `atExpiry` 截止提前停止），经 [`billingDateKey`](#billingdatekey)/[`transactionIdForBilling`](#transactionidforbilling) 为每个逾期日生成一笔交易，直到游标不再 `<= today`。
   4. **到期时检查：** 订阅被 `atExpiry` 取消、循环前 `nextBillingDate` 尚未过今天、且循环后游标过 `cancelledAt` 时，在同一更新中标记 `isActive = false`。
 - **用法：**
@@ -78,12 +78,12 @@
     });
   }
   ```
-  （`lib/features/finance/views/finance_page.dart:145-150`，`_processSubscriptions`；相同形态从 `lib/shared/services/reminder_service.dart:964-968` 在 `AGENTS.md` 引用的每小时提醒循环运行。）
+  （`lib/features/finance/views/finance_page.dart:213-218`，`_processSubscriptions`；相同形态从 `lib/shared/services/reminder_service.dart:1009-1013` 在 `AGENTS.md` 引用的每小时提醒循环运行。）
 - **备注：** 应用关闭错过三个月的月周期时，这一次调用生成全部三笔交易并把游标落在正确的下一个未来日期——`subscription-billing.md` 文档化的"多周期追赶"行为。
 
 ### `static Set<String> _existingBillingKeys(List<Transaction> transactions)` <a id="existingbillingkeys"></a>
 - **种类：** `SubscriptionProcessor` 的静态方法
-- **来源：** `lib/features/finance/services/subscription_processor.dart`（第 154 行）
+- **来源：** `lib/features/finance/services/subscription_processor.dart`（第 153 行）
 - **用途：** 收集既有交易中已表示的订阅计费日键集合，无论每笔交易自己的 `id` 是较旧随机 UUID 还是较新稳定 id。
 - **输入：** `transactions` — 完整既有交易列表。
 - **返回：** [`billingDateKey`](#billingdatekey) 值的 `Set<String>`。
@@ -94,7 +94,7 @@
 
 ### `static Subscription _withNextBillingDate(Subscription sub, DateTime date, {bool? isActive})` <a id="withnextbillingdate"></a>
 - **种类：** `SubscriptionProcessor` 的静态方法
-- **来源：** `lib/features/finance/services/subscription_processor.dart`（第 167 行）
+- **来源：** `lib/features/finance/services/subscription_processor.dart`（第 166 行）
 - **用途：** 返回 `nextBillingDate` 被替换、`isActive` 可选覆盖、其他每个字段原样带过的订阅副本。
 - **输入：** `sub`；`date` — 新 `nextBillingDate`；`isActive` — 可选覆盖（用于把过期的 `atExpiry` 订阅翻转为非激活）。
 - **返回：** 新的 `Subscription`。

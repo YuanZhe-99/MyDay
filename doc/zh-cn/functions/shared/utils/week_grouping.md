@@ -1,6 +1,6 @@
 # lib/shared/utils/week_grouping.dart
 
-整个应用的共享日历周数学：按可配置周起始日分组记录、计算周编号年/周（ISO 8601 的四天规则变体，锚定到配置起始日而非总是周一）、日历 UI 的星期标签/顺序辅助，以及月网格的空白格计数。`weekStartDay` 从 `appSettingsProvider` 读取（见 [app_settings.dart](../providers/app_settings.md)）并贯穿 Todo、体重和亲密历史视图加 `shared/widgets/app_date_picker.dart`，使应用每个日历对同一第一工作日达成一致。
+整个应用的共享日历周数学：按可配置周起始日分组记录、计算周编号年/周（ISO 8601 的四天规则变体，锚定到配置起始日而非总是周一）、日历 UI 的星期标签/顺序辅助，以及月网格的空白格计数。自 v1.5.2 起，它还负责应用的夏令时安全日历日算术（`addCalendarDays`、`calendarDaysBetween`），应用中每个本地日历步进都用它们代替 `add(Duration(days: n))`。`weekStartDay` 从 `appSettingsProvider` 读取（见 [app_settings.dart](../providers/app_settings.md)）并贯穿 Todo、体重和亲密历史视图加 `shared/widgets/app_date_picker.dart`，使应用每个日历对同一第一工作日达成一致。
 
 ## 声明
 
@@ -20,10 +20,12 @@
 | [`isoWeekNumber`](#isoweeknumber) | 顶层函数 | A | 返回 ISO 周号——兼容包装。 |
 | [`formatMonthDayRange`](#formatmonthdayrange) | 顶层函数 | A | 格式化 `start`–`end` 月/日范围字符串。 |
 | [`leadingBlankDaysForMonth`](#leadingblankdaysformonth) | 顶层函数 | A | 返回日历网格中月开始的空白前导格。 |
+| [`addCalendarDays`](#addcalendardays) | 顶层函数 | A | 按整日历日平移日期，保留其挂钟时间（v1.5.2）。 |
+| [`calendarDaysBetween`](#calendardaysbetween) | 顶层函数 | A | 返回从 `start` 到 `end` 的整日历日数，忽略日内时间（v1.5.2）。 |
 | [`_dateOnly`](#_dateonly) | 顶层函数 | A | 从 `DateTime` 剥离时间分量。 |
 | [`_differenceInCalendarDays`](#_differenceincalendardays) | 顶层函数 | A | 返回两个仅日期值之间的整日历天。 |
 
-`grep -c 'Purpose:' lib/shared/utils/week_grouping.dart` 报告 16，与本文件全部十六个真实声明精确匹配。未发现错附或未文档化声明。每个声明都是 Tier A：文件自己的 `WeekGroup` 构造函数是模型构造函数（显式 Tier A 规则），`shared/` 下每个其他声明都是顶层函数，按一揽子规则无论大小都是 Tier A——包括两个私有辅助 `_dateOnly` 和 `_differenceInCalendarDays`，因为那条规则对私有顶层工具函数不加区分（只有"私有 `_buildXxx` 组件构建辅助"被点名为 Tier B，而这些不是组件构建器）。`WeekdayLabelWidth` 枚举不带 `Purpose:` 块，不单独计数。
+`grep -c 'Purpose:' lib/shared/utils/week_grouping.dart` 报告 18，与本文件全部十八个真实声明精确匹配。未发现错附或未文档化声明。每个声明都是 Tier A：文件自己的 `WeekGroup` 构造函数是模型构造函数（显式 Tier A 规则），`shared/` 下每个其他声明都是顶层函数，按一揽子规则无论大小都是 Tier A——包括两个私有辅助 `_dateOnly` 和 `_differenceInCalendarDays`，因为那条规则对私有顶层工具函数不加区分（只有"私有 `_buildXxx` 组件构建辅助"被点名为 Tier B，而这些不是组件构建器）。`WeekdayLabelWidth` 枚举不带 `Purpose:` 块，不单独计数。
 
 ## 文档
 
@@ -48,7 +50,7 @@
 - **算法：**
   1. 经 `normalizeWeekStartDay` 规范化 `weekStartDay`。
   2. 对每个项：计算其仅日期值（`_dateOnly(getDate(item))`），然后其周 `start`（`startOfWeek`）、周编号 `year`（`weekYear`）和 `week` 号（`weekNumber`），全部用规范化起始日。
-  3. 把每个项按 `'$year-$week'` 键控进 `Map<String, WeekGroup<T>>`；首次见键时创建新组（`end = start + 6 days`），否则追加进既有组 `items`。
+  3. 把每个项按 `'$year-$week'` 键控进 `Map<String, WeekGroup<T>>`；首次见键时创建新组（`end = addCalendarDays(start, 6)`，使 `end` 跨夏令时切换仍停在本地午夜），否则追加进既有组 `items`。
   4. 按 `start` 排序结果组；`descending` 时反转列表。
 - **用法：**
   ```dart
@@ -127,7 +129,7 @@
 - **输入：** `date`；`weekStartDay`（默认周一；内部规范化）。
 - **返回：** `DateTime` — 仅日期值（无时间分量），总是 `<= date`。
 - **副作用：** 无。
-- **算法：** `day = _dateOnly(date)`；`start = normalizeWeekStartDay(weekStartDay)`；返回 `day - ((day.weekday - start + 7) % 7)` 天。
+- **算法：** `day = _dateOnly(date)`；`start = normalizeWeekStartDay(weekStartDay)`；返回 `addCalendarDays(day, -((day.weekday - start + 7) % 7))`。这是日历日步进，因此即使周内有夏令时切换，结果也是本地午夜（v1.5.2；此前为 `day.subtract(Duration(days: n))`，可能落在前一天 23:00）。
 - **用法：**
   ```dart
   DateTime _selectedWeekStart(int weekStartDay) =>
@@ -154,13 +156,13 @@
 - **输入：** `date`；`weekStartDay`。
 - **返回：** `int`。
 - **副作用：** 无。
-- **算法：** `startOfWeek(date, weekStartDay: weekStartDay).add(3 days).year`。
+- **算法：** `addCalendarDays(startOfWeek(date, weekStartDay: weekStartDay), 3).year`。
 - **用法：** `groupByWeek`（构建周组映射键）和 `isoWeekYear` 内部调用。未找到直接外部调用点。
 - **备注：** 对跨越年边界的周，这可以不同于 `date.year`——这正是四天周规则的要点（一周被分配给包含其大部分天的年份）。
 
 ### `int isoWeekYear(DateTime date)` <a id="isoweekyear"></a>
 - **种类：** 顶层函数
-- **来源：** `lib/shared/utils/week_grouping.dart`（第 166 行）
+- **来源：** `lib/shared/utils/week_grouping.dart`（第 163 行）
 - **用途：** 返回 `date` 的 ISO 周编号年（总是周一起始）。
 - **输入：** `date`。
 - **返回：** `int`。
@@ -171,14 +173,14 @@
 
 ### `int weekNumber(DateTime date, {int weekStartDay = DateTime.monday})` <a id="weeknumber"></a>
 - **种类：** 顶层函数
-- **来源：** `lib/shared/utils/week_grouping.dart`（第 175 行）
+- **来源：** `lib/shared/utils/week_grouping.dart`（第 172 行）
 - **用途：** 返回 `weekYear` 返回的周编号年内基于 1 的周号，用 1 月 4 日作为第一周锚（ISO 四天规则）。
 - **输入：** `date`；`weekStartDay`。
 - **返回：** `int`。
 - **副作用：** 无。
 - **算法：**
   1. `start = startOfWeek(date, weekStartDay: weekStartDay)`。
-  2. `anchor = start + 3 days`（只用于经与 `weekYear` 相同逻辑派生编号年）。
+  2. `anchor = addCalendarDays(start, 3)`（只用于经与 `weekYear` 相同逻辑派生编号年）。
   3. `firstWeekStart = startOfWeek(DateTime(anchor.year, 1, 4), weekStartDay: weekStartDay)`——包含 1 月 4 日的周总是第 1 周，按 ISO 四天规则。
   4. 返回 `_differenceInCalendarDays(firstWeekStart, start) ~/ 7 + 1`。
 - **用法：** `groupByWeek`（周组映射键）和 `isoWeekNumber` 内部调用。未找到直接外部调用点。
@@ -186,7 +188,7 @@
 
 ### `int isoWeekNumber(DateTime date)` <a id="isoweeknumber"></a>
 - **种类：** 顶层函数
-- **来源：** `lib/shared/utils/week_grouping.dart`（第 190 行）
+- **来源：** `lib/shared/utils/week_grouping.dart`（第 187 行）
 - **用途：** 返回 `date` 的 ISO 周号（总是周一起始）。
 - **输入：** `date`。
 - **返回：** `int`。
@@ -197,7 +199,7 @@
 
 ### `String formatMonthDayRange(DateTime start, DateTime end, {String? localeName})` <a id="formatmonthdayrange"></a>
 - **种类：** 顶层函数
-- **来源：** `lib/shared/utils/week_grouping.dart`（第 199 行）
+- **来源：** `lib/shared/utils/week_grouping.dart`（第 196 行）
 - **用途：** 把一周的 `start`–`end` 日期格式化为语言区域感知月/日范围字符串（如周页头 "1/6-1/12"）。
 - **输入：** `start`、`end`；`localeName`（可选；省略时 `Intl` 用其默认语言区域）。
 - **返回：** `String` — `'<formatted start>-<formatted end>'`。
@@ -212,7 +214,7 @@
 
 ### `int leadingBlankDaysForMonth(DateTime date, {int weekStartDay = DateTime.monday})` <a id="leadingblankdaysformonth"></a>
 - **种类：** 顶层函数
-- **来源：** `lib/shared/utils/week_grouping.dart`（第 209 行）
+- **来源：** `lib/shared/utils/week_grouping.dart`（第 206 行）
 - **用途：** 按配置周起始日返回月网格日历在第 1 天前需要多少个空前导格。
 - **输入：** `date`（目标月内任何日期）；`weekStartDay`。
 - **返回：** `0..6` 中的 `int`。
@@ -225,9 +227,39 @@
   （`lib/shared/widgets/app_date_picker.dart`，月网格布局；相同模式用于 `lib/features/intimacy/widgets/cycle_calendar.dart` 和 `lib/features/todo/views/todo_page.dart` 自己的月网格日历。）
 - **备注：** 与 `startOfWeek` 相同的取模技巧，应用于月第一天而非任意日期。
 
+### `DateTime addCalendarDays(DateTime date, int days)` <a id="addcalendardays"></a>
+- **种类：** 顶层函数
+- **来源：** `lib/shared/utils/week_grouping.dart`（第 221 行）
+- **用途：** 按整日历日平移日期并保留其挂钟时间，使本地日历步进跨夏令时切换时不会偏移一小时。v1.5.2 新增。
+- **输入：** `date`；`days` — 有符号（负数向前回退）。
+- **返回：** 与 `date` 同一时区种类的 `DateTime`（UTC 仍为 UTC，本地仍为本地）。
+- **副作用：** 无。
+- **算法：** 若 `date.isUtc`，返回 `DateTime.utc(year, month, day + days, hour, minute, second, millisecond, microsecond)`；否则经本地 `DateTime(...)` 构造函数传入相同字段。Dart 会把越界的 `day` 规范化进相邻月/年。
+- **用法：**
+  ```dart
+  final weekEnd = addCalendarDays(weekStart, 6);
+  ```
+  （`lib/features/todo/views/todo_page.dart`，周范围标签；该页的 `_selectedWeekDates` 和 `_changeDate` 也用此辅助。）本文件内也被 `groupByWeek`、`startOfWeek`、`weekYear` 和 `weekNumber` 使用；文件外被 `Subscription.firstBillingDate`（`finance.dart`）、`subscription_processor.dart`、`subscription_summary.dart`（`upcomingSubscriptions`）、`subscriptions_page.dart`、`analysis_page.dart`、`weight_page.dart`（图表范围）和 `reminder_service.dart`（`_upcomingRenewalLines`）使用。
+- **备注：** 与加 `n × 24` 小时的 `add(Duration(days: n))` 不同，当中间有 23 或 25 小时的一天时，它永远不会落在前一天 23:00 或后一天 01:00。仅日期（午夜）输入的结果也是午夜。由 `test/week_grouping_test.dart` 中的 "calendar-day arithmetic across DST (v1.5.2)" 组覆盖。
+
+### `int calendarDaysBetween(DateTime start, DateTime end)` <a id="calendardaysbetween"></a>
+- **种类：** 顶层函数
+- **来源：** `lib/shared/utils/week_grouping.dart`（第 252 行）
+- **用途：** 返回从 `start` 到 `end` 的整日历日数，忽略日内时间。v1.5.2 新增。
+- **输入：** `start`、`end`。
+- **返回：** `int` — `end` 早于 `start` 时为负。
+- **副作用：** 无。
+- **算法：** 委托给 `_differenceInCalendarDays(start, end)`，后者把两个日历日期作为 UTC 午夜比较。
+- **用法：**
+  ```dart
+  final days = calendarDaysBetween(fromDate, nextDay);
+  ```
+  （`lib/shared/services/reminder_service.dart`，`_upcomingRenewalLines`；`analysis_page.dart` 也用它做按天步进的图表分桶。）
+- **备注：** 公开包装，使本文件外的调用方得到与周号数学相同的、不受夏令时影响的天数：23 或 25 小时的一天永远不会让计数向下或向上取整，而 `end.difference(start).inDays` 可能会。
+
 ### `DateTime _dateOnly(DateTime date)` <a id="_dateonly"></a>
 - **种类：** 顶层私有函数
-- **来源：** `lib/shared/utils/week_grouping.dart`（第 223 行）
+- **来源：** `lib/shared/utils/week_grouping.dart`（第 260 行）
 - **用途：** 从 `DateTime` 剥离日内时间分量，保持本地日期语义。
 - **输入：** `date`。
 - **返回：** `DateTime` — `DateTime(date.year, date.month, date.day)`。
@@ -238,11 +270,11 @@
 
 ### `int _differenceInCalendarDays(DateTime start, DateTime end)` <a id="_differenceincalendardays"></a>
 - **种类：** 顶层私有函数
-- **来源：** `lib/shared/utils/week_grouping.dart`（第 230 行）
+- **来源：** `lib/shared/utils/week_grouping.dart`（第 267 行）
 - **用途：** 返回两个仅日期值之间的整日历天数，免疫夏令时引起的小时偏移。
 - **输入：** `start`、`end`（预期已是仅日期，如经 `_dateOnly`/`startOfWeek`）。
 - **返回：** `int` — `end - start` 的天数。
 - **副作用：** 无。
 - **算法：** 把两个日期重建为 `DateTime.utc(year, month, day)`（丢弃任何本地时区/DST 偏移），然后取 `.difference(...).inDays`。
-- **用法：** 只被 `weekNumber` 调用，计数第一周锚与目标周开始之间的天数。
+- **用法：** 被 `weekNumber` 直接调用，计数第一周锚与目标周开始之间的天数；并经公开包装 `calendarDaysBetween` 暴露给应用其余部分（v1.5.2）。
 - **备注：** 在这里用 UTC（而非环境本地 `DateTime`）正是让天数对落在 `start` 和 `end` 之间的夏令时转换稳健的东西。

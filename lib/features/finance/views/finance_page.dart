@@ -11,6 +11,7 @@ import '../../../shared/widgets/stored_image.dart';
 import '../../../shared/providers/app_settings.dart';
 import '../../../shared/services/reminder_service.dart';
 import '../../../shared/utils/adaptive_layout.dart';
+import '../../../shared/utils/id_list_delta.dart';
 import '../../../shared/widgets/adaptive_tile_grid.dart';
 import '../../../shared/widgets/delete_confirm.dart';
 import '../../ai/services/insight_prompts.dart';
@@ -72,6 +73,9 @@ class _FinancePageState extends ConsumerState<FinancePage> {
   bool _loaded = false;
   String? _loadError;
 
+  /// Serializes loads, saves, and sub-page commits (see `_io`).
+  Future<void> _ioQueue = Future<void>.value();
+
   /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
   /// Inputs: None.
   /// Returns: None.
@@ -99,16 +103,82 @@ class _FinancePageState extends ConsumerState<FinancePage> {
     super.dispose();
   }
 
-  /// Purpose: Provide the internal load data helper for this file.
+  /// Purpose: Run one finance load, save, or sub-page commit after the previous one.
+  /// Inputs: `op` — the queued work.
+  /// Returns: `Future<void>` completing (or failing) with `op`.
+  /// Side effects: Advances `_ioQueue`.
+  /// Notes: Internal helper used within this file only. `op` must never await
+  /// `_loadData`, `_saveData`, or `_commitSubPage` (they enqueue), or the queue deadlocks;
+  /// firing one without awaiting it is fine.
+  Future<void> _io(Future<void> Function() op) {
+    final next = _ioQueue.then((_) => op(), onError: (_) => op());
+    _ioQueue = next.catchError((_) {});
+    return next;
+  }
+
+  /// Purpose: Copy a loaded or merged finance dataset into page state.
+  /// Inputs: `data`.
+  /// Returns: None.
+  /// Side effects: Mutates the page's finance fields; callers wrap it in `setState`.
+  /// Notes: Internal helper used within this file only.
+  void _applyFinanceData(FinanceData data) {
+    _accounts = data.accounts;
+    _categories = data.categories;
+    _transactions = data.transactions;
+    _subscriptions = data.subscriptions;
+    _defaultCurrency = data.defaultCurrency;
+    _subscriptionReminderHour = data.subscriptionReminderHour;
+    _subscriptionReminderMinute = data.subscriptionReminderMinute;
+    _subscriptionSortMode = data.subscriptionSortMode;
+    _subscriptionCustomOrder = data.subscriptionCustomOrder;
+    _accountSortModes = Map.of(data.accountSortModes);
+    _accountCustomOrders = data.accountCustomOrders.map(
+      (key, value) => MapEntry(key, List<String>.of(value)),
+    );
+    _accountPickerSettings = data.accountPickerSettings;
+    _settingsModifiedAt = data.settingsModifiedAt;
+  }
+
+  /// Purpose: Snapshot the page's current finance state as a `FinanceData`.
+  /// Inputs: None.
+  /// Returns: `FinanceData`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  FinanceData _currentFinanceData() => FinanceData(
+    accounts: _accounts,
+    categories: _categories,
+    transactions: _transactions,
+    subscriptions: _subscriptions,
+    defaultCurrency: _defaultCurrency,
+    settingsModifiedAt: _settingsModifiedAt,
+    subscriptionReminderHour: _subscriptionReminderHour,
+    subscriptionReminderMinute: _subscriptionReminderMinute,
+    subscriptionSortMode: _subscriptionSortMode,
+    subscriptionCustomOrder: _subscriptionCustomOrder,
+    accountSortModes: _accountSortModes,
+    accountCustomOrders: _accountCustomOrders,
+    accountPickerSettings: _accountPickerSettings,
+  );
+
+  /// Purpose: Reload finance data and exchange rates from disk.
   /// Inputs: None.
   /// Returns: `Future<void>`.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Existing but unreadable finance data is shown as an error and is
-  /// never treated as an empty dataset.
-  Future<void> _loadData() async {
+  /// Notes: Serialized with saves through `_io`. Existing but unreadable finance data or
+  /// exchange rates are shown as an error and never treated as an empty dataset.
+  Future<void> _loadData() => _io(_loadDataNow);
+
+  /// Purpose: Body of `_loadData`, run inside the I/O queue.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: Reads finance and exchange-rate files and updates page state.
+  /// Notes: Internal helper used within this file only.
+  Future<void> _loadDataNow() async {
     FinanceData? data;
+    ExchangeRateData rateData;
     try {
       data = await FinanceStorage.load();
+      rateData = await ExchangeRateStorage.load();
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -117,26 +187,10 @@ class _FinancePageState extends ConsumerState<FinancePage> {
       });
       return;
     }
-    final rateData = await ExchangeRateStorage.load();
+    if (!mounted) return;
     setState(() {
       _loadError = null;
-      if (data != null) {
-        _accounts = data.accounts;
-        _categories = data.categories;
-        _transactions = data.transactions;
-        _subscriptions = data.subscriptions;
-        _defaultCurrency = data.defaultCurrency;
-        _subscriptionReminderHour = data.subscriptionReminderHour;
-        _subscriptionReminderMinute = data.subscriptionReminderMinute;
-        _subscriptionSortMode = data.subscriptionSortMode;
-        _subscriptionCustomOrder = data.subscriptionCustomOrder;
-        _accountSortModes = Map.of(data.accountSortModes);
-        _accountCustomOrders = data.accountCustomOrders.map(
-          (key, value) => MapEntry(key, List<String>.of(value)),
-        );
-        _accountPickerSettings = data.accountPickerSettings;
-        _settingsModifiedAt = data.settingsModifiedAt;
-      }
+      if (data != null) _applyFinanceData(data);
       _rateData = rateData;
       _loaded = true;
     });
@@ -153,7 +207,8 @@ class _FinancePageState extends ConsumerState<FinancePage> {
   /// Inputs: None.
   /// Returns: None.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Internal helper used within this file only. Enqueues a save without
+  /// awaiting it, so it is safe to call from inside the I/O queue.
   void _processSubscriptions() {
     final result = SubscriptionProcessor.process(_subscriptions, _transactions);
     if (result.changed) {
@@ -165,44 +220,89 @@ class _FinancePageState extends ConsumerState<FinancePage> {
     }
   }
 
-  /// Purpose: Provide the internal save data helper for this file.
+  /// Purpose: Tell the user that finance writes are blocked by an unreadable file.
+  /// Inputs: None.
+  /// Returns: None.
+  /// Side effects: Shows a snackbar when mounted.
+  /// Notes: Internal helper used within this file only.
+  void _showWriteBlocked() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(AppLocalizations.of(context)!.financeDataWriteBlocked),
+      ),
+    );
+  }
+
+  /// Purpose: Save the page's in-memory finance state.
   /// Inputs: None.
   /// Returns: `Future<void>`.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Refuses to save while the current finance file is unreadable so a
-  /// corrupted file cannot be overwritten by empty in-memory state.
-  Future<void> _saveData() async {
+  /// Notes: Serialized with loads through `_io`. Refuses to save while the current finance
+  /// file is unreadable so a corrupted file cannot be overwritten by empty in-memory state.
+  Future<void> _saveData() => _io(_saveDataNow);
+
+  /// Purpose: Body of `_saveData`, run inside the I/O queue.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: Writes `finance_data.json` and notifies auto-sync and reminders.
+  /// Notes: Internal helper used within this file only.
+  Future<void> _saveDataNow() async {
     if (_loadError != null) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context)!.financeDataWriteBlocked,
-            ),
-          ),
-        );
-      }
+      _showWriteBlocked();
       return;
     }
-    await FinanceStorage.save(
-      FinanceData(
-        accounts: _accounts,
-        categories: _categories,
-        transactions: _transactions,
-        subscriptions: _subscriptions,
-        defaultCurrency: _defaultCurrency,
-        settingsModifiedAt: _settingsModifiedAt,
-        subscriptionReminderHour: _subscriptionReminderHour,
-        subscriptionReminderMinute: _subscriptionReminderMinute,
-        subscriptionSortMode: _subscriptionSortMode,
-        subscriptionCustomOrder: _subscriptionCustomOrder,
-        accountSortModes: _accountSortModes,
-        accountCustomOrders: _accountCustomOrders,
-        accountPickerSettings: _accountPickerSettings,
-      ),
-    );
+    await FinanceStorage.save(_currentFinanceData());
     AutoSyncService.instance.notifySaved();
     _updateReminderService();
+  }
+
+  /// Purpose: Merge one sub-page callback's list edits into the current file and save.
+  /// Inputs: optional per-list deltas; `after` runs once the commit has finished.
+  /// Returns: `Future<void>`.
+  /// Side effects: Reads and writes `finance_data.json`, updates page state, notifies
+  /// auto-sync and reminders.
+  /// Notes: v1.5.2 merge-by-id: the file is re-read inside the I/O queue and only the
+  /// records the sub-page changed are replayed onto it, so a subscription renewal or a
+  /// local-API write made while the sub-page was open is no longer overwritten by the
+  /// sub-page's stale whole list. `after` runs outside the queue.
+  Future<void> _commitSubPage({
+    IdListDelta<Account>? accounts,
+    IdListDelta<Category>? categories,
+    IdListDelta<Transaction>? transactions,
+    IdListDelta<Subscription>? subscriptions,
+    VoidCallback? after,
+  }) async {
+    await _io(() async {
+      if (_loadError != null) {
+        _showWriteBlocked();
+        return;
+      }
+      FinanceData? fresh;
+      try {
+        fresh = await FinanceStorage.load();
+      } catch (e) {
+        if (mounted) setState(() => _loadError = e.toString());
+        _showWriteBlocked();
+        return;
+      }
+      final base = fresh ?? _currentFinanceData();
+      final merged = base.copyWith(
+        accounts: accounts?.applyTo(base.accounts),
+        categories: categories?.applyTo(base.categories),
+        transactions: transactions?.applyTo(base.transactions),
+        subscriptions: subscriptions?.applyTo(base.subscriptions),
+      );
+      await FinanceStorage.save(merged);
+      if (mounted) {
+        setState(() => _applyFinanceData(merged));
+      } else {
+        _applyFinanceData(merged);
+      }
+      AutoSyncService.instance.notifySaved();
+      _updateReminderService();
+    });
+    if (mounted) after?.call();
   }
 
   /// Purpose: Provide the internal update reminder service helper for this file.
@@ -418,11 +518,15 @@ class _FinancePageState extends ConsumerState<FinancePage> {
                 onMissingRate: trackMissingRate,
               ),
         );
-    // Total assets = sum of all account balances converted to default currency
+    // Total assets = sum of all account balances converted to default currency.
+    // One pass over the transactions instead of one pass per account.
+    final balances = _accounts.isEmpty
+        ? const <String, double>{}
+        : accountBalances(_accounts, _transactions, _rateData);
     final totalAssets = _accounts.isEmpty
         ? monthIncome - monthExpense
         : _accounts.fold(0.0, (sum, a) {
-            final bal = accountBalance(a, _transactions, _rateData);
+            final bal = balances[a.id] ?? 0.0;
             return sum +
                 convertCurrency(
                   currentRates,
@@ -792,8 +896,11 @@ class _FinancePageState extends ConsumerState<FinancePage> {
   /// Inputs: `context`.
   /// Returns: None.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Internal helper used within this file only. List edits reported by the
+  /// sub-page are committed merge-by-id through `_commitSubPage` (v1.5.2).
   void _openAccounts(BuildContext context) {
+    final accountBase = IdListBaseline<Account>(_accounts, (a) => a.id);
+    final txBase = IdListBaseline<Transaction>(_transactions, (t) => t.id);
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -806,12 +913,10 @@ class _FinancePageState extends ConsumerState<FinancePage> {
           customOrders: _accountCustomOrders,
           accountPickerSettings: _accountPickerSettings,
           onChanged: (a) {
-            setState(() => _accounts = a);
-            _saveData();
+            _commitSubPage(accounts: accountBase.take(a));
           },
           onTransactionsChanged: (t) {
-            setState(() => _transactions = t);
-            _saveData();
+            _commitSubPage(transactions: txBase.take(t));
           },
           onSortChanged: (modes, orders) {
             setState(() {
@@ -839,8 +944,10 @@ class _FinancePageState extends ConsumerState<FinancePage> {
   /// Inputs: `context`.
   /// Returns: None.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Internal helper used within this file only. List edits reported by the
+  /// sub-page are committed merge-by-id through `_commitSubPage` (v1.5.2).
   void _openAnalysis(BuildContext context) {
+    final txBase = IdListBaseline<Transaction>(_transactions, (t) => t.id);
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -852,8 +959,7 @@ class _FinancePageState extends ConsumerState<FinancePage> {
           defaultCurrency: _defaultCurrency,
           accountPickerSettings: _accountPickerSettings,
           onTransactionsChanged: (t) {
-            setState(() => _transactions = t);
-            _saveData();
+            _commitSubPage(transactions: txBase.take(t));
           },
         ),
       ),
@@ -864,8 +970,11 @@ class _FinancePageState extends ConsumerState<FinancePage> {
   /// Inputs: `context`.
   /// Returns: None.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Internal helper used within this file only. List edits reported by the
+  /// sub-page are committed merge-by-id through `_commitSubPage` (v1.5.2).
   void _openSubscriptions(BuildContext context) {
+    final subBase = IdListBaseline<Subscription>(_subscriptions, (s) => s.id);
+    final txBase = IdListBaseline<Transaction>(_transactions, (t) => t.id);
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -882,13 +991,13 @@ class _FinancePageState extends ConsumerState<FinancePage> {
           sortMode: _subscriptionSortMode,
           customOrder: _subscriptionCustomOrder,
           onSubscriptionsChanged: (s) {
-            setState(() => _subscriptions = s);
-            _saveData();
-            _processSubscriptions();
+            _commitSubPage(
+              subscriptions: subBase.take(s),
+              after: _processSubscriptions,
+            );
           },
           onTransactionsChanged: (t) {
-            setState(() => _transactions = t);
-            _saveData();
+            _commitSubPage(transactions: txBase.take(t));
           },
           onReminderChanged: (hour, minute) {
             setState(() {
@@ -914,10 +1023,11 @@ class _FinancePageState extends ConsumerState<FinancePage> {
   /// Inputs: `sub`.
   /// Returns: None.
   /// Side effects: Pushes `SubscriptionDetailPage`; transaction edits made
-  /// there are written back through `_saveData`.
+  /// there are committed merge-by-id through `_commitSubPage`.
   /// Notes: Wired exactly as the subscriptions page wires its own tile tap, so
   /// a subscription behaves the same whichever list it was tapped in.
   void _openSubscriptionDetail(Subscription sub) {
+    final txBase = IdListBaseline<Transaction>(_transactions, (t) => t.id);
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -930,8 +1040,7 @@ class _FinancePageState extends ConsumerState<FinancePage> {
           defaultCurrency: _defaultCurrency,
           accountPickerSettings: _accountPickerSettings,
           onTransactionsChanged: (t) {
-            setState(() => _transactions = t);
-            _saveData();
+            _commitSubPage(transactions: txBase.take(t));
           },
         ),
       ),
@@ -956,6 +1065,14 @@ class _FinancePageState extends ConsumerState<FinancePage> {
               title: Text(l10n.financeCategories),
               onTap: () {
                 Navigator.pop(context);
+                final categoryBase = IdListBaseline<Category>(
+                  _categories,
+                  (c) => c.id,
+                );
+                final txBase = IdListBaseline<Transaction>(
+                  _transactions,
+                  (t) => t.id,
+                );
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -967,12 +1084,10 @@ class _FinancePageState extends ConsumerState<FinancePage> {
                       defaultCurrency: _defaultCurrency,
                       accountPickerSettings: _accountPickerSettings,
                       onChanged: (c) {
-                        setState(() => _categories = c);
-                        _saveData();
+                        _commitSubPage(categories: categoryBase.take(c));
                       },
                       onTransactionsChanged: (t) {
-                        setState(() => _transactions = t);
-                        _saveData();
+                        _commitSubPage(transactions: txBase.take(t));
                       },
                     ),
                   ),

@@ -42,7 +42,7 @@
 
 ### `List<Subscription> get _active` <a id="_active"></a>
 - **种类：** `_SubscriptionsPageState` 的 getter
-- **来源：** `lib/features/finance/views/subscriptions_page.dart`（第 96 行）
+- **来源：** `lib/features/finance/views/subscriptions_page.dart`（第 99 行）
 - **用途：** 返回当前激活订阅，按所选排序模式排序。
 - **输入：** 无（读取 `_subscriptions`、`_sortMode`、`_customOrder`）。
 - **返回：** `List<Subscription>`。
@@ -53,18 +53,18 @@
 
 ### `List<Subscription> get _historical` <a id="_historical"></a>
 - **种类：** `_SubscriptionsPageState` 的 getter
-- **来源：** `lib/features/finance/views/subscriptions_page.dart`（第 107 行）
+- **来源：** `lib/features/finance/views/subscriptions_page.dart`（第 110 行）
 - **用途：** 返回不再激活（完全取消或过期）的订阅，供"历史"列表小节。
 - **输入：** 无（读取 `_subscriptions`）。
 - **返回：** `List<Subscription>`。
 - **副作用：** 无。
 - **算法：** `_subscriptions.where((s) => !s.isActive).toList()`——与 `_active` 不同，不应用排序模式；历史订阅保持 `_subscriptions` 自己的顺序。
-- **用法：** `final historical = _historical;`（`build`，第 679 行）。
-- **备注：** 这是决定哪些订阅在块的滑动/长按菜单中显示"恢复"而非"取消"操作的 getter（见 `build`，第 983-1045 行）——这里的 `isActive` 划分与 `_restoreSubscription` 分派的边界相同。
+- **用法：** `final historical = _historical;`（`build`，第 676 行）。
+- **备注：** 这是决定哪些订阅在块的滑动/长按菜单中显示"恢复"而非"取消"操作的 getter（见 `build`，第 980-1042 行）——这里的 `isActive` 划分与 `_restoreSubscription` 分派的边界相同。
 
 ### `void _onSortModeChanged(String mode)` <a id="_onsortmodechanged"></a>
 - **种类：** `_SubscriptionsPageState` 的方法
-- **来源：** `lib/features/finance/views/subscriptions_page.dart`（第 149 行）
+- **来源：** `lib/features/finance/views/subscriptions_page.dart`（第 118 行）
 - **用途：** 切换活动排序模式，用户首次在无既有自定义顺序时进入自定义模式，从当前激活列表播种一个。
 - **输入：** `mode` — `'nextRenewal'`、`'name'`、`'custom'` 之一。
 - **返回：** 无。
@@ -72,27 +72,27 @@
 - **算法：**
   1. `setState`：设 `_sortMode = mode`、`_reordering = false`（活动时退出重排模式）；`mode == 'custom'` 且 `_customOrder` 为空时，从当前激活订阅的 id（按当前显示顺序）初始化它。
   2. 调用 `widget.onSortChanged(_sortMode, _sortMode == 'custom' ? _customOrder : null)` 持久化选择。
-- **用法：** `onSelected: _onSortModeChanged`（`build`，第 699 行，排序 `PopupMenuButton`）。
+- **用法：** `onSelected: _onSortModeChanged`（`build`，第 696 行，排序 `PopupMenuButton`）。
 - **备注：** 已有 `_customOrder` 后重新进入自定义模式*不*重新播种——既有顺序（含此后添加/移除的任何订阅）被保留，因此来回切换排序模式不会丢失先前排好的自定义顺序。
 
 ### `void _insertNewSubscription(({Subscription sub, bool importHistory}) result)` <a id="_insertnewsubscription"></a>
 - **种类：** `_SubscriptionsPageState` 的方法
-- **来源：** `lib/features/finance/views/subscriptions_page.dart`（第 254 行）
+- **来源：** `lib/features/finance/views/subscriptions_page.dart`（第 159 行）
 - **用途：** 插入新创建（或复制恢复）的订阅，计算其初始 `nextBillingDate` 使下一次处理器运行正确计费，并可选把其计费历史作为交易导入。
 - **输入：** `result` — 来自 `AddSubscriptionDialog` 的、含草稿 `sub` 和 `importHistory` 标志的记录。
 - **返回：** 无。
 - **副作用：** `setState` 追加进 `_subscriptions`（自定义排序模式时也 `_customOrder`）；调用 `widget.onSubscriptionsChanged` 并有条件地 `widget.onSortChanged`；可能调用 `_importHistoricalTransactions`。
 - **算法：**
   1. 构建 `result.sub` 的 `tempSub` 副本（丢弃任何预设的 `nextBillingDate`/激活状态字段，因为这里总是创建全新激活订阅）。
-  2. 经 [`tempSub.calculateNextBillingDate`](../models/finance.md#calculatenextbillingdate) 计算 `initialNBD`：`result.importHistory` 为 true 时 `after: today`（严格晚于今天的第一个计费日期，因为今天——及所有更早——的计费日将作为交易单独回填）；不导入历史时 `after: today - 1 day`（今天或之后的第一个计费日期，因为处理器自己会在下次运行追赶今天的计费，而不是此方法回填它）。
+  2. 经 [`tempSub.calculateNextBillingDate`](../models/finance.md#calculatenextbillingdate) 计算 `initialNBD`：`result.importHistory` 为 true 时 `after: today`（严格晚于今天的第一个计费日期，因为今天——及所有更早——的计费日将作为交易单独回填）；不导入历史时 `after: addCalendarDays(today, -1)`（今天或之后的第一个计费日期，因为处理器自己会在下次运行追赶今天的计费，而不是此方法回填它）。自 v1.5.2 起，「昨天」按日历日步进而不是 `today.subtract(const Duration(days: 1))`，因此跨越夏令时切换时仍落在本地午夜。
   3. 构建带那个 `nextBillingDate` 内建的最终 `sub`，`setState` 追加进 `_subscriptions`（`_sortMode == 'custom'` 时也 `_customOrder`），然后通知 `widget.onSubscriptionsChanged`（适用时也 `widget.onSortChanged`）。
   4. `result.importHistory` 时调用 `_importHistoricalTransactions(sub)`。
-- **用法：** `_insertNewSubscription(result);`（`_addSubscription`，第 245 行，和 `_copyRestoreSubscription`，第 440 行——两个对话框流程都汇入这一条插入路径）。
-- **备注：** 第 2 步的 `after: today` vs `after: today - 1 day` 区别正是防止历史导入添加在今天重复计费的东西：导入已经为今天的计费日生成交易（如到期），因此 `nextBillingDate` 必须跳过它；非导入添加把今天的计费留给常规 `SubscriptionProcessor` 追赶生成——见 [订阅计费](../../../../algorithms/subscription-billing.md#hourly-renewal-catch-up-and-multi-cycle-catch-up)。
+- **用法：** `_insertNewSubscription(result);`（`_addSubscription`，第 150 行，和 `_copyRestoreSubscription`，第 343 行——两个对话框流程都汇入这一条插入路径）。
+- **备注：** 第 2 步的 `after: today` vs `after: addCalendarDays(today, -1)` 区别正是防止历史导入添加在今天重复计费的东西：导入已经为今天的计费日生成交易（如到期），因此 `nextBillingDate` 必须跳过它；非导入添加把今天的计费留给常规 `SubscriptionProcessor` 追赶生成——见 [订阅计费](../../../../algorithms/subscription-billing.md#hourly-renewal-catch-up-and-multi-cycle-catch-up)。
 
 ### `Future<void> _editSubscription(Subscription sub)` <a id="_editsubscription"></a>
 - **种类：** `_SubscriptionsPageState` 的异步方法
-- **来源：** `lib/features/finance/views/subscriptions_page.dart`（第 315 行）
+- **来源：** `lib/features/finance/views/subscriptions_page.dart`（第 218 行）
 - **用途：** 为既有订阅打开编辑对话框，保存时只在计费相关参数实际变化时重新计算 `nextBillingDate`，否则保留它。
 - **输入：** `sub` — 被编辑的订阅。
 - **返回：** `Future<void>`。
@@ -100,14 +100,14 @@
 - **算法：**
   1. `await showDialog` 带 `AddSubscriptionDialog(subscription: sub, ...)`（编辑模式）。
   2. 返回结果时，确定 `billingChanged`——`startDate`、`trialDays`、`billingCycleType` 或 `billingInterval` 与原始 `sub` 不同时为 `true`。
-  3. `billingChanged` 时：从*新*计费参数构建 `tempSub` 并经 `calculateNextBillingDate(after: today - 1 day)` 重新计算 `nbd`（与全新添加相同的"今天或之后"锚点）。否则：保持 `nbd = sub.nextBillingDate` 不变。
+  3. `billingChanged` 时：从*新*计费参数构建 `tempSub` 并经 `calculateNextBillingDate(after: addCalendarDays(today, -1))` 重新计算 `nbd`（与全新添加相同的"今天或之后"锚点；自 v1.5.2 起按日历日计算）。否则：保持 `nbd = sub.nextBillingDate` 不变。
   4. 构建保留对话框结果中 `isActive`/`cancelledAt`/`cancelType`（使别处设置的取消状态不被编辑覆盖）加解析的 `nbd` 的 `edited` 订阅；`setState` 按匹配 `id` 在 `_subscriptions` 中替换；通知 `widget.onSubscriptionsChanged`。
-- **用法：** `onEdit: () => _editSubscription(sub)`（`build`，第 963 和 1029 行，接到激活和历史块的编辑操作）。
+- **用法：** `onEdit: () => _editSubscription(sub)`（`build`，第 856 和 924 行，接到激活和历史块的编辑操作）。
 - **备注：** 只在计费参数变化时重新计算 `nextBillingDate`（而不是每次编辑），避免只因用户编辑了名称或 emoji 之类的无关字段就静默重置订阅的计费游标。
 
 ### `Future<void> _restoreSubscription(Subscription sub)` <a id="_restoresubscription"></a>
 - **种类：** `_SubscriptionsPageState` 的异步方法
-- **来源：** `lib/features/finance/views/subscriptions_page.dart`（第 384 行）
+- **来源：** `lib/features/finance/views/subscriptions_page.dart`（第 287 行）
 - **用途：** 恢复订阅，按当前取消状态分派到正确的恢复路径——这是激活（待定到期时）和历史（完全取消/过期）订阅上"恢复"操作的入口。
 - **输入：** `sub`。
 - **返回：** `Future<void>`。
@@ -116,56 +116,56 @@
   1. `sub.isActive && sub.cancelType == CancelType.atExpiry`（尚未生效的待定到期时取消）时：调用 `_undoAtExpiryCancellation(sub)` 并返回。
   2. 否则 `!sub.isActive`（处理器已停用的订阅，或立即取消的）时：`await _copyRestoreSubscription(sub)`。
   3. （隐式第三种情形：无待定取消的激活订阅在 `build` 中本来就没有接恢复操作——`onRestore` 只在激活块的 `cancelType == CancelType.atExpiry` 时传，或历史块无条件传。）
-- **用法：** `onRestore: sub.cancelType == CancelType.atExpiry ? () { _restoreSubscription(sub); } : null`（`build`，第 965-969 行，激活块）和 `onRestore: () { _restoreSubscription(sub); }`（`build`，第 1030 行，历史块）。
+- **用法：** `onRestore: sub.cancelType == CancelType.atExpiry ? () { _restoreSubscription(sub); } : null`（`build`，第 962-966 行，激活块）和 `onRestore: () { _restoreSubscription(sub); }`（`build`，第 1027 行，历史块）。
 - **备注：** 此方法是 [财务](../../../../features/finance.md#views-and-analysis-page) 描述的恰好两种恢复行为的分派器："待定的到期时取消可以在原地恢复，而已过期或完全取消的订阅通过把其设置复制进新激活订阅来恢复。"
 
 ### `void _undoAtExpiryCancellation(Subscription sub)` <a id="_undoatexpirycancellation"></a>
 - **种类：** `_SubscriptionsPageState` 的方法
-- **来源：** `lib/features/finance/views/subscriptions_page.dart`（第 399 行）
+- **来源：** `lib/features/finance/views/subscriptions_page.dart`（第 302 行）
 - **用途：** 原地撤销待定的到期时取消，不改变订阅身份（相同 `id`），把它重新激活为普通计费订阅。
 - **输入：** `sub` — 当前必须是 `isActive == true` 且 `cancelType == CancelType.atExpiry`（由唯一调用方 `_restoreSubscription` 强制）。
 - **返回：** 无。
 - **副作用：** `setState` 替换 `_subscriptions` 中的匹配订阅；调用 `widget.onSubscriptionsChanged`。
 - **算法：** 构建 `sub` 的 `restored` 副本，带 `isActive: true`（隐式丢弃 `cancelledAt`/`cancelType`，因为新 `Subscription(...)` 调用省略它们且它们默认未设置）和 `nextBillingDate: sub.nextBillingDate ?? _nextBillingDateFromToday(sub)`（字段不知何故未设置时回退新计算的日期）；`setState` 按 `id` 覆盖匹配条目；通知 `widget.onSubscriptionsChanged`。
-- **用法：** `_undoAtExpiryCancellation(sub);`（`_restoreSubscription`，第 386 行——唯一调用点）。
+- **用法：** `_undoAtExpiryCancellation(sub);`（`_restoreSubscription`，第 383 行——唯一调用点）。
 - **备注：** 这等价于简单移除排定的取消标记——订阅保持其原始 `id`/`startDate`/历史，这是与 `_copyRestoreSubscription` 的新身份恢复路径的关键区别。
 
 ### `Future<void> _copyRestoreSubscription(Subscription sub)` <a id="_copyrestoresubscription"></a>
 - **种类：** `_SubscriptionsPageState` 的异步方法
-- **来源：** `lib/features/finance/views/subscriptions_page.dart`（第 429 行）
+- **来源：** `lib/features/finance/views/subscriptions_page.dart`（第 332 行）
 - **用途：** 通过打开从其设置预填的编辑对话框、确认后把结果作为**全新**激活订阅插入来恢复完全历史（非激活）订阅——源订阅本身保持不动。
 - **输入：** `sub` — 被恢复的历史订阅。
 - **返回：** `Future<void>`。
 - **副作用：** 显示 `AddSubscriptionDialog`；非 null 结果时委托给 `_insertNewSubscription`（它追加新条目并通知回调）。
 - **算法：** `await showDialog` 带 `AddSubscriptionDialog(subscription: sub, restoreAsCopy: true, ...)`；对话框返回结果时调用 `_insertNewSubscription(result)`。
-- **用法：** `await _copyRestoreSubscription(sub);`（`_restoreSubscription`，第 390 行——唯一调用点）。
+- **用法：** `await _copyRestoreSubscription(sub);`（`_restoreSubscription`，第 387 行——唯一调用点）。
 - **备注：** `restoreAsCopy: true` 是传给 `AddSubscriptionDialog`（本文件不显示）的标志，大概用 `sub` 的值预填表单，同时让 `AddSubscriptionDialog` 为返回草稿生成*新* id/`startDate`——此方法自己不剥离 `sub.id`；它信任对话框交回新鲜订阅，这正是结果插入走与普通新添加相同的 `_insertNewSubscription` 路径的原因。
 
 ### `DateTime? _nextBillingDateFromToday(Subscription sub)` <a id="_nextbillingdatefromtoday"></a>
 - **种类：** `_SubscriptionsPageState` 的方法
-- **来源：** `lib/features/finance/views/subscriptions_page.dart`（第 449 行）
+- **来源：** `lib/features/finance/views/subscriptions_page.dart`（第 352 行）
 - **用途：** 计算今天或之后的第一个计费日期，作为被重新激活的订阅缺少持久化 `nextBillingDate` 时的回退。
 - **输入：** `sub`。
 - **返回：** `DateTime?` — 只在 [`calculateNextBillingDate`](../models/finance.md#calculatenextbillingdate) 自己返回 `null` 时为 `null`（如已过截止的 `atExpiry` 取消订阅——这里预期不适用，因为调用方只在清除取消后到达）。
 - **副作用：** 无。
-- **算法：** `sub.calculateNextBillingDate(after: today - 1 day)`——本文件计费日期重算调用点一致使用的"今天或之后"锚点模式。
-- **用法：** `nextBillingDate: sub.nextBillingDate ?? _nextBillingDateFromToday(sub)`（`_undoAtExpiryCancellation`，第 415 行——唯一调用点）。
+- **算法：** `sub.calculateNextBillingDate(after: addCalendarDays(today, -1))`，其中 `today` 为本地午夜——本文件计费日期重算调用点一致使用的"今天或之后"锚点模式（自 v1.5.2 起三处都使用 `addCalendarDays`）。
+- **用法：** `nextBillingDate: sub.nextBillingDate ?? _nextBillingDateFromToday(sub)`（`_undoAtExpiryCancellation`，第 318 行——唯一调用点）。
 - **备注：** 这镜像 [`SubscriptionProcessor.process`](../../../../algorithms/subscription-billing.md#hourly-renewal-catch-up-and-multi-cycle-catch-up) 中的"迁移情形"（为早于该字段被持久化的订阅计算一次 `nextBillingDate`），但这里专门应用于到期时撤销路径，而不是通用处理器追赶。
 
 ### `void _deleteSubscription(Subscription sub)` <a id="_deletesubscription"></a>
 - **种类：** `_SubscriptionsPageState` 的方法
-- **来源：** `lib/features/finance/views/subscriptions_page.dart`（第 462 行）
+- **来源：** `lib/features/finance/views/subscriptions_page.dart`（第 363 行）
 - **用途：** 永久移除订阅（激活或历史）并通过也从自定义排序顺序移除其 id 保持其一致。
 - **输入：** `sub`。
 - **返回：** 无。
 - **副作用：** `setState` 从 `_subscriptions` 和 `_customOrder` 移除；调用 `widget.onSubscriptionsChanged`，自定义排序模式时也 `widget.onSortChanged`。
 - **算法：** `setState`：`_subscriptions.removeWhere((s) => s.id == sub.id)` 和 `_customOrder.remove(sub.id)`；然后通知 `widget.onSubscriptionsChanged(_subscriptions)`，`_sortMode == 'custom'` 时也 `widget.onSortChanged(_sortMode, _customOrder)`。
-- **用法：** 调用点总是门控在 `confirmDelete(context, l10n.financeThisSubscription)` 之后，如 `if (confirmed == true) { _deleteSubscription(sub); }`（`build`，第 975-977 和 998-1001 行，激活和历史 `Dismissible.confirmDismiss`/`onDelete`）。
+- **用法：** 调用点总是门控在 `confirmDelete(context, l10n.financeThisSubscription)` 之后，如 `if (confirmed == true) { _deleteSubscription(sub); }`（`build`，第 972-974 和 998-1001 行，激活和历史 `Dismissible.confirmDismiss`/`onDelete`）。
 - **备注：** 此订阅先前生成的交易不被删除或取消链接——只移除订阅记录和其自定义顺序条目；已删除订阅的过去计费交易留在 `_transactions` 中不受影响，仍携带现在悬空的 `subscriptionId`。
 
 ### `void _doCancelSubscription(Subscription sub, CancelType type)` <a id="_docancelsubscription"></a>
 - **种类：** `_SubscriptionsPageState` 的方法
-- **来源：** `lib/features/finance/views/subscriptions_page.dart`（第 511 行）
+- **来源：** `lib/features/finance/views/subscriptions_page.dart`（第 412 行）
 - **用途：** 对订阅应用所选取消类型——"立即取消"和"到期时取消"两个选择背后的实际状态转换。
 - **输入：** `sub`；`type` — `CancelType.immediate` 或 `CancelType.atExpiry`。
 - **返回：** 无。
@@ -182,12 +182,12 @@
     },
   ),
   ```
-  （`_cancelSubscription`，第 484-491 行，旁边有相同的 `atExpiry` `ListTile`，第 492-499 行。）
+  （`_cancelSubscription`，第 481-488 行，旁边有相同的 `atExpiry` `ListTile`，第 489-496 行。）
 - **备注：** `isActive: type == CancelType.atExpiry` 是整个取消/恢复状态机的关键：到期时取消刻意保持"激活"（使它继续出现并继续计费），直到 `SubscriptionProcessor` 稍后在截止处把它翻转为非激活，而 `immediate` 在用户确认的瞬间进入非激活——这正是 `_restoreSubscription` 必须特别检查 `sub.isActive && sub.cancelType == CancelType.atExpiry` 以区分"仍激活但排定停止"与"已停止"的原因。
 
 ### `void _importHistoricalTransactions(Subscription sub)` <a id="_importhistoricaltransactions"></a>
 - **种类：** `_SubscriptionsPageState` 的方法
-- **来源：** `lib/features/finance/views/subscriptions_page.dart`（第 543 行）
+- **来源：** `lib/features/finance/views/subscriptions_page.dart`（第 444 行）
 - **用途：** 为新添加订阅从 `startDate`/锚点起到今天的每个计费日生成交易，不重复任何已有匹配交易的计费日。
 - **输入：** `sub` — 刚插入的订阅。
 - **返回：** 无。
@@ -197,12 +197,12 @@
   2. 构建 `existingKeys`，为每个带 `subscriptionId` 的既有交易构建 [`SubscriptionProcessor.billingDateKey`](../services/subscription_processor.md#billingdatekey) 值的集合——与 `SubscriptionProcessor` 自己使用的相同幂等键方案。
   3. 对每个历史 `date`：计算其 `billingDateKey(sub.id, date)`；把它加入 `existingKeys` 报告它*已经*存在（`!existingKeys.add(key)`）时跳过它——那天已计费；否则经 [`SubscriptionProcessor.transactionIdForBilling`](../services/subscription_processor.md#transactionidforbilling) 构建带稳定 id 的新支出 `Transaction`。
   4. 构建了任何新交易时，`setState(() => _transactions.addAll(newTxs))` 并通知 `widget.onTransactionsChanged`。
-- **用法：** `_importHistoricalTransactions(sub);`（`_insertNewSubscription`，第 306 行，只在 `result.importHistory` 为 true 时）。
+- **用法：** `_importHistoricalTransactions(sub);`（`_insertNewSubscription`，第 305 行，只在 `result.importHistory` 为 true 时）。
 - **备注：** 通过复用 `SubscriptionProcessor` 的精确键/id 方案（见 [订阅计费](../../../../algorithms/subscription-billing.md#idempotent-billing-day-generation)），这里的历史导入和之后的处理器追赶趟即使两者碰巧对重叠日期范围运行也绝不可能给同一天计两次费——去重以 `'$subscriptionId|yyyy-MM-dd'` 为键，不以交易 id 来源为键。
 
 ### `Widget _buildReorderBody(ThemeData theme, AppLocalizations l10n, List<Subscription> active)` <a id="_buildreorderbody"></a>
 - **种类：** `_SubscriptionsPageState` 的方法
-- **来源：** `lib/features/finance/views/subscriptions_page.dart`（第 630 行）
+- **来源：** `lib/features/finance/views/subscriptions_page.dart`（第 506 行）
 - **用途：** 渲染 `_reordering` 为 true 时显示的拖拽重排列表，并在条目被放下时立即持久化新自定义顺序。
 - **输入：** `theme`；`l10n`；`active` — 按当前自定义顺序的激活订阅。
 - **返回：** `Widget`（一个 `ReorderableListView.builder`）。
@@ -211,12 +211,12 @@
   1. 把 `active` 复制进可变 `items` 列表（组件只从它读；真实修改发生在 `_customOrder` 上）。
   2. `onReorderItem: (oldIndex, newIndex)`：`setState` 做 `_customOrder.removeAt(oldIndex)` 然后 `.insert(newIndex, item)`——在持久化顺序内移动 id——然后立即调用 `widget.onSortChanged(_sortMode, _customOrder)` 持久化它。
   3. 每个条目块显示订阅名称、格式化金额和 emoji（如有）；前置拖拽手柄图标。
-- **用法：** `body: _reordering ? _buildReorderBody(theme, l10n, active) : Column(...)`（`build`，第 751 行——`_reordering` 为 true 时把整个正文换成重排列表）。
+- **用法：** `body: _reordering ? _buildReorderBody(theme, l10n, active) : Column(...)`（`build`，第 748 行——`_reordering` 为 true 时把整个正文换成重排列表）。
 - **备注：** 重排只操作 `active` 订阅（历史订阅不可重排），持久化 `_customOrder` 列表正是激活订阅 id 的序列——`sortSubscriptions` 的 `'custom'` 分支正是把那个持久化顺序在下次非重排渲染时变回排序后的 `_active` 列表的东西。
 
 ### `Widget build(BuildContext context)` <a id="build"></a>
 - **种类：** `_SubscriptionTile`（一个 `StatelessWidget`）的方法覆盖
-- **来源：** `lib/features/finance/views/subscriptions_page.dart`（第 1197 行）
+- **来源：** `lib/features/finance/views/subscriptions_page.dart`（第 1093 行）
 - **用途：** 渲染一个订阅的列表行，在布局 `ListTile` 前从订阅*当前*状态计算每个状态标签（分类、账户、计费周期、下次计费/到期日、取消日期）。
 - **输入：** `context`。
 - **返回：** `Widget`。
@@ -242,7 +242,7 @@
     onDelete: () async { /* confirmDelete then _deleteSubscription(sub) */ },
   )
   ```
-  （`_SubscriptionsPageState.build`，第 957-979 行，包在 `Dismissible` 中供滑动操作。）
+  （`_SubscriptionsPageState.build`，第 954-976 行，包在 `Dismissible` 中供滑动操作。）
 - **备注：** 第 3-4 步是取消/恢复状态机变得用户可见的地方：技术上仍 `isActive` 的到期时取消订阅显示"到期日"标签（不是"下次计费"），这是在用户打开长按菜单看到恢复操作之前把它与普通激活订阅区分开的块级信号。
 
 ## 相关页面

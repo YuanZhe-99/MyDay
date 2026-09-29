@@ -32,6 +32,9 @@ class _ExchangeRatesPageState extends State<ExchangeRatesPage> {
   bool _loaded = false;
   bool _fetching = false;
 
+  /// Set when `exchange_rates.json` exists but cannot be read.
+  String? _loadError;
+
   /// Purpose: Initialize listeners, controllers, and first-load work for this state object.
   /// Inputs: None.
   /// Returns: None.
@@ -47,10 +50,23 @@ class _ExchangeRatesPageState extends State<ExchangeRatesPage> {
   /// Inputs: None.
   /// Returns: `Future<void>`.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Internal helper used within this file only. An unreadable rates file shows
+  /// an error view and leaves `_data` null, which blocks fetching and saving (v1.5.2).
   Future<void> _loadRates() async {
-    final data = await ExchangeRateStorage.load();
+    final ExchangeRateData data;
+    try {
+      data = await ExchangeRateStorage.load();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loadError = e.toString();
+        _loaded = true;
+      });
+      return;
+    }
+    if (!mounted) return;
     setState(() {
+      _loadError = null;
       _data = data;
       _rates = Map.of(data.currentRates);
       _loaded = true;
@@ -69,21 +85,26 @@ class _ExchangeRatesPageState extends State<ExchangeRatesPage> {
   Future<void> _fetchOnline() async {
     if (_data == null || _fetching) return;
     setState(() => _fetching = true);
-    final updated = await ExchangeRateApi.fetchAndMerge(_data!);
-    if (updated != null && mounted) {
-      final withTimestamp = ExchangeRateData(
-        currentSnapshotId: updated.currentSnapshotId,
-        snapshots: updated.snapshots,
-        lastFetchedAt: DateTime.now(),
-      );
-      await ExchangeRateStorage.save(withTimestamp);
-      AutoSyncService.instance.notifySaved();
-      setState(() {
-        _data = withTimestamp;
-        _rates = Map.of(withTimestamp.currentRates);
-      });
+    try {
+      final updated = await ExchangeRateApi.fetchAndMerge(_data!);
+      if (updated != null && mounted) {
+        final withTimestamp = ExchangeRateData(
+          currentSnapshotId: updated.currentSnapshotId,
+          snapshots: updated.snapshots,
+          lastFetchedAt: DateTime.now(),
+        );
+        await ExchangeRateStorage.save(withTimestamp);
+        AutoSyncService.instance.notifySaved();
+        if (mounted) {
+          setState(() {
+            _data = withTimestamp;
+            _rates = Map.of(withTimestamp.currentRates);
+          });
+        }
+      }
+    } finally {
+      if (mounted) setState(() => _fetching = false);
     }
-    if (mounted) setState(() => _fetching = false);
   }
 
   /// Purpose: Provide the internal save rates helper for this file.
@@ -150,6 +171,54 @@ class _ExchangeRatesPageState extends State<ExchangeRatesPage> {
     _saveRates();
   }
 
+  /// Purpose: Build the blocking view shown when the rates file is unreadable.
+  /// Inputs: `theme`.
+  /// Returns: `Widget`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Reuses the finance
+  /// unreadable-data strings; the retry button re-runs `_loadRates`.
+  Widget _buildLoadError(ThemeData theme) {
+    final l10n = AppLocalizations.of(context)!;
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.warning_amber_rounded,
+              color: theme.colorScheme.error,
+              size: 48,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              l10n.financeDataUnreadableTitle,
+              style: theme.textTheme.titleLarge,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            SelectableText(
+              _loadError ?? '',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.error,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: () {
+                setState(() => _loaded = false);
+                _loadRates();
+              },
+              icon: const Icon(Icons.refresh),
+              label: Text(l10n.financeDataRetry),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// Purpose: Build the current widget subtree for the active UI state.
   /// Inputs: `context`.
   /// Returns: The widget tree for the current state.
@@ -191,6 +260,8 @@ class _ExchangeRatesPageState extends State<ExchangeRatesPage> {
       ),
       body: !_loaded
           ? const Center(child: CircularProgressIndicator())
+          : _loadError != null
+          ? _buildLoadError(theme)
           : entries.isEmpty
           ? Center(
               child: Text(

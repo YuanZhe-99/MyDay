@@ -75,6 +75,8 @@ flutter test
 flutter test test/balance_util_test.dart
 flutter test test/json_preservation_test.dart
 flutter test test/widget_test.dart
+flutter test test/id_list_delta_test.dart test/subpage_merge_test.dart test/storage_hardening_test.dart test/local_api_server_test.dart
+flutter test test/golden/webdav_golden_test.dart
 flutter test test/on_device_ai_test.dart test/insight_facts_test.dart test/insight_service_test.dart test/ai_insights_cache_test.dart test/ai_insight_card_ui_test.dart test/ai_settings_tiles_ui_test.dart
 bash tool/check_weak_link.sh build/ios/iphoneos/Runner.app
 flutter gen-l10n
@@ -106,6 +108,18 @@ include targeted tests and consider adding coverage for `JsonPreservation`, merg
 balance calculations. The bank-logo tools (`fetch_bank_logos`, `bank_logo_sheet`,
 `apply_bank_logo_choices`, `gen_bank_logo_manifest`) are local maintenance tools (fetching and `@png`
 installs use the network) that never run in CI; their workflow is in [Finance](features/finance.md#bankpresetservice).
+
+`test/golden/webdav_golden_test.dart` keeps six request-sequence scenarios (first sync, local-only
+change, remote-only change, conflict then finalize, force upload, image added on both sides) whose
+transcripts stay byte-identical. Since v1.5.2 it imports the canonical fake server and request
+recorder from `packages/myapps_data/test/golden/` instead of keeping local copies, and the
+no-change, both-identical, force-download, interrupted-recovery, backup-v2, corrupt-bundle,
+ZIP-export and ZIP-traversal scenarios are left to the shared package's own golden suite. `test/id_list_delta_test.dart` and `test/subpage_merge_test.dart`
+cover the Finance and Intimacy merge-by-id sub-page saves. The DST tests in
+`test/week_grouping_test.dart` and `test/audit_fixes_test.dart` only prove something in a time zone
+that observes daylight saving; on Windows or in a UTC zone they pass trivially. Run them on Linux or
+macOS as `TZ=America/New_York flutter test test/week_grouping_test.dart test/audit_fixes_test.dart`.
+The release workflow itself does not run `flutter test`.
 
 ## Fresh clone
 

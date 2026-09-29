@@ -8,8 +8,11 @@
 
 - **配置键：** `apiPort`（默认 `7790`）、`apiListenAddress`（默认 `localhost`）、`apiEnabled`、`apiUsername`、`apiPassword`。
 - **未带凭据的非回环绑定被拒绝**，报 `credentials_required`。
-- **中间件：** 宽松 CORS（已确认：`_corsMiddleware()` 给每个响应添加 `_corsHeaders` 并以 `Response.ok('', headers: _corsHeaders)` 应答 `OPTIONS` 预检）、配置了凭据时的 Basic Auth（401 时带 `WWW-Authenticate: Basic realm="MyDay API"`）和 JSON 错误处理。
-- **`data_unreadable`（HTTP 500）：** 既有数据文件无法解析时，待办、财务和体重处理器返回 `{"error":"data_unreadable"}` 且状态 500（与 [架构](architecture.md) 描述的相同类型化异常条件）。缺失文件仍使用端点文档化的空数据行为，写端点会在底层文件不可读时*在保存之前*中止。
+- **中间件：** 按管道顺序依次为 Origin 守卫、面向本地来源的 CORS、配置了凭据时的 Basic Auth（401 时带 `WWW-Authenticate: Basic realm="MyDay API"`）和 JSON 错误处理。
+- **Origin 守卫（v1.5.2）：** `_originGuardMiddleware()` 最先运行，在 CORS 和认证之前，因此也覆盖 `OPTIONS` 预检。`Origin` 请求头不是本地来源的请求得到 **403** `{"error":"origin_not_allowed"}`——互联网上的网页不能再借用户的浏览器驱动 API。`LocalApiServer.isAllowedLocalOrigin` 只允许位于 `localhost`、`*.localhost` 或回环 IP 字面量（`127.0.0.0/8`、`::1`）上的 `http`/`https` 来源；`null`（沙箱页面或 `file://` 页面）、其他协议和其他所有主机都被拒绝。不带 `Origin` 请求头的请求（curl、脚本、其他应用）原样通过。不做 `Host` 请求头（DNS 重绑定）检查。
+- **CORS：** `_corsMiddleware()` 把允许的 `Origin` 原样回显在 `Access-Control-Allow-Origin` 中，并附带 `Vary: Origin`（`OPTIONS` 预检也以这些响应头应答）；不带 `Origin` 请求头的请求完全不会得到 `Access-Control-Allow-Origin`。API 从不以 `*` 通配符应答（v1.5.2 之前会）。
+- **`data_unreadable`（HTTP 500）：** 既有数据文件无法解析时，待办、财务和体重处理器返回 `{"error":"data_unreadable"}` 且状态 500（与 [架构](architecture.md) 描述的相同类型化异常条件）。自 v1.5.2 起也包括不可读的 `exchange_rates.json`（`ExchangeRateStorageException`）。缺失文件仍使用端点文档化的空数据行为，写端点会在底层文件不可读时*在保存之前*中止。
+- **写入会刷新应用（v1.5.2）：** 每次成功写入（`/todo/add`、`/todo/complete`、`/todo/score`、`/finance/add_transaction`、`/weight/add`）之后，服务器调用 `AutoSyncService.notifySaved()` 和 `notifyLocalDataChangedNow()`，于是自动同步会上传这次变更，打开的页面会重新加载，而不是之后用过期的内存状态覆盖 API 写入。
 - **认证范围：** 配置了 API 用户名和密码时，每个非 `OPTIONS` 请求都需要 Basic Auth，包括 localhost 请求。未配置凭据时，允许回环请求、拒绝非回环请求。
 - **端点：**
   - `GET /ping`

@@ -266,7 +266,7 @@
   2. `capped = contentWidth - settingsRightPaneMinWidth`。
   3. `preferred` 放得进 `capped` 时返回它，否则返回 `capped.clamp(240.0, 440.0)`。
 - **用法：** `SizedBox(width: settingsLeftPaneWidth(constraints.maxWidth), child: sectionList)`。
-- **说明：** 比另外两个窗格更大的比例，因为这个列表承载的是带两行副标题和尾部 chevron 的完整 `ListTile`，而不是一个摘要块。在分栏规则允许的任何宽度上这个上限都不会真正生效——`test/adaptive_layout_test.dart` 在整个区间上正是这样断言的——因此它是给比任何真实窗口都更窄的窗格准备的保护，而不是第二个断点。保留而不删除，是因为本函数接受的是**窗格**宽度，未来的调用方可能真的交给它一个。
+- **说明：** 比另外两个窗格更大的比例，因为这个列表承载的是带两行副标题和尾部 chevron 的完整 `ListTile`，而不是一个摘要块。在分栏规则允许的任何宽度上这个上限都不会真正生效——比例值本来就给详情窗格留出了下限，`test/adaptive_layout_test.dart` 钉住了各个夹取点，并在整个区间上断言详情窗格满足其下限——因此它是给比任何真实窗口都更窄的窗格准备的保护，而不是第二个断点。保留而不删除，是因为本函数接受的是**窗格**宽度，未来的调用方可能真的交给它一个。
 
 ### `bool useWeightChartsSideBySide(double contentWidth)` <a id="useweightchartssidebyside"></a>
 - **种类：** 顶层函数
@@ -284,7 +284,7 @@
   ```
 - **说明：** 这是**叠加在** `canSplitLayout` 之上的宽度下限，而不是取代它——双重闸门。单靠分栏规则会放进 Z Fold 5 竖持那样大小的视口，那里每张图会只剩不到 290 逻辑像素、只显示四个日期标签。调用方必须同时检查两者，**并且**必须检查究竟有没有图表：低于两条记录时两张图都不渲染，而一条摘要横幅压在两片空白之上，比它所要取代的堆叠布局更糟。凡是可能渲染为空的块，都属于闸门。
 
-  这个下限**刻意与** `useWeightSummaryBesideChart` 在 v1.4.3 之前使用的 672 相同，那时的分栏是把摘要卡片放进 280 的窗格、旁边是 380 的图表。v1.4.4 改的是可分栏窗口*内部*的排布，而不是哪些窗口可分栏，因此每个视口都保持它原有的结论——这条性质由 `test/adaptive_layout_test.dart` 直接钉住，而不是留给巧合。窗格宽度函数已不复存在：两列是等分 flex，因此各得间隙之外的一半。
+  这个下限**刻意与** `useWeightSummaryBesideChart` 在 v1.4.3 之前使用的 672 相同，那时的分栏是把摘要卡片放进 280 的窗格、旁边是 380 的图表。v1.4.4 改的是可分栏窗口*内部*的排布，而不是哪些窗口可分栏，因此每个视口都保持它原有的结论——这条性质由 `test/adaptive_layout_test.dart` 在 672 闸门处（`n - 1` 与 `n`）钉住，而不是留给巧合。窗格宽度函数已不复存在：两列是等分 flex，因此各得间隙之外的一半。
 
 ### `double cappedContentWidth(double contentWidth, double maxWidth)` <a id="cappedcontentwidth"></a>
 - **种类：** 顶层函数

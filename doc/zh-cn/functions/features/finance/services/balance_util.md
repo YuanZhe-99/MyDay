@@ -11,17 +11,19 @@
 | [`_findRate`](#findrate) | 顶层函数 | A | 找两个币种之间的直接或反向汇率。 |
 | [`convertCurrency`](#convertcurrency) | 顶层函数 | A | 经直接/反向/中间汇率在币种间转换金额。 |
 | [`accountBalance`](#accountbalance) | 顶层函数 | A | 以账户自己的币种计算账户余额。 |
+| [`accountBalances`](#accountbalances) | 顶层函数 | A | 单趟遍历交易计算所有账户的余额（v1.5.2）。 |
 | [`accountBalanceBefore`](#accountbalancebefore) | 顶层函数 | A | 计算账户在给定日期之前瞬间的余额。 |
 | [`isForcedBalanceSentinelDate`](#isforcedbalancesentineldate) | 顶层函数 | A | 日期是否为强制余额迁移哨兵。 |
 | [`hasForcedBalanceSentinel`](#hasforcedbalancesentinel) | 顶层函数 | A | 账户是否已使用强制余额哨兵。 |
+| [`needsForcedBalanceMigration`](#needsforcedbalancemigration) | 顶层函数 | A | 是否仍有账户携带待迁移的旧强制余额（v1.5.2）。 |
 | [`accountWithForcedBalanceSentinel`](#accountwithforcedbalancesentinel) | 顶层函数 | A | 返回强制余额字段被设为哨兵的账户副本。 |
 | [`migrateForcedBalances`](#migrateforcedbalances) | 顶层函数 | A | 把旧强制余额迁移为普通调整交易。 |
 | [`_forcedBalanceMigrationDelta`](#forcedbalancemigrationdelta) | 顶层函数 | A | 计算一个账户迁移所需的调整金额。 |
 | [`_forcedBalanceMigrationTransactionId`](#forcedbalancemigrationtransactionid) | 顶层函数 | A | 构建迁移调整交易的确定性 id。 |
 | [`_forcedBalanceAdjustmentDate`](#forcedbalanceadjustmentdate) | 顶层函数 | A | 选择记录迁移调整交易的日期。 |
-| [`_accountTransactionDelta`](#accounttransactiondelta) | 顶层函数 | A | 计算一笔交易对账户余额的带符号贡献。 |
+| [`_accountTransactionDelta`](#accounttransactiondelta) | 顶层函数 | A | 计算一笔交易对账户余额的带符号贡献（与账户无关的交易立即返回 0.0）。 |
 
-**对账：** `grep -c 'Purpose:' lib/features/finance/services/balance_util.dart` 返回 14，与上面 14 行精确匹配——每个块都恰好位于其真实声明（构造函数或顶层函数）正上方；未发现错附在调用点语句上方。文件中唯一的其他声明，顶层 `final DateTime forcedBalanceSentinelDate = ...` 变量，不带 `/// Purpose:` 块，与本代码库记录可调用成员而非普通数据的约定一致，不构成未文档化的可调用声明。全部 14 个文档化声明分类为 Tier A：本文件是财务功能的核心余额/转换/迁移逻辑，每个函数都含真实分支、循环，或（对短 id/日期辅助）实现 [财务](../../../../features/finance.md#forced-balance-migration-to-adjustment-transactions) 描述的强制余额迁移算法核心的不变量——没有纯透传访问器。
+**对账：** `grep -c 'Purpose:' lib/features/finance/services/balance_util.dart` 返回 16，与上面 16 行精确匹配——每个块都恰好位于其真实声明（构造函数或顶层函数）正上方；未发现错附在调用点语句上方。文件中唯一的其他声明，顶层 `final DateTime forcedBalanceSentinelDate = ...` 变量，不带 `/// Purpose:` 块，与本代码库记录可调用成员而非普通数据的约定一致，不构成未文档化的可调用声明。全部 16 个文档化声明分类为 Tier A：本文件是财务功能的核心余额/转换/迁移逻辑，每个函数都含真实分支、循环，或（对短 id/日期辅助）实现 [财务](../../../../features/finance.md#forced-balance-migration-to-adjustment-transactions) 描述的强制余额迁移算法核心的不变量——没有纯透传访问器。
 
 ## 文档
 
@@ -41,7 +43,7 @@
     changed: changed,
   );
   ```
-  （`lib/features/finance/services/balance_util.dart:250-254`，[`migrateForcedBalances`](#migrateforcedbalances) 的返回值。）
+  （`lib/features/finance/services/balance_util.dart:300-304`，[`migrateForcedBalances`](#migrateforcedbalances) 的返回值。）
 - **备注：** `changed` 让 `FinanceStorage.load()` 和 `WebDAVService._migrateFinanceForcedBalances` 之类的调用方跳过重新保存无需迁移的数据。
 
 ### `String currencySymbol(String code)` <a id="currencysymbol"></a>
@@ -92,7 +94,7 @@
     onMissingRate: trackMissingRate,
   ),
   ```
-  （`lib/features/finance/views/finance_page.dart:413-419`，把每月的交易转换为默认币种，同时跟踪任何回退到 1:1 的对，使财务主页摘要能警告它们。）
+  （`lib/features/finance/views/finance_page.dart:513-519`，把每月的交易转换为默认币种，同时跟踪任何回退到 1:1 的对，使财务主页摘要能警告它们。）
 - **备注：** 中间币种搜索顺序固定（`CNY` 先，然后 `USD`、`EUR`）——从不尝试经此列表之外的币种的汇率路径，即使它本可解析。
 
 ### `double accountBalance(Account account, List<Transaction> transactions, ExchangeRateData rateData)` <a id="accountbalance"></a>
@@ -112,11 +114,33 @@
   );
   ```
   （`lib/features/finance/views/accounts_page.dart:401-405`，账户编辑后立即计算余额，用于派生 [财务](../../../../features/finance.md#forced-balance-migration-to-adjustment-transactions) 描述的调整交易金额。）
-- **备注：** 每次调用都遍历*整个*交易列表——显示多个账户余额的调用方（如账户列表页）每次重建对每个账户调用一次，而不是单趟计算所有余额。
+- **备注：** 每次调用都遍历*整个*交易列表——显示多个账户余额的调用方（如账户列表页）每次重建对每个账户调用一次，而不是单趟计算所有余额。财务首页的总资产数字则改用 [`accountBalances`](#accountbalances)（v1.5.2），单趟计算所有账户。
+
+### `Map<String, double> accountBalances(List<Account> accounts, List<Transaction> transactions, ExchangeRateData rateData)` <a id="accountbalances"></a>
+- **种类：** 顶层函数
+- **来源：** `lib/features/finance/services/balance_util.dart`（第 122 行）
+- **用途：** 单趟遍历交易计算所有账户的余额，而不是经 [`accountBalance`](#accountbalance) 对每个账户完整遍历一次（v1.5.2）。
+- **输入：** `accounts`；`transactions` — 完整交易列表；`rateData`。
+- **返回：** 以账户 id 为键的 `Map<String, double>`，每个值使用该账户自己的币种。
+- **副作用：** 无。
+- **算法：**
+  1. 用 `putIfAbsent` 按 id 索引 `accounts`，因此重复 id 保留第一个账户。
+  2. 每个已索引 id 从 `0.0` 开始。
+  3. 按顺序处理每笔交易：`tx.accountId` 已索引时，加上该账户的 [`_accountTransactionDelta`](#accounttransactiondelta)；然后，若 `tx.toAccountId` 已设置、不同于 `tx.accountId` 且已索引，加上目标账户的差额。
+  4. 返回该映射。
+- **用法：**
+  ```dart
+  final balances = _accounts.isEmpty
+      ? const <String, double>{}
+      : accountBalances(_accounts, _transactions, _rateData);
+  ```
+  （`lib/features/finance/views/finance_page.dart:523-525`，财务首页的总资产数字。）
+- **备注：** 与逐账户调用 [`accountBalance`](#accountbalance) 的结果逐位相同：每个账户的差额按交易顺序求和；源账户与目标账户相同的交易对该账户只计一次（`toId != tx.accountId` 检查），因为 `_accountTransactionDelta` 已覆盖两侧。
+
 
 ### `double accountBalanceBefore(Account account, List<Transaction> transactions, ExchangeRateData rateData, DateTime before)` <a id="accountbalancebefore"></a>
 - **种类：** 顶层函数
-- **来源：** `lib/features/finance/services/balance_util.dart`（第 121 行）
+- **来源：** `lib/features/finance/services/balance_util.dart`（第 155 行）
 - **用途：** 计算账户在给定日期之前瞬间本会有的余额，供分析页的总资产趋势重建。
 - **输入：** `account`；`transactions`；`rateData`；`before` — 排他截止。
 - **返回：** `double`。
@@ -131,12 +155,12 @@
     before,
   );
   ```
-  （`lib/features/finance/views/analysis_page.dart:862-867`，沿总资产趋势图在采样点重建每个账户的余额。）
+  （`lib/features/finance/views/analysis_page.dart:894-899`，沿总资产趋势图在采样点重建每个账户的余额。）
 - **备注：** `before` 是排他的——恰好 dated `before` 的交易不计入，这正是分析页的采样点迭代把*下一*期的开始作为 `before` 传入、以包含当前期结束前所有内容的原因。
 
 ### `bool isForcedBalanceSentinelDate(DateTime date)` <a id="isforcedbalancesentineldate"></a>
 - **种类：** 顶层函数
-- **来源：** `lib/features/finance/services/balance_util.dart`（第 142 行）
+- **来源：** `lib/features/finance/services/balance_util.dart`（第 176 行）
 - **用途：** 检测日期是否为强制余额迁移哨兵（`1970-01-01T00:00:00`），无论它编码为 UTC 纪元零还是匹配那些日历字段的本地时间午夜。
 - **输入：** `date`。
 - **返回：** `bool`。
@@ -147,7 +171,7 @@
 
 ### `bool hasForcedBalanceSentinel(Account account)` <a id="hasforcedbalancesentinel"></a>
 - **种类：** 顶层函数
-- **来源：** `lib/features/finance/services/balance_util.dart`（第 159 行）
+- **来源：** `lib/features/finance/services/balance_util.dart`（第 193 行）
 - **用途：** 决定账户的强制余额字段是否已被哨兵替换——即旧强制余额状态是否已被丢弃，迁移对该账户是空操作。
 - **输入：** `account`。
 - **返回：** `bool`。
@@ -161,11 +185,28 @@
   }
   ```
   （`lib/features/finance/views/accounts_page.dart:1563-1565`，决定是否在编辑账户对话框中显示旧强制余额值；也门控 [`migrateForcedBalances`](#migrateforcedbalances) 内的逐账户分支。）
-- **备注：** 这是决定账户是否仍携带迁移前强制余额状态的唯一门——UI 和迁移循环内部都用它。
+- **备注：** 这是决定账户是否仍携带迁移前强制余额状态的唯一门——UI 和迁移循环内部都用它。[`needsForcedBalanceMigration`](#needsforcedbalancemigration) 对所有账户应用同一门控（v1.5.2）。
+
+### `bool needsForcedBalanceMigration(List<Account> accounts)` <a id="needsforcedbalancemigration"></a>
+- **种类：** 顶层函数
+- **来源：** `lib/features/finance/services/balance_util.dart`（第 203 行）
+- **用途：** 返回是否仍有账户携带待迁移的旧强制余额，使调用方在无需迁移时跳过读取 `exchange_rates.json`（v1.5.2）。
+- **输入：** `accounts`。
+- **返回：** `bool` — 恰在 [`migrateForcedBalances`](#migrateforcedbalances) 会报告 `changed` 时为 true。
+- **副作用：** 无。
+- **算法：** 遇到第一个带强制余额标记（`forcedBalance != null || forcedBalanceDate != null`）且尚未使用哨兵（[`hasForcedBalanceSentinel`](#hasforcedbalancesentinel)）的账户即返回 true；否则返回 false。这与 `migrateForcedBalances` 决定是否迁移某账户的逐账户检查相同。
+- **用法：**
+  ```dart
+  if (!needsForcedBalanceMigration(data.accounts)) return data;
+  final rateData = await ExchangeRateStorage.load();
+  ```
+  （`lib/features/finance/services/finance_storage.dart:208-209`，在 `FinanceStorage.load` 内；同样的提前返回也守护 `lib/app/data_modules.dart:148` 中的 `migrateFinanceForcedBalances`。）
+- **备注：** 由于只在它返回 true 时才读取汇率文件，不可读的 `exchange_rates.json` 不再影响无需迁移的财务数据加载。
+
 
 ### `Account accountWithForcedBalanceSentinel(Account account, {DateTime? modifiedAt})` <a id="accountwithforcedbalancesentinel"></a>
 - **种类：** 顶层函数
-- **来源：** `lib/features/finance/services/balance_util.dart`（第 169 行）
+- **来源：** `lib/features/finance/services/balance_util.dart`（第 219 行）
 - **用途：** 返回强制余额字段被哨兵（`forcedBalance: 0`、`forcedBalanceDate: 1970-01-01T00:00:00.000Z`）替换、其他每个字段保留的账户副本。
 - **输入：** `account`；`modifiedAt` — 可选覆盖，否则保留 `account.modifiedAt`。
 - **返回：** 新的 `Account`。
@@ -181,7 +222,7 @@
 
 ### `ForcedBalanceMigrationResult migrateForcedBalances({required List<Account> accounts, required List<Transaction> transactions, required ExchangeRateData rateData, String adjustmentNote = 'Balance Adjustment'})` <a id="migrateforcedbalances"></a>
 - **种类：** 顶层函数
-- **来源：** `lib/features/finance/services/balance_util.dart`（第 197 行）
+- **来源：** `lib/features/finance/services/balance_util.dart`（第 247 行）
 - **用途：** 一次性迁移，把每个账户的旧非哨兵强制余额转换为确定性调整交易，然后用强制余额哨兵盖章账户，使它绝不被重新迁移。
 - **输入：** `accounts`、`transactions`、`rateData`；`adjustmentNote` — 生成调整交易上的备注文本（默认 `'Balance Adjustment'`）。
 - **返回：** `ForcedBalanceMigrationResult` — 没有账户需要迁移时（`changed: false`）`accounts`/`transactions` 内容不变，否则是迁移后的列表。
@@ -203,7 +244,7 @@
 
 ### `double _forcedBalanceMigrationDelta(Account account, List<Transaction> transactions, ExchangeRateData rateData)` <a id="forcedbalancemigrationdelta"></a>
 - **种类：** 顶层函数（本文件私有）
-- **来源：** `lib/features/finance/services/balance_util.dart`（第 262 行）
+- **来源：** `lib/features/finance/services/balance_util.dart`（第 312 行）
 - **用途：** 计算所需的调整金额，使在把它作为 dated 在强制余额截止的交易添加后，账户的交易派生余额匹配旧强制余额值。
 - **输入：** `account`；`transactions`；`rateData`。
 - **返回：** `double` — 带符号增量（正 = 收入调整，负 = 支出调整）。
@@ -214,7 +255,7 @@
 
 ### `String _forcedBalanceMigrationTransactionId(Account account)` <a id="forcedbalancemigrationtransactionid"></a>
 - **种类：** 顶层函数（本文件私有）
-- **来源：** `lib/features/finance/services/balance_util.dart`（第 284 行）
+- **来源：** `lib/features/finance/services/balance_util.dart`（第 334 行）
 - **用途：** 为一个账户的迁移调整交易构建确定性交易 id，使重新运行迁移绝不创建重复。
 - **输入：** `account`。
 - **返回：** `String` — `'forced-balance-migration:<id>:<forcedBalance>:<forcedBalanceDate or "none">:<modifiedAt>'`。
@@ -225,7 +266,7 @@
 
 ### `DateTime _forcedBalanceAdjustmentDate(Account account)` <a id="forcedbalanceadjustmentdate"></a>
 - **种类：** 顶层函数（本文件私有）
-- **来源：** `lib/features/finance/services/balance_util.dart`（第 295 行）
+- **来源：** `lib/features/finance/services/balance_util.dart`（第 345 行）
 - **用途：** 选择记录迁移调整交易的日期，账户原始强制余额截止有意义时优先用它。
 - **输入：** `account`。
 - **返回：** `DateTime`。
@@ -239,14 +280,15 @@
 
 ### `double _accountTransactionDelta(Account account, Transaction tx, ExchangeRateData rateData)` <a id="accounttransactiondelta"></a>
 - **种类：** 顶层函数（本文件私有）
-- **来源：** `lib/features/finance/services/balance_util.dart`（第 311 行）
+- **来源：** `lib/features/finance/services/balance_util.dart`（第 362 行）
 - **用途：** 以账户自己的币种计算一笔交易对一个账户余额的带符号贡献——[`accountBalance`](#accountbalance) 和 [`accountBalanceBefore`](#accountbalancebefore) 都折叠的基本单元。
 - **输入：** `account`；`tx`；`rateData` — 经 `ratesAt(tx.rateSnapshotId)` 提供历史汇率。
 - **返回：** `double` — 对同账户转账，可能来自下面两个分支任一个或两者，非零。
 - **副作用：** 无。
 - **算法：**
-  1. `tx.accountId == account.id` 时（本账户是交易的主账户）：经 [`convertCurrency`](#convertcurrency) 把 `tx.amount` 从 `tx.currency` 转换为 `account.currency`；支出减、收入加、转账减（钱离开源账户）。
-  2. `tx.toAccountId == account.id` 且 `tx.type == transfer` 时（本账户是转账的目标）：加转换后的金额——`toAmount`/`toCurrency` 都设置时用它们（显式跨币种转账金额），否则把 `tx.amount`/`tx.currency` 作为同金额转账转换。
-  3. 返回适用分支的和（一笔交易只在退化情形 `accountId == toAccountId` 下经两个分支影响同一账户，实践中预期不会发生）。
-- **用法：** 从 [`accountBalance`](#accountbalance) 和 [`accountBalanceBefore`](#accountbalancebefore) 作为折叠体调用，并在 [`_forcedBalanceMigrationDelta`](#forcedbalancemigrationdelta) 内再调用一次。
+  1. 交易与 `account` 的任一侧都无关（`tx.accountId` 和 `tx.toAccountId` 都不等于 `account.id`）时，立即返回 `0.0`，不查询汇率（v1.5.2）。
+  2. `tx.accountId == account.id` 时（本账户是交易的主账户）：经 [`convertCurrency`](#convertcurrency) 把 `tx.amount` 从 `tx.currency` 转换为 `account.currency`；支出减、收入加、转账减（钱离开源账户）。
+  3. `tx.toAccountId == account.id` 且 `tx.type == transfer` 时（本账户是转账的目标）：加转换后的金额——`toAmount`/`toCurrency` 都设置时用它们（显式跨币种转账金额），否则把 `tx.amount`/`tx.currency` 作为同金额转账转换。
+  4. 返回适用分支的和（一笔交易只在退化情形 `accountId == toAccountId` 下经两个分支影响同一账户，实践中预期不会发生）。
+- **用法：** 从 [`accountBalance`](#accountbalance)、[`accountBalanceBefore`](#accountbalancebefore) 和 [`accountBalances`](#accountbalances) 作为折叠体调用，并在 [`_forcedBalanceMigrationDelta`](#forcedbalancemigrationdelta) 内再调用一次。
 - **备注：** 仅本文件内部使用的辅助；这里是定义余额计算的支出/收入/转账符号约定的地方——代码库其他地方不再实现它。

@@ -112,6 +112,40 @@ double accountBalance(
   return net;
 }
 
+/// Purpose: Compute every account's balance in one pass over the transactions.
+/// Inputs: `accounts`, `transactions`, `rateData`.
+/// Returns: `Map<String, double>` keyed by account id.
+/// Side effects: None.
+/// Notes: Bit-identical to calling `accountBalance` per account: each account's deltas are
+/// summed in transaction order, and a transaction touching one account on both sides is
+/// counted once for it. Duplicate account ids keep the first account.
+Map<String, double> accountBalances(
+  List<Account> accounts,
+  List<Transaction> transactions,
+  ExchangeRateData rateData,
+) {
+  final byId = <String, Account>{};
+  for (final account in accounts) {
+    byId.putIfAbsent(account.id, () => account);
+  }
+  final net = {for (final id in byId.keys) id: 0.0};
+  for (final tx in transactions) {
+    final from = byId[tx.accountId];
+    if (from != null) {
+      net[from.id] =
+          net[from.id]! + _accountTransactionDelta(from, tx, rateData);
+    }
+    final toId = tx.toAccountId;
+    if (toId != null && toId != tx.accountId) {
+      final to = byId[toId];
+      if (to != null) {
+        net[toId] = net[toId]! + _accountTransactionDelta(to, tx, rateData);
+      }
+    }
+  }
+  return net;
+}
+
 /// Calculate account balance immediately before [before].
 /// Purpose: Implement the account balance before behavior for this file.
 /// Inputs: `account`, `transactions`, `rateData`, `before`.
@@ -160,6 +194,22 @@ bool hasForcedBalanceSentinel(Account account) =>
     (account.forcedBalance ?? 0) == 0 &&
     account.forcedBalanceDate != null &&
     isForcedBalanceSentinelDate(account.forcedBalanceDate!);
+
+/// Purpose: Return whether any account still carries a legacy forced balance to migrate.
+/// Inputs: `accounts`.
+/// Returns: `bool` — true exactly when `migrateForcedBalances` would report `changed`.
+/// Side effects: None.
+/// Notes: Lets callers skip reading `exchange_rates.json` when there is nothing to migrate.
+bool needsForcedBalanceMigration(List<Account> accounts) {
+  for (final account in accounts) {
+    final hasForcedBalanceMarker =
+        account.forcedBalance != null || account.forcedBalanceDate != null;
+    if (hasForcedBalanceMarker && !hasForcedBalanceSentinel(account)) {
+      return true;
+    }
+  }
+  return false;
+}
 
 /// Purpose: Return an account with forced-balance fields replaced by the sentinel.
 /// Inputs: `account`, `modifiedAt`.
@@ -307,12 +357,14 @@ DateTime _forcedBalanceAdjustmentDate(Account account) {
 /// Inputs: `account`, `tx`, `rateData`.
 /// Returns: `double`.
 /// Side effects: May read or mutate application state, storage, or service resources.
-/// Notes: Internal helper used within this file only.
+/// Notes: Internal helper used within this file only. Returns 0.0 at once for a
+/// transaction that touches neither side of `account`.
 double _accountTransactionDelta(
   Account account,
   Transaction tx,
   ExchangeRateData rateData,
 ) {
+  if (tx.accountId != account.id && tx.toAccountId != account.id) return 0.0;
   final rates = rateData.ratesAt(tx.rateSnapshotId);
   final target = account.currency;
   var delta = 0.0;

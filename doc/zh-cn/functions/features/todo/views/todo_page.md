@@ -44,7 +44,7 @@
 | [`_someDailyCompletedOn`](#somedailycompletedon) | 方法（`_TodoPageState`） | A | 某日期是否有部分（非全部、非无）每日完成。 |
 | [`_hasFutureScheduledOneTimeTask`](#hasfuturescheduledonetimetask) | 方法（`_TodoPageState`） | A | 未来日期是否恰有一次性任务安排在其上。 |
 | `_showCalendar` | 方法（`_TodoPageState`） | B | 压入 `_TodoCalendarPage` 并应用其返回的日期。 |
-| `_changeDate` | 方法（`_TodoPageState`） | B | 按天数移动所选日期。 |
+| `_changeDate` | 方法（`_TodoPageState`） | B | 按日历日数移动所选日期（`addCalendarDays`，自 v1.5.2 起夏令时安全）。 |
 | `_setDailyScore` | 方法（`_TodoPageState`） | B | 设置所选日评分并可选保存。 |
 | [`_toggleTask`](#toggletask) | 方法（`_TodoPageState`） | A | 切换任务完成，同步子任务并提供下一次重复。 |
 | [`_offerNextOccurrence`](#offernextoccurrence) | 方法（`_TodoPageState`） | A | 提示用户安排已完重复任务的下一次出现。 |
@@ -52,7 +52,7 @@
 | [`_toggleSubtask`](#togglesubtask) | 方法（`_TodoPageState`） | A | 切换一个子任务完成，每日任务逐日期或一次性任务直接。 |
 | `_addTask` | 方法（`_TodoPageState`） | B | 显示添加任务对话框并插入创建的任务。 |
 | [`_editTask`](#edittask) | 方法（`_TodoPageState`） | A | 针对原始（未映射）任务显示编辑任务对话框并应用结果。 |
-| `_buildWeekCalendar` | 方法（组件辅助） | B | 构建所选日期周的内联日历。 |
+| `_buildWeekCalendar` | 方法（组件辅助） | B | 构建所选日期周的内联日历；范围标签的结束日期是 `addCalendarDays(weekStart, 6)`（v1.5.2）。 |
 | `_buildWeekDayCell` | 方法（组件辅助） | B | 构建内联周历中的一个可选日。 |
 | `_buildDailyScoreCard` | 方法（组件辅助） | B | 构建 todo 列表底部显示的评分编辑器。 |
 | `build` | 方法（`_TodoPageState`） | B | 为当前加载/错误状态构建 Todo 页组件子树。 |
@@ -136,12 +136,12 @@
 - **输入：** `weekStartDay` — 全局配置的第一个工作日，用 Dart 的周一=1..周日=7 编号。
 - **返回：** 该周第一天的 `DateTime`（已剥离时间）。
 - **副作用：** 无。
-- **算法：** 完全委托给 `lib/shared/utils/week_grouping.dart` 的共享 `startOfWeek(_selectedDate, weekStartDay: weekStartDay)` 辅助，它剥离日内时间并减去 `(date.weekday - weekStartDay + 7) % 7` 天。
+- **算法：** 完全委托给 `lib/shared/utils/week_grouping.dart` 的共享 `startOfWeek(_selectedDate, weekStartDay: weekStartDay)` 辅助，它剥离日内时间，并经 `addCalendarDays` 回退 `(date.weekday - weekStartDay + 7) % 7` 个日历日。
 - **用法：**
   ```dart
   List<DateTime> _selectedWeekDates(int weekStartDay) {
     final weekStart = _selectedWeekStart(weekStartDay);
-    return [for (var i = 0; i < 7; i++) weekStart.add(Duration(days: i))];
+    return [for (var i = 0; i < 7; i++) addCalendarDays(weekStart, i)];
   }
   ```
 - **备注：** 因为取模算术在共享辅助中，本文件从不特判哪个日配置为第一天——同一代码路径处理任何 `weekStartDay` 值 1-7。
@@ -153,7 +153,7 @@
 - **输入：** `weekStartDay` — 配置的第一个工作日，转发给 `_selectedWeekStart`。
 - **返回：** 从 `_selectedWeekStart(weekStartDay)` 开始的恰好七个连续日期的 `List<DateTime>`。
 - **副作用：** 无。
-- **算法：** 经 `_selectedWeekStart` 计算周开始，然后对 `i` 在 `0..6` 加 `Duration(days: i)` 构建 7 元素列表。
+- **算法：** 经 `_selectedWeekStart` 计算周开始，然后对 `i` 在 `0..6` 用 `addCalendarDays(weekStart, i)` 构建 7 元素列表（v1.5.2；此前为 `weekStart.add(Duration(days: i))`，跨夏令时切换时可能落在前一天 23:00）。
 - **用法：**
   ```dart
   for (final date in _selectedWeekDates(weekStartDay))
@@ -171,7 +171,7 @@
 - **算法：**
   1. 过滤 `_dailyTemplates` 到 `startDate ?? createdDate` 不晚于所选日期、`deletedDate` 为 null 或严格晚于所选日期的那些（软删除模板在包含其删除日当天及之前继续显示）。
   2. 对每个幸存模板，经 `_dailyLog.isCompleted` 查找其在所选日期是否完成，并从 `_dailyLog.isSubtaskCompleted` 映射每个子任务的完成。
-  3. 只在映射的完成/子任务状态实际不同于模板自身字段时分配新 `Task` 副本（`copyWith`），避免不必要对象搅动。
+  3. 只在映射的完成/子任务状态实际不同于模板自身字段时分配新 `Task` 副本（`copyWith`），避免不必要对象搅动。局部 `subChanged` 标志记录是否真有子任务被重新映射（v1.5.2）；原先的 `mappedSubs != t.subtasks` 比较的是列表同一性，因此总为真，每个模板都被复制。
   4. 用 `_sortTasks(list, TaskType.daily)` 排序结果列表。
 - **用法：**
   ```dart
@@ -184,7 +184,7 @@
 
 ### `int _compareNullableDates(DateTime? a, DateTime? b)` <a id="comparenullabledates"></a>
 - **种类：** `_TodoPageState` 的方法
-- **来源：** `lib/features/todo/views/todo_page.dart`（约第 446 行）
+- **来源：** `lib/features/todo/views/todo_page.dart`（约第 447 行）
 - **用途：** 两个可选日期的比较器，把缺失日期当作"最新"，使无截止相关日期的任务排在有日期的之后。
 - **输入：** `a`、`b` — 可空 `DateTime`。
 - **返回：** `int` — 按 `Comparable` 约定的负/零/正。
@@ -199,7 +199,7 @@
 
 ### `int _compareTaskFallback(Task a, Task b)` <a id="comparetaskfallback"></a>
 - **种类：** `_TodoPageState` 的方法
-- **来源：** `lib/features/todo/views/todo_page.dart`（约第 458 行）
+- **来源：** `lib/features/todo/views/todo_page.dart`（约第 459 行）
 - **用途：** 为活动排序键上比较相等的任务提供确定性打破平局顺序。
 - **输入：** `a`、`b` — `Task`。
 - **返回：** `int` 比较器结果。
@@ -215,7 +215,7 @@
 
 ### `List<String> _normalizedTaskOrder(TaskType type)` <a id="normalizedtaskorder"></a>
 - **种类：** `_TodoPageState` 的方法
-- **来源：** `lib/features/todo/views/todo_page.dart`（约第 477 行）
+- **来源：** `lib/features/todo/views/todo_page.dart`（约第 478 行）
 - **用途：** 调和任务类型保存的自定义顺序 ID 列表与该类型当前活任务 ID——删除任务的 ID 丢弃，尚未在保存顺序中的任务 ID 追加。
 - **输入：** `type` — 要规范化的顺序所属 `TaskType`。
 - **返回：** 每个恰好出现一次的 `List<String>` 任务 ID。
@@ -228,9 +228,13 @@
   ```dart
   final order = _normalizedTaskOrder(type);
   final fallbackIndex = order.length;
+  final positions = <String, int>{};
+  for (var i = 0; i < order.length; i++) {
+    positions.putIfAbsent(order[i], () => i);
+  }
   list.sort((a, b) {
-    final ai = order.indexOf(a.id);
-    final bi = order.indexOf(b.id);
+    final ai = positions[a.id] ?? fallbackIndex;
+    final bi = positions[b.id] ?? fallbackIndex;
     ...
   });
   ```
@@ -238,7 +242,7 @@
 
 ### `List<Task> _sortTasksForMode(List<Task> tasks, TaskType type, String mode)` <a id="sorttasksformode"></a>
 - **种类：** `_TodoPageState` 的方法
-- **来源：** `lib/features/todo/views/todo_page.dart`（约第 497 行）
+- **来源：** `lib/features/todo/views/todo_page.dart`（约第 498 行）
 - **用途：** 按显式排序模式排序任务列表，独立于类型当前配置的模式。
 - **输入：** `tasks` — 要排序的列表（复制，不原地修改）；`type` — 只用于自定义顺序分支；`mode` — `_taskSortDue`、`_taskSortName`、`_taskSortCustom`、`_taskSortCreated` 之一。
 - **返回：** 新排序 `List<Task>`。
@@ -246,7 +250,7 @@
 - **算法：** 复制输入列表，然后按 `mode` 切换：
   1. **截止**（`_taskSortDue`）：按 `_compareNullableDates(_taskDueSortDate(a), _taskDueSortDate(b))` 排序，回退 `_compareTaskFallback`。
   2. **名称**（`_taskSortName`）：按 `_compareText(a.title, b.title)` 排序，回退 `_compareTaskFallback`。
-  3. **自定义**（`_taskSortCustom`）：计算 `_normalizedTaskOrder(type)`；对每个任务，其排序键是该顺序中的索引（缺席为 `order.length`——排最后），平局回退 `_compareTaskFallback`。
+  3. **自定义**（`_taskSortCustom`）：计算 `_normalizedTaskOrder(type)`；对每个任务，其排序键是该顺序中的索引（缺席为 `order.length`——排最后），平局回退 `_compareTaskFallback`。这些索引来自排序前一次性构建的 id → 位置映射（首次出现者为准，与原先的 `indexOf` 查找一致），因此每次比较是一次映射查找，而非线性 `indexOf` 扫描（v1.5.2）。
   4. **创建**（`_taskSortCreated`）或任何其他值：直接按 `_compareTaskFallback` 排序。
 - **用法：**
   ```dart
@@ -258,7 +262,7 @@
 
 ### `void _appendTaskToCustomOrderIfNeeded(Task task)` <a id="appendtasktocustomorderifneeded"></a>
 - **种类：** `_TodoPageState` 的方法
-- **来源：** `lib/features/todo/views/todo_page.dart`（约第 544 行）
+- **来源：** `lib/features/todo/views/todo_page.dart`（约第 548 行）
 - **用途：** 该类型自定义排序活动时任务被创建，保持任务类型保存的自定义顺序同步。
 - **输入：** `task` — 新创建 `Task`。
 - **返回：** 无。
@@ -280,7 +284,7 @@
 
 ### `void _removeTaskFromCustomOrders(String taskId)` <a id="removetaskfromcustomorders"></a>
 - **种类：** `_TodoPageState` 的方法
-- **来源：** `lib/features/todo/views/todo_page.dart`（约第 557 行）
+- **来源：** `lib/features/todo/views/todo_page.dart`（约第 561 行）
 - **用途：** 从每个任务类型的保存自定义顺序移除已删除任务 ID，不只它自己类型的。
 - **输入：** `taskId` — 被移除的 ID。
 - **返回：** 无。
@@ -297,7 +301,7 @@
 
 ### `void _onTaskSortModeChanged(TaskType type, String mode)` <a id="ontasksortmodechanged"></a>
 - **种类：** `_TodoPageState` 的方法
-- **来源：** `lib/features/todo/views/todo_page.dart`（约第 570 行）
+- **来源：** `lib/features/todo/views/todo_page.dart`（约第 574 行）
 - **用途：** 处理用户为一个小节选新排序模式，首次选自定义排序时播种稳定自定义顺序。
 - **输入：** `type` — 小节的 `TaskType`；`mode` — 新选排序模式字符串。
 - **返回：** 无。
@@ -317,7 +321,7 @@
 
 ### `void _onTaskReorder(TaskType type, List<Task> visibleTasks, int oldIndex, int newIndex)` <a id="ontaskreorder"></a>
 - **种类：** `_TodoPageState` 的方法
-- **来源：** `lib/features/todo/views/todo_page.dart`（约第 595 行）
+- **来源：** `lib/features/todo/views/todo_page.dart`（约第 599 行）
 - **用途：** 把当前可见（过滤）任务列表上执行的拖放重排应用回类型完整保存自定义顺序，它可能包含比当前可见更多的 ID。
 - **输入：** `type`；`visibleTasks` — UI 中实际显示（和拖动）的列表；`oldIndex`/`newIndex` — Flutter `ReorderableListView` 索引。
 - **返回：** 无。
@@ -337,7 +341,7 @@
 
 ### `bool _oneTimeVisibleOnDate(Task t)` <a id="onetimevisibleondate"></a>
 - **种类：** `_TodoPageState` 的方法
-- **来源：** `lib/features/todo/views/todo_page.dart`（约第 640 行）
+- **来源：** `lib/features/todo/views/todo_page.dart`（约第 644 行）
 - **用途：** 决定一次性（日常/工作）任务是否应显示在当前所选日期。
 - **输入：** `t` — 要测试的一次性 `Task`。
 - **返回：** `bool`。
@@ -359,7 +363,7 @@
 
 ### `List<Task> _dailyTemplatesForDate(DateTime date)` <a id="dailytemplatesfordate"></a>
 - **种类：** `_TodoPageState` 的方法
-- **来源：** `lib/features/todo/views/todo_page.dart`（约第 691 行）
+- **来源：** `lib/features/todo/views/todo_page.dart`（约第 695 行）
 - **用途：** 返回任意日期（不一定是所选日期）活跃的每日模板，尊重 `startDate`/`deletedDate`。
 - **输入：** `date` — 任意 `DateTime`。
 - **返回：** 每日模板的 `List<Task>`（无叠加完成状态）。
@@ -376,7 +380,7 @@
 
 ### `bool _allDailyCompletedOn(DateTime date)` <a id="alldailycompletedon"></a>
 - **种类：** `_TodoPageState` 的方法
-- **来源：** `lib/features/todo/views/todo_page.dart`（约第 705 行）
+- **来源：** `lib/features/todo/views/todo_page.dart`（约第 709 行）
 - **用途：** 报告 `date` 上活跃的每个每日模板是否都标记为那天完成。
 - **输入：** `date`。
 - **返回：** `bool` — 那天无活跃模板时 `false`。
@@ -394,7 +398,7 @@
 
 ### `bool _allTasksCompletedOn(DateTime date)` <a id="alltaskscompletedon"></a>
 - **种类：** `_TodoPageState` 的方法
-- **来源：** `lib/features/todo/views/todo_page.dart`（约第 719 行）
+- **来源：** `lib/features/todo/views/todo_page.dart`（约第 723 行）
 - **用途：** 报告 `date` 上可见的每个每日模板和每个一次性任务是否都完成——日历对勾使用的最强"完全完成日"信号。
 - **输入：** `date`。
 - **返回：** `bool`。
@@ -412,7 +416,7 @@
 
 ### `bool _someDailyCompletedOn(DateTime date)` <a id="somedailycompletedon"></a>
 - **种类：** `_TodoPageState` 的方法
-- **来源：** `lib/features/todo/views/todo_page.dart`（约第 743 行）
+- **来源：** `lib/features/todo/views/todo_page.dart`（约第 747 行）
 - **用途：** 检测"部分完成"日——至少一个但非所有活跃每日模板完成——供日历部分进度标记。
 - **输入：** `date`。
 - **返回：** `bool`。
@@ -426,7 +430,7 @@
 
 ### `bool _hasFutureScheduledOneTimeTask(DateTime date)` <a id="hasfuturescheduledonetimetask"></a>
 - **种类：** `_TodoPageState` 的方法
-- **来源：** `lib/features/todo/views/todo_page.dart`（约第 763 行）
+- **来源：** `lib/features/todo/views/todo_page.dart`（约第 767 行）
 - **用途：** 检查未来日历日期是否恰有一次性（日常/工作）任务安排在其上，以显示小"即将到来"标记。
 - **输入：** `date`。
 - **返回：** `bool` — 今天或过去的日期总是 `false`。
@@ -440,7 +444,7 @@
 
 ### `void _toggleTask(Task task)` <a id="toggletask"></a>
 - **种类：** `_TodoPageState` 的方法
-- **来源：** `lib/features/todo/views/todo_page.dart`（约第 832 行）
+- **来源：** `lib/features/todo/views/todo_page.dart`（约第 836 行）
 - **用途：** 切换任务完成状态，保持其子任务同步，对正在完成的重复一次性任务，提供安排下一次出现。
 - **输入：** `task` — 被切换的 `Task`（按当前显示，每日任务是逐日期映射副本而非原始模板）。
 - **返回：** 无。
@@ -462,7 +466,7 @@
 
 ### `Future<void> _offerNextOccurrence(Task completedTask)` <a id="offernextoccurrence"></a>
 - **种类：** `_TodoPageState` 的方法
-- **来源：** `lib/features/todo/views/todo_page.dart`（约第 899 行）
+- **来源：** `lib/features/todo/views/todo_page.dart`（约第 903 行）
 - **用途：** 重复一次性任务完成后，计算其下一次出现日期并让用户确认/编辑并创建该后续任务。
 - **输入：** `completedTask` — 刚完成 `Task`，必须有非 null `recurrence`。
 - **返回：** `Future<void>`。
@@ -484,7 +488,7 @@
 
 ### `void _deleteTask(Task task)` <a id="deletetask"></a>
 - **种类：** `_TodoPageState` 的方法
-- **来源：** `lib/features/todo/views/todo_page.dart`（约第 938 行）
+- **来源：** `lib/features/todo/views/todo_page.dart`（约第 942 行）
 - **用途：** 删除任务，一次性任务和当前所选日期创建的每日模板硬删除，但较旧每日模板软删除（盖章 `deletedDate`），使历史完成日志保持有意义。
 - **输入：** `task` — 要删除的 `Task`。
 - **返回：** 无。
@@ -505,7 +509,7 @@
 
 ### `void _toggleSubtask(Task task, SubTask subtask)` <a id="togglesubtask"></a>
 - **种类：** `_TodoPageState` 的方法
-- **来源：** `lib/features/todo/views/todo_page.dart`（约第 968 行）
+- **来源：** `lib/features/todo/views/todo_page.dart`（约第 972 行）
 - **用途：** 切换一个子任务完成，每日任务用逐日期日志、一次性任务直接修改。
 - **输入：** `task` — 父 `Task`；`subtask` — 被切换的 `SubTask`。
 - **返回：** 无。
@@ -522,7 +526,7 @@
 
 ### `Future<void> _editTask(Task task)` <a id="edittask"></a>
 - **种类：** `_TodoPageState` 的方法
-- **来源：** `lib/features/todo/views/todo_page.dart`（约第 1019 行）
+- **来源：** `lib/features/todo/views/todo_page.dart`（约第 1023 行）
 - **用途：** 针对真实（未映射）底层任务打开编辑任务对话框，为软删除每日模板提供永久删除选项，并应用对话框返回的任何东西。
 - **输入：** `task` — 显示的 `Task`（每日任务可能来自 `_dailyForDate` 的逐日期映射副本，不是存储模板）。
 - **返回：** `Future<void>`。
@@ -540,7 +544,7 @@
 
 ### `void _prevMonth()` <a id="prevmonth"></a>
 - **种类：** `_TodoCalendarPageState` 的方法
-- **来源：** `lib/features/todo/views/todo_page.dart`（约第 1703 行）
+- **来源：** `lib/features/todo/views/todo_page.dart`（约第 1707 行）
 - **用途：** 把可见日历月往回移一个月。
 - **输入：** 无。
 - **返回：** 无。
@@ -557,7 +561,7 @@
 
 ### `void _nextMonth()` <a id="nextmonth"></a>
 - **种类：** `_TodoCalendarPageState` 的方法
-- **来源：** `lib/features/todo/views/todo_page.dart`（约第 1714 行）
+- **来源：** `lib/features/todo/views/todo_page.dart`（约第 1718 行）
 - **用途：** 把可见日历月往前移一个月。
 - **输入：** 无。
 - **返回：** 无。
@@ -574,7 +578,7 @@
 
 ### `void _changeYear(int delta)` <a id="changeyear"></a>
 - **种类：** `_TodoCalendarPageState` 的方法
-- **来源：** `lib/features/todo/views/todo_page.dart`（约第 1725 行）
+- **来源：** `lib/features/todo/views/todo_page.dart`（约第 1729 行）
 - **用途：** 按整年移动可见日历，保持相同可见月。
 - **输入：** `delta` — 带符号年份偏移（UI 只传 `-1`/`1`）。
 - **返回：** 无。
@@ -590,7 +594,7 @@
 
 ### `void _jumpToMonth(int month)` <a id="jumptomonth"></a>
 - **种类：** `_TodoCalendarPageState` 的方法
-- **来源：** `lib/features/todo/views/todo_page.dart`（约第 1736 行）
+- **来源：** `lib/features/todo/views/todo_page.dart`（约第 1740 行）
 - **用途：** 把可见日历直接跳到当前可见年内特定月。
 - **输入：** `month` — 1-12（Dart 月份编号）。
 - **返回：** 无。
@@ -604,7 +608,7 @@
 
 ### `List<MapEntry<DateTime, int>> get _monthScoreEntries` <a id="monthscoreentries"></a>
 - **种类：** `_TodoCalendarPageState` 的 getter
-- **来源：** `lib/features/todo/views/todo_page.dart`（约第 1747 行）
+- **来源：** `lib/features/todo/views/todo_page.dart`（约第 1751 行）
 - **用途：** 返回可见月中每个日历日及其评分配对，无保存评分条目的任何日当作零——同时供评分趋势图和愉悦/煎熬日列表的单一数据源。
 - **输入：** 无（读取 `_viewMonth`、`widget.dailyScores`）。
 - **返回：** `List<MapEntry<DateTime, int>>`，`_viewMonth` 每天一个条目，按月内日顺序。
@@ -623,7 +627,7 @@
 
 ### `Widget _buildScoreTrendCard(ThemeData theme, AppLocalizations l10n)` <a id="buildscoretrendcard"></a>
 - **种类：** `_TodoCalendarPageState` 的方法（组件辅助）
-- **来源：** `lib/features/todo/views/todo_page.dart`（约第 2033 行）
+- **来源：** `lib/features/todo/views/todo_page.dart`（约第 2037 行）
 - **用途：** 构建月度每日评分趋势折线图，包括把月的评分条目转换为可绘图数据。
 - **输入：** `theme`、`l10n`。
 - **返回：** 含 `fl_chart` `LineChart` 的 `Card`。
@@ -643,7 +647,7 @@
 
 ### `Widget _buildScoreListsCard(ThemeData theme, AppLocalizations l10n)` <a id="buildscorelistscard"></a>
 - **种类：** `_TodoCalendarPageState` 的方法（组件辅助）
-- **来源：** `lib/features/todo/views/todo_page.dart`（约第 2209 行）
+- **来源：** `lib/features/todo/views/todo_page.dart`（约第 2213 行）
 - **用途：** 把可见月的评分条目过滤为"愉悦"和"煎熬"日列表并作为两个小节渲染。
 - **输入：** `theme`、`l10n`。
 - **返回：** 含被 `Divider` 分隔的两个 `_buildScoreDaySection` 输出的 `Card`。
@@ -665,7 +669,7 @@
 
 ### `Widget _buildAiCard()` <a id="buildaicard"></a>
 - **种类：** `_TodoPageState` 的方法
-- **来源：** `lib/features/todo/views/todo_page.dart`（第 1434 行）
+- **来源：** `lib/features/todo/views/todo_page.dart`（第 1438 行）
 - **用途：** 从页面已加载的任务状态构建今天的端侧 AI 洞察卡片（v1.5.0）。
 - **输入：** 无；卡片调用其 `buildRequest` 回调时读取 `_dailyTemplates`、`_oneTimeTasks`、`_dailyLog` 和 `_dailyScores`。
 - **返回：** `Widget`——一个 [`AiInsightCard`](../../ai/widgets/ai_insight_card.md#aiinsightcard-new)，`module: InsightModule.todo`，无 `sections`，外边距 `EdgeInsets.fromLTRB(16, 8, 16, 8)`。端侧 AI 关闭或平台不可能有模型时，卡片本身什么都不渲染。
@@ -676,7 +680,7 @@
 
 ### `Widget _buildTaskArea(ThemeData theme, AppLocalizations l10n, int columns)` <a id="buildtaskarea"></a>
 - **种类：** `_TodoPageState` 的方法
-- **来源：** `lib/features/todo/views/todo_page.dart`（约第 1481 行）
+- **来源：** `lib/features/todo/views/todo_page.dart`（约第 1485 行）
 - **用途：** 把任务分区排成页面一贯的单列滚动布局，或并排排成数个各自独立滚动的列，评分卡片（以及选中今天时的端侧 AI 卡片）跟在最后一个分区之后。
 - **输入：** `theme`、`l10n`；`columns`——由 `listColumnCount` 解析出的分区列数。
 - **返回：** `Widget`。
@@ -690,7 +694,7 @@
 
 ### `List<Widget> _taskSections(ThemeData theme, AppLocalizations l10n)` <a id="tasksections"></a>
 - **种类：** `_TodoPageState` 的方法
-- **来源：** `lib/features/todo/views/todo_page.dart`（约第 1531 行）
+- **来源：** `lib/features/todo/views/todo_page.dart`（约第 1535 行）
 - **用途：** 按显示顺序返回三个任务分区。
 - **输入：** `theme`、`l10n`。
 - **返回：** 三个分区的 `List<Widget>`：每日、日常、工作。

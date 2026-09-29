@@ -66,7 +66,7 @@ all. Tier split: 18 Tier A, 17 Tier B.
 
 ### `Color cyclePersonColor({required String? personId, required List<String> allPartnerIdsSorted})` <a id="cyclepersoncolor"></a>
 - **Kind:** top-level function
-- **Source:** `lib/features/intimacy/widgets/body_section.dart` (line 33)
+- **Source:** `lib/features/intimacy/widgets/body_section.dart` (line 34)
 - **Purpose:** Pick the stable palette color used for one person's cycle indicators everywhere in
   the app (Body tab calendar, home-calendar overlay).
 - **Inputs:** `personId` — `null` for the user, otherwise a partner id; `allPartnerIdsSorted` — every
@@ -93,7 +93,7 @@ all. Tier split: 18 Tier A, 17 Tier B.
 
 ### `void initState()` <a id="initstate"></a>
 - **Kind:** method of `_BodySectionViewState` (override of `State.initState`)
-- **Source:** `lib/features/intimacy/widgets/body_section.dart` (line 109)
+- **Source:** `lib/features/intimacy/widgets/body_section.dart` (line 110)
 - **Purpose:** Initialize the displayed measurements — from the Weight module in user mode, or
   directly from `widget.profile` in partner mode.
 - **Inputs:** None (reads `widget.mode`, `widget.profile`).
@@ -122,7 +122,7 @@ all. Tier split: 18 Tier A, 17 Tier B.
 
 ### `void dispose()` <a id="dispose"></a>
 - **Kind:** method of `_BodySectionViewState` (override of `State.dispose`)
-- **Source:** `lib/features/intimacy/widgets/body_section.dart` (line 127)
+- **Source:** `lib/features/intimacy/widgets/body_section.dart` (line 128)
 - **Purpose:** Make sure a measurement edit made just before the page closes still produces its
   weight record instead of being silently dropped by the debounce timer.
 - **Inputs:** None.
@@ -143,7 +143,7 @@ all. Tier split: 18 Tier A, 17 Tier B.
 
 ### `Future<void> _loadUserMeasurements()` <a id="loadusermeasurements"></a>
 - **Kind:** method of `_BodySectionViewState`
-- **Source:** `lib/features/intimacy/widgets/body_section.dart` (line 145)
+- **Source:** `lib/features/intimacy/widgets/body_section.dart` (line 146)
 - **Purpose:** Load the user's most recent bust/waist/hip values (independently per field) from
   Weight records, plus the sync-warning opt-out flag.
 - **Inputs:** None.
@@ -174,7 +174,7 @@ all. Tier split: 18 Tier A, 17 Tier B.
 
 ### `WeightRecord? _latestRecord(List<WeightRecord> records)` <a id="latestrecord"></a>
 - **Kind:** method of `_BodySectionViewState`
-- **Source:** `lib/features/intimacy/widgets/body_section.dart` (line 183)
+- **Source:** `lib/features/intimacy/widgets/body_section.dart` (line 184)
 - **Purpose:** Return the newest weight record by datetime, or `null` if there are none.
 - **Inputs:** `records` — the full weight-record list.
 - **Returns:** `WeightRecord?`.
@@ -196,7 +196,7 @@ all. Tier split: 18 Tier A, 17 Tier B.
 
 ### `Future<void> _setSyncWarningDisabled(bool disabled)` <a id="setsyncwarningdisabled"></a>
 - **Kind:** method of `_BodySectionViewState`
-- **Source:** `lib/features/intimacy/widgets/body_section.dart` (line 195)
+- **Source:** `lib/features/intimacy/widgets/body_section.dart` (line 196)
 - **Purpose:** Persist the "don't remind me again" opt-out for the weight-sync warning.
 - **Inputs:** `disabled` — the new opt-out state.
 - **Returns:** `Future<void>`.
@@ -205,7 +205,10 @@ all. Tier split: 18 Tier A, 17 Tier B.
 - **Algorithm:**
   1. `setState` to update `_syncWarningDisabled`; if re-enabling (`!disabled`), also clear
      `_syncWarningAcknowledged` so the warning reappears on the next edit.
-  2. Read the config, set the key, write it back.
+  2. `await TodoStorage.writeConfig({bodyWeightSyncWarningDisabledKey: disabled})` — a single-key
+     merge-write (v1.5.2). The former read-whole-config, set, write-whole-config sequence could
+     overwrite a key another writer changed in between; `writeConfig` now re-reads and merges
+     inside its serialized config write queue.
 - **Usage:**
   ```dart
   // _buildWarningSettingCard, line 1012 (the bottom switch):
@@ -220,7 +223,7 @@ all. Tier split: 18 Tier A, 17 Tier B.
 
 ### `Future<bool> _confirmWeightSync()` <a id="confirmweightsync"></a>
 - **Kind:** method of `_BodySectionViewState`
-- **Source:** `lib/features/intimacy/widgets/body_section.dart` (line 210)
+- **Source:** `lib/features/intimacy/widgets/body_section.dart` (line 209)
 - **Purpose:** Gate the first bust/waist/hip edit in a visit behind a warning that editing these
   fields creates a new Weight-module record.
 - **Inputs:** None.
@@ -251,7 +254,7 @@ all. Tier split: 18 Tier A, 17 Tier B.
 
 ### `void _onMeasurementChanged(void Function() apply)` <a id="onmeasurementchanged"></a>
 - **Kind:** method of `_BodySectionViewState`
-- **Source:** `lib/features/intimacy/widgets/body_section.dart` (line 262)
+- **Source:** `lib/features/intimacy/widgets/body_section.dart` (line 261)
 - **Purpose:** Apply a bust/waist/hip mutation and, in user mode, debounce it into a single new
   Weight record instead of writing on every keystroke.
 - **Inputs:** `apply` — a closure that mutates the pending `_bust`/`_waist`/`_hip` fields.
@@ -318,7 +321,7 @@ all. Tier split: 18 Tier A, 17 Tier B.
 
 ### `CyclePrediction get _prediction` <a id="prediction"></a>
 - **Kind:** getter of `_BodySectionViewState`
-- **Source:** `lib/features/intimacy/widgets/body_section.dart` (line 360)
+- **Source:** `lib/features/intimacy/widgets/body_section.dart` (line 361)
 - **Purpose:** Compute this person's cycle prediction for the calendar/legend/summary to render.
 - **Inputs:** None (reads `_myCycleDays`).
 - **Returns:** `CyclePrediction` — `CyclePrediction.empty` if there is no recorded history.
@@ -341,7 +344,7 @@ all. Tier split: 18 Tier A, 17 Tier B.
 
 ### `void _addCycleStart()` <a id="addcyclestart"></a>
 - **Kind:** method of `_BodySectionViewState`
-- **Source:** `lib/features/intimacy/widgets/body_section.dart` (line 376)
+- **Source:** `lib/features/intimacy/widgets/body_section.dart` (line 377)
 - **Purpose:** Record a period-start day for the person currently selected in the calendar.
 - **Inputs:** None (reads `_selectedCycleDate`).
 - **Returns:** None.
@@ -365,7 +368,7 @@ all. Tier split: 18 Tier A, 17 Tier B.
 
 ### `Future<void> _deleteCycleStart()` <a id="deletecyclestart"></a>
 - **Kind:** method of `_BodySectionViewState`
-- **Source:** `lib/features/intimacy/widgets/body_section.dart` (line 393)
+- **Source:** `lib/features/intimacy/widgets/body_section.dart` (line 394)
 - **Purpose:** Delete the period-start record on the currently selected date, after confirmation.
 - **Inputs:** None (reads `_selectedCycleDate`).
 - **Returns:** `Future<void>`.
@@ -390,7 +393,7 @@ all. Tier split: 18 Tier A, 17 Tier B.
 
 ### `String _selectedCycleDateSummary(AppLocalizations l10n, DateTime date, CycleDayInfo? info, bool hasRecord)` <a id="selectedcycledatesummary"></a>
 - **Kind:** method of `_BodySectionViewState`
-- **Source:** `lib/features/intimacy/widgets/body_section.dart` (line 871)
+- **Source:** `lib/features/intimacy/widgets/body_section.dart` (line 872)
 - **Purpose:** Produce the one-line summary shown next to the add/delete-start action button for
   whichever date is selected on the calendar.
 - **Inputs:** `l10n`; `date` — the selected date; `info` — that date's `CycleDayInfo`, or `null`;
@@ -419,7 +422,7 @@ all. Tier split: 18 Tier A, 17 Tier B.
 
 ### `void didUpdateWidget(covariant _NumberField oldWidget)` <a id="didupdatewidget"></a>
 - **Kind:** method of `_NumberFieldState` (override of `State.didUpdateWidget`)
-- **Source:** `lib/features/intimacy/widgets/body_section.dart` (line 1080)
+- **Source:** `lib/features/intimacy/widgets/body_section.dart` (line 1081)
 - **Purpose:** Keep the displayed text in sync when the parent supplies a new `value` from outside
   (e.g. after a successful commit round-trips a fresh value back down), without clobbering an
   in-progress edit.
@@ -441,7 +444,7 @@ all. Tier split: 18 Tier A, 17 Tier B.
 
 ### `String _format(double? value)` <a id="format"></a>
 - **Kind:** method of `_NumberFieldState`
-- **Source:** `lib/features/intimacy/widgets/body_section.dart` (line 1108)
+- **Source:** `lib/features/intimacy/widgets/body_section.dart` (line 1109)
 - **Purpose:** Format a measurement value for display without an unnecessary trailing `.0`.
 - **Inputs:** `value` — the value to format, or `null`.
 - **Returns:** `String` — empty for `null`.
@@ -460,7 +463,7 @@ all. Tier split: 18 Tier A, 17 Tier B.
 
 ### `void _onFocusChanged()` <a id="onfocuschanged"></a>
 - **Kind:** method of `_NumberFieldState`
-- **Source:** `lib/features/intimacy/widgets/body_section.dart` (line 1120)
+- **Source:** `lib/features/intimacy/widgets/body_section.dart` (line 1121)
 - **Purpose:** Commit the field's current text as soon as it loses focus, instead of waiting for the
   typing-pause debounce.
 - **Inputs:** None.
@@ -477,7 +480,7 @@ all. Tier split: 18 Tier A, 17 Tier B.
 
 ### `void _commit()` <a id="commit"></a>
 - **Kind:** method of `_NumberFieldState`
-- **Source:** `lib/features/intimacy/widgets/body_section.dart` (line 1132)
+- **Source:** `lib/features/intimacy/widgets/body_section.dart` (line 1133)
 - **Purpose:** Parse the field's current text and, only if the parsed value actually changed, invoke
   the field's `onCommitted` callback.
 - **Inputs:** None (reads `_controller.text`).
@@ -505,7 +508,7 @@ all. Tier split: 18 Tier A, 17 Tier B.
 
 ### `Future<void> _handleTap()` <a id="handletap"></a>
 - **Kind:** method of `_NumberFieldState`
-- **Source:** `lib/features/intimacy/widgets/body_section.dart` (line 1152)
+- **Source:** `lib/features/intimacy/widgets/body_section.dart` (line 1153)
 - **Purpose:** Run the field's optional one-time edit gate (the weight-sync warning) before allowing
   the field to take focus.
 - **Inputs:** None.

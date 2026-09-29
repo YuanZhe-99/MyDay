@@ -26,7 +26,7 @@
 | `BillingCycleType`（枚举） | 枚举 | B | `monthly` / `yearly`——无 Purpose 块（见对账）。 |
 | `CancelType`（枚举） | 枚举 | B | `immediate` / `atExpiry`——无 Purpose 块（见对账）。 |
 | [`Subscription()`](#subscription-new) | 构造函数（`Subscription`） | A | 创建订阅，省略时生成 `id`/`modifiedAt`。 |
-| [`firstBillingDate`](#firstbillingdate) | getter（`Subscription`） | A | 返回锚点计费日期（`startDate + trialDays`）。 |
+| [`firstBillingDate`](#firstbillingdate) | getter（`Subscription`） | A | 返回锚点计费日期（`startDate` 加 `trialDays` 个日历日）。 |
 | [`nextBillingCursor`](#nextbillingcursor) | 静态方法（`Subscription`） | A | 带月末钳制把计费游标推进一个周期。 |
 | [`calculateNextBillingDate`](#calculatenextbillingdate) | 方法（`Subscription`） | A | 计算严格晚于给定日期的下一个计费日期。 |
 | [`billingDatesBefore`](#billingdatesbefore) | 方法（`Subscription`） | A | 生成从锚点到截止的所有计费日期。 |
@@ -43,7 +43,7 @@
 
 ### `const AccountPickerSettings({String sortMode = sortCustom, bool groupByType = false, List<String> customOrder = const [], List<String> moreAccountIds = const []})` <a id="accountpickersettings-new"></a>
 - **种类：** `AccountPickerSettings` 的 const 构造函数
-- **来源：** `lib/features/finance/models/finance.dart`（第 20 行）
+- **来源：** `lib/features/finance/models/finance.dart`（第 22 行）
 - **用途：** 保存交易账户选择器的排序模式、类型分组标志、自定义手动顺序和"更多"溢出列表。
 - **输入：** `sortMode` 默认 `AccountPickerSettings.sortCustom`；`groupByType` 默认 `false`；`customOrder`/`moreAccountIds` 默认为空列表。
 - **返回：** 新的 `AccountPickerSettings`。
@@ -58,18 +58,18 @@
 
 ### `Map<String, dynamic> toJson()` <a id="accountpickersettings-tojson"></a>
 - **种类：** `AccountPickerSettings` 的方法
-- **来源：** `lib/features/finance/models/finance.dart`（第 32 行）
+- **来源：** `lib/features/finance/models/finance.dart`（第 34 行）
 - **用途：** 把选择器设置序列化为嵌入 `finance_data.json` 的 `accountPickerSettings` 键下的 JSON。
 - **输入：** 无。
 - **返回：** `{sortMode, groupByType, customOrder?, moreAccountIds?}`——两个列表字段为空时完全省略。
 - **副作用：** 无。
 - **算法：** 带 `if (...isNotEmpty)` 守卫的映射字面量，用于 `customOrder`/`moreAccountIds`。
-- **用法：** 从 `FinanceData.toJson()`（`finance_storage.dart:71`）调用：`'accountPickerSettings': accountPickerSettings.toJson()`。
+- **用法：** 从 `FinanceData.toJson()`（`finance_storage.dart:100`）调用：`'accountPickerSettings': accountPickerSettings.toJson()`。
 - **备注：** 省略空列表让新建设置值的 JSON 保持精简，但 `fromJson` 把缺失键与显式空列表同样对待。
 
 ### `factory AccountPickerSettings.fromJson(Map<String, dynamic>? json)` <a id="accountpickersettings-fromjson"></a>
 - **种类：** `AccountPickerSettings` 的工厂构造函数
-- **来源：** `lib/features/finance/models/finance.dart`（第 44 行）
+- **来源：** `lib/features/finance/models/finance.dart`（第 46 行）
 - **用途：** 从 JSON 解析回选择器设置，任何无效或缺失值默认 `sortCustom`/未设置而不是抛出。
 - **输入：** `json` — 可空解码映射（旧数据中缺席的 `accountPickerSettings` 键传 `null`）。
 - **返回：** 新的 `AccountPickerSettings`；`json` 为 `null` 时 `const AccountPickerSettings()`。
@@ -84,12 +84,12 @@
     json['accountPickerSettings'] as Map<String, dynamic>?,
   ),
   ```
-  （`lib/features/finance/services/finance_storage.dart:122-124`，`FinanceData.fromJson` 内。）
+  （`lib/features/finance/services/finance_storage.dart:151-153`，`FinanceData.fromJson` 内。）
 - **备注：** 对格式错误的输入绝不抛出——每个字段单独退化到其默认值，与本文件其他每个 `fromJson` 使用的相同防御模式。
 
 ### `AccountPickerSettings copyWith({String? sortMode, bool? groupByType, List<String>? customOrder, List<String>? moreAccountIds})` <a id="copywith"></a>
 - **种类：** `AccountPickerSettings` 的方法
-- **来源：** `lib/features/finance/models/finance.dart`（第 65 行）
+- **来源：** `lib/features/finance/models/finance.dart`（第 67 行）
 - **用途：** 返回只替换给定字段的副本。
 - **输入：** 全部四个参数可选；未设置的回退 `this` 当前值。
 - **返回：** 新的 `AccountPickerSettings`。
@@ -100,7 +100,7 @@
 
 ### `Account({String? id, required AccountType type, required String bankOrApp, required String name, String currency = 'CNY', String? cardNumber, String? expiryDate, String? securityCode, String? emoji, String? imagePath, double? feeWaiverMinimumBalance, double? feeWaiverMonthlyDeposit, double? forcedBalance, DateTime? forcedBalanceDate, DateTime? modifiedAt})` <a id="account-new"></a>
 - **种类：** `Account` 的构造函数
-- **来源：** `lib/features/finance/models/finance.dart`（第 102 行）
+- **来源：** `lib/features/finance/models/finance.dart`（第 104 行）
 - **用途：** 创建银行/应用账户记录，可选带卡元数据、emoji/图像和 [财务](../../../../features/finance.md#model) 描述的两个替代免手续费标准。
 - **输入：** `type`、`bankOrApp`、`name` 必填；`currency` 默认 `'CNY'`；`feeWaiverMinimumBalance`/`feeWaiverMonthlyDeposit` 是独立可选的替代（满足任一即免手续费）；`forcedBalance`/`forcedBalanceDate` 是旧迁移哨兵字段（见 [`accountWithForcedBalanceSentinel`](../services/balance_util.md#accountwithforcedbalancesentinel)）。
 - **返回：** 新的 `Account`。
@@ -129,29 +129,29 @@
 
 ### `Map<String, dynamic> toJson()` <a id="account-tojson"></a>
 - **种类：** `Account` 的方法
-- **来源：** `lib/features/finance/models/finance.dart`（第 126 行）
+- **来源：** `lib/features/finance/models/finance.dart`（第 128 行）
 - **用途：** 把账户序列化为存储在 `finance_data.json` 的 `accounts` 数组中的 JSON。
 - **输入：** 无。
 - **返回：** `id`/`type`/`bankOrApp`/`name`/`currency`/`modifiedAt` 总是存在、每个可选字段（`cardNumber`、`expiryDate`、`securityCode`、`emoji`、`imagePath`、两个免手续费字段、`forcedBalance`、`forcedBalanceDate`）只在非 null 时包含的映射。
 - **副作用：** 无。
 - **算法：** 每个可选字段带 `if (field != null)` 守卫的映射字面量；`forcedBalanceDate` 和 `modifiedAt` 以 `toIso8601String()` 写入。
-- **用法：** 从 `FinanceData.toJson()` 调用：`accounts.map((a) => a.toJson()).toList()`（`lib/features/finance/services/finance_storage.dart:54`）。
+- **用法：** 从 `FinanceData.toJson()` 调用：`accounts.map((a) => a.toJson()).toList()`（`lib/features/finance/services/finance_storage.dart:83`）。
 - **备注：** 无。
 
 ### `factory Account.fromJson(Map<String, dynamic> json)` <a id="account-fromjson"></a>
 - **种类：** `Account` 的工厂构造函数
-- **来源：** `lib/features/finance/models/finance.dart`（第 152 行）
+- **来源：** `lib/features/finance/models/finance.dart`（第 154 行）
 - **用途：** 从持久化/同步 JSON 形态解析回账户。
 - **输入：** `json` — 解码映射，通常是 `finance_data.json` 的 `accounts` 数组的一个条目。
 - **返回：** 新的 `Account`。
 - **副作用：** 无。
 - **算法：** 转换必填字段（`id`、`bankOrApp`、`name`）；`type` 经 `AccountType.values.byName`；每个可选数字/日期字段用 null 安全转换/`DateTime.parse` 解析；`modifiedAt` 缺失时回退 Unix 纪元（较旧的 pre-`modifiedAt` 记录）。
-- **用法：** 从 `FinanceData.fromJson` 调用：`(json['accounts'] as List<dynamic>?)?.map((a) => Account.fromJson(a as Map<String, dynamic>))`（`lib/features/finance/services/finance_storage.dart:80-83`）。
+- **用法：** 从 `FinanceData.fromJson` 调用：`(json['accounts'] as List<dynamic>?)?.map((a) => Account.fromJson(a as Map<String, dynamic>))`（`lib/features/finance/services/finance_storage.dart:109-112`）。
 - **备注：** `type` 是不可识别字符串时 `AccountType.values.byName` 抛出——与本文件大多数 `fromJson` 方法不同，这个不会在坏枚举值上防御性回退。
 
 ### `Transaction({String? id, required TransactionType type, required double amount, String currency = 'CNY', String? rateSnapshotId, required String accountId, String? toAccountId, double? toAmount, String? toCurrency, String? categoryId, String? subscriptionId, String note = '', DateTime? date, DateTime? modifiedAt})` <a id="transaction-new"></a>
 - **种类：** `Transaction` 的构造函数
-- **来源：** `lib/features/finance/models/finance.dart`（第 201 行）
+- **来源：** `lib/features/finance/models/finance.dart`（第 203 行）
 - **用途：** 创建支出/收入/转账记录，可选携带历史汇率快照 id 和（转账时）目标账户/金额/币种。
 - **输入：** `type`、`amount`、`accountId` 必填；`currency` 默认 `'CNY'`；`toAccountId`/`toAmount`/`toCurrency` 是仅转账字段；`categoryId`/`subscriptionId` 链接回分类或生成此交易的订阅。
 - **返回：** 新的 `Transaction`。
@@ -174,34 +174,34 @@
     date: _date,
   );
   ```
-  （`lib/features/finance/widgets/add_transaction_dialog.dart:654-667`，增/改交易对话框的提交处理器。）
+  （`lib/features/finance/widgets/add_transaction_dialog.dart:655-668`，增/改交易对话框的提交处理器。）
 - **备注：** `rateSnapshotId` 正是让 [`balance_util.dart`](../services/balance_util.md) 用记录时生效的汇率而不是今天的汇率转换历史交易的东西——见 `ExchangeRateData.ratesAt`。
 
 ### `Map<String, dynamic> toJson()` <a id="transaction-tojson"></a>
 - **种类：** `Transaction` 的方法
-- **来源：** `lib/features/finance/models/finance.dart`（第 225 行）
+- **来源：** `lib/features/finance/models/finance.dart`（第 227 行）
 - **用途：** 把交易序列化为存储在 `finance_data.json` 的 `transactions` 数组中的 JSON。
 - **输入：** 无。
 - **返回：** `id`/`type`/`amount`/`currency`/`accountId`/`note`/`date`/`modifiedAt` 总是存在、`rateSnapshotId`/`toAccountId`/`toAmount`/`toCurrency`/`categoryId`/`subscriptionId` 只在非 null 时包含的映射。
 - **副作用：** 无。
 - **算法：** 带 `if (field != null)` 守卫的映射字面量；`date`/`modifiedAt` 为 `toIso8601String()`。
-- **用法：** 从 `FinanceData.toJson()` 调用：`transactions.map((t) => t.toJson()).toList()`（`lib/features/finance/services/finance_storage.dart:56`）。
+- **用法：** 从 `FinanceData.toJson()` 调用：`transactions.map((t) => t.toJson()).toList()`（`lib/features/finance/services/finance_storage.dart:85`）。
 - **备注：** 无。
 
 ### `factory Transaction.fromJson(Map<String, dynamic> json)` <a id="transaction-fromjson"></a>
 - **种类：** `Transaction` 的工厂构造函数
-- **来源：** `lib/features/finance/models/finance.dart`（第 247 行）
+- **来源：** `lib/features/finance/models/finance.dart`（第 249 行）
 - **用途：** 从持久化/同步 JSON 形态解析回交易。
 - **输入：** `json` — 解码映射，通常是 `finance_data.json` 的 `transactions` 数组的一个条目。
 - **返回：** 新的 `Transaction`。
 - **副作用：** 无。
 - **算法：** 转换必填字段（`id`、`accountId`、经 `DateTime.parse` 的 `date`）；`type` 经 `TransactionType.values.byName`；每个可选字段用 null 安全转换解析；`modifiedAt` 缺失时回退 Unix 纪元。
-- **用法：** 从 `FinanceData.fromJson` 调用：`(json['transactions'] as List<dynamic>?)?.map((t) => Transaction.fromJson(t as Map<String, dynamic>))`（`lib/features/finance/services/finance_storage.dart:90-93`）。
+- **用法：** 从 `FinanceData.fromJson` 调用：`(json['transactions'] as List<dynamic>?)?.map((t) => Transaction.fromJson(t as Map<String, dynamic>))`（`lib/features/finance/services/finance_storage.dart:119-122`）。
 - **备注：** `date` 是必填并无条件解析（`DateTime.parse(json['date'] as String)`），不同于本文件其他每个日期字段——缺失 `date` 的交易抛出而不是默认化。
 
 ### `Category({String? id, required String name, required IconRef icon, String? emoji, required TransactionType type, DateTime? modifiedAt})` <a id="category-new"></a>
 - **种类：** `Category` 的构造函数
-- **来源：** `lib/features/finance/models/finance.dart`（第 280 行）
+- **来源：** `lib/features/finance/models/finance.dart`（第 282 行）
 - **用途：** 创建交易分类（支出、收入或转账），带 Material 图标引用和可选 emoji。
 - **输入：** `name`、`icon`、`type` 必填；`emoji` 可选。
 - **返回：** 新的 `Category`。
@@ -221,29 +221,29 @@
 
 ### `Map<String, dynamic> toJson()` <a id="category-tojson"></a>
 - **种类：** `Category` 的方法
-- **来源：** `lib/features/finance/models/finance.dart`（第 295 行）
+- **来源：** `lib/features/finance/models/finance.dart`（第 297 行）
 - **用途：** 把分类序列化为存储在 `finance_data.json` 的 `categories` 数组中的 JSON。
 - **输入：** 无。
 - **返回：** `{id, name, icon: icon.toJson(), emoji?, type, modifiedAt}`。
 - **副作用：** 无。
 - **算法：** 映射字面量；`icon` 经 `IconRef.toJson()` 嵌套。
-- **用法：** 从 `FinanceData.toJson()` 调用：`categories.map((c) => c.toJson()).toList()`（`lib/features/finance/services/finance_storage.dart:55`）。
+- **用法：** 从 `FinanceData.toJson()` 调用：`categories.map((c) => c.toJson()).toList()`（`lib/features/finance/services/finance_storage.dart:84`）。
 - **备注：** 无。
 
 ### `factory Category.fromJson(Map<String, dynamic> json)` <a id="category-fromjson"></a>
 - **种类：** `Category` 的工厂构造函数
-- **来源：** `lib/features/finance/models/finance.dart`（第 309 行）
+- **来源：** `lib/features/finance/models/finance.dart`（第 311 行）
 - **用途：** 从持久化/同步 JSON 形态解析回分类。
 - **输入：** `json` — 解码映射，通常是 `finance_data.json` 的 `categories` 数组的一个条目。
 - **返回：** 新的 `Category`。
 - **副作用：** 无。
 - **算法：** 转换 `id`/`name`；`icon` 经 `IconRef.fromJson`；`type` 经 `TransactionType.values.byName`；`modifiedAt` 缺失时回退 Unix 纪元。
-- **用法：** 从 `FinanceData.fromJson` 调用：`(json['categories'] as List<dynamic>?)?.map((c) => Category.fromJson(c as Map<String, dynamic>))`（`lib/features/finance/services/finance_storage.dart:86-89`）。
+- **用法：** 从 `FinanceData.fromJson` 调用：`(json['categories'] as List<dynamic>?)?.map((c) => Category.fromJson(c as Map<String, dynamic>))`（`lib/features/finance/services/finance_storage.dart:115-118`）。
 - **备注：** 无。
 
 ### `Subscription({String? id, required String name, String? emoji, String? imagePath, required DateTime startDate, int trialDays = 0, required BillingCycleType billingCycleType, int billingInterval = 1, required double amount, String currency = 'CNY', required String accountId, String? categoryId, String note = '', bool isActive = true, DateTime? cancelledAt, CancelType? cancelType, DateTime? nextBillingDate, DateTime? modifiedAt})` <a id="subscription-new"></a>
 - **种类：** `Subscription` 的构造函数
-- **来源：** `lib/features/finance/models/finance.dart`（第 350 行）
+- **来源：** `lib/features/finance/models/finance.dart`（第 352 行）
 - **用途：** 创建周期订阅：试用期、计费周期/间隔、金额、目标账户/分类、取消状态和持久化的 `nextBillingDate` 游标。
 - **输入：** `name`、`startDate`、`billingCycleType`、`amount`、`accountId` 必填；`trialDays` 默认 `0`；`billingInterval` 默认 `1`（"每 X 个月/年"）；`isActive` 默认 `true`。
 - **返回：** 新的 `Subscription`。
@@ -262,12 +262,12 @@
 
 ### `DateTime get firstBillingDate` <a id="firstbillingdate"></a>
 - **种类：** `Subscription` 的 getter
-- **来源：** `lib/features/finance/models/finance.dart`（第 378 行）
-- **用途：** 返回锚点计费日期——`startDate + trialDays`——之后每个计费周期的 day-of-month 都对照它测量。
+- **来源：** `lib/features/finance/models/finance.dart`（第 381 行）
+- **用途：** 返回锚点计费日期——`startDate` 加 `trialDays` 个日历日——之后每个计费周期的 day-of-month 都对照它测量。
 - **输入：** 无。
 - **返回：** `DateTime`。
 - **副作用：** 无。
-- **算法：** `startDate.add(Duration(days: trialDays))`。
+- **算法：** `addCalendarDays(startDate, trialDays)`（v1.5.2；此前为 `startDate.add(Duration(days: trialDays))`）——加上 `trialDays` 个日历日，保留 `startDate` 的挂钟时间以及 UTC/本地类型（见 [`addCalendarDays`](../../../shared/utils/week_grouping.md#addcalendardays)）。
 - **用法：**
   ```dart
   cursor = Subscription.nextBillingCursor(
@@ -277,12 +277,12 @@
     anchor: sub.firstBillingDate,
   );
   ```
-  （`lib/features/finance/services/subscription_processor.dart:116-121`，处理器追赶循环中每次 `nextBillingCursor` 调用的 `anchor` 参数。）
-- **备注：** 分类为 Tier A（尽管是单行 getter），因为这是 [订阅计费](../../../../algorithms/subscription-billing.md) 中整个月末钳制算法围绕构建的锚点值。
+  （`lib/features/finance/services/subscription_processor.dart:115-120`，处理器追赶循环中每次 `nextBillingCursor` 调用的 `anchor` 参数。）
+- **备注：** 分类为 Tier A（尽管是单行 getter），因为这是 [订阅计费](../../../../algorithms/subscription-billing.md) 中整个月末钳制算法围绕构建的锚点值。自 v1.5.2 起试用天数按日历日计算：跨越夏令时切换时保留起始时刻，不再偏移一小时。只有计算出的锚点改变；订阅上已存储的 `nextBillingDate` 值不会被改写。
 
 ### `static DateTime nextBillingCursor({required DateTime cursor, required BillingCycleType cycleType, required int interval, required DateTime anchor})` <a id="nextbillingcursor"></a>
 - **种类：** `Subscription` 的静态方法
-- **来源：** `lib/features/finance/models/finance.dart`（第 389 行）
+- **来源：** `lib/features/finance/models/finance.dart`（第 392 行）
 - **用途：** 把计费游标精确推进一个周期，把锚点的 day-of-month 钳制到目标月的实际长度，而不是让 `DateTime` 日溢出滚入下个月。
 - **输入：** `cursor` — 当前计费日期；`cycleType` — `monthly` 或 `yearly`；`interval` — 周期乘数（每 N 个月/年）；`anchor` — `firstBillingDate`，其 day-of-month 在可能时被保留。
 - **返回：** `DateTime` — 下一个计费日期。
@@ -297,12 +297,12 @@
     anchor: first,
   );
   ```
-  （`lib/features/finance/models/finance.dart:421-426`，本类自己的 [`calculateNextBillingDate`](#calculatenextbillingdate) 内；[`billingDatesBefore`](#billingdatesbefore) 和 [`SubscriptionProcessor.process`](../services/subscription_processor.md#process) 也相同调用——这是应用中每个计费日期推进都经过的唯一函数。）
+  （`lib/features/finance/models/finance.dart:424-429`，本类自己的 [`calculateNextBillingDate`](#calculatenextbillingdate) 内；[`billingDatesBefore`](#billingdatesbefore) 和 [`SubscriptionProcessor.process`](../services/subscription_processor.md#process) 也相同调用——这是应用中每个计费日期推进都经过的唯一函数。）
 - **备注：** 1 月 31 日的月锚点计费 2 月 28/29 日、3 月 31 日、4 月 30 日……——具体日期见 [订阅计费演练](../../../../examples/subscription-billing-walkthrough.md)。
 
 ### `DateTime? calculateNextBillingDate({DateTime? after})` <a id="calculatenextbillingdate"></a>
 - **种类：** `Subscription` 的方法
-- **来源：** `lib/features/finance/models/finance.dart`（第 416 行）
+- **来源：** `lib/features/finance/models/finance.dart`（第 419 行）
 - **用途：** 计算严格晚于给定日期（或现在）的第一个计费日期，尊重 `atExpiry` 取消截止。
 - **输入：** `after` — 省略时默认 `DateTime.now()`。
 - **返回：** `DateTime?` — 订阅被 `atExpiry` 取消且计算出的游标会落在 `cancelledAt` 之后时为 `null`。
@@ -314,16 +314,14 @@
   4. 否则返回 `cursor`。
 - **用法：**
   ```dart
-  nbd = sub.calculateNextBillingDate(
-    after: today.subtract(const Duration(days: 1)),
-  );
+  nbd = sub.calculateNextBillingDate(after: addCalendarDays(today, -1));
   ```
-  （`lib/features/finance/services/subscription_processor.dart:70-72`，为早于该字段的订阅首次计算 `nextBillingDate` 的迁移路径；`lib/features/finance/views/subscriptions_page.dart` 的仅显示"下个计费日期"预览也使用。）
+  （`lib/features/finance/services/subscription_processor.dart:71`，为早于该字段的订阅首次计算 `nextBillingDate` 的迁移路径；`lib/features/finance/views/subscriptions_page.dart` 的仅显示"下个计费日期"预览也使用。）
 - **备注：** 月末锚点经 [`nextBillingCursor`](#nextbillingcursor) 逐周期钳制——见 [订阅计费](../../../../algorithms/subscription-billing.md)。
 
 ### `List<DateTime> billingDatesBefore(DateTime until)` <a id="billingdatesbefore"></a>
 - **种类：** `Subscription` 的方法
-- **来源：** `lib/features/finance/models/finance.dart`（第 442 行）
+- **来源：** `lib/features/finance/models/finance.dart`（第 445 行）
 - **用途：** 生成从订阅锚点起到（含）截止日期的每个计费日期。
 - **输入：** `until` — 闭区间截止。
 - **返回：** `List<DateTime>`，按时间顺序。
@@ -336,34 +334,34 @@
   ```dart
   final dates = sub.billingDatesBefore(now);
   ```
-  （`lib/features/finance/views/subscriptions_page.dart:545`，用于计数/显示订阅至今已计费多少次。）
+  （`lib/features/finance/views/subscriptions_page.dart:446`，用于计数/显示订阅至今已计费多少次。）
 - **备注：** 与 `calculateNextBillingDate` 不同，这忽略 `atExpiry` 取消——它列出直到 `until` 的每个周期日期，无论订阅是否真会生成那么远的交易（需要时由调用方负责交叉引用取消）。
 
 ### `Map<String, dynamic> toJson()` <a id="subscription-tojson"></a>
 - **种类：** `Subscription` 的方法
-- **来源：** `lib/features/finance/models/finance.dart`（第 463 行）
+- **来源：** `lib/features/finance/models/finance.dart`（第 466 行）
 - **用途：** 把订阅序列化为存储在 `finance_data.json` 的 `subscriptions` 数组中的 JSON。
 - **输入：** 无。
 - **返回：** `id`/`name`/`startDate`/`trialDays`/`billingCycleType`/`billingInterval`/`amount`/`currency`/`accountId`/`note`/`isActive`/`modifiedAt` 总是存在、`emoji`/`imagePath`/`categoryId`/`cancelledAt`/`cancelType`/`nextBillingDate` 只在非 null 时包含的映射。
 - **副作用：** 无。
 - **算法：** 带 `if (field != null)` 守卫的映射字面量；日期字段为 `toIso8601String()`，枚举为 `.name`。
-- **用法：** 从 `FinanceData.toJson()` 调用：`subscriptions.map((s) => s.toJson()).toList()`（`lib/features/finance/services/finance_storage.dart:57`）。
+- **用法：** 从 `FinanceData.toJson()` 调用：`subscriptions.map((s) => s.toJson()).toList()`（`lib/features/finance/services/finance_storage.dart:86`）。
 - **备注：** 无。
 
 ### `factory Subscription.fromJson(Map<String, dynamic> json)` <a id="subscription-fromjson"></a>
 - **种类：** `Subscription` 的工厂构造函数
-- **来源：** `lib/features/finance/models/finance.dart`（第 490 行）
+- **来源：** `lib/features/finance/models/finance.dart`（第 493 行）
 - **用途：** 从持久化/同步 JSON 形态解析回订阅。
 - **输入：** `json` — 解码映射，通常是 `finance_data.json` 的 `subscriptions` 数组的一个条目。
 - **返回：** 新的 `Subscription`。
 - **副作用：** 无。
 - **算法：** 转换必填字段；`billingCycleType` 缺失时默认 `'monthly'`（早于该字段的旧数据）；`trialDays` 默认 `0`、`billingInterval` 默认 `1`、`isActive` 默认 `true`；`cancelledAt`/`cancelType`/`nextBillingDate` 全部 null 安全；`modifiedAt` 缺失时回退 Unix 纪元。
-- **用法：** 从 `FinanceData.fromJson` 调用：`(json['subscriptions'] as List<dynamic>?)?.map((s) => Subscription.fromJson(s as Map<String, dynamic>))`（`lib/features/finance/services/finance_storage.dart:96-99`）。
+- **用法：** 从 `FinanceData.fromJson` 调用：`(json['subscriptions'] as List<dynamic>?)?.map((s) => Subscription.fromJson(s as Map<String, dynamic>))`（`lib/features/finance/services/finance_storage.dart:125-128`）。
 - **备注：** 经此工厂加载、没有 `nextBillingDate` 键的订阅正是 `SubscriptionProcessor.process` 在首次遍历时检测并处理的"迁移情形"。
 
 ### `const IconRef({required int codePoint, String fontFamily = 'MaterialIcons'})` <a id="iconref-new"></a>
 - **种类：** `IconRef` 的 const 构造函数
-- **来源：** `lib/features/finance/models/finance.dart`（第 532 行）
+- **来源：** `lib/features/finance/models/finance.dart`（第 535 行）
 - **用途：** 保存 Material 图标的数字码点和字体族，使它能被持久化并在不存储完整 `IconData` 的情况下重建。
 - **输入：** `codePoint` 必填；`fontFamily` 默认 `'MaterialIcons'`。
 - **返回：** 新的 `IconRef`。
@@ -378,29 +376,29 @@
 
 ### `Map<String, dynamic> toJson()` <a id="iconref-tojson"></a>
 - **种类：** `IconRef` 的方法
-- **来源：** `lib/features/finance/models/finance.dart`（第 539 行）
+- **来源：** `lib/features/finance/models/finance.dart`（第 542 行）
 - **用途：** 把图标引用序列化为嵌套在分类 `icon` 键下的 JSON。
 - **输入：** 无。
 - **返回：** `{codePoint, fontFamily}`。
 - **副作用：** 无。
 - **算法：** 直接映射字面量。
-- **用法：** 从 `Category.toJson()` 调用：`'icon': icon.toJson()`（`lib/features/finance/models/finance.dart:298`）。
+- **用法：** 从 `Category.toJson()` 调用：`'icon': icon.toJson()`（`lib/features/finance/models/finance.dart:300`）。
 - **备注：** 无。
 
 ### `factory IconRef.fromJson(Map<String, dynamic> json)` <a id="iconref-fromjson"></a>
 - **种类：** `IconRef` 的工厂构造函数
-- **来源：** `lib/features/finance/models/finance.dart`（第 549 行）
+- **来源：** `lib/features/finance/models/finance.dart`（第 552 行）
 - **用途：** 从分类的嵌套 `icon` JSON 解析回图标引用。
 - **输入：** `json` — 解码映射。
 - **返回：** 新的 `IconRef`。
 - **副作用：** 无。
 - **算法：** 把 `codePoint` 作为必填 `int` 转换；`fontFamily` 缺失时默认 `'MaterialIcons'`。
-- **用法：** 从 `Category.fromJson` 调用：`icon: IconRef.fromJson(json['icon'] as Map<String, dynamic>)`（`lib/features/finance/models/finance.dart:312`）。
+- **用法：** 从 `Category.fromJson` 调用：`icon: IconRef.fromJson(json['icon'] as Map<String, dynamic>)`（`lib/features/finance/models/finance.dart:314`）。
 - **备注：** 无。
 
 ### `IconData toIconData()` <a id="toicondata"></a>
 - **种类：** `IconRef` 的方法
-- **来源：** `lib/features/finance/models/finance.dart`（第 560 行）
+- **来源：** `lib/features/finance/models/finance.dart`（第 563 行）
 - **用途：** 从存储的码点和字体族重建可用的 Flutter `IconData`，用于渲染分类图标。
 - **输入：** 无。
 - **返回：** `IconData`。

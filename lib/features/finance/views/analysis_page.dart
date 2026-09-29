@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/utils/adaptive_layout.dart';
+import '../../../shared/utils/week_grouping.dart';
 import '../../../shared/widgets/app_date_picker.dart';
 import '../models/finance.dart';
 import '../services/balance_util.dart';
@@ -181,7 +182,7 @@ class _AnalysisPageState extends State<AnalysisPage>
             _selectedMonth.month - 1,
           );
         case _TimeRange.day:
-          _selectedMonth = _selectedMonth.subtract(const Duration(days: 1));
+          _selectedMonth = addCalendarDays(_selectedMonth, -1);
         case _TimeRange.custom:
           break;
       }
@@ -207,7 +208,7 @@ class _AnalysisPageState extends State<AnalysisPage>
             _selectedMonth.month + 1,
           );
         case _TimeRange.day:
-          _selectedMonth = _selectedMonth.add(const Duration(days: 1));
+          _selectedMonth = addCalendarDays(_selectedMonth, 1);
         case _TimeRange.custom:
           break;
       }
@@ -754,7 +755,7 @@ class _AnalysisPageState extends State<AnalysisPage>
           _selectedMonth.month,
           _selectedMonth.day,
         );
-        final end = start.add(const Duration(days: 1));
+        final end = addCalendarDays(start, 1);
         const step = Duration(hours: 1);
         final pointCount = _pointCount(start, end, step);
         return _TrendScale(
@@ -776,8 +777,8 @@ class _AnalysisPageState extends State<AnalysisPage>
         final end = DateTime(
           range.end.year,
           range.end.month,
-          range.end.day,
-        ).add(const Duration(days: 1));
+          range.end.day + 1,
+        );
         final hours = end.difference(start).inHours;
         final step = hours <= 48
             ? const Duration(hours: 1)
@@ -1073,8 +1074,13 @@ class _AnalysisPageState extends State<AnalysisPage>
   /// Inputs: `start`, `end`, `step`.
   /// Returns: `int`.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Internal helper used within this file only. A one-day step counts local
+  /// calendar days, so a range containing a 23- or 25-hour DST day keeps one point per day.
   int _pointCount(DateTime start, DateTime end, Duration step) {
+    if (step == _TrendScale.dayStep) {
+      final days = calendarDaysBetween(start, end);
+      return days < 1 ? 1 : days;
+    }
     final total = end.difference(start).inMicroseconds;
     final stepMicros = step.inMicroseconds;
     final count = (total + stepMicros - 1) ~/ stepMicros;
@@ -1144,6 +1150,9 @@ class _AnalysisPageState extends State<AnalysisPage>
 }
 
 class _TrendScale {
+  /// The step that switches bucketing to local calendar days.
+  static const dayStep = Duration(days: 1);
+
   final DateTime start;
   final DateTime endExclusive;
   final Duration step;
@@ -1171,10 +1180,13 @@ class _TrendScale {
   /// Inputs: `date`.
   /// Returns: `int?`.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: None.
+  /// Notes: One-day steps bucket by local calendar day so a DST change never shifts a
+  /// transaction into the neighbouring day.
   int? bucketIndex(DateTime date) {
     if (date.isBefore(start) || !date.isBefore(endExclusive)) return null;
-    final idx = date.difference(start).inMicroseconds ~/ step.inMicroseconds;
+    final idx = step == dayStep
+        ? calendarDaysBetween(start, date.toLocal())
+        : date.difference(start).inMicroseconds ~/ step.inMicroseconds;
     if (idx < 0 || idx >= pointCount) return null;
     return idx;
   }
@@ -1207,8 +1219,10 @@ class _TrendScale {
   /// Inputs: `steps`.
   /// Returns: `DateTime`.
   /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Internal helper used within this file only. One-day steps move by calendar
+  /// days (local midnight to local midnight) instead of fixed 24-hour spans.
   DateTime _offset(int steps) {
+    if (step == dayStep) return addCalendarDays(start, steps);
     return start.add(Duration(microseconds: step.inMicroseconds * steps));
   }
 }

@@ -53,7 +53,7 @@ all carry real branching logic central to the file's one job.
   ```dart
   final standard = braStandardFromCode(_profile.braStandard);
   ```
-  (`lib/features/intimacy/widgets/body_section.dart:550`, before calling `estimateBraSize`.)
+  (`lib/features/intimacy/widgets/body_section.dart:548`, before calling `estimateBraSize`.)
 - **Notes:** This is the single fallback point that guarantees an always-valid standard even when
   the stored code is missing or from a future/unknown version.
 
@@ -73,7 +73,7 @@ all carry real branching logic central to the file's one job.
     _profile.copyWith(braStandard: braStandardCode(s)),
   ),
   ```
-  (`lib/features/intimacy/widgets/body_section.dart:623`, the standard-picker chip row.)
+  (`lib/features/intimacy/widgets/body_section.dart:621`, the standard-picker chip row.)
 - **Notes:** Being exhaustive with no `default` means adding a new `BraStandard` value without also
   extending this switch is a compile-time error, not a silent runtime fallback.
 
@@ -148,7 +148,7 @@ all carry real branching logic central to the file's one job.
         )
       : null;
   ```
-  (`lib/features/intimacy/widgets/body_section.dart:553-559`, `_buildBraCard`.)
+  (`lib/features/intimacy/widgets/body_section.dart:551-557`, `_buildBraCard`.)
 - **Notes:** All six branches deliberately return `null` instead of an approximate size when out of
   range, so the UI can show an explicit out-of-range hint rather than a misleading precise result.
 
@@ -176,7 +176,7 @@ all carry real branching logic central to the file's one job.
     frontCircumferenceCm: _profile.frontCircumferenceCm,
   );
   ```
-  (`lib/features/intimacy/widgets/body_section.dart:902-906`, `_buildPsiCard`.)
+  (`lib/features/intimacy/widgets/body_section.dart:900-904`, `_buildPsiCard`.)
 - **Notes:** A dm-based truncated-cone volume approximation shown purely as a personal reference
   number, never a qualitative rating — the source comment explicitly notes its cited statistical
   reference is for population statistics, not the formula itself.

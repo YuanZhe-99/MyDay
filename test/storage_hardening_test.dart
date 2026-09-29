@@ -6,12 +6,14 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 
 import 'package:my_day/features/finance/services/exchange_rate_storage.dart';
+import 'package:my_day/features/finance/services/finance_storage.dart';
 import 'package:my_day/features/intimacy/models/intimacy_record.dart';
 import 'package:my_day/features/intimacy/services/intimacy_storage.dart';
 import 'package:my_day/features/todo/models/task.dart';
 import 'package:my_day/features/todo/services/todo_storage.dart';
 import 'package:my_day/features/weight/models/weight_record.dart';
 import 'package:my_day/features/weight/services/weight_storage.dart';
+import 'package:my_day/shared/utils/adaptive_layout.dart';
 
 /// Purpose: Run storage hardening regression tests for intimacy, weight, and todo data files.
 /// Inputs: None.
@@ -248,6 +250,97 @@ void main() {
       expect(data.currentSnapshotId, 'snapshot-7');
       expect(data.snapshots[data.currentSnapshotId], isNotNull);
       expect(await tmpLeftovers(), isEmpty);
+    });
+
+    test('corrupt file throws on load and save and keeps its bytes', () async {
+      final file = await dataFile('exchange_rates.json');
+      const corrupt = '{"currentSnapshotId": "a", "snapshots": {';
+      await file.writeAsString(corrupt);
+
+      await expectLater(
+        ExchangeRateStorage.load(),
+        throwsA(isA<ExchangeRateStorageException>()),
+      );
+      await expectLater(
+        ExchangeRateStorage.save(
+          ExchangeRateData(currentSnapshotId: '', snapshots: {}),
+        ),
+        throwsA(isA<ExchangeRateStorageException>()),
+      );
+      expect(await file.readAsString(), corrupt);
+    });
+
+    test('missing file yields defaults; a legacy flat map migrates', () async {
+      final defaults = await ExchangeRateStorage.load();
+      expect(defaults.currentRates, isNotEmpty);
+
+      final file = await dataFile('exchange_rates.json');
+      await file.writeAsString('{"USD_CNY": 7.1}');
+      final migrated = await ExchangeRateStorage.load();
+      expect(migrated.currentRates, {'USD_CNY': 7.1});
+    });
+
+    test(
+      'finance loads without reading rates when nothing to migrate',
+      () async {
+        await FinanceStorage.save(
+          FinanceData(accounts: [], categories: [], transactions: []),
+        );
+        final file = await dataFile('exchange_rates.json');
+        await file.writeAsString('not json');
+
+        final data = await FinanceStorage.load();
+        expect(data, isNotNull);
+        expect(await file.readAsString(), 'not json');
+      },
+    );
+  });
+
+  group('storage_config.json', () {
+    test('concurrent single-key writes all survive', () async {
+      await Future.wait([
+        for (var i = 0; i < 12; i++) TodoStorage.writeConfig({'key$i': i}),
+      ]);
+      final config = await TodoStorage.readConfig();
+      for (var i = 0; i < 12; i++) {
+        expect(config['key$i'], i);
+      }
+      expect(await tmpLeftovers(), isEmpty);
+    });
+
+    test('writes refuse an unreadable file and keep its bytes', () async {
+      final file = await dataFile('storage_config.json');
+      const corrupt = '{"storagePath": "D:/MyDay", ';
+      await file.writeAsString(corrupt);
+
+      expect(await TodoStorage.readConfig(), isEmpty);
+      await expectLater(
+        TodoStorage.writeConfig({'apiEnabled': true}),
+        throwsA(isA<TodoStorageException>()),
+      );
+      await expectLater(
+        TodoStorage.setMinimizeToTray(true),
+        throwsA(isA<TodoStorageException>()),
+      );
+      expect(await file.readAsString(), corrupt);
+
+      // The queue keeps working once the file is readable again.
+      await file.writeAsString('{"storagePath": "D:/MyDay"}');
+      await TodoStorage.writeConfig({'apiEnabled': true});
+      expect(await TodoStorage.readConfig(), {
+        'storagePath': 'D:/MyDay',
+        'apiEnabled': true,
+      });
+    });
+
+    test('the auto column preference removes its key', () async {
+      await TodoStorage.setTodoSectionColumns(2);
+      expect((await TodoStorage.readConfig())['todoSectionColumns'], 2);
+      await TodoStorage.setTodoSectionColumns(listColumnsAuto);
+      expect(
+        (await TodoStorage.readConfig()).containsKey('todoSectionColumns'),
+        isFalse,
+      );
     });
   });
 }

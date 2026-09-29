@@ -102,10 +102,10 @@
 - **来源：** `lib/shared/services/image_service.dart`（第 106 行）
 - **用途：** 从 URL 下载图像（如银行标志）并本地保存，拒绝太小不成真实图像的响应。
 - **输入：** `url`；`minBytes`（默认 `500`）——比这小的响应被当作占位/默认 favicon 并拒绝。
-- **返回：** `Future<String?>` — `"images/<uuid><ext>"`，或任何失败（非 200 状态、体太小、或抛出异常）时 `null`。
+- **返回：** `Future<String?>` — `"images/<uuid><ext>"`，或任何失败（非 200 状态、体太小、15 秒内无响应、或抛出异常）时 `null`。
 - **副作用：** 执行 HTTP GET；把下载字节写入 `<appDir>/images/`。
 - **算法：**
-  1. `http.get(Uri.parse(url))`；`statusCode != 200` 时返回 `null`。
+  1. `http.get(Uri.parse(url)).timeout(const Duration(seconds: 15))`；`statusCode != 200` 时返回 `null`。超时抛出 `TimeoutException`，由 catch 转为 `null`。
   2. `response.bodyBytes.length < minBytes` 时返回 `null`。
   3. 从 `content-type` 页头挑文件扩展名：`jpeg`/`jpg` → `.jpg`、`ico` → `.ico`、`svg` → `.svg`、否则默认 `.png`。
   4. 确保图像目录存在、构建新 UUID 文件名、写字节。
@@ -115,4 +115,4 @@
   path = await ImageService.downloadAndSave(url);
   ```
   （`lib/features/finance/views/accounts_page.dart`，从 `BankPresetService` 提供 URL 下载银行标志。）
-- **备注：** `minBytes` 过滤器存在正为拒绝一些银行标志 URL 返回的微型占位/默认 favicon 响应，而非真实 404。
+- **备注：** `minBytes` 过滤器存在正为拒绝一些银行标志 URL 返回的微型占位/默认 favicon 响应，而非真实 404。15 秒超时（v1.5.2）防止停滞的服务器让调用方永远等待；银行标志获取链得到 `null` 后转向下一个来源。

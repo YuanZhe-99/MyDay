@@ -45,6 +45,35 @@ class FinanceData {
   }) : settingsModifiedAt =
            settingsModifiedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
 
+  /// Purpose: Return a copy with the given record lists replaced.
+  /// Inputs: optional `accounts`, `categories`, `transactions`, `subscriptions`.
+  /// Returns: A new `FinanceData` sharing every other field with this one.
+  /// Side effects: None.
+  /// Notes: Used by the finance page's merge-by-id sub-page saves; settings fields are
+  /// carried over unchanged.
+  FinanceData copyWith({
+    List<Account>? accounts,
+    List<Category>? categories,
+    List<Transaction>? transactions,
+    List<Subscription>? subscriptions,
+  }) {
+    return FinanceData(
+      accounts: accounts ?? this.accounts,
+      categories: categories ?? this.categories,
+      transactions: transactions ?? this.transactions,
+      subscriptions: subscriptions ?? this.subscriptions,
+      defaultCurrency: defaultCurrency,
+      settingsModifiedAt: settingsModifiedAt,
+      subscriptionReminderHour: subscriptionReminderHour,
+      subscriptionReminderMinute: subscriptionReminderMinute,
+      subscriptionSortMode: subscriptionSortMode,
+      subscriptionCustomOrder: subscriptionCustomOrder,
+      accountSortModes: accountSortModes,
+      accountCustomOrders: accountCustomOrders,
+      accountPickerSettings: accountPickerSettings,
+    );
+  }
+
   /// Purpose: Serialize this value into a JSON-compatible map.
   /// Inputs: None.
   /// Returns: A JSON-compatible map.
@@ -164,6 +193,8 @@ class FinanceStorage {
   /// Side effects: May read or mutate application state, storage, or service resources.
   /// Notes: A missing file returns null, but an unreadable existing file throws
   /// so callers never treat corrupted finance data as an empty dataset.
+  /// `exchange_rates.json` is read only when a legacy forced balance must be migrated;
+  /// its `ExchangeRateStorageException` is rethrown unchanged.
   static Future<FinanceData?> load() async {
     final file = await _getFile();
     if (!await file.exists()) return null;
@@ -173,6 +204,8 @@ class FinanceStorage {
 
       final json = jsonDecode(raw) as Map<String, dynamic>;
       final data = FinanceData.fromJson(json);
+      // Exchange rates are only read when a legacy forced balance needs them.
+      if (!needsForcedBalanceMigration(data.accounts)) return data;
       final rateData = await ExchangeRateStorage.load();
       final migrated = _migrateForcedBalances(data, rateData);
       if (identical(migrated, data)) return data;
@@ -181,6 +214,8 @@ class FinanceStorage {
         await save(migrated);
       } catch (_) {}
       return migrated;
+    } on ExchangeRateStorageException {
+      rethrow;
     } on FormatException catch (e) {
       throw FinanceStorageException('$_fileName is not valid JSON: $e');
     } catch (e) {
@@ -271,7 +306,7 @@ class FinanceStorage {
     );
     await tmp.writeAsString(jsonStr, flush: true);
     try {
-      jsonDecode(await tmp.readAsString()) as Map<String, dynamic>;
+      // The content was validated above; re-decoding the flushed copy only cost time.
       await tmp.rename(file.path);
     } catch (e) {
       try {

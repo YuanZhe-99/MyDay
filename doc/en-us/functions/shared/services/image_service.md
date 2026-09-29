@@ -132,10 +132,11 @@ and no undocumented declarations were found).
 - **Inputs:** `url`; `minBytes` (default `500`) — responses smaller than this are treated as
   placeholder/default favicons and rejected.
 - **Returns:** `Future<String?>` — `"images/<uuid><ext>"`, or `null` on any failure (non-200 status,
-  too-small body, or thrown exception).
+  too-small body, no response within 15 seconds, or thrown exception).
 - **Side effects:** Performs an HTTP GET; writes the downloaded bytes into `<appDir>/images/`.
 - **Algorithm:**
-  1. `http.get(Uri.parse(url))`; return `null` if `statusCode != 200`.
+  1. `http.get(Uri.parse(url)).timeout(const Duration(seconds: 15))`; return `null` if
+     `statusCode != 200`. A timeout throws `TimeoutException`, which the catch turns into `null`.
   2. Return `null` if `response.bodyBytes.length < minBytes`.
   3. Pick a file extension from the `content-type` header: `jpeg`/`jpg` → `.jpg`, `ico` → `.ico`,
      `svg` → `.svg`, otherwise default `.png`.
@@ -149,4 +150,6 @@ and no undocumented declarations were found).
   (`lib/features/finance/views/accounts_page.dart`, downloading a bank logo from
   `BankPresetService`-provided URLs.)
 - **Notes:** The `minBytes` filter exists specifically to reject tiny placeholder/default favicon
-  responses some bank logo URLs return instead of a real 404.
+  responses some bank logo URLs return instead of a real 404. The 15-second timeout (v1.5.2) keeps a
+  stalled server from leaving the caller waiting forever; the bank-logo fetch chain gets `null` and
+  moves on to its next source.

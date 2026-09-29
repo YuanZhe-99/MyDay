@@ -89,7 +89,8 @@ is shifted to start the next day, never replaced by a one-shot (see
 ## UI
 
 The Weight page includes add/edit records, optional bust/waist/hip measurement entry, chart range
-selection, raw and EWMA weight trend display, a separate raw/EWMA bust-waist-hip trend chart,
+selection (the 1M/3M/6M/1Y ranges count whole calendar months back and clamp the day, so Mar 31
+minus one month is the last day of February; v1.5.2), raw and EWMA weight trend display, a separate raw/EWMA bust-waist-hip trend chart,
 BMI/measurement/waist-hip-ratio summary cards with compact color bars, weekly grouped history that
 follows the global week-start-day setting, a "show all" history view, and reminder settings.
 

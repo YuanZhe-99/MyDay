@@ -1,10 +1,10 @@
 # lib/features/intimacy/models/intimacy_record.dart
 
-整个亲密功能的数据模型：`BodyProfile`、`CycleRecord`、`Partner`、`Toy`、`Position`、`IntimacyRecord`、`TimerHistoryEntry`、`IntimacyTimerSession` 和顶层 `IntimacyData` 容器。每个模型都遵循本代码库其余功能模型相同的形态：字段赋值构造函数，未提供时生成 `id`（经 `uuid`）和 `modifiedAt`（UTC"现在"），加一对用于持久化/同步 `intimacy_data.json` 格式的 `toJson`/`fromJson`——`BodyProfile` 和 `Partner` 额外有 `copyWith`。`services/intimacy_storage.dart` 加载/保存整个 `IntimacyData` 树；`services/body_metrics.dart` 和 `services/cycle_predictor.dart` 是读取 `BodyProfile`/`CycleRecord` 字段但绝不存储自己结果的纯计算器。这些模型如何融入功能见 [亲密](../../../../features/intimacy.md)，精确 JSON 字段列表见 [数据格式](../../../../data-formats.md#intimacy--intimacy_datajson)，`CycleRecord` 的仅增/删同步语义见 [三方合并](../../../../algorithms/three-way-merge.md#deletionunion-semantics)。
+整个亲密功能的数据模型：`BodyProfile`、`CycleRecord`、`Partner`、`Toy`、`Position`、`IntimacyRecord`、`TimerHistoryEntry`、`IntimacyTimerSession` 和顶层 `IntimacyData` 容器。每个模型都遵循本代码库其余功能模型相同的形态：字段赋值构造函数，未提供时生成 `id`（经 `uuid`）和 `modifiedAt`（UTC"现在"），加一对用于持久化/同步 `intimacy_data.json` 格式的 `toJson`/`fromJson`——`BodyProfile`、`Partner`、`IntimacyChartSettings` 以及（自 v1.5.2 起）`IntimacyData` 额外有 `copyWith`。`services/intimacy_storage.dart` 加载/保存整个 `IntimacyData` 树；`services/body_metrics.dart` 和 `services/cycle_predictor.dart` 是读取 `BodyProfile`/`CycleRecord` 字段但绝不存储自己结果的纯计算器。这些模型如何融入功能见 [亲密](../../../../features/intimacy.md)，精确 JSON 字段列表见 [数据格式](../../../../data-formats.md#intimacy--intimacy_datajson)，`CycleRecord` 的仅增/删同步语义见 [三方合并](../../../../algorithms/three-way-merge.md#deletionunion-semantics)。
 
 ## 声明
 
-锚点说明：`toJson` 在本文件九个不同类上定义（`BodyProfile`、`CycleRecord`、`Partner`、`Toy`、`Position`、`IntimacyRecord`、`TimerHistoryEntry`、`IntimacyTimerSession`、`IntimacyData`），`copyWith` 在两个上定义（`BodyProfile`、`Partner`）。为保持本页锚点唯一，那些行使用类限定锚点（`bodyprofile-tojson`、`partner-copywith` 等），而不是通用规则本会产生的裸名锚点；其他每行使用普通裸名锚点。`fromJson` 工厂构造函数和默认构造函数已按 `<类名>-<命名构造函数小写>`/`<类名>-new` 锚点规则各自唯一。
+锚点说明：`toJson` 在本文件九个不同类上定义（`BodyProfile`、`CycleRecord`、`Partner`、`Toy`、`Position`、`IntimacyRecord`、`TimerHistoryEntry`、`IntimacyTimerSession`、`IntimacyData`），`copyWith` 在四个上定义（`BodyProfile`、`Partner`、`IntimacyChartSettings`、`IntimacyData`）。为保持本页锚点唯一，那些行使用类限定锚点（`bodyprofile-tojson`、`partner-copywith` 等），而不是通用规则本会产生的裸名锚点；其他每行使用普通裸名锚点。`fromJson` 工厂构造函数和默认构造函数已按 `<类名>-<命名构造函数小写>`/`<类名>-new` 锚点规则各自唯一。
 
 | 声明 | 种类 | Tier | 用途 |
 |---|---|---|---|
@@ -49,10 +49,11 @@
 | [`IntimacyChartSettings.fromJson`](#intimacychartsettings-fromjson) | 工厂构造函数（`IntimacyChartSettings`） | A | 从 JSON 解析图表视图偏好，容忍 null 和空值。 |
 | [`copyWith`](#intimacychartsettings-copywith) | 方法（`IntimacyChartSettings`） | A | 返回所选字段替换后的图表视图偏好副本。 |
 | [`IntimacyData()`](#intimacydata-new) | 构造函数（`IntimacyData`） | A | 创建顶层亲密数据容器，默认三个独立 LWW 时间戳。 |
+| [`copyWith`](#intimacydata-copywith) | 方法（`IntimacyData`） | A | 返回一个副本，五个记录列表可选替换，其他所有字段和时间戳原样带过。 |
 | [`toJson`](#intimacydata-tojson) | 方法（`IntimacyData`） | A | 把整个亲密数据树序列化为 JSON。 |
 | [`IntimacyData.fromJson`](#intimacydata-fromjson) | 工厂构造函数（`IntimacyData`） | A | 从 JSON 解析整个亲密数据树。 |
 
-**对账：** `grep -c 'Purpose:' lib/features/intimacy/models/intimacy_record.dart` 报告 43，与上面 43 行精确匹配——每个 `/// Purpose:` 块都恰好位于其文档化的真实声明正上方（未发现错附块），文件中也不存在任何未文档化的真实声明。v1.3.2 添加了六个：两个派生抽插 getter 和四个 `IntimacyChartSettings` 成员。全部 43 个分类为 Tier A：每个都是模型构造函数/`toJson`/`fromJson`/`copyWith`（定级规则显式的 Tier A 桶）或携带别处使用的真实逻辑的 getter/方法（`isEmpty`、`day`、`formatDate`、四个 `Toy` 成本辅助、`elapsedAt`、`resolvedThrustCount`、`thrustsPerMinute`），与应用于 `finance/models/finance.md` 的 `firstBillingDate` getter 相同的标准。每个类的普通数据字段（如 `BodyProfile.bustCm`、`Partner.name`、`IntimacyRecord.pleasureLevel`）不计为单独声明，与本文档集其他每个模型页对待构造函数支撑字段的方式一致。
+**对账：** `grep -c 'Purpose:' lib/features/intimacy/models/intimacy_record.dart` 报告 44，与上面 44 行精确匹配——每个 `/// Purpose:` 块都恰好位于其文档化的真实声明正上方（未发现错附块），文件中也不存在任何未文档化的真实声明。v1.3.2 添加了六个：两个派生抽插 getter 和四个 `IntimacyChartSettings` 成员；v1.5.2 又添加了一个，`IntimacyData.copyWith`。全部 44 个分类为 Tier A：每个都是模型构造函数/`toJson`/`fromJson`/`copyWith`（定级规则显式的 Tier A 桶）或携带别处使用的真实逻辑的 getter/方法（`isEmpty`、`day`、`formatDate`、四个 `Toy` 成本辅助、`elapsedAt`、`resolvedThrustCount`、`thrustsPerMinute`），与应用于 `finance/models/finance.md` 的 `firstBillingDate` getter 相同的标准。每个类的普通数据字段（如 `BodyProfile.bustCm`、`Partner.name`、`IntimacyRecord.pleasureLevel`）不计为单独声明，与本文档集其他每个模型页对待构造函数支撑字段的方式一致。
 
 ## 文档
 
@@ -94,7 +95,7 @@
 - **返回：** 每个字段带 `if (field != null)`（两个布尔为 `if (flag)`）守卫的映射——空档案序列化为 `{}`。
 - **副作用：** 无。
 - **算法：** 映射字面量，每字段一个 `if` 守卫条目。
-- **用法：** 从 `Partner.toJson`（第 247 行：`'body': body!.toJson()`）和 `IntimacyData.toJson`（第 866 行：`'userBody': userBody!.toJson()`）调用，两者都只在 `!isEmpty` 时。
+- **用法：** 从 `Partner.toJson`（第 247 行：`'body': body!.toJson()`）和 `IntimacyData.toJson`（第 900 行：`'userBody': userBody!.toJson()`）调用，两者都只在 `!isEmpty` 时。
 - **备注：** 调用方负责 `isEmpty` 检查——直接调用时 `toJson()` 自己仍会为空档案产生 `{}`。
 
 ### `factory BodyProfile.fromJson(Map<String, dynamic> json)` <a id="bodyprofile-fromjson"></a>
@@ -105,7 +106,7 @@
 - **返回：** 新的 `BodyProfile`。
 - **副作用：** 无。
 - **算法：** 每个数字字段经 `(json[k] as num?)?.toDouble()` 转换；两个布尔读为 `json[k] == true`（因此缺失/非 `true` 值默认 `false`）；`braStandard` 直接作为 `String?` 转换。
-- **用法：** 从 `Partner.fromJson`（第 268 行：`BodyProfile.fromJson(json['body'] as Map<String, dynamic>)`）和 `IntimacyData.fromJson`（第 922 行，`userBody`）调用，两者都由 `json['body'] is Map<String, dynamic>` 守卫。
+- **用法：** 从 `Partner.fromJson`（第 268 行：`BodyProfile.fromJson(json['body'] as Map<String, dynamic>)`）和 `IntimacyData.fromJson`（第 955 行，`userBody`）调用，两者都由 `json['body'] is Map<String, dynamic>` 守卫。
 - **备注：** 除上面已覆盖的外无——每个字段独立退化，因此部分格式错误的档案绝不会使整个解析失败。
 
 ### `BodyProfile copyWith({double? bustCm, bool clearBustCm = false, double? waistCm, bool clearWaistCm = false, double? hipCm, bool clearHipCm = false, double? underbustCm, bool clearUnderbustCm = false, String? braStandard, bool clearBraStandard = false, bool? cycleEnabled, bool? showCycleOnCalendar, double? erectLengthCm, bool clearErectLengthCm = false, double? baseCircumferenceCm, bool clearBaseCircumferenceCm = false, double? frontCircumferenceCm, bool clearFrontCircumferenceCm = false})` <a id="bodyprofile-copywith"></a>
@@ -120,7 +121,7 @@
   ```dart
   _updateProfile(_profile.copyWith(cycleEnabled: v)),
   ```
-  （`lib/features/intimacy/widgets/body_section.dart:769`，周期跟踪开关。）
+  （`lib/features/intimacy/widgets/body_section.dart:767`，周期跟踪开关。）
 - **备注：** 与 `Partner.copyWith` 不同，此方法自己不盖章任何时间戳——`BodyProfile` 没有 `modifiedAt`；拥有它的 `Partner` 或 `IntimacyData.userBodyModifiedAt` 负责。
 
 ### `CycleRecord({String? id, String? personId, required String date, DateTime? modifiedAt})` <a id="cyclerecord-new"></a>
@@ -141,7 +142,7 @@
     ),
   ]);
   ```
-  （`lib/features/intimacy/widgets/body_section.dart:379-385`，`_addCycleStart`。）
+  （`lib/features/intimacy/widgets/body_section.dart:377-383`，`_addCycleStart`。）
 - **备注：** 记录只有增/删；没有编辑流程——更改周期开始意味着删除旧记录并添加新记录。尽管这是简单按 id 合并，删除仍如何正确同步见 [三方合并](../../../../algorithms/three-way-merge.md#deletionunion-semantics)。
 
 ### `DateTime get day` <a id="day"></a>
@@ -173,7 +174,7 @@
   ```dart
   date: CycleRecord.formatDate(date),
   ```
-  （`lib/features/intimacy/widgets/body_section.dart:383`，添加周期开始时；第 399 行检查那天是否已有记录时也使用。）
+  （`lib/features/intimacy/widgets/body_section.dart:382`，添加周期开始时；第 398 行检查那天是否已有记录时也使用。）
 - **备注：** 忽略输入上的任何时间分量，是 [`day`](#day) 的逆。
 
 ### `Map<String, dynamic> toJson()` <a id="cyclerecord-tojson"></a>
@@ -184,7 +185,7 @@
 - **返回：** `{id, personId?, date, modifiedAt}`。
 - **副作用：** 无。
 - **算法：** 映射字面量；`personId` 为 `null` 时省略（用户自己的记录）。
-- **用法：** 从 `IntimacyData.toJson`（第 870 行）调用：`cycleRecords.map((c) => c.toJson()).toList()`，只在 `cycleRecords.isNotEmpty` 时。
+- **用法：** 从 `IntimacyData.toJson`（第 904 行）调用：`cycleRecords.map((c) => c.toJson()).toList()`，只在 `cycleRecords.isNotEmpty` 时。
 - **备注：** 无。
 
 ### `factory CycleRecord.fromJson(Map<String, dynamic> json)` <a id="cyclerecord-fromjson"></a>
@@ -195,7 +196,7 @@
 - **返回：** 新的 `CycleRecord`。
 - **副作用：** 无。
 - **算法：** 把 `id`/`date` 作为必填 `String` 转换；`personId` 可空；`modifiedAt` 缺失时回退 Unix 纪元。
-- **用法：** 从 `IntimacyData.fromJson`（第 929 行）调用：`(json['cycleRecords'] as List<dynamic>?)?.map((c) => CycleRecord.fromJson(c as Map<String, dynamic>))`。
+- **用法：** 从 `IntimacyData.fromJson`（第 963 行）调用：`(json['cycleRecords'] as List<dynamic>?)?.map((c) => CycleRecord.fromJson(c as Map<String, dynamic>))`。
 - **备注：** 无。
 
 ### `Partner({String? id, required String name, String? emoji, String? imagePath, DateTime? startDate, DateTime? endDate, BodyProfile? body, DateTime? modifiedAt})` <a id="partner-new"></a>
@@ -231,7 +232,7 @@
 - **返回：** `id`/`name`/`modifiedAt` 总是存在；`emoji`/`imagePath`/`startDate`/`endDate`/`body` 只在设置时包含（`body` 只在非 null **且** `!body!.isEmpty` 时）。
 - **副作用：** 无。
 - **算法：** 每个可选字段带 `if` 守卫的映射字面量；存在时嵌套 `body!.toJson()`。
-- **用法：** 从 `IntimacyData.toJson`（第 859 行）调用：`partners.map((p) => p.toJson()).toList()`。
+- **用法：** 从 `IntimacyData.toJson`（第 893 行）调用：`partners.map((p) => p.toJson()).toList()`。
 - **备注：** 空（全 null）身体档案绝不嵌套进输出，匹配 [`BodyProfile.isEmpty`](#isempty) 的"存储为缺席"规则。
 
 ### `factory Partner.fromJson(Map<String, dynamic> json)` <a id="partner-fromjson"></a>
@@ -242,7 +243,7 @@
 - **返回：** 新的 `Partner`。
 - **副作用：** 无。
 - **算法：** 把 `id`/`name` 作为必填转换；`emoji`/`imagePath` 可空字符串；`startDate`/`endDate` 存在时经 `DateTime.parse` 解析；`body` 在 `json['body'] is Map<String, dynamic>` 时经 [`BodyProfile.fromJson`](#bodyprofile-fromjson) 解析；`modifiedAt` 缺失时回退 Unix 纪元。
-- **用法：** 从 `IntimacyData.fromJson`（第 890 行）调用：`(json['partners'] as List<dynamic>?)?.map((p) => Partner.fromJson(p as Map<String, dynamic>))`。
+- **用法：** 从 `IntimacyData.fromJson`（第 924 行）调用：`(json['partners'] as List<dynamic>?)?.map((p) => Partner.fromJson(p as Map<String, dynamic>))`。
 - **备注：** 无。
 
 ### `Partner copyWith({String? name, String? emoji, bool clearEmoji = false, String? imagePath, bool clearImagePath = false, DateTime? startDate, bool clearStartDate = false, DateTime? endDate, bool clearEndDate = false, BodyProfile? body, bool clearBody = false})` <a id="partner-copywith"></a>
@@ -356,7 +357,7 @@
 - **返回：** `id`/`name`/`modifiedAt` 总是存在；其他每个字段只在非 null 时。
 - **副作用：** 无。
 - **算法：** 带 `if (field != null)` 守卫的映射字面量；日期为 `toIso8601String()`。
-- **用法：** 从 `IntimacyData.toJson`（第 860 行）调用：`toys.map((t) => t.toJson()).toList()`。
+- **用法：** 从 `IntimacyData.toJson`（第 894 行）调用：`toys.map((t) => t.toJson()).toList()`。
 - **备注：** 无。
 
 ### `factory Toy.fromJson(Map<String, dynamic> json)` <a id="toy-fromjson"></a>
@@ -367,7 +368,7 @@
 - **返回：** 新的 `Toy`。
 - **副作用：** 无。
 - **算法：** 把 `id`/`name` 作为必填转换；每个可选字段 null 安全；`price` 经 `(json['price'] as num?)?.toDouble()`；`modifiedAt` 缺失时回退 Unix 纪元。
-- **用法：** 从 `IntimacyData.fromJson`（第 895 行）调用：`(json['toys'] as List<dynamic>?)?.map((t) => Toy.fromJson(t as Map<String, dynamic>))`。
+- **用法：** 从 `IntimacyData.fromJson`（第 929 行）调用：`(json['toys'] as List<dynamic>?)?.map((t) => Toy.fromJson(t as Map<String, dynamic>))`。
 - **备注：** 无。
 
 ### `Position({String? id, required String name, String? emoji, DateTime? modifiedAt})` <a id="position-new"></a>
@@ -384,7 +385,7 @@
     Position(name: nameCtrl.text.trim(), emoji: selectedEmoji),
   );
   ```
-  （`lib/features/intimacy/views/intimacy_page.dart:4893-4895`，添加新姿势；第 4886-4890 行编辑既有姿势时改为传既有 `id`。）
+  （`lib/features/intimacy/views/intimacy_page.dart:4340-4342`，添加新姿势；第 4333-4337 行编辑既有姿势时改为传既有 `id`。）
 - **备注：** 无。
 
 ### `Map<String, dynamic> toJson()` <a id="position-tojson"></a>
@@ -395,7 +396,7 @@
 - **返回：** `{id, name, emoji?, modifiedAt}`。
 - **副作用：** 无。
 - **算法：** 映射字面量；`emoji` 为 `null` 时省略。
-- **用法：** 从 `IntimacyData.toJson`（第 861 行）调用：`positions.map((p) => p.toJson()).toList()`。
+- **用法：** 从 `IntimacyData.toJson`（第 895 行）调用：`positions.map((p) => p.toJson()).toList()`。
 - **备注：** 无。
 
 ### `factory Position.fromJson(Map<String, dynamic> json)` <a id="position-fromjson"></a>
@@ -406,7 +407,7 @@
 - **返回：** 新的 `Position`。
 - **副作用：** 无。
 - **算法：** 把 `id`/`name` 作为必填转换；`emoji` 可空；`modifiedAt` 缺失时回退 Unix 纪元。
-- **用法：** 从 `IntimacyData.fromJson`（第 900 行）调用：`(json['positions'] as List<dynamic>?)?.map((p) => Position.fromJson(p as Map<String, dynamic>))`。
+- **用法：** 从 `IntimacyData.fromJson`（第 934 行）调用：`(json['positions'] as List<dynamic>?)?.map((p) => Position.fromJson(p as Map<String, dynamic>))`。
 - **备注：** 无。
 
 ### `IntimacyRecord({String? id, required String type, String? location, bool isSolo = false, String? partnerId, List<String> toyIds = const [], List<String> positionIds = const [], required int pleasureLevel, required Duration duration, int? thrustCount, int? thrustCountUnit, DateTime? datetime, String? notes, bool hadOrgasm = false, bool watchedPorn = false, bool usedCondom = false, DateTime? modifiedAt})` <a id="intimacyrecord-new"></a>
@@ -464,29 +465,29 @@
 
 ### `Map<String, dynamic> toJson()` <a id="intimacyrecord-tojson"></a>
 - **种类：** `IntimacyRecord` 的方法
-- **来源：** `lib/features/intimacy/models/intimacy_record.dart`（第 510 行）
+- **来源：** `lib/features/intimacy/models/intimacy_record.dart`（第 535 行）
 - **用途：** 把亲密记录序列化为存储在 `intimacy_data.json` 的 `records` 数组中的 JSON。
 - **输入：** 无。
 - **返回：** `id`/`type`/`isSolo`/`pleasureLevel`/`duration`/`datetime`/`hadOrgasm`/`watchedPorn`/`usedCondom`/`modifiedAt` 总是存在；`location`/`partnerId`/`toyIds`/`positionIds`/`thrustCount`（+`thrustCountUnit`）/`notes` 只在设置/非空时。
 - **副作用：** 无。
 - **算法：** 带 `if` 守卫的映射字面量；`duration` 为 `.inSeconds`；`thrustCountUnit` 只在非 null `thrustCount` 旁写入。
-- **用法：** 从 `IntimacyData.toJson`（第 862 行）调用：`records.map((r) => r.toJson()).toList()`。
+- **用法：** 从 `IntimacyData.toJson`（第 896 行）调用：`records.map((r) => r.toJson()).toList()`。
 - **备注：** 无。
 
 ### `factory IntimacyRecord.fromJson(Map<String, dynamic> json)` <a id="intimacyrecord-fromjson"></a>
 - **种类：** `IntimacyRecord` 的工厂构造函数
-- **来源：** `lib/features/intimacy/models/intimacy_record.dart`（第 535 行）
+- **来源：** `lib/features/intimacy/models/intimacy_record.dart`（第 560 行）
 - **用途：** 从持久化/同步 JSON 形态解析回亲密记录，容忍旧模式。
 - **输入：** `json` — 解码映射。
 - **返回：** 新的 `IntimacyRecord`。
 - **副作用：** 无。
 - **算法：** 转换必填字段（`type`、`pleasureLevel`、经 `DateTime.parse` 的 `datetime`）；`duration` 来自 `Duration(seconds: json['duration'] as int)`；`thrustCountUnit` 重新规范化为 `1` 或 `100`；`isSolo` 缺席时默认 `false`（注释说明旧记录改为有 `'partner'` 字符串字段，不再读取）；`modifiedAt` 缺失时回退 Unix 纪元。
-- **用法：** 从 `IntimacyData.fromJson`（第 905 行）调用：`(json['records'] as List<dynamic>?)?.map((r) => IntimacyRecord.fromJson(r as Map<String, dynamic>))`。
+- **用法：** 从 `IntimacyData.fromJson`（第 939 行）调用：`(json['records'] as List<dynamic>?)?.map((r) => IntimacyRecord.fromJson(r as Map<String, dynamic>))`。
 - **备注：** `partnerId` 不再匹配任何既有伴侣（伴侣已被删除）的记录仍解析正常——已删除伴侣引用按设计被容忍，按 [亲密](../../../../features/intimacy.md#deleted-partner-handling)。
 
 ### `TimerHistoryEntry({required DateTime start, required Duration duration, int thrustCount = 0, int? thrustCountUnit})` <a id="timerhistoryentry-new"></a>
 - **种类：** `TimerHistoryEntry` 的构造函数
-- **来源：** `lib/features/intimacy/models/intimacy_record.dart`（第 582 行）
+- **来源：** `lib/features/intimacy/models/intimacy_record.dart`（第 607 行）
 - **用途：** 创建单条计时器历史条目（独立于任何 `IntimacyRecord`）：开始时间、时长和可选抽插次数。
 - **输入：** `start`、`duration` 必填；`thrustCount` 默认 `0`；`thrustCountUnit` 规范化。
 - **返回：** 新的 `TimerHistoryEntry`。
@@ -501,23 +502,23 @@
     thrustCountUnit: _storedThrustCountUnit,
   );
   ```
-  （`lib/features/intimacy/widgets/timer_page.dart:458-463`，停止/保存秒表。）
+  （`lib/features/intimacy/widgets/timer_page.dart:456-461`，停止/保存秒表。）
 - **备注：** [`TimerHistoryEntry.fromJson`](#timerhistoryentry-fromjson) 的旧 `end` 时间戳迁移路径也构造它。
 
 ### `Map<String, dynamic> toJson()` <a id="timerhistoryentry-tojson"></a>
 - **种类：** `TimerHistoryEntry` 的方法
-- **来源：** `lib/features/intimacy/models/intimacy_record.dart`（第 595 行）
+- **来源：** `lib/features/intimacy/models/intimacy_record.dart`（第 620 行）
 - **用途：** 把计时器历史条目序列化为存储在 `intimacy_data.json` 的 `timerHistory` 数组中的 JSON。
 - **输入：** 无。
 - **返回：** `{start, durationMs, thrustCount?, thrustCountUnit?}` — `thrustCount` 为 `0` 时抽插字段完全省略。
 - **副作用：** 无。
 - **算法：** 映射字面量；`duration` 在 `durationMs` 键下为 `.inMilliseconds`（不是 `duration`，以区别于旧 `end` 基础格式）。
-- **用法：** 从 `IntimacyData.toJson`（第 863 行）调用：`timerHistory.map((e) => e.toJson()).toList()`。
+- **用法：** 从 `IntimacyData.toJson`（第 897 行）调用：`timerHistory.map((e) => e.toJson()).toList()`。
 - **备注：** 无。
 
 ### `factory TimerHistoryEntry.fromJson(Map<String, dynamic> json)` <a id="timerhistoryentry-fromjson"></a>
 - **种类：** `TimerHistoryEntry` 的工厂构造函数
-- **来源：** `lib/features/intimacy/models/intimacy_record.dart`（第 607 行）
+- **来源：** `lib/features/intimacy/models/intimacy_record.dart`（第 632 行）
 - **用途：** 从 JSON 解析计时器历史条目，迁移存储 `end` 时间戳而非时长的旧条目。
 - **输入：** `json` — 解码映射。
 - **返回：** 新的 `TimerHistoryEntry`。
@@ -532,12 +533,12 @@
       .map((e) => TimerHistoryEntry.fromJson(e as Map<String, dynamic>))
       .toList();
   ```
-  （`lib/features/intimacy/services/intimacy_storage.dart:117`，在 [`_migrateLegacyTimerHistory`](../services/intimacy_storage.md#_migratelegacytimerhistory) 期间解析独立旧 `timer_history.json` 文件。）`IntimacyData.fromJson`（第 910 行）也调用它解析正常 `timerHistory` 数组。
+  （`lib/features/intimacy/services/intimacy_storage.dart:117`，在 [`_migrateLegacyTimerHistory`](../services/intimacy_storage.md#_migratelegacytimerhistory) 期间解析独立旧 `timer_history.json` 文件。）`IntimacyData.fromJson`（第 944 行）也调用它解析正常 `timerHistory` 数组。
 - **备注：** 旧 `end` 基础分支正是让 `IntimacyStorage` 透明迁移 pre-时长 `timer_history.json` 文件、无需条目格式本身的单独迁移代码路径的东西。
 
 ### `IntimacyTimerSession({required DateTime firstStartedAt, DateTime? startedAt, required Duration accumulated, required bool running, int thrustCount = 0, int? thrustCountUnit})` <a id="intimacytimersession-new"></a>
 - **种类：** `IntimacyTimerSession` 的构造函数
-- **来源：** `lib/features/intimacy/models/intimacy_record.dart`（第 644 行）
+- **来源：** `lib/features/intimacy/models/intimacy_record.dart`（第 669 行）
 - **用途：** 创建持久化激活/暂停秒表会话快照：原始开始时间、上次恢复时间、累积已流逝时间、运行标志和可选抽插次数。
 - **输入：** `firstStartedAt`、`accumulated`、`running` 必填；`startedAt` 可选（最近恢复时间，暂停时为 `null`）；`thrustCount` 默认 `0`；`thrustCountUnit` 规范化。
 - **返回：** 新的 `IntimacyTimerSession`。
@@ -554,12 +555,12 @@
     thrustCountUnit: _storedThrustCountUnit,
   );
   ```
-  （`lib/features/intimacy/widgets/timer_page.dart:380-387`，`_timerSession` getter 快照实时计时器供持久化。）
+  （`lib/features/intimacy/widgets/timer_page.dart:378-385`，`_timerSession` getter 快照实时计时器供持久化。）
 - **备注：** `accumulated` 存储最新运行段之前的已流逝时间——两者如何组合见 [`elapsedAt`](#elapsedat)。
 
 ### `Duration elapsedAt(DateTime now)` <a id="elapsedat"></a>
 - **种类：** `IntimacyTimerSession` 的方法
-- **来源：** `lib/features/intimacy/models/intimacy_record.dart`（第 659 行）
+- **来源：** `lib/features/intimacy/models/intimacy_record.dart`（第 684 行）
 - **用途：** 计算给定挂钟时刻的计时器已流逝时长。
 - **输入：** `now`。
 - **返回：** `Duration`。
@@ -570,18 +571,18 @@
 
 ### `Map<String, dynamic> toJson()` <a id="intimacytimersession-tojson"></a>
 - **种类：** `IntimacyTimerSession` 的方法
-- **来源：** `lib/features/intimacy/models/intimacy_record.dart`（第 669 行）
+- **来源：** `lib/features/intimacy/models/intimacy_record.dart`（第 694 行）
 - **用途：** 把计时器会话序列化为存储在 `intimacy_data.json` 的 `timerSession` 键下的 JSON。
 - **输入：** 无。
 - **返回：** `{firstStartedAt, startedAt?, accumulatedMs, running, thrustCount?, thrustCountUnit?}` — `startedAt` 和抽插字段缺席/为零时省略。
 - **副作用：** 无。
 - **算法：** 映射字面量；`accumulated` 在 `accumulatedMs` 下为 `.inMilliseconds`。
-- **用法：** 从 `IntimacyData.toJson`（第 864 行）调用：`timerSession!.toJson()`，只在 `timerSession != null` 时。
+- **用法：** 从 `IntimacyData.toJson`（第 898 行）调用：`timerSession!.toJson()`，只在 `timerSession != null` 时。
 - **备注：** 无。
 
 ### `factory IntimacyTimerSession.fromJson(Map<String, dynamic> json)` <a id="intimacytimersession-fromjson"></a>
 - **种类：** `IntimacyTimerSession` 的工厂构造函数
-- **来源：** `lib/features/intimacy/models/intimacy_record.dart`（第 683 行）
+- **来源：** `lib/features/intimacy/models/intimacy_record.dart`（第 708 行）
 - **用途：** 从持久化 JSON 形态解析回计时器会话，恢复被中断的激活/暂停秒表。
 - **输入：** `json` — 解码映射。
 - **返回：** 新的 `IntimacyTimerSession`。
@@ -591,7 +592,7 @@
   2. `running = json['running'] as bool? ?? startedAt != null` — `running` 键本身缺席（旧数据）时从 `startedAt` 的存在推断运行。
   3. 结果中的 `startedAt` 是 `running ? (startedAt ?? firstStartedAt) : null` — 无自己 `startedAt` 的运行中会话回退 `firstStartedAt`。
   4. `thrustCount` 重新钳制非负；`thrustCountUnit` 重新规范化。
-- **用法：** 从 `IntimacyData.fromJson`（第 914-916 行）调用，由 `json['timerSession'] is Map<String, dynamic>` 守卫。
+- **用法：** 从 `IntimacyData.fromJson`（第 947-950 行）调用，由 `json['timerSession'] is Map<String, dynamic>` 守卫。
 - **备注：** 第 2 步的推断正是让在显式 `running` 键存在前持久化的会话仍正确恢复的东西，按 [亲密](../../../../features/intimacy.md#timerstopwatch-session-persistence) 的恢复规则（停止但未保存和暂停的会话恢复为暂停；运行中会话实时恢复）。
 
 ### `const IntimacyChartSettings({List<String> metrics = defaultMetrics, String range = defaultRange})` <a id="intimacychartsettings-new"></a>
@@ -634,7 +635,7 @@
 
 ### `IntimacyData({required List<Partner> partners, required List<Toy> toys, List<Position> positions = const [], required List<IntimacyRecord> records, List<TimerHistoryEntry> timerHistory = const [], IntimacyTimerSession? timerSession, DateTime? timerSessionModifiedAt, BodyProfile? userBody, DateTime? userBodyModifiedAt, List<CycleRecord> cycleRecords = const [], int? timerHistoryRetentionDays, Map<String, String> partnerSortModes = const {}, Map<String, List<String>> partnerCustomOrders = const {}, Map<String, String> toySortModes = const {}, Map<String, List<String>> toyCustomOrders = const {}, IntimacyChartSettings? chartSettings, DateTime? settingsModifiedAt})` <a id="intimacydata-new"></a>
 - **种类：** `IntimacyData` 的构造函数
-- **来源：** `lib/features/intimacy/models/intimacy_record.dart`（第 828 行）
+- **来源：** `lib/features/intimacy/models/intimacy_record.dart`（第 827 行）
 - **用途：** 创建顶层亲密数据容器：伴侣、玩具、姿势、记录、计时器历史/会话、用户自己的身体档案、周期记录和伴侣/玩具排序设置。
 - **输入：** `partners`、`toys`、`records` 必填；其他都可选，带空集合或 `null` 默认。
 - **返回：** 新的 `IntimacyData`。
@@ -659,16 +660,28 @@
       partnerCustomOrders: _partnerCustomOrders,
       toySortModes: _toySortModes,
       toyCustomOrders: _toyCustomOrders,
+      chartSettings: _chartSettings,
       settingsModifiedAt: _settingsModifiedAt,
     ),
   );
   ```
-  （`lib/features/intimacy/views/intimacy_page.dart:234-253`，`_saveData()`。）
-- **备注：** `timerSessionModifiedAt`/`userBodyModifiedAt` 各自独立于 `settingsModifiedAt` 只跟踪自己的字段，因此对其中一个的 LWW 同步合并绝不覆盖其他——[亲密](../../../../features/intimacy.md#models) 文档化的相同独立时间戳模式。此模型没有 `copyWith`；[`IntimacyStorage._migrateLegacyTimerHistory`](../services/intimacy_storage.md#_migratelegacytimerhistory) 逐字段重建完整新实例。
+  （`lib/features/intimacy/views/intimacy_page.dart:171-189`，`_currentIntimacyData()`，`_saveDataNow()` 把它传给 `IntimacyStorage.save`。）
+- **备注：** `timerSessionModifiedAt`/`userBodyModifiedAt` 各自独立于 `settingsModifiedAt` 只跟踪自己的字段，因此对其中一个的 LWW 同步合并绝不覆盖其他——[亲密](../../../../features/intimacy.md#models) 文档化的相同独立时间戳模式。自 v1.5.2 起，此模型有一个窄的 [`copyWith`](#intimacydata-copywith)，只替换五个记录列表；[`IntimacyStorage._migrateLegacyTimerHistory`](../services/intimacy_storage.md#_migratelegacytimerhistory) 仍逐字段重建完整新实例。
+
+### `IntimacyData copyWith({List<Partner>? partners, List<Toy>? toys, List<Position>? positions, List<IntimacyRecord>? records, List<CycleRecord>? cycleRecords})` <a id="intimacydata-copywith"></a>
+- **种类：** `IntimacyData` 的方法
+- **来源：** `lib/features/intimacy/models/intimacy_record.dart`（第 859 行）
+- **用途：** 返回一个副本，给定的记录列表被替换。
+- **输入：** 可选的 `partners`、`toys`、`positions`、`records`、`cycleRecords`；`null` 参数保留此实例的列表。
+- **返回：** 与此实例共享其他所有字段的新 `IntimacyData`。
+- **副作用：** 无。
+- **算法：** 用每个提供的列表（否则用当前列表）调用主构造函数，并把其他所有字段——`timerHistory`、`timerSession`、`timerSessionModifiedAt`、`userBody`、`userBodyModifiedAt`、`timerHistoryRetentionDays`、四个排序模式/自定义顺序映射、`chartSettings` 和 `settingsModifiedAt`——显式传过。
+- **用法：** `_IntimacyPageState._commitSubPage` 用 `base.copyWith(partners: partners?.applyTo(base.partners), ...)` 构建合并后的数据集（`lib/features/intimacy/views/intimacy_page.dart`）。
+- **备注：** 显式带过 `settingsModifiedAt`，否则构造函数会把它默认成 `DateTime.now().toUtc()`；按 id 合并的子页面保存不得推进通用设置时间戳。不同于 `Partner.copyWith`，不盖章任何时间戳。副本按引用共享未替换的列表。
 
 ### `Map<String, dynamic> toJson()` <a id="intimacydata-tojson"></a>
 - **种类：** `IntimacyData` 的方法
-- **来源：** `lib/features/intimacy/models/intimacy_record.dart`（第 858 行）
+- **来源：** `lib/features/intimacy/models/intimacy_record.dart`（第 892 行）
 - **用途：** 把整个亲密数据树序列化为写入 `intimacy_data.json` 的顶层 JSON。
 - **输入：** 无。
 - **返回：** `partners`/`toys`/`positions`/`records`/`timerHistory`/`timerSessionModifiedAt`/`settingsModifiedAt` 总是存在（作为每个元素自己的 `toJson()` 的列表）；`timerSession`/`userBody`（只在 `!isEmpty`）/`userBodyModifiedAt`（只在非纪元零）/`cycleRecords`/`timerHistoryRetentionDays`/四个排序模式/自定义顺序映射只在非 null/非空时包含。
@@ -679,7 +692,7 @@
 
 ### `factory IntimacyData.fromJson(Map<String, dynamic> json)` <a id="intimacydata-fromjson"></a>
 - **种类：** `IntimacyData` 的工厂构造函数
-- **来源：** `lib/features/intimacy/models/intimacy_record.dart`（第 886 行）
+- **来源：** `lib/features/intimacy/models/intimacy_record.dart`（第 921 行）
 - **用途：** 从 `intimacy_data.json` 解析回整个亲密数据树。
 - **输入：** `json` — 解码顶层映射。
 - **返回：** 新的 `IntimacyData`。

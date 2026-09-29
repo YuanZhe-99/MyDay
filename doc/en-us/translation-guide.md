@@ -164,6 +164,12 @@ Not copied to the other repos — no other app has these.
 | fallback facts | 回退事实 | the plainer facts a card sends once when the model declines the titled ones |
 | regenerate | 重新生成 | the card's refresh button |
 | weak linking | 弱链接 | FoundationModels is linked with `LC_LOAD_WEAK_DYLIB` |
+| merge-by-id (sub-page save) | 按 id 合并（子页面保存） | Finance/Intimacy: a sub-page's list edits replayed onto a fresh read of the file (`IdListDelta`, v1.5.2) |
+| sub-page | 子页面 | a page pushed from a module home page (accounts, partner management, ...) |
+| Origin guard | Origin 守卫 | local API middleware rejecting non-local browser `Origin`s with 403 (v1.5.2) |
+| calendar day (step) | 日历日 | a date step that keeps the wall-clock time across a DST change (`addCalendarDays`) |
+| single-key patch | 单键补丁 | `TodoStorage.writeConfig` given only the keys being changed (a `null` value removes the key), v1.5.2 |
+| config queue | 配置队列 | the serial queue every `storage_config.json` read-merge-write runs through, so concurrent settings saves cannot drop each other (v1.5.2) |
 
 ## 6. Review checklist (run before committing a Chinese page)
 

@@ -12,15 +12,30 @@ through `TodoStorage.readConfig()`.
 - **Config keys:** `apiPort` (default `7790`), `apiListenAddress` (default `localhost`),
   `apiEnabled`, `apiUsername`, `apiPassword`.
 - **Non-loopback binding without credentials is refused** with `credentials_required`.
-- **Middleware:** permissive CORS (confirmed: `_corsMiddleware()` adds `_corsHeaders` to every
-  response and answers `OPTIONS` preflight with `Response.ok('', headers: _corsHeaders)`), Basic
-  Auth when credentials are configured (`WWW-Authenticate: Basic realm="MyDay API"` on a 401), and
-  JSON error handling.
+- **Middleware:** in pipeline order, the Origin guard, CORS for local origins, Basic Auth when
+  credentials are configured (`WWW-Authenticate: Basic realm="MyDay API"` on a 401), and JSON error
+  handling.
+- **Origin guard (v1.5.2):** `_originGuardMiddleware()` runs first, before CORS and auth, so it also
+  covers `OPTIONS` preflights. A request whose `Origin` header is not a local origin gets **403**
+  `{"error":"origin_not_allowed"}` — a web page on the internet can no longer drive the API from the
+  user's browser. `LocalApiServer.isAllowedLocalOrigin` allows only `http`/`https` origins on
+  `localhost`, `*.localhost`, or a loopback IP literal (`127.0.0.0/8`, `::1`); `null` (sandboxed or
+  `file://` pages), other schemes, and every other host are rejected. Requests with no `Origin`
+  header (curl, scripts, other apps) pass unchanged. No `Host`-header (DNS-rebinding) check is made.
+- **CORS:** `_corsMiddleware()` echoes the allowed `Origin` back in `Access-Control-Allow-Origin`
+  together with `Vary: Origin` (and answers the `OPTIONS` preflight with those headers); a request
+  without an `Origin` header gets no `Access-Control-Allow-Origin` at all. The API never answers
+  with the `*` wildcard (it did before v1.5.2).
 - **`data_unreadable` (HTTP 500):** Todo, Finance, and Weight handlers return
   `{"error":"data_unreadable"}` with status 500 when an existing data file cannot be parsed (the
-  same typed-exception condition described in [Architecture](architecture.md)). Missing files still
+  same typed-exception condition described in [Architecture](architecture.md)). Since v1.5.2 this
+  includes an unreadable `exchange_rates.json` (`ExchangeRateStorageException`). Missing files still
   use the endpoint's documented empty-data behavior, and write endpoints abort *before* saving when
   the underlying file is unreadable.
+- **Writes refresh the app (v1.5.2):** after every successful write (`/todo/add`, `/todo/complete`,
+  `/todo/score`, `/finance/add_transaction`, `/weight/add`) the server calls
+  `AutoSyncService.notifySaved()` and `notifyLocalDataChangedNow()`, so auto-sync uploads the change
+  and open pages reload instead of later overwriting the API write with stale in-memory state.
 - **Auth scope:** when API username and password are configured, Basic Auth is required for every
   non-`OPTIONS` request, including localhost requests. Without credentials configured, loopback
   requests are allowed and non-loopback requests are rejected.

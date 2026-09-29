@@ -850,6 +850,40 @@ class IntimacyData {
            DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
        settingsModifiedAt = settingsModifiedAt ?? DateTime.now().toUtc();
 
+  /// Purpose: Return a copy with the given record lists replaced.
+  /// Inputs: optional `partners`, `toys`, `positions`, `records`, `cycleRecords`.
+  /// Returns: A new `IntimacyData` sharing every other field with this one.
+  /// Side effects: None.
+  /// Notes: Used by the intimacy page's merge-by-id sub-page saves. Every timestamp is
+  /// carried over explicitly so `settingsModifiedAt` is never reset to "now".
+  IntimacyData copyWith({
+    List<Partner>? partners,
+    List<Toy>? toys,
+    List<Position>? positions,
+    List<IntimacyRecord>? records,
+    List<CycleRecord>? cycleRecords,
+  }) {
+    return IntimacyData(
+      partners: partners ?? this.partners,
+      toys: toys ?? this.toys,
+      positions: positions ?? this.positions,
+      records: records ?? this.records,
+      timerHistory: timerHistory,
+      timerSession: timerSession,
+      timerSessionModifiedAt: timerSessionModifiedAt,
+      userBody: userBody,
+      userBodyModifiedAt: userBodyModifiedAt,
+      cycleRecords: cycleRecords ?? this.cycleRecords,
+      timerHistoryRetentionDays: timerHistoryRetentionDays,
+      partnerSortModes: partnerSortModes,
+      partnerCustomOrders: partnerCustomOrders,
+      toySortModes: toySortModes,
+      toyCustomOrders: toyCustomOrders,
+      chartSettings: chartSettings,
+      settingsModifiedAt: settingsModifiedAt,
+    );
+  }
+
   /// Purpose: Serialize this value into a JSON-compatible map.
   /// Inputs: None.
   /// Returns: A JSON-compatible map.

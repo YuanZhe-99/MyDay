@@ -50,7 +50,7 @@
 
 ### `Color cyclePersonColor({required String? personId, required List<String> allPartnerIdsSorted})` <a id="cyclepersoncolor"></a>
 - **种类：** 顶层函数
-- **来源：** `lib/features/intimacy/widgets/body_section.dart`（第 33 行）
+- **来源：** `lib/features/intimacy/widgets/body_section.dart`（第 34 行）
 - **用途：** 为一个人在应用处处（身体标签日历、主页日历叠加）的周期指示器挑选稳定调色板颜色。
 - **输入：** `personId` — 用户为 `null`，否则是伴侣 id；`allPartnerIdsSorted` — 每个伴侣 id，预排序，用于为 `personId` 派生稳定槽位。
 - **返回：** `Color` — 来自 `cyclePersonPalette`（定义在 `cycle_calendar.dart`）的值。
@@ -72,7 +72,7 @@
 
 ### `void initState()` <a id="initstate"></a>
 - **种类：** `_BodySectionViewState` 的方法（`State.initState` 的覆盖）
-- **来源：** `lib/features/intimacy/widgets/body_section.dart`（第 109 行）
+- **来源：** `lib/features/intimacy/widgets/body_section.dart`（第 110 行）
 - **用途：** 初始化显示的测量——用户模式来自体重模块，伴侣模式直接从 `widget.profile`。
 - **输入：** 无（读取 `widget.mode`、`widget.profile`）。
 - **返回：** 无。
@@ -96,7 +96,7 @@
 
 ### `void dispose()` <a id="dispose"></a>
 - **种类：** `_BodySectionViewState` 的方法（`State.dispose` 的覆盖）
-- **来源：** `lib/features/intimacy/widgets/body_section.dart`（第 127 行）
+- **来源：** `lib/features/intimacy/widgets/body_section.dart`（第 128 行）
 - **用途：** 确保页面关闭前刚做的测量编辑仍产生其体重记录，而不是被防抖计时器静默丢弃。
 - **输入：** 无。
 - **返回：** 无。
@@ -110,7 +110,7 @@
 
 ### `Future<void> _loadUserMeasurements()` <a id="loadusermeasurements"></a>
 - **种类：** `_BodySectionViewState` 的方法
-- **来源：** `lib/features/intimacy/widgets/body_section.dart`（第 145 行）
+- **来源：** `lib/features/intimacy/widgets/body_section.dart`（第 146 行）
 - **用途：** 从体重记录加载用户最近胸/腰/臀值（逐字段独立），加同步警告退出标志。
 - **输入：** 无。
 - **返回：** `Future<void>`。
@@ -130,7 +130,7 @@
 
 ### `WeightRecord? _latestRecord(List<WeightRecord> records)` <a id="latestrecord"></a>
 - **种类：** `_BodySectionViewState` 的方法
-- **来源：** `lib/features/intimacy/widgets/body_section.dart`（第 183 行）
+- **来源：** `lib/features/intimacy/widgets/body_section.dart`（第 184 行）
 - **用途：** 按 datetime 返回最新体重记录，没有则 `null`。
 - **输入：** `records` — 完整体重记录列表。
 - **返回：** `WeightRecord?`。
@@ -150,14 +150,14 @@
 
 ### `Future<void> _setSyncWarningDisabled(bool disabled)` <a id="setsyncwarningdisabled"></a>
 - **种类：** `_BodySectionViewState` 的方法
-- **来源：** `lib/features/intimacy/widgets/body_section.dart`（第 195 行）
+- **来源：** `lib/features/intimacy/widgets/body_section.dart`（第 196 行）
 - **用途：** 持久化体重同步警告的"不再提醒我"退出。
 - **输入：** `disabled` — 新退出状态。
 - **返回：** `Future<void>`。
 - **副作用：** 更新状态中的 `_syncWarningDisabled`/`_syncWarningAcknowledged`；把 `bodyWeightSyncWarningDisabledKey` 写入 `storage_config.json`（仅本地，绝不同步）。
 - **算法：**
   1. `setState` 更新 `_syncWarningDisabled`；重新启用（`!disabled`）时也清除 `_syncWarningAcknowledged`，使警告在下一次编辑时重新出现。
-  2. 读取配置、设置键、写回。
+  2. `await TodoStorage.writeConfig({bodyWeightSyncWarningDisabledKey: disabled})`——单键合并写入（v1.5.2）。原先"读取整个配置、设置、写回整个配置"的顺序可能覆盖其他写入方在中间更改的键；`writeConfig` 现在在其串行化的配置写队列内重新读取并合并。
 - **用法：**
   ```dart
   // _buildWarningSettingCard, line 1012 (the bottom switch):
@@ -171,7 +171,7 @@
 
 ### `Future<bool> _confirmWeightSync()` <a id="confirmweightsync"></a>
 - **种类：** `_BodySectionViewState` 的方法
-- **来源：** `lib/features/intimacy/widgets/body_section.dart`（第 210 行）
+- **来源：** `lib/features/intimacy/widgets/body_section.dart`（第 209 行）
 - **用途：** 把一次访问中的首次胸/腰/臀编辑门控在警告这些字段编辑会创建新体重模块记录的警告之后。
 - **输入：** 无。
 - **返回：** `Future<bool>` — 编辑可以进行时 `true`。
@@ -196,7 +196,7 @@
 
 ### `void _onMeasurementChanged(void Function() apply)` <a id="onmeasurementchanged"></a>
 - **种类：** `_BodySectionViewState` 的方法
-- **来源：** `lib/features/intimacy/widgets/body_section.dart`（第 262 行）
+- **来源：** `lib/features/intimacy/widgets/body_section.dart`（第 261 行）
 - **用途：** 应用胸/腰/臀变更，用户模式防抖成单条新体重记录而不是每次击键都写。
 - **输入：** `apply` — 修改挂起 `_bust`/`_waist`/`_hip` 字段的闭包。
 - **返回：** 无。
@@ -237,7 +237,7 @@
 
 ### `CyclePrediction get _prediction` <a id="prediction"></a>
 - **种类：** `_BodySectionViewState` 的 getter
-- **来源：** `lib/features/intimacy/widgets/body_section.dart`（第 360 行）
+- **来源：** `lib/features/intimacy/widgets/body_section.dart`（第 361 行）
 - **用途：** 为此人计算周期预测供日历/图例/摘要渲染。
 - **输入：** 无（读取 `_myCycleDays`）。
 - **返回：** `CyclePrediction` — 无记录历史时 `CyclePrediction.empty`。
@@ -255,7 +255,7 @@
 
 ### `void _addCycleStart()` <a id="addcyclestart"></a>
 - **种类：** `_BodySectionViewState` 的方法
-- **来源：** `lib/features/intimacy/widgets/body_section.dart`（第 376 行）
+- **来源：** `lib/features/intimacy/widgets/body_section.dart`（第 377 行）
 - **用途：** 为日历当前选中的记录周期开始日。
 - **输入：** 无（读取 `_selectedCycleDate`）。
 - **返回：** 无。
@@ -276,7 +276,7 @@
 
 ### `Future<void> _deleteCycleStart()` <a id="deletecyclestart"></a>
 - **种类：** `_BodySectionViewState` 的方法
-- **来源：** `lib/features/intimacy/widgets/body_section.dart`（第 393 行）
+- **来源：** `lib/features/intimacy/widgets/body_section.dart`（第 394 行）
 - **用途：** 确认后删除当前所选日期的周期开始记录。
 - **输入：** 无（读取 `_selectedCycleDate`）。
 - **返回：** `Future<void>`。
@@ -298,7 +298,7 @@
 
 ### `String _selectedCycleDateSummary(AppLocalizations l10n, DateTime date, CycleDayInfo? info, bool hasRecord)` <a id="selectedcycledatesummary"></a>
 - **种类：** `_BodySectionViewState` 的方法
-- **来源：** `lib/features/intimacy/widgets/body_section.dart`（第 871 行）
+- **来源：** `lib/features/intimacy/widgets/body_section.dart`（第 872 行）
 - **用途：** 为日历上选中的任何日期产生添加/删除开始操作按钮旁显示的一行摘要。
 - **输入：** `l10n`；`date` — 所选日期；`info` — 该日期的 `CycleDayInfo` 或 `null`；`hasRecord` — 此人是否有那天实际记录的开始。
 - **返回：** `String`。
@@ -321,7 +321,7 @@
 
 ### `void didUpdateWidget(covariant _NumberField oldWidget)` <a id="didupdatewidget"></a>
 - **种类：** `_NumberFieldState` 的方法（`State.didUpdateWidget` 的覆盖）
-- **来源：** `lib/features/intimacy/widgets/body_section.dart`（第 1080 行）
+- **来源：** `lib/features/intimacy/widgets/body_section.dart`（第 1081 行）
 - **用途：** 父级从外部提供新 `value`（如成功提交把新值往返传回）时保持显示文本同步，不覆盖进行中的编辑。
 - **输入：** `oldWidget` — 先前组件配置（除覆盖签名外未使用）。
 - **返回：** 无。
@@ -335,7 +335,7 @@
 
 ### `String _format(double? value)` <a id="format"></a>
 - **种类：** `_NumberFieldState` 的方法
-- **来源：** `lib/features/intimacy/widgets/body_section.dart`（第 1108 行）
+- **来源：** `lib/features/intimacy/widgets/body_section.dart`（第 1109 行）
 - **用途：** 格式化测量值供显示，不带不必要的尾部 `.0`。
 - **输入：** `value` — 要格式化的值，或 `null`。
 - **返回：** `String` — `null` 为空。
@@ -352,7 +352,7 @@
 
 ### `void _onFocusChanged()` <a id="onfocuschanged"></a>
 - **种类：** `_NumberFieldState` 的方法
-- **来源：** `lib/features/intimacy/widgets/body_section.dart`（第 1120 行）
+- **来源：** `lib/features/intimacy/widgets/body_section.dart`（第 1121 行）
 - **用途：** 字段一失焦就提交其当前文本，而不是等输入暂停防抖。
 - **输入：** 无。
 - **返回：** 无。
@@ -367,7 +367,7 @@
 
 ### `void _commit()` <a id="commit"></a>
 - **种类：** `_NumberFieldState` 的方法
-- **来源：** `lib/features/intimacy/widgets/body_section.dart`（第 1132 行）
+- **来源：** `lib/features/intimacy/widgets/body_section.dart`（第 1133 行）
 - **用途：** 解析字段当前文本，只在解析值实际变化时调用字段的 `onCommitted` 回调。
 - **输入：** 无（读取 `_controller.text`）。
 - **返回：** 无。
@@ -390,7 +390,7 @@
 
 ### `Future<void> _handleTap()` <a id="handletap"></a>
 - **种类：** `_NumberFieldState` 的方法
-- **来源：** `lib/features/intimacy/widgets/body_section.dart`（第 1152 行）
+- **来源：** `lib/features/intimacy/widgets/body_section.dart`（第 1153 行）
 - **用途：** 让字段取得焦点前运行字段可选的一次性编辑门（体重同步警告）。
 - **输入：** 无。
 - **返回：** `Future<void>`。

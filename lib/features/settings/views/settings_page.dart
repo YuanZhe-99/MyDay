@@ -383,12 +383,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       'apiUsername': newUser.isEmpty ? null : newUser,
       'apiPassword': newPass.isEmpty ? null : newPass,
     });
-    setState(() {
-      _apiPort = newPort;
-      _apiListenAddress = newAddr;
-      _apiUsername = newUser;
-      _apiPassword = newPass;
-    });
+    if (mounted) {
+      setState(() {
+        _apiPort = newPort;
+        _apiListenAddress = newAddr;
+        _apiUsername = newUser;
+        _apiPassword = newPass;
+      });
+    }
     await LocalApiServer.restart();
     if (mounted) {
       setState(() {});
@@ -655,6 +657,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               value: _minimizeToTray,
               onChanged: (value) async {
                 await TrayService.instance.setMinimizeToTray(value);
+                if (!mounted) return;
                 setState(() => _minimizeToTray = value);
               },
             ),
@@ -664,6 +667,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               value: _closeToTray,
               onChanged: (value) async {
                 await TrayService.instance.setCloseToTray(value);
+                if (!mounted) return;
                 setState(() => _closeToTray = value);
               },
             ),
@@ -677,6 +681,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 } else {
                   await launchAtStartup.disable();
                 }
+                if (!mounted) return;
                 setState(() => _autoStart = v);
               },
             ),
@@ -701,7 +706,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               value: _apiEnabled,
               onChanged: (v) async {
                 await TodoStorage.writeConfig({'apiEnabled': v});
-                setState(() => _apiEnabled = v);
+                if (mounted) setState(() => _apiEnabled = v);
                 if (v) {
                   await LocalApiServer.start();
                 } else {

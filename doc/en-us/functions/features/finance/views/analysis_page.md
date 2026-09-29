@@ -57,27 +57,29 @@ mainly assemble already-computed values into a widget tree) remain Tier B.
 | [`sampleEnd`](#sampleend) | method (`_TrendScale`) | A | Return the end instant of a given bucket, clipped to the scale's range. |
 | `xLabel` | method (`_TrendScale`) | B | Format the x-axis label for a bucket index. |
 | `tooltipLabel` | method (`_TrendScale`) | B | Format the tooltip label for a bucket index. |
-| `_offset` | method (`_TrendScale`) | B | Compute the instant `steps` buckets after `start`. |
+| `_offset` | method (`_TrendScale`) | B | Compute the instant `steps` buckets after `start` (whole calendar days for a one-day step, v1.5.2). |
 | `_TrendData` (constructor) | constructor (`_TrendData`) | B | Bundle computed expense/income/assets spot lists and y-axis bounds. |
 | `_ChartSeries` (constructor) | constructor (`_ChartSeries`) | B | Bundle one chart line's label, color, spots, and fill flag. |
 
 `grep -c 'Purpose:' lib/features/finance/views/analysis_page.dart` reports 33, but the table above
 has 34 rows. The discrepancy is one **undocumented real declaration**: `_chartBounds`
-(`_AnalysisPageState`, line 1020) has no `/// Purpose:` block at all — the doc comment block ending
-just above it (lines 1041-1045, `_pointCount`'s block) sits above the *next* declaration, not this
+(`_AnalysisPageState`, line 1052) has no `/// Purpose:` block at all — the doc comment block ending
+just above it (lines 1073-1078, `_pointCount`'s block) sits above the *next* declaration, not this
 one, and there is no comment of any kind directly above `_chartBounds` itself. It is a real method
-(computes padded axis bounds, called from `_buildLineChartPanel` at line 893) so it is counted as a
+(computes padded axis bounds, called from `_buildLineChartPanel` at line 925) so it is counted as a
 declaration here despite being undocumented in source. Every other `/// Purpose:` block was verified
 to sit directly above the real declaration it documents — no misattached blocks (a block documenting
-a call site rather than a declaration) were found. The `enum _TimeRange` (line 12) and the static
-`_chartColors` color palette (lines 1099-1112) are plain data declarations with no behavior and, per
-the same convention used for other files in this doc set, are not given table rows.
+a call site rather than a declaration) were found. The `enum _TimeRange` (line 14), the static
+`_chartColors` color palette (lines 1136-1149), and the `_TrendScale.dayStep` constant (line 1154,
+v1.5.2; the one-day step that switches bucketing to local calendar days) are plain data
+declarations with no behavior and, per the same convention used for other files in this doc set,
+are not given table rows.
 
 ## Documentation
 
 ### `void didUpdateWidget(covariant AnalysisPage oldWidget)` <a id="didupdatewidget"></a>
 - **Kind:** method override of `_AnalysisPageState`
-- **Source:** `lib/features/finance/views/analysis_page.dart` (line 75)
+- **Source:** `lib/features/finance/views/analysis_page.dart` (line 77)
 - **Purpose:** Resync the locally-held `_transactions` copy when the parent widget passes a genuinely
   new transaction list instance, while preserving in-page edits otherwise.
 - **Inputs:** `oldWidget` — the previous `AnalysisPage` configuration.
@@ -91,14 +93,14 @@ the same convention used for other files in this doc set, are not given table ro
   with new `transactions`/`categories`/`accounts` data (e.g. after a sync or an edit elsewhere) — not
   called directly by any code in this file.
 - **Notes:** Because `_openCategoryTransactions`'s callback reassigns `_transactions` locally via
-  `setState` (line 302) without also replacing `widget.transactions`, that in-page edit does not
+  `setState` (line 303) without also replacing `widget.transactions`, that in-page edit does not
   change the identity of `widget.transactions`, so a subsequent `didUpdateWidget` call triggered by
   an unrelated parent rebuild will not clobber it — only a genuinely new list instance from the
   parent does.
 
 ### `List<Transaction> get _filteredTransactions` <a id="_filteredtransactions"></a>
 - **Kind:** getter of `_AnalysisPageState`
-- **Source:** `lib/features/finance/views/analysis_page.dart` (line 99)
+- **Source:** `lib/features/finance/views/analysis_page.dart` (line 101)
 - **Purpose:** Filter `_transactions` down to whichever year/month/day/custom range is currently
   selected.
 - **Inputs:** None (reads `_timeRange`, `_selectedMonth`, `_customRange`, `_transactions`).
@@ -108,7 +110,7 @@ the same convention used for other files in this doc set, are not given table ro
   `_selectedMonth.year`; `month` → year and month both match; `day` → year/month/day all match;
   `custom` → `[]` if `_customRange` is unset, otherwise transactions with `date` on/after
   `_customRange.start` and strictly before `_customRange.end + 1 day` (an inclusive end-date bound).
-- **Usage:** `_filteredCategoryFlowTransactions` (line 143) is the only reader in this file:
+- **Usage:** `_filteredCategoryFlowTransactions` (line 144) is the only reader in this file:
   ```dart
   List<Transaction> get _filteredCategoryFlowTransactions =>
       _filteredTransactions.where((t) => t.type == _categoryFlowType).toList();
@@ -121,7 +123,7 @@ the same convention used for other files in this doc set, are not given table ro
 
 ### `List<Transaction> get _filteredCategoryFlowTransactions` <a id="_filteredcategoryflowtransactions"></a>
 - **Kind:** getter of `_AnalysisPageState`
-- **Source:** `lib/features/finance/views/analysis_page.dart` (line 142)
+- **Source:** `lib/features/finance/views/analysis_page.dart` (line 144)
 - **Purpose:** Narrow the range-filtered transactions further to only the selected flow type
   (expense or income) for the category pie-chart tab.
 - **Inputs:** None (reads `_filteredTransactions`, `_categoryFlowType`).
@@ -136,7 +138,7 @@ the same convention used for other files in this doc set, are not given table ro
 
 ### `String _rangeLabel(AppLocalizations l10n)` <a id="_rangelabel"></a>
 - **Kind:** method of `_AnalysisPageState`
-- **Source:** `lib/features/finance/views/analysis_page.dart` (line 150)
+- **Source:** `lib/features/finance/views/analysis_page.dart` (line 152)
 - **Purpose:** Format the currently selected time range as the header label between the prev/next
   navigator arrows.
 - **Inputs:** `l10n`.
@@ -145,40 +147,43 @@ the same convention used for other files in this doc set, are not given table ro
 - **Algorithm:** `switch (_timeRange)`: `year` → the bare year number; `month` → `yyyy-MM`; `day` →
   `yyyy-MM-dd`; `custom` → `l10n.financeSelectDateRange` if no range chosen yet, otherwise
   `'MM-dd ~ MM-dd'` built from `_customRange.start`/`.end`.
-- **Usage:** `_rangeLabel(l10n)` (`build`, line 383, the tappable label between the chevron/edit
+- **Usage:** `_rangeLabel(l10n)` (`build`, line 384, the tappable label between the chevron/edit
   buttons).
 - **Notes:** None.
 
 ### `void _prev()` <a id="_prev"></a>
 - **Kind:** method of `_AnalysisPageState`
-- **Source:** `lib/features/finance/views/analysis_page.dart` (line 169)
+- **Source:** `lib/features/finance/views/analysis_page.dart` (line 171)
 - **Purpose:** Step the selected year/month/day back by one unit (no-op in custom-range mode).
 - **Inputs:** None.
 - **Returns:** None.
 - **Side effects:** `setState` reassigning `_selectedMonth`.
 - **Algorithm:** `switch (_timeRange)`: `year` → `_selectedMonth.year - 1` (same month);
   `month` → `_selectedMonth.month - 1` (`DateTime` normalizes month underflow into the prior year);
-  `day` → subtract one calendar day; `custom` → `break` (no-op, since custom mode navigates via the
-  date-range picker instead of prev/next).
-- **Usage:** `onPressed: _prev` (`build`, line 374, the left chevron `IconButton`, only shown when
+  `day` → `addCalendarDays(_selectedMonth, -1)`; `custom` → `break` (no-op, since custom mode
+  navigates via the date-range picker instead of prev/next).
+- **Usage:** `onPressed: _prev` (`build`, line 376, the left chevron `IconButton`, only shown when
   `_timeRange != _TimeRange.custom`).
-- **Notes:** None.
+- **Notes:** Since v1.5.2 the day step is a local calendar day
+  ([`addCalendarDays`](../../../shared/utils/week_grouping.md)) rather than
+  `subtract(Duration(days: 1))`, so stepping across a DST change lands on the neighbouring day's
+  midnight instead of 23:00 or 01:00.
 
 ### `void _next()` <a id="_next"></a>
 - **Kind:** method of `_AnalysisPageState`
-- **Source:** `lib/features/finance/views/analysis_page.dart` (line 195)
+- **Source:** `lib/features/finance/views/analysis_page.dart` (line 197)
 - **Purpose:** Step the selected year/month/day forward by one unit (no-op in custom-range mode).
 - **Inputs:** None.
 - **Returns:** None.
 - **Side effects:** `setState` reassigning `_selectedMonth`.
 - **Algorithm:** Mirror image of `_prev`: adds instead of subtracts one year/month/day per
-  `_timeRange`; `custom` → no-op.
-- **Usage:** `onPressed: _next` (`build`, line 392, the right chevron `IconButton`).
-- **Notes:** None.
+  `_timeRange` (`day` → `addCalendarDays(_selectedMonth, 1)`); `custom` → no-op.
+- **Usage:** `onPressed: _next` (`build`, line 394, the right chevron `IconButton`).
+- **Notes:** Calendar-day stepping as described on [`_prev`](#_prev) (v1.5.2).
 
 ### `Future<void> _pickCustomRange()` <a id="_pickcustomrange"></a>
 - **Kind:** async method of `_AnalysisPageState`
-- **Source:** `lib/features/finance/views/analysis_page.dart` (line 221)
+- **Source:** `lib/features/finance/views/analysis_page.dart` (line 223)
 - **Purpose:** Open the shared app date-range picker and, if the user confirms a selection, store it
   as the custom range.
 - **Inputs:** None.
@@ -196,16 +201,16 @@ the same convention used for other files in this doc set, are not given table ro
     }
   }
   ```
-  (`build`, lines 357-361 — auto-opens the picker the first time the user switches into custom mode;
+  (`build`, lines 358-362 — auto-opens the picker the first time the user switches into custom mode;
   also wired directly to the label tap and the edit-calendar `IconButton` for re-editing an existing
-  custom range, lines 379-381 and 395-398.)
+  custom range, lines 380-382 and 395-398.)
 - **Notes:** A cancelled picker (`picked == null`) leaves `_customRange` unchanged, including the case
   where the user switched into custom mode with no prior range — the tab then keeps showing the
   "select a date range" placeholder text until a range is actually chosen.
 
 ### `void _openCategoryTransactions(String? categoryId)` <a id="_opencategorytransactions"></a>
 - **Kind:** method of `_AnalysisPageState`
-- **Source:** `lib/features/finance/views/analysis_page.dart` (line 284)
+- **Source:** `lib/features/finance/views/analysis_page.dart` (line 286)
 - **Purpose:** Push `CategoryDetailPage` for the tapped pie-chart legend entry (or the uncategorized
   bucket, for a `null` id), and merge back any transaction edits made there.
 - **Inputs:** `categoryId` — `null` means the uncategorized-transactions bucket.
@@ -223,7 +228,7 @@ the same convention used for other files in this doc set, are not given table ro
      bucket).
   3. On `onTransactionsChanged` from the pushed page: `setState(() => _transactions =
      List.of(transactions))`, then forward the same list to `widget.onTransactionsChanged`.
-- **Usage:** `onTap: () => _openCategoryTransactions(e.categoryId)` (`_buildPieChart`, line 587, one
+- **Usage:** `onTap: () => _openCategoryTransactions(e.categoryId)` (`_buildPieChart`, line 588, one
   per legend `ListTile`).
 - **Notes:** Because a stale `categoryId` (a category deleted elsewhere) still resolves to `category
   == null` rather than throwing, the drill-down page can still be opened for a since-deleted
@@ -232,7 +237,7 @@ the same convention used for other files in this doc set, are not given table ro
 
 ### `Widget _buildPieChart(BuildContext context)` <a id="_buildpiechart"></a>
 - **Kind:** method of `_AnalysisPageState`
-- **Source:** `lib/features/finance/views/analysis_page.dart` (line 421)
+- **Source:** `lib/features/finance/views/analysis_page.dart` (line 423)
 - **Purpose:** Aggregate the selected range's expense or income transactions into per-category
   totals and render the category pie chart plus a tappable legend, including an uncategorized bucket.
 - **Inputs:** `context`.
@@ -257,7 +262,7 @@ the same convention used for other files in this doc set, are not given table ro
   6. Render the `PieChart`, a total row (colored green for income, `theme.colorScheme.error` for
      expense), and a scrollable legend list; each legend row's `onTap` calls
      `_openCategoryTransactions(e.categoryId)`.
-- **Usage:** `_buildPieChart(context)` (`build`, line 406, as one of the two `TabBarView` children).
+- **Usage:** `_buildPieChart(context)` (`build`, line 407, as one of the two `TabBarView` children).
 - **Notes:** Bucket iteration order (and thus color assignment) follows `Map` insertion order, i.e.
   the order categories were first encountered while looping `categoryTransactions` — not a fixed
   category order, so which color a given category gets can vary across renders if the underlying
@@ -267,7 +272,7 @@ the same convention used for other files in this doc set, are not given table ro
 
 ### `_TrendScale _buildTrendScale()` <a id="_buildtrendscale"></a>
 - **Kind:** method of `_AnalysisPageState`
-- **Source:** `lib/features/finance/views/analysis_page.dart` (line 686)
+- **Source:** `lib/features/finance/views/analysis_page.dart` (line 718)
 - **Purpose:** Build the bucket grid (start instant, bucket step, bucket count, label interval, and
   date-label/tooltip formatters) that both trend charts sample against, sized appropriately for the
   currently selected time range.
@@ -275,28 +280,33 @@ the same convention used for other files in this doc set, are not given table ro
 - **Returns:** `_TrendScale`.
 - **Side effects:** None.
 - **Algorithm:** `switch (_timeRange)`:
-  1. `year` — one bucket per day (`Duration(days: 1)`) across the calendar year; labels/tooltips as
-     `M/d` / `yyyy-MM-dd`.
+  1. `year` — one bucket per calendar day (`_TrendScale.dayStep`, `Duration(days: 1)`) across the
+     calendar year; labels/tooltips as `M/d` / `yyyy-MM-dd`.
   2. `month` — one bucket per hour across the calendar month; labels as `M/d`, tooltips as
      `yyyy-MM-dd HH:00`.
-  3. `day` — one bucket per hour across the single day; labels as `"${hour}h"` (a bespoke closure, not
-     `DateFormat`), fixed `labelInterval: 4`; tooltips as `yyyy-MM-dd HH:00`.
-  4. `custom` — bucket step depends on the range's total length: `<= 48h` → hourly; `<= 45 days` →
-     6-hourly; otherwise daily. Tooltip format switches to the day-only format once the step reaches a
-     full day (`step.inHours >= 24`).
-  5. In every branch, `pointCount` comes from [`_pointCount`](#_pointcount) and (except the `day`
+  3. `day` — one bucket per hour across the single day, whose end is
+     `addCalendarDays(start, 1)` (v1.5.2, so the end is the next local midnight even on a 23- or
+     25-hour DST day); labels as `"${hour}h"` (a bespoke closure, not `DateFormat`), fixed
+     `labelInterval: 4`; tooltips as `yyyy-MM-dd HH:00`.
+  4. `custom` — the end is midnight after the last selected day
+     (`DateTime(y, m, d + 1)`, v1.5.2); bucket step depends on the range's total length: `<= 48h` →
+     hourly; `<= 45 days` → 6-hourly; otherwise daily (`dayStep`). Tooltip format switches to the
+     day-only format once the step reaches a full day (`step.inHours >= 24`).
+  5. In every branch, `pointCount` comes from [`_pointCount`](#_pointcount) (which, like
+     [`bucketIndex`](#bucketindex), counts a one-day step in local calendar days) and (except the `day`
      branch's fixed value) `labelInterval` from [`_labelInterval`](#_labelinterval).
-- **Usage:** `final scale = _buildTrendScale();` (`_buildTrendChart`, line 618, then passed into
+- **Usage:** `final scale = _buildTrendScale();` (`_buildTrendChart`, line 650, then passed into
   `_buildTrendData` and both `_buildLineChartPanel` calls so the flow and assets panels share one
   bucket grid).
 - **Notes:** The `day` range's `labelForDate` closure bypasses `DateFormat` entirely
   (`'${date.hour}h'`), unlike every other range, which is why its `labelInterval` is hardcoded to `4`
   rather than computed — an hourly `DateFormat` pattern would need locale handling that the closure
-  form doesn't.
+  form doesn't. Only the one-day step (`year` range and daily `custom`) switches the scale to
+  calendar-day bucketing; see [`bucketIndex`](#bucketindex) and [`_pointCount`](#_pointcount).
 
 ### `_TrendData _buildTrendData(_TrendScale scale)` <a id="_buildtrenddata"></a>
 - **Kind:** method of `_AnalysisPageState`
-- **Source:** `lib/features/finance/views/analysis_page.dart` (line 776)
+- **Source:** `lib/features/finance/views/analysis_page.dart` (line 808)
 - **Purpose:** Bucket every transaction into the given scale's grid, run cumulative sums to build
   expense/income trend lines, and separately sample total assets at each bucket boundary to build the
   assets-trend line.
@@ -322,7 +332,7 @@ the same convention used for other files in this doc set, are not given table ro
      the flow chart's y-axis at zero). `assetMinY`/`assetMaxY` = min/max across `assets` (not anchored
      to zero).
   6. Wrap each array into `FlSpot(i, value)` lists and return a `_TrendData`.
-- **Usage:** `final trendData = _buildTrendData(scale);` (`_buildTrendChart`, line 619; `flowMaxY`/
+- **Usage:** `final trendData = _buildTrendData(scale);` (`_buildTrendChart`, line 620; `flowMaxY`/
   `assetMinY`/`assetMaxY` are then used to decide whether each panel has data worth showing at all).
 - **Notes:** Iterating the unfiltered `_transactions` (rather than the range-filtered getter) is
   intentional: `scale.bucketIndex` already restricts which transactions land in a visible bucket, so
@@ -332,7 +342,7 @@ the same convention used for other files in this doc set, are not given table ro
 
 ### `double _totalAssetsBefore(DateTime before)` <a id="_totalassetsbefore"></a>
 - **Kind:** method of `_AnalysisPageState`
-- **Source:** `lib/features/finance/views/analysis_page.dart` (line 836)
+- **Source:** `lib/features/finance/views/analysis_page.dart` (line 868)
 - **Purpose:** Compute total assets, converted into `widget.defaultCurrency`, as of a given instant —
   the sample function behind the assets-trend line.
 - **Inputs:** `before` — the instant to reconstruct assets as of (exclusive: only transactions
@@ -351,7 +361,7 @@ the same convention used for other files in this doc set, are not given table ro
      forced-balance anchor — see [Finance](../../../../features/finance.md#forced-balance-migration-to-adjustment-transactions)),
      then convert that balance into `widget.defaultCurrency` using **`widget.rateData.currentRates`**
      (today's rates, not a historical snapshot), and sum across accounts.
-- **Usage:** `(i) => _totalAssetsBefore(scale.sampleEnd(i))` (`_buildTrendData`, line 805, once per
+- **Usage:** `(i) => _totalAssetsBefore(scale.sampleEnd(i))` (`_buildTrendData`, line 806, once per
   bucket).
 - **Notes:** The two paths use different rate sources: the no-accounts fallback uses each
   transaction's own historical rate snapshot, while the with-accounts path converts the reconstructed
@@ -363,7 +373,7 @@ the same convention used for other files in this doc set, are not given table ro
 ### `({double minY, double maxY}) _chartBounds(double minY, double maxY, {required bool anchorZero})` <a id="_chartbounds"></a>
 - **Kind:** method of `_AnalysisPageState` (undocumented in source — no `/// Purpose:` block; see the
   reconciliation note above the Declarations table)
-- **Source:** `lib/features/finance/views/analysis_page.dart` (line 1020)
+- **Source:** `lib/features/finance/views/analysis_page.dart` (line 1052)
 - **Purpose:** Compute a padded y-axis range for a line chart panel, either anchored at zero (the flow
   chart) or floating around the data (the assets chart).
 - **Inputs:** `minY`/`maxY` — the raw data bounds; `anchorZero` — whether the low bound must be `0`.
@@ -375,7 +385,7 @@ the same convention used for other files in this doc set, are not given table ro
      if `anchorZero`, else `(minY - padding, maxY + padding)`.
   2. Otherwise: `padding = (maxY - minY).abs() * 0.1`; same anchor-zero branch as above.
 - **Usage:** `final bounds = _chartBounds(minY, maxY, anchorZero: anchorZero);` (`_buildLineChartPanel`,
-  line 893 — called with `anchorZero: true` for the expense/income flow panel and `anchorZero: false`
+  line 894 — called with `anchorZero: true` for the expense/income flow panel and `anchorZero: false`
   for the assets panel, per the two `_buildLineChartPanel` call sites in `_buildTrendChart`).
 - **Notes:** `anchorZero: false` (the assets panel) is what lets the total-assets-trend line show
   relative movement clearly even when the absolute balance never approaches zero — pinning it to zero
@@ -383,34 +393,39 @@ the same convention used for other files in this doc set, are not given table ro
 
 ### `int _pointCount(DateTime start, DateTime end, Duration step)` <a id="_pointcount"></a>
 - **Kind:** method of `_AnalysisPageState`
-- **Source:** `lib/features/finance/views/analysis_page.dart` (line 1046)
+- **Source:** `lib/features/finance/views/analysis_page.dart` (line 1079)
 - **Purpose:** Compute how many buckets of size `step` are needed to cover `[start, end)`.
 - **Inputs:** `start`, `end`, `step`.
 - **Returns:** `int` — at least `1`.
 - **Side effects:** None.
-- **Algorithm:** Ceiling-divide the total microsecond span by `step`'s microsecond length:
-  `(total + stepMicros - 1) ~/ stepMicros`; clamp up to `1` if the result would be `0` (or negative).
+- **Algorithm:**
+  1. If `step == _TrendScale.dayStep` (v1.5.2), return `calendarDaysBetween(start, end)`, clamped up
+     to `1`.
+  2. Otherwise ceiling-divide the total microsecond span by `step`'s microsecond length:
+     `(total + stepMicros - 1) ~/ stepMicros`; clamp up to `1` if the result would be `0` (or
+     negative).
 - **Usage:** `final pointCount = _pointCount(start, end, step);` (`_buildTrendScale`, called once per
-  `_timeRange` branch, e.g. line 696).
-- **Notes:** None.
+  `_timeRange` branch, e.g. line 728).
+- **Notes:** A one-day step counts local calendar days, so a range containing a 23- or 25-hour
+  DST day keeps exactly one point per day (a microsecond division could gain or lose one).
 
 ### `double _labelInterval(int pointCount)` <a id="_labelinterval"></a>
 - **Kind:** method of `_AnalysisPageState`
-- **Source:** `lib/features/finance/views/analysis_page.dart` (line 1058)
+- **Source:** `lib/features/finance/views/analysis_page.dart` (line 1095)
 - **Purpose:** Pick a bucket-index interval between x-axis labels that yields roughly 6 visible
   labels regardless of how many buckets there are.
 - **Inputs:** `pointCount`.
 - **Returns:** `double` — at least `1`.
 - **Side effects:** None.
 - **Algorithm:** `interval = (pointCount / 6).ceil()`, floored to `1` if smaller.
-- **Usage:** `labelInterval: _labelInterval(pointCount)` (`_buildTrendScale`, e.g. line 702; the `day`
+- **Usage:** `labelInterval: _labelInterval(pointCount)` (`_buildTrendScale`, e.g. line 703; the `day`
   range branch uses a hardcoded `4` instead, see notes on
   [`_buildTrendScale`](#_buildtrendscale)).
 - **Notes:** None.
 
 ### `String _formatAxisValue(double value)` <a id="_formataxisvalue"></a>
 - **Kind:** method of `_AnalysisPageState`
-- **Source:** `lib/features/finance/views/analysis_page.dart` (line 1068)
+- **Source:** `lib/features/finance/views/analysis_page.dart` (line 1105)
 - **Purpose:** Format a y-axis label compactly, using `k`/`m` suffixes for large magnitudes.
 - **Inputs:** `value`.
 - **Returns:** `String`.
@@ -419,31 +434,33 @@ the same convention used for other files in this doc set, are not given table ro
   else if `abs >= 1000` → `"${sign}${(abs/1000).toStringAsFixed(1)}k"`; else the value rounded to a
   whole number via `toStringAsFixed(0)`. `sign` is `'-'` for negative values (applied to the already
   `abs`-computed magnitude), otherwise empty.
-- **Usage:** `_formatAxisValue(value)` (`_buildLineChartPanel`, line 968, the left-axis tick label
+- **Usage:** `_formatAxisValue(value)` (`_buildLineChartPanel`, line 969, the left-axis tick label
   builder).
 - **Notes:** None.
 
 ### `int? bucketIndex(DateTime date)` <a id="bucketindex"></a>
 - **Kind:** method of `_TrendScale`
-- **Source:** `lib/features/finance/views/analysis_page.dart` (line 1144)
+- **Source:** `lib/features/finance/views/analysis_page.dart` (line 1185)
 - **Purpose:** Map a date to its bucket index within this scale's grid, or `null` if it falls outside
   `[start, endExclusive)` or would round to an out-of-range index.
 - **Inputs:** `date`.
 - **Returns:** `int?`.
 - **Side effects:** None.
 - **Algorithm:** Guard `date.isBefore(start) || !date.isBefore(endExclusive)` → `null`; else
+  `idx = calendarDaysBetween(start, date.toLocal())` when `step == dayStep` (v1.5.2), otherwise
   `idx = date.difference(start).inMicroseconds ~/ step.inMicroseconds`; guard `idx < 0 || idx >=
   pointCount` → `null`; else return `idx`.
-- **Usage:** `final idx = scale.bucketIndex(tx.date);` (`_buildTrendData`, line 781, the per-transaction
+- **Usage:** `final idx = scale.bucketIndex(tx.date);` (`_buildTrendData`, line 813, the per-transaction
   bucketing step).
 - **Notes:** The second bounds check (`idx >= pointCount`) is a defensive guard against integer
   rounding pushing an in-range date's index just past the last bucket; combined with the first guard
   it should not normally trigger, but protects `_buildTrendData`'s fixed-length arrays from an
-  out-of-bounds write.
+  out-of-bounds write. One-day steps bucket by local calendar day so a DST change never
+  shifts a transaction into the neighbouring day (v1.5.2).
 
 ### `DateTime sampleEnd(int index)` <a id="sampleend"></a>
 - **Kind:** method of `_TrendScale`
-- **Source:** `lib/features/finance/views/analysis_page.dart` (line 1156)
+- **Source:** `lib/features/finance/views/analysis_page.dart` (line 1199)
 - **Purpose:** Return the end instant of bucket `index` (i.e. the point in time up to which that
   bucket's cumulative data should be reconstructed), clipped to the scale's overall end.
 - **Inputs:** `index`.
@@ -451,7 +468,7 @@ the same convention used for other files in this doc set, are not given table ro
 - **Side effects:** None.
 - **Algorithm:** `end = _offset(index + 1)` (the start of the *next* bucket); return `endExclusive` if
   `end` would overshoot it, else `end`.
-- **Usage:** `(i) => _totalAssetsBefore(scale.sampleEnd(i))` (`_buildTrendData`, line 805) — each
+- **Usage:** `(i) => _totalAssetsBefore(scale.sampleEnd(i))` (`_buildTrendData`, line 806) — each
   asset-trend sample point is taken at the end of its bucket, not the start.
 - **Notes:** The clip to `endExclusive` matters for the very last bucket, whose nominal end
   (`_offset(pointCount)`) could otherwise land exactly on or past the scale's boundary depending on

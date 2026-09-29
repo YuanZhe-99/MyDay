@@ -20,7 +20,7 @@
 
 ### `SubscriptionSummary summarizeSubscriptions({required List<Subscription> subscriptions, required List<Transaction> transactions, required ExchangeRateData rateData, required String defaultCurrency, DateTime? now})` <a id="summarizesubscriptions"></a>
 - **种类：** 顶层函数
-- **来源：** `lib/features/finance/services/subscription_summary.dart`（第 37 行）
+- **来源：** `lib/features/finance/services/subscription_summary.dart`（第 38 行）
 - **用途：** 以默认币种计算三个订阅头条数字。
 - **输入：** `subscriptions`——非激活的被忽略；`transactions`——只有带 `subscriptionId` 的计入；`rateData`；`defaultCurrency`；`now`，可为测试注入。
 - **返回：** `SubscriptionSummary`。
@@ -34,7 +34,7 @@
 
 ### `List<Subscription> sortSubscriptions(List<Subscription> list, {required String mode, required List<String> customOrder})` <a id="sortsubscriptions"></a>
 - **种类：** 顶层函数
-- **来源：** `lib/features/finance/services/subscription_summary.dart`（第 100 行）
+- **来源：** `lib/features/finance/services/subscription_summary.dart`（第 102 行）
 - **用途：** 返回 `list` 按某订阅排序模式排好序的副本。
 - **输入：** `list`；`mode`——三个排序模式常量之一；`customOrder`——用户拖拽顺序中的 id，只在自定义模式下读取。
 - **返回：** `List<Subscription>`——新列表；输入不被修改。
@@ -50,7 +50,7 @@
 - **输入：** `subscriptions`、`days`、`now`（可为测试注入）。
 - **返回：** `List<(Subscription, DateTime)>`，每项与其下次计费日期配对，升序排序。
 - **副作用：** 无。
-- **算法：** `limit = today + days`；无论 `isActive` 都跳过 `cancelType == atExpiry`，也跳过 `!isActive && cancelType == immediate`；`nextBillingDate` 的日历日不晚于 `limit` 的订阅被计入；按日期排序。
+- **算法：** `limit = addCalendarDays(today, days)`（v1.5.2；此前按 `Duration` 计算 `today + days`，跨越夏令时切换时可能偏差一小时）；无论 `isActive` 都跳过 `cancelType == atExpiry`，也跳过 `!isActive && cancelType == immediate`；`nextBillingDate` 的日历日不晚于 `limit` 的订阅被计入；按日期排序。
 - **用法：** 两个页面 `build` 中的 `upcomingSubscriptions(_subscriptions, days: 3)`。
 - **备注：** 到期时取消继续出现在订阅列表中，但不能为一笔从用户角度看即将停止的扣费发出续费提醒——因此这个过滤器比列表使用的 `isActive` 划分更严格。在 v1.4.3 之前两个页面各带一份完全相同的私有副本。
 

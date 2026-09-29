@@ -1,3 +1,4 @@
+import '../../../shared/utils/week_grouping.dart';
 import '../models/finance.dart';
 
 /// Processes subscription renewals using the persisted [nextBillingDate] field.
@@ -67,9 +68,7 @@ class SubscriptionProcessor {
       // Migration: if nextBillingDate is not set, compute it now
       var nbd = sub.nextBillingDate;
       if (nbd == null) {
-        nbd = sub.calculateNextBillingDate(
-          after: today.subtract(const Duration(days: 1)),
-        );
+        nbd = sub.calculateNextBillingDate(after: addCalendarDays(today, -1));
         if (nbd == null) {
           // No future billing dates (e.g. cancelled)
           updatedSubs.add(sub);

@@ -108,8 +108,9 @@ consistent with them being state, not functions.
      `int.tryParse(...) ?? 7790` (falls back to the default on invalid input); normalize an empty
      address to `'localhost'`; normalize empty username/password to `null` (rather than an empty
      string) so clearing a credential actually removes it from config, not just blanks it.
-  4. Write all four values via `TodoStorage.writeConfig`, update local state, then call
-     `LocalApiServer.restart()` so the running server picks up the new bind address/port/credentials.
+  4. Write all four values via `TodoStorage.writeConfig`, update local state (only if still
+     mounted, v1.5.2 — the write is async), then call `LocalApiServer.restart()` so the running
+     server picks up the new bind address/port/credentials.
   5. If still mounted, `setState` again and show a snackbar reporting the server's (possibly new)
      port via `LocalApiServer.port`.
 - **Usage:**
@@ -129,7 +130,7 @@ consistent with them being state, not functions.
 
 ### `Future<void> _showStoragePathDialog(BuildContext context)` <a id="showstoragepathdialog"></a>
 - **Kind:** method of `_SettingsPageState`
-- **Source:** `lib/features/settings/views/settings_page.dart` (line 877)
+- **Source:** `lib/features/settings/views/settings_page.dart` (line 882)
 - **Purpose:** Let the user view and change the custom data storage path, or reset it back to the
   app's default location.
 - **Inputs:** `context` — used for the dialog and post-save snackbar.
@@ -162,7 +163,7 @@ consistent with them being state, not functions.
 
 ### `void _showLanguagePicker(BuildContext context, AppSettings settings)` <a id="showlanguagepicker"></a>
 - **Kind:** method of `_SettingsPageState`
-- **Source:** `lib/features/settings/views/settings_page.dart` (line 1031)
+- **Source:** `lib/features/settings/views/settings_page.dart` (line 1036)
 - **Purpose:** Show a bottom sheet letting the user pick "follow system" or one of the four
   supported app languages, converting the selection into the `Locale` the app settings provider
   expects.
@@ -209,7 +210,7 @@ consistent with them being state, not functions.
 
 ### `Widget _detailPage(_SettingsDetail detail)` <a id="detailpage"></a>
 - **Kind:** method of `_SettingsPageState`
-- **Source:** `lib/features/settings/views/settings_page.dart` (line 483)
+- **Source:** `lib/features/settings/views/settings_page.dart` (line 485)
 - **Purpose:** Build the second-level page a settings row leads to.
 - **Inputs:** `detail`.
 - **Returns:** `Widget` — a `Scaffold` with its own app bar.
@@ -224,7 +225,7 @@ consistent with them being state, not functions.
 
 ### `Future<void> _open(_SettingsDetail detail)` <a id="open"></a>
 - **Kind:** method of `_SettingsPageState`
-- **Source:** `lib/features/settings/views/settings_page.dart` (line 502)
+- **Source:** `lib/features/settings/views/settings_page.dart` (line 504)
 - **Purpose:** Open a second-level page the way the current layout calls for.
 - **Inputs:** `detail`.
 - **Returns:** `Future<void>` — completes when a pushed page is popped, immediately when the pane
@@ -241,7 +242,7 @@ consistent with them being state, not functions.
 
 ### `Widget _buildDetailPane(AppLocalizations l10n)` <a id="builddetailpane"></a>
 - **Kind:** method of `_SettingsPageState`
-- **Source:** `lib/features/settings/views/settings_page.dart` (line 522)
+- **Source:** `lib/features/settings/views/settings_page.dart` (line 524)
 - **Purpose:** Build the right-hand pane of the two-pane settings layout.
 - **Inputs:** `l10n`.
 - **Returns:** `Widget` — a centred placeholder, or a `Navigator` hosting the selected page.
@@ -256,7 +257,7 @@ consistent with them being state, not functions.
 
 ### `Widget _buildSettingsList(...)` <a id="buildsettingslist"></a>
 - **Kind:** method of `_SettingsPageState`
-- **Source:** `lib/features/settings/views/settings_page.dart` (line 564)
+- **Source:** `lib/features/settings/views/settings_page.dart` (line 566)
 - **Purpose:** Build the first-level settings list.
 - **Inputs:** `context`, `l10n`, `visibility`, `settings`; `labels` — the four already-formatted
   strings `build` derives before choosing a layout.
@@ -271,4 +272,7 @@ consistent with them being state, not functions.
 - **Usage:** Called from `build`; it is the whole body on a narrow window and the left pane on a
   wide one.
 - **Notes:** Extracted rather than duplicated, so the list is identical in both modes and only
-  where its chevron rows land changes.
+  where its chevron rows land changes. Since v1.5.2 the Desktop toggles (minimize to tray, close
+  to tray, launch at startup, local API enabled) check `mounted` after their awaited platform or
+  config call before calling `setState`, so leaving the page mid-toggle no longer calls `setState`
+  on a disposed state.

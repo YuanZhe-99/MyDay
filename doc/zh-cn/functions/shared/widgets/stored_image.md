@@ -55,5 +55,5 @@
     backgroundColor: color.withValues(alpha: 0.15),
   );
   ```
-  （`lib/features/finance/views/accounts_page.dart:893`，`_buildAccountAvatar`。其他调用点：`subscription_avatar.dart:69` 和 `:86`、带 `radius: 12` 的 `add_transaction_dialog.dart:437`、`subscription_detail_page.dart:396`、`finance_page.dart:1628`、`category_detail_page.dart:425`。）
+  （`lib/features/finance/views/accounts_page.dart:893`，`_buildAccountAvatar`。其他调用点：`subscription_avatar.dart:69` 和 `:86`、带 `radius: 12` 的 `add_transaction_dialog.dart:438`、`subscription_detail_page.dart:396`、`finance_page.dart:1743`、`category_detail_page.dart:425`。）
 - **备注：** SVG 标志常常是文字标志而非图形符号，且为浅色背景绘制，因此总是放在白色圆底上、以 `contain` 加内边距显示——在深色模式下完整、清晰——并忽略 `backgroundColor`。图像作为子组件而不是 `backgroundImage`，因为 `CircleAvatar.backgroundImage` 需要 `ImageProvider`，而 SVG 无法提供。

@@ -64,7 +64,7 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
 
 ### `Duration get _elapsed` <a id="elapsed"></a>
 - **Kind:** getter of `_TimerPageState`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 117)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 118)
 - **Purpose:** Compute the stopwatch's current elapsed time from wall-clock timestamps rather than a
   ticking in-memory counter.
 - **Inputs:** None (reads `_accumulated`, `_running`, `_startedAt`).
@@ -88,7 +88,7 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
 
 ### `void initState()` <a id="initstate"></a>
 - **Kind:** method of `_TimerPageState` (override of `State.initState`)
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 131)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 132)
 - **Purpose:** Restore whatever timer session the caller passed in — running, paused, or none — and
   begin loading the keep-screen-awake preference.
 - **Inputs:** None (reads `widget.timerHistory`, `widget.timerHistoryRetentionDays`,
@@ -129,7 +129,7 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
 
 ### `void didChangeAppLifecycleState(AppLifecycleState state)` <a id="didchangeapplifecyclestate"></a>
 - **Kind:** method of `_TimerPageState` (override of `WidgetsBindingObserver.didChangeAppLifecycleState`)
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 174)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 175)
 - **Purpose:** Re-arm the ticker and wakelock after the app returns to the foreground.
 - **Inputs:** `state` — the new `AppLifecycleState`.
 - **Returns:** None.
@@ -146,7 +146,7 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
 
 ### `Future<void> _loadKeepScreenAwakeSetting()` <a id="loadkeepscreenawakesetting"></a>
 - **Kind:** method of `_TimerPageState`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 191)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 192)
 - **Purpose:** Load the remembered local-only keep-screen-awake preference and apply it immediately.
 - **Inputs:** None.
 - **Returns:** `Future<void>`.
@@ -165,14 +165,17 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
 
 ### `Future<void> _setKeepScreenAwake(bool enabled)` <a id="setkeepscreenawake"></a>
 - **Kind:** method of `_TimerPageState`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 204)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 205)
 - **Purpose:** Handle the user toggling the keep-screen-awake switch.
 - **Inputs:** `enabled` — the new switch value.
 - **Returns:** `Future<void>`.
 - **Side effects:** Updates `_keepScreenAwake`; toggles the platform wakelock; writes
   `storage_config.json`, preserving any unrelated keys already in the config map.
-- **Algorithm:** `setState` the new value; `await _applyWakelock()`; read the config, set
-  `config[_keepScreenAwakeConfigKey] = enabled`, write it back.
+- **Algorithm:** `setState` the new value; `await _applyWakelock()`; then
+  `await TodoStorage.writeConfig({_keepScreenAwakeConfigKey: enabled})` — a single-key merge-write
+  (v1.5.2; previously read the whole config, set the key, and wrote the whole map back, which could
+  overwrite a key another writer changed in between). `writeConfig` re-reads and merges inside its
+  serialized config write queue, so unrelated keys are preserved.
 - **Usage:**
   ```dart
   // build, line 682-684:
@@ -185,7 +188,7 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
 
 ### `Future<void> _applyWakelock()` <a id="applywakelock"></a>
 - **Kind:** method of `_TimerPageState`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 217)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 216)
 - **Purpose:** Reconcile the platform screen wakelock with the current `_keepScreenAwake` preference,
   without stepping on a wakelock some other feature may hold.
 - **Inputs:** None.
@@ -211,7 +214,7 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
 
 ### `void _releaseWakelock()` <a id="releasewakelock"></a>
 - **Kind:** method of `_TimerPageState`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 237)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 236)
 - **Purpose:** Release the wakelock on page teardown, but only if this page is the one that enabled
   it.
 - **Inputs:** None.
@@ -229,7 +232,7 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
 
 ### `List<TimerHistoryEntry> _applyRetention(List<TimerHistoryEntry> entries)` <a id="applyretention"></a>
 - **Kind:** method of `_TimerPageState`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 250)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 249)
 - **Purpose:** Prune history entries older than the configured retention window.
 - **Inputs:** `entries` — the history list to filter.
 - **Returns:** `List<TimerHistoryEntry>` — `entries` unchanged if retention is permanent.
@@ -250,7 +253,7 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
 
 ### `Future<void> _start()` <a id="start"></a>
 - **Kind:** method of `_TimerPageState`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 263)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 262)
 - **Purpose:** Start the stopwatch from zero, or resume it from a paused state.
 - **Inputs:** None.
 - **Returns:** `Future<void>`.
@@ -271,7 +274,7 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
 
 ### `Future<void> _pause()` <a id="pause"></a>
 - **Kind:** method of `_TimerPageState`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 277)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 276)
 - **Purpose:** Pause the stopwatch, folding the just-elapsed run segment into `_accumulated`.
 - **Inputs:** None.
 - **Returns:** `Future<void>`.
@@ -296,7 +299,7 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
 
 ### `Future<void> _changeThrustCount(int delta)` <a id="changethrustcount"></a>
 - **Kind:** method of `_TimerPageState`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 293)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 292)
 - **Purpose:** Adjust the thrust counter by a signed delta (the `+100`/`+50`/`+10`/`-100` buttons).
 - **Inputs:** `delta` — signed change to apply.
 - **Returns:** `Future<void>`.
@@ -323,7 +326,7 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
 
 ### `int _actualThrustCount(int count, int unit)` <a id="actualthrustcount"></a>
 - **Kind:** method of `_TimerPageState`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 305)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 304)
 - **Purpose:** Convert a stored `(count, unit)` pair — as read from a persisted session or history
   entry — back into an actual repetition count for the live counter.
 - **Inputs:** `count`, `unit` — the stored values (`unit` is always normalized to `1` or `100`).
@@ -345,7 +348,7 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
 
 ### `int get _storedThrustCountUnit` <a id="storedthrustcountunit"></a>
 - **Kind:** getter of `_TimerPageState`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 315)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 314)
 - **Purpose:** Decide whether the current live thrust count must be stored as an exact `x1` value or
   a compact `x100` estimate.
 - **Inputs:** None (reads `_thrustCount`).
@@ -368,7 +371,7 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
 
 ### `int get _storedThrustCount` <a id="storedthrustcount"></a>
 - **Kind:** getter of `_TimerPageState`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 325)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 324)
 - **Purpose:** Compute the count value to actually persist, consistent with `_storedThrustCountUnit`.
 - **Inputs:** None (reads `_thrustCount`).
 - **Returns:** `int`.
@@ -385,7 +388,7 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
 
 ### `Future<void> _reset()` <a id="reset"></a>
 - **Kind:** method of `_TimerPageState`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 342)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 341)
 - **Purpose:** Clear the stopwatch entirely — elapsed time and thrust count — back to a fresh, unstarted
   state.
 - **Inputs:** None.
@@ -411,7 +414,7 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
 
 ### `void _ensureTicker()` <a id="ensureticker"></a>
 - **Kind:** method of `_TimerPageState`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 358)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 357)
 - **Purpose:** (Re)start the one-second periodic timer that keeps the displayed elapsed time advancing
   while the stopwatch is running.
 - **Inputs:** None.
@@ -435,7 +438,7 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
 
 ### `IntimacyTimerSession? get _timerSession` <a id="timersession"></a>
 - **Kind:** getter of `_TimerPageState`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 377)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 376)
 - **Purpose:** Build the persistable snapshot of the current stopwatch state for `_persistState`/the
   page's `TimerPageResult`.
 - **Inputs:** None (reads the timer fields plus `_storedThrustCount`/`_storedThrustCountUnit`).
@@ -460,7 +463,7 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
 
 ### `Future<void> _persistState({bool historyChanged = false, bool timerSessionChanged = false, bool retentionChanged = false})` <a id="persiststate"></a>
 - **Kind:** method of `_TimerPageState`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 395)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 394)
 - **Purpose:** Bridge every timer-affecting action to the caller's persistence callback, only when
   something actually changed.
 - **Inputs:** Three independent change flags for history, timer session, and retention.
@@ -492,7 +495,7 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
 
 ### `void _popWithHistoryIfChanged()` <a id="popwithhistoryifchanged"></a>
 - **Kind:** method of `_TimerPageState`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 421)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 420)
 - **Purpose:** Close the page, returning a `TimerPageResult` only if there's actually something for
   the caller to persist.
 - **Inputs:** None.
@@ -519,7 +522,7 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
 
 ### `Future<void> _saveRecord({TimerHistoryEntry? prefillEntry})` <a id="saverecord"></a>
 - **Kind:** method of `_TimerPageState`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 446)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 445)
 - **Purpose:** Turn the current stopwatch (or a re-opened history entry) into an `IntimacyRecord`,
   via `AddRecordDialog`.
 - **Inputs:** `prefillEntry` — when non-null, save from an existing history entry instead of the live
@@ -563,7 +566,7 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
 
 ### `String _formatDuration(Duration d)` <a id="formatduration"></a>
 - **Kind:** method of `_TimerPageState`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 519)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 518)
 - **Purpose:** Format a duration as a zero-padded `HH:MM:SS` string for the main timer display and
   history rows.
 - **Inputs:** `d` — the duration to format.
@@ -582,7 +585,7 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
 
 ### `Future<void> _confirmRestoreHistory(TimerHistoryEntry entry)` <a id="confirmrestorehistory"></a>
 - **Kind:** method of `_TimerPageState`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 539)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 538)
 - **Purpose:** Let the user turn a saved history entry back into a live running stopwatch, after
   confirmation.
 - **Inputs:** `entry` — the history entry to restore.
@@ -627,7 +630,7 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
 
 ### `Widget build(BuildContext context)` (`_TimerBody`) <a id="timerbody-build"></a>
 - **Kind:** method of `_TimerBody`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (approx. line 890)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 915)
 - **Purpose:** Arrange the stopwatch and its session history either stacked or in two panes.
 - **Inputs:** `context`; the widget's own `twoPane`, `timer` and `history` fields.
 - **Returns:** A `Column` when stacked, a `Row` when split.

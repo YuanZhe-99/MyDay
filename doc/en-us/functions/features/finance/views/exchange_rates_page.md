@@ -7,6 +7,8 @@ in [`ExchangeRateStorage`](../services/exchange_rate_storage.md), and the live-f
 [`ExchangeRateApi`](../services/exchange_rate_api.md). See
 [Finance](../../../../features/finance.md#exchange-rates) for the feature-level overview, including
 the fallback/1:1-conversion behavior this page's rates feed into everywhere else in Finance.
+Since v1.5.2 an unreadable `exchange_rates.json` shows a blocking error view with a retry button
+instead of silently starting from default rates.
 
 ## Declarations
 
@@ -15,13 +17,14 @@ the fallback/1:1-conversion behavior this page's rates feed into everywhere else
 | `ExchangeRatesPage({super.key})` | constructor (`ExchangeRatesPage`) | B | Create an exchange rates page instance. |
 | `createState` | method (`ExchangeRatesPage`) | B | Create the mutable state object for this widget. |
 | `initState` | method (`_ExchangeRatesPageState`) | B | Kick off `_loadRates`. |
-| [`_loadRates`](#loadrates) | method (`_ExchangeRatesPageState`) | A | Load persisted rates, then auto-fetch if not fetched today. |
+| [`_loadRates`](#loadrates) | method (`_ExchangeRatesPageState`) | A | Load persisted rates (or record a load error), then auto-fetch if not fetched today. |
 | [`_fetchOnline`](#fetchonline) | method (`_ExchangeRatesPageState`) | A | Fetch live rates and persist the merged result. |
 | [`_saveRates`](#saverates) | method (`_ExchangeRatesPageState`) | A | Persist the current in-memory rate map as a new snapshot. |
 | [`_addRate`](#addrate) | method (`_ExchangeRatesPageState`) | A | Add a new currency-pair rate via dialog. |
 | [`_editRate`](#editrate) | method (`_ExchangeRatesPageState`) | A | Edit an existing pair's currencies/rate via dialog. |
 | [`_deleteRate`](#deleterate) | method (`_ExchangeRatesPageState`) | A | Remove a currency-pair rate and persist the change. |
-| `build` | method (`_ExchangeRatesPageState`) | B | Build the app bar (with refresh action), rate list, and add button. |
+| `_buildLoadError` | method (`_ExchangeRatesPageState`) | B | Build the blocking view shown when the rates file is unreadable, with a retry button that re-runs `_loadRates` (v1.5.2). |
+| `build` | method (`_ExchangeRatesPageState`) | B | Build the app bar (with refresh action), the rate list or load-error view, and the add button. |
 | `_RateDialog({...})` | constructor (`_RateDialog`) | B | Create a rate dialog instance. |
 | `createState` | method (`_RateDialog`) | B | Create the mutable state object for this widget. |
 | `initState` | method (`_RateDialogState`) | B | Pre-fill from/to currency and rate controller from the widget, capture the initial signature. |
@@ -32,11 +35,13 @@ the fallback/1:1-conversion behavior this page's rates feed into everywhere else
 | [`_submit`](#submit) | method (`_RateDialogState`) | A | Validate the rate/currencies and pop with a `'FROM_TO'` entry. |
 
 **Reconciliation:** `grep -c 'Purpose:' lib/features/finance/views/exchange_rates_page.dart`
-returns 18, matching the 18 rows above exactly — every block sits immediately above its real
+returns 19, matching the 19 rows above exactly — every block sits immediately above its real
 declaration (a constructor, `createState`, `initState`, `dispose`, or a method); none were found
 misattached above a call-site statement, and no undocumented real declaration was found. The class
 declarations themselves (`ExchangeRatesPage`, `_ExchangeRatesPageState`, `_RateDialog`,
-`_RateDialogState`) and the `static const _currencies` list carry no `/// Purpose:` block,
+`_RateDialogState`), the `static const _currencies` list and the state fields (including the
+v1.5.2 `String? _loadError`, set when `exchange_rates.json` exists but cannot be read) carry no
+`/// Purpose:` block,
 consistent with this codebase's convention of documenting callable members rather than classes or
 plain data.
 
@@ -44,17 +49,22 @@ plain data.
 
 ### `Future<void> _loadRates()` <a id="loadrates"></a>
 - **Kind:** method of `_ExchangeRatesPageState`
-- **Source:** `lib/features/finance/views/exchange_rates_page.dart` (lines 49-60)
+- **Source:** `lib/features/finance/views/exchange_rates_page.dart` (lines 55-78)
 - **Purpose:** Load persisted exchange-rate data, display it immediately, then trigger an online
-  refresh if one hasn't happened yet today.
+  refresh if one hasn't happened yet today; an unreadable rates file switches the page to its
+  load-error view instead (v1.5.2).
 - **Inputs:** None.
 - **Returns:** `Future<void>`.
 - **Side effects:** Reads `exchange_rates.json` via
   [`ExchangeRateStorage.load`](../services/exchange_rate_storage.md#load); may trigger a network
   fetch via [`_fetchOnline`](#fetchonline).
 - **Algorithm:**
-  1. Load `ExchangeRateData` from storage.
-  2. Populate `_data`/`_rates`/`_loaded` from it immediately, so the page shows the last-saved rates
+  1. Load `ExchangeRateData` from storage inside a `try`. On any error (an
+     [`ExchangeRateStorageException`](../services/exchange_rate_storage.md#exchangeratestorageexception-new)
+     for an unreadable file), if still mounted set `_loadError = e.toString()` and `_loaded = true`,
+     then return — `_data` stays `null`, which blocks [`_fetchOnline`](#fetchonline) and
+     [`_saveRates`](#saverates).
+  2. If still mounted, clear `_loadError` and populate `_data`/`_rates`/`_loaded` immediately, so the page shows the last-saved rates
      without waiting on the network.
   3. Check [`ExchangeRateApi.shouldFetchToday`](../services/exchange_rate_api.md#shouldfetchtoday)
      against `data.lastFetchedAt`; if a fetch is due, `await` [`_fetchOnline()`](#fetchonline).
@@ -67,11 +77,14 @@ plain data.
   }
   ```
 - **Notes:** Because step 2 always shows the previously saved rates before the network check in
-  step 3, a slow or failed background fetch never blocks the page from displaying data.
+  step 3, a slow or failed background fetch never blocks the page from displaying data. The
+  `mounted` checks (v1.5.2) keep a load that finishes after the page was closed from calling
+  `setState` on a disposed state. The retry button in the error view resets `_loaded` and calls this
+  method again.
 
 ### `Future<void> _fetchOnline()` <a id="fetchonline"></a>
 - **Kind:** method of `_ExchangeRatesPageState`
-- **Source:** `lib/features/finance/views/exchange_rates_page.dart` (lines 67-85)
+- **Source:** `lib/features/finance/views/exchange_rates_page.dart` (lines 85-108)
 - **Purpose:** Fetch live exchange rates for the user's configured currency pairs and persist the
   merged result, guarding against concurrent or duplicate fetches.
 - **Inputs:** None.
@@ -89,8 +102,9 @@ plain data.
   4. If it returned non-null data and the widget is still mounted: stamp a fresh
      `lastFetchedAt: DateTime.now()` onto the result, persist it via
      [`ExchangeRateStorage.save`](../services/exchange_rate_storage.md#save), notify
-     `AutoSyncService`, and update local `_data`/`_rates`.
-  5. Clear `_fetching` if still mounted, regardless of outcome.
+     `AutoSyncService`, and, if still mounted after the save, update local `_data`/`_rates`.
+  5. Steps 3-4 run inside `try`/`finally` (v1.5.2): the `finally` clears `_fetching` if still
+     mounted, so a thrown fetch or save error no longer leaves the refresh spinner stuck.
 - **Usage:**
   ```dart
   IconButton(
@@ -102,11 +116,12 @@ plain data.
   ```
 - **Notes:** If `fetchAndMerge` returns `null` (no configured pairs, or every HTTP request failed),
   this method silently does nothing beyond clearing `_fetching` — no error is surfaced to the user
-  for a failed manual or automatic refresh.
+  for a failed manual or automatic refresh. An exception from the save (for example
+  `ExchangeRateStorageException`) propagates to the caller after `_fetching` is cleared.
 
 ### `Future<void> _saveRates()` <a id="saverates"></a>
 - **Kind:** method of `_ExchangeRatesPageState`
-- **Source:** `lib/features/finance/views/exchange_rates_page.dart` (lines 92-98)
+- **Source:** `lib/features/finance/views/exchange_rates_page.dart` (lines 115-121)
 - **Purpose:** Persist the current in-memory `_rates` map as a new exchange-rate snapshot (created
   only if it actually differs from the current one) and flag the sync layer as having a pending
   local change.
@@ -131,7 +146,7 @@ plain data.
 
 ### `Future<void> _addRate()` <a id="addrate"></a>
 - **Kind:** method of `_ExchangeRatesPageState`
-- **Source:** `lib/features/finance/views/exchange_rates_page.dart` (lines 105-114)
+- **Source:** `lib/features/finance/views/exchange_rates_page.dart` (lines 128-137)
 - **Purpose:** Open the blank rate dialog and, if confirmed, add the new currency-pair rate.
 - **Inputs:** None.
 - **Returns:** `Future<void>`.
@@ -153,7 +168,7 @@ plain data.
 
 ### `Future<void> _editRate(String key, double value)` <a id="editrate"></a>
 - **Kind:** method of `_ExchangeRatesPageState`
-- **Source:** `lib/features/finance/views/exchange_rates_page.dart` (lines 121-139)
+- **Source:** `lib/features/finance/views/exchange_rates_page.dart` (lines 144-162)
 - **Purpose:** Open the rate dialog pre-filled with an existing pair's currencies and value, then
   apply the (possibly renamed) result.
 - **Inputs:** `key` — the current `'FROM_TO'` pair key; `value` — its current rate.
@@ -176,7 +191,7 @@ plain data.
 
 ### `void _deleteRate(String key)` <a id="deleterate"></a>
 - **Kind:** method of `_ExchangeRatesPageState`
-- **Source:** `lib/features/finance/views/exchange_rates_page.dart` (lines 146-149)
+- **Source:** `lib/features/finance/views/exchange_rates_page.dart` (lines 169-172)
 - **Purpose:** Remove a currency-pair rate and persist the change.
 - **Inputs:** `key`.
 - **Returns:** None.
@@ -193,7 +208,7 @@ plain data.
 
 ### `bool _hasUnsavedChanges()` <a id="hasunsavedchanges"></a>
 - **Kind:** method of `_RateDialogState`
-- **Source:** `lib/features/finance/views/exchange_rates_page.dart` (line 424)
+- **Source:** `lib/features/finance/views/exchange_rates_page.dart` (line 514)
 - **Purpose:** Tell `UnsavedChangesGuard`
   ([`../../../shared/widgets/unsaved_changes_guard.md`](../../../shared/widgets/unsaved_changes_guard.md))
   whether the form has diverged from its initial state.
@@ -213,7 +228,7 @@ plain data.
 
 ### `String _signature()` <a id="signature"></a>
 - **Kind:** method of `_RateDialogState`
-- **Source:** `lib/features/finance/views/exchange_rates_page.dart` (lines 431-432)
+- **Source:** `lib/features/finance/views/exchange_rates_page.dart` (lines 521-522)
 - **Purpose:** Produce a single string that changes if and only if the from/to currency or rate
   text has changed, for use as the dirty-check baseline/comparison.
 - **Inputs:** None (reads instance state only).
@@ -231,7 +246,7 @@ plain data.
 
 ### `void _submit(UnsavedChangesController guard)` <a id="submit"></a>
 - **Kind:** method of `_RateDialogState`
-- **Source:** `lib/features/finance/views/exchange_rates_page.dart` (lines 439-444)
+- **Source:** `lib/features/finance/views/exchange_rates_page.dart` (lines 529-534)
 - **Purpose:** Validate the entered rate and currency pair, then pop the dialog with a
   `'FROM_TO'` -> rate entry.
 - **Inputs:** `guard` — the `UnsavedChangesController` supplied by `UnsavedChangesGuard.builder`.

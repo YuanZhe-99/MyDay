@@ -33,14 +33,14 @@ WebDAV 同步屏：服务器/凭据/远程路径字段、测试连接、手动�
 
 ### `Future<void> _saveConfig()` <a id="saveconfig"></a>
 - **种类：** `_WebDAVConfigPageState` 的方法
-- **来源：** `lib/shared/views/webdav_config_page.dart`（第 112 行）
+- **来源：** `lib/shared/views/webdav_config_page.dart`（第 114 行）
 - **用途：** 把当前表单持久化为 WebDAV 配置，新保存配置完整配置且自动同步开启时立即启动后台同步，而非等待下次自动同步触发。
 - **输入：** 无（读取从表单控制器和 `_autoSync` 构建的 `_currentConfig`）。
 - **返回：** `Future<void>`。
 - **副作用：** 经 `WebDAVService.saveConfig` 写 `webdav_config.json`；更新 `_isConfigured`；可能调用 `AutoSyncService.instance.requestSyncNow()`；显示确认 snackbar。
 - **算法：**
   1. 从 `_currentConfig` 构建 `config` 并经 `WebDAVService.saveConfig(config)` 保存。
-  2. 从 `config.isConfigured` 更新 `_isConfigured`。
+  2. 仍挂载时（v1.5.2；上面的保存是异步的），从 `config.isConfigured` 更新 `_isConfigured`。
   3. `config.isConfigured && config.autoSync` 时调用 `AutoSyncService.instance.requestSyncNow()` 立即触发同步，而非等待下次周期/恢复/防抖触发。
   4. 仍 mounted 时显示"配置已保存"snackbar。
 - **用法：**
@@ -56,7 +56,7 @@ WebDAV 同步屏：服务器/凭据/远程路径字段、测试连接、手动�
 
 ### `Future<void> _syncNow()` <a id="syncnow"></a>
 - **种类：** `_WebDAVConfigPageState` 的方法
-- **来源：** `lib/shared/views/webdav_config_page.dart`（第 161 行）
+- **来源：** `lib/shared/views/webdav_config_page.dart`（第 163 行）
 - **用途：** 在屏幕唤醒锁下运行手动 WebDAV 同步，浮出记录冲突时把它们交给 `SyncConflictDialog` 并终定用户的解决。
 - **输入：** 无（读取 `_currentConfig`）。
 - **返回：** `Future<void>`。
@@ -80,7 +80,7 @@ WebDAV 同步屏：服务器/凭据/远程路径字段、测试连接、手动�
 
 ### `Future<void> _showSyncResult(SyncResult result)` <a id="showsyncresult"></a>
 - **种类：** `_WebDAVConfigPageState` 的方法
-- **来源：** `lib/shared/views/webdav_config_page.dart`（第 230 行）
+- **来源：** `lib/shared/views/webdav_config_page.dart`（第 232 行）
 - **用途：** 向用户呈现非冲突同步或强制操作结果，按发生什么在可滚动错误/警告对话框和普通成功 snackbar 间选择。
 - **输入：** `result` — 无挂起冲突的 `SyncResult`。
 - **返回：** `Future<void>`。
@@ -101,7 +101,7 @@ WebDAV 同步屏：服务器/凭据/远程路径字段、测试连接、手动�
 
 ### `Future<void> _forceUpload()` <a id="forceupload"></a>
 - **种类：** `_WebDAVConfigPageState` 的方法
-- **来源：** `lib/shared/views/webdav_config_page.dart`（第 258 行）
+- **来源：** `lib/shared/views/webdav_config_page.dart`（第 260 行）
 - **用途：** 显式破坏性操作确认后，用本地数据覆盖远程数据，期间持有屏幕唤醒锁。
 - **输入：** 无（读取 `_currentConfig`）。
 - **返回：** `Future<void>`。
@@ -124,7 +124,7 @@ WebDAV 同步屏：服务器/凭据/远程路径字段、测试连接、手动�
 
 ### `Future<void> _forceDownload()` <a id="forcedownload"></a>
 - **种类：** `_WebDAVConfigPageState` 的方法
-- **来源：** `lib/shared/views/webdav_config_page.dart`（第 289 行）
+- **来源：** `lib/shared/views/webdav_config_page.dart`（第 291 行）
 - **用途：** 显式破坏性操作确认后，用远程数据覆盖本地数据，期间持有屏幕唤醒锁。
 - **输入：** 无（读取 `_currentConfig`）。
 - **返回：** `Future<void>`。
@@ -144,7 +144,7 @@ WebDAV 同步屏：服务器/凭据/远程路径字段、测试连接、手动�
 
 ### `String? _syncStatusText()` <a id="syncstatustext"></a>
 - **种类：** `_WebDAVConfigPageState` 的方法
-- **来源：** `lib/shared/views/webdav_config_page.dart`（第 404 行）
+- **来源：** `lib/shared/views/webdav_config_page.dart`（第 406 行）
 - **用途：** 构建同步控件上方显示的单行自动同步健康摘要，区分真实双向冲突与普通失败，完全无错误时回退上次成功时间。
 - **输入：** 无（读取 `AutoSyncService.instance.lastError`/`hasPendingConflicts`/`lastSuccessAt`）。
 - **返回：** `String?` — 无可显示（无错误且尚无记录成功）时 `null`。

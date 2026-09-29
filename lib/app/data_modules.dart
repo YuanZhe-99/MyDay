@@ -143,6 +143,9 @@ Set<String> _imageNamesFromSections(String json, List<String> sections) {
 /// the normal-sync and finalize paths, which is exactly where the shared
 /// engine invokes `postMergeTransform`.
 Future<FinanceData> migrateFinanceForcedBalances(FinanceData data) async {
+  // Rates are read only when a legacy forced balance needs converting; an
+  // unreadable rates file then surfaces as `ExchangeRateStorageException`.
+  if (!needsForcedBalanceMigration(data.accounts)) return data;
   final rateData = await ExchangeRateStorage.load();
   final migration = migrateForcedBalances(
     accounts: data.accounts,

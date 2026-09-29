@@ -52,7 +52,7 @@
 
 ### `void _setType(TransactionType type)` <a id="settype"></a>
 - **种类：** `_AddTransactionDialogState` 的方法
-- **来源：** `lib/features/finance/widgets/add_transaction_dialog.dart`（第 224-229 行）
+- **来源：** `lib/features/finance/widgets/add_transaction_dialog.dart`（第 226-231 行）
 - **用途：** 在支出/收入/转账间切换对话框并丢弃现在无效的分类选择。
 - **输入：** `type` — 新选的 `TransactionType`。
 - **返回：** 无。
@@ -73,7 +73,7 @@
 
 ### `Account? _firstSelectableAccount()` <a id="firstselectableaccount"></a>
 - **种类：** `_AddTransactionDialogState` 的方法
-- **来源：** `lib/features/finance/widgets/add_transaction_dialog.dart`（第 476-480 行）
+- **来源：** `lib/features/finance/widgets/add_transaction_dialog.dart`（第 477-481 行）
 - **用途：** 调用方未提供 `initialAccountId` 时，选择全新交易应默认的账户。
 - **输入：** 无（读取 `_sortedAccountsForPicker` 和 `widget.accountPickerSettings`）。
 - **返回：** `Account?` — 只在 `widget.accounts` 为空时为 `null`。
@@ -94,7 +94,7 @@
 
 ### `String _accountTypeLabel(AccountType type, AppLocalizations l10n)` <a id="accounttypelabel"></a>
 - **种类：** `_AddTransactionDialogState` 的方法
-- **来源：** `lib/features/finance/widgets/add_transaction_dialog.dart`（第 487-494 行）
+- **来源：** `lib/features/finance/widgets/add_transaction_dialog.dart`（第 488-495 行）
 - **用途：** 把 `AccountType` 映射为其本地化小节页头标签，供分组账户下拉框。
 - **输入：** `type` — 要标注的 `AccountType`；`l10n` — 当前 `AppLocalizations`。
 - **返回：** `String` — `financeAccountTypeFund` / `financeAccountTypeCredit` / `financeAccountTypeRecharge` / `financeAccountTypeFinancial` 之一。
@@ -112,7 +112,7 @@
 
 ### `List<DropdownMenuItem<String>> _accountDropdownItems(ThemeData theme, AppLocalizations l10n)` <a id="accountdropdownitems"></a>
 - **种类：** `_AddTransactionDialogState` 的方法
-- **来源：** `lib/features/finance/widgets/add_transaction_dialog.dart`（第 501-582 行）
+- **来源：** `lib/features/finance/widgets/add_transaction_dialog.dart`（第 502-583 行）
 - **用途：** 构建账户选择器下拉框的项列表，尊重调用方 `AccountPickerSettings` 的类型分组和可折叠"更多"小节。
 - **输入：** `theme`、`l10n` — 用于页头样式和本地化类型/"更多"标签。
 - **返回：** `List<DropdownMenuItem<String>>` — 可选账户项与禁用页头项交错；存在"更多"账户且尚未展开时有合成的"显示 N 个更多"项。
@@ -137,7 +137,7 @@
 
 ### `void addAccounts(List<Account> accounts, String sectionKey)`（嵌套于 `_accountDropdownItems`） <a id="addaccounts"></a>
 - **种类：** 在 `_accountDropdownItems` 内声明的本地函数
-- **来源：** `lib/features/finance/widgets/add_transaction_dialog.dart`（第 545-562 行）
+- **来源：** `lib/features/finance/widgets/add_transaction_dialog.dart`（第 546-563 行）
 - **用途：** 把一组账户（主组或"更多"组）追加进外层 `items` 列表，调用方设置请求类型分组时在账户 `type` 每次变化处插入类型小节页头。
 - **输入：** `accounts` — 要追加的组（已排序）；`sectionKey` — `'primary'` 或 `'more'`，只用于命名空间页头项值，使同一 `AccountType` 的主和"更多"页头不碰撞。
 - **返回：** 无。
@@ -163,7 +163,7 @@
 
 ### `void _selectAccount(String? id, {required bool isTarget})` <a id="selectaccount"></a>
 - **种类：** `_AddTransactionDialogState` 的方法
-- **来源：** `lib/features/finance/widgets/add_transaction_dialog.dart`（第 589-606 行）
+- **来源：** `lib/features/finance/widgets/add_transaction_dialog.dart`（第 590-607 行）
 - **用途：** 应用用户从账户下拉框的选择——真实账户，或展开隐藏小节而非选择任何东西的"更多"哨兵。
 - **输入：** `id` — 下拉框的所选值（账户 id、`_moreAccountsValue` 或无变更的 `null`）；`isTarget` — 转账*转入*账户下拉框为 `true`，*转出*账户下拉框为 `false`。
 - **返回：** 无。
@@ -184,7 +184,7 @@
 
 ### `bool _hasUnsavedChanges()` <a id="hasunsavedchanges"></a>
 - **种类：** `_AddTransactionDialogState` 的方法
-- **来源：** `lib/features/finance/widgets/add_transaction_dialog.dart`（第 613 行）
+- **来源：** `lib/features/finance/widgets/add_transaction_dialog.dart`（第 614 行）
 - **用途：** 告诉 `UnsavedChangesGuard` 表单是否已偏离其初始状态。
 - **输入：** 无。
 - **返回：** `bool` — 当前签名与 `_initialSignature` 不同时为 `true`。
@@ -201,7 +201,7 @@
 
 ### `String _signature()` <a id="signature"></a>
 - **种类：** `_AddTransactionDialogState` 的方法
-- **来源：** `lib/features/finance/widgets/add_transaction_dialog.dart`（第 620-630 行）
+- **来源：** `lib/features/finance/widgets/add_transaction_dialog.dart`（第 621-631 行）
 - **用途：** 产生一个当且仅当任何可编辑字段值变化时变化的单字符串。
 - **输入：** 无。
 - **返回：** `String` — 来自 `formSignature`（`lib/shared/widgets/unsaved_changes_guard.dart`）。
@@ -216,7 +216,7 @@
 
 ### `void _submit(UnsavedChangesController guard)` <a id="submit"></a>
 - **种类：** `_AddTransactionDialogState` 的方法
-- **来源：** `lib/features/finance/widgets/add_transaction_dialog.dart`（第 637-669 行）
+- **来源：** `lib/features/finance/widgets/add_transaction_dialog.dart`（第 638-670 行）
 - **用途：** 校验表单，有效时构造 `Transaction`（含跨币种转账字段）并带它弹出对话框。
 - **输入：** `guard` — 用于带结果弹出路由。
 - **返回：** 无。
@@ -250,7 +250,7 @@
 
 ### `void _confirm()` <a id="confirm"></a>
 - **种类：** `_CalcKeyboardState` 的方法
-- **来源：** `lib/features/finance/widgets/add_transaction_dialog.dart`（第 829-839 行）
+- **来源：** `lib/features/finance/widgets/add_transaction_dialog.dart`（第 830-840 行）
 - **用途：** 求值当前表达式缓冲区，产生有效正金额时以格式化字符串弹出计算器键盘面板。
 - **输入：** 无（读取 `_expr`）。
 - **返回：** 无。
@@ -272,7 +272,7 @@
 
 ### `double? _evalExpr(String expr)` <a id="evalexpr"></a>
 - **种类：** 顶层函数
-- **来源：** `lib/features/finance/widgets/add_transaction_dialog.dart`（第 1013-1021 行）
+- **来源：** `lib/features/finance/widgets/add_transaction_dialog.dart`（第 1014-1022 行）
 - **用途：** 把计算器键盘的 `×`/`÷` 符号规范化为 `*`/`/` 并把结果解析为 `double`，任何空或格式错误输入返回 `null` 而不是抛出。
 - **输入：** `expr` — 经计算器键盘输入的原始表达式缓冲区（数字、`.`、`+`、`-`、`×`、`÷`）。
 - **返回：** `double?` — 求值后的值，`expr` 为空或解析失败时为 `null`。
@@ -292,7 +292,7 @@
 
 ### `double parse()` <a id="parse"></a>
 - **种类：** `_ExprParser` 的方法
-- **来源：** `lib/features/finance/widgets/add_transaction_dialog.dart`（第 1039-1043 行）
+- **来源：** `lib/features/finance/widgets/add_transaction_dialog.dart`（第 1040-1044 行）
 - **用途：** 把整个源字符串解析为一个算术表达式，拒绝任何未消费的尾部字符。
 - **输入：** 无（操作 `this.src`/`this._pos`）。
 - **返回：** `double` — 表达式的值。
@@ -310,7 +310,7 @@
 
 ### `double _parseAddSub()` <a id="parseaddsub"></a>
 - **种类：** `_ExprParser` 的方法
-- **来源：** `lib/features/finance/widgets/add_transaction_dialog.dart`（第 1050-1058 行）
+- **来源：** `lib/features/finance/widgets/add_transaction_dialog.dart`（第 1051-1059 行）
 - **用途：** 解析左结合 `+`/`-` 项链，每项本身是 `*`/`/` 链。
 - **输入：** 无。
 - **返回：** `double` — 累积值。
@@ -324,7 +324,7 @@
 
 ### `double _parseMulDiv()` <a id="parsemuldiv"></a>
 - **种类：** `_ExprParser` 的方法
-- **来源：** `lib/features/finance/widgets/add_transaction_dialog.dart`（第 1065-1074 行）
+- **来源：** `lib/features/finance/widgets/add_transaction_dialog.dart`（第 1066-1075 行）
 - **用途：** 解析左结合 `*`/`/` 因子链，给乘/除高于加/减的优先级，并拒绝除零。
 - **输入：** 无。
 - **返回：** `double` — 累积值。
@@ -339,7 +339,7 @@
 
 ### `double _parseNumber()` <a id="parsenumber"></a>
 - **种类：** `_ExprParser` 的方法
-- **来源：** `lib/features/finance/widgets/add_transaction_dialog.dart`（第 1081-1095 行）
+- **来源：** `lib/features/finance/widgets/add_transaction_dialog.dart`（第 1082-1096 行）
 - **用途：** 扫描一个数字字面量（数字和最多一个小数点，带只在整个表达式最开头可用的可选前置一元负号）并解析为 `double`。
 - **输入：** 无。
 - **返回：** `double` — 解析的字面量。
