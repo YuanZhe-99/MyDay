@@ -3,16 +3,17 @@ import 'output_validation.dart';
 
 /// Bump when any wording below, or the facts a builder emits, changes in a
 /// way that should replace cached insights. Part of every fingerprint.
-const int insightPromptVersion = 2;
+const int insightPromptVersion = 3;
 
 /// The longest insight line shown, in characters. Longer lines are dropped,
 /// not truncated. Thirty English words with a task title or two can pass
 /// 160, which is why this is 200 (v1.5.1).
 const int insightLineMaxLength = 200;
 
-/// Output budget for one card. Up to four sentences of under 30 words, with
-/// room for a small model that ignores the word limit on one of them.
-const int insightMaxOutputTokens = 400;
+/// Output budget for one card. Up to five sentences of under 30 words (the
+/// Intimacy card since v1.5.3), with room for a small model that ignores the
+/// word limit on one of them; CJK replies cost more tokens per word.
+const int insightMaxOutputTokens = 520;
 
 /// Which card an insight belongs to. The name is the key in
 /// `ai_insights.json`, so it must never be renamed.

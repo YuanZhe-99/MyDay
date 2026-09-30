@@ -154,11 +154,7 @@ void main() {
     test('titles are quoted terms and are capped', () {
       final many = [
         for (var i = 0; i < 20; i++)
-          Task(
-            title: 'Task $i',
-            type: TaskType.daily,
-            createdDate: created,
-          ),
+          Task(title: 'Task $i', type: TaskType.daily, createdDate: created),
       ];
       final facts = buildTodoInsightFacts(
         now: DateTime(2026, 9, 28, 9),
@@ -304,12 +300,7 @@ void main() {
 
     test('card details, bank names and notes never reach the prompt', () {
       final prompt = insightPrompt(build());
-      for (final secret in [
-        '4111',
-        '12/30',
-        '987',
-        'SECRET',
-      ]) {
+      for (final secret in ['4111', '12/30', '987', 'SECRET']) {
         expect(prompt, isNot(contains(secret)), reason: secret);
       }
     });
@@ -353,7 +344,7 @@ void main() {
   });
 
   group('weight facts', () {
-    test('trend, BMI and carried-forward measurements, no notes', () {
+    test('trend, BMI band, body changes and measurements, no notes', () {
       final now = DateTime(2026, 9, 28, 8);
       final facts = buildWeightInsightFacts(
         now: now,
@@ -361,23 +352,63 @@ void main() {
         records: [
           WeightRecord(
             weight: 70,
+            bodyFat: 25,
             waistCm: 80,
             hipCm: 100,
             datetime: DateTime(2026, 9, 1),
             notes: 'SECRET-NOTE',
           ),
           WeightRecord(weight: 69, datetime: DateTime(2026, 9, 25)),
-          WeightRecord(weight: 68.5, datetime: DateTime(2026, 9, 27)),
+          WeightRecord(
+            weight: 68.5,
+            bodyFat: 24,
+            waistCm: 78,
+            datetime: DateTime(2026, 9, 27),
+          ),
         ],
       )!;
       final text = facts.lines.join('\n');
       expect(text, contains('Latest weight: 68.5 kg on 2026-09-27'));
-      expect(text, contains('BMI: 23.7'));
+      expect(text, contains('BMI: 23.7 (normal range)'));
       expect(text, contains('-0.5 kg over 7 days'));
       expect(text, contains('-1.5 kg over 30 days'));
-      expect(text, contains('waist 80 cm, hip 100 cm'));
-      expect(text, contains('Waist-to-hip ratio: 0.8'));
+      expect(text, contains('Tracking since: 2026-09-01 (3 weigh-ins'));
+      expect(text, contains('Body fat: 24% on 2026-09-27'));
+      expect(
+        text,
+        contains('Body fat change over 90 days: -1 points (from 25% on '),
+      );
+      expect(text, contains('waist 78 cm, hip 100 cm'));
+      expect(text, contains('Waist-to-hip ratio: 0.78'));
+      // Hip was measured once, so only the waist has a change.
+      expect(text, contains('Measurement change over 90 days: waist -2 cm'));
+      expect(text, isNot(contains('hip -')));
+      expect(facts.slots.map((s) => s.id), ['trend', 'body', 'advice']);
       expect(insightPrompt(facts), isNot(contains('SECRET')));
+    });
+
+    test('BMI bands follow the page bar', () {
+      String bandFor(double weight) => buildWeightInsightFacts(
+        now: DateTime(2026, 9, 28),
+        heightCm: 100,
+        records: [WeightRecord(weight: weight, datetime: DateTime(2026, 9, 1))],
+      )!.lines.firstWhere((l) => l.startsWith('- BMI'));
+      expect(bandFor(18), contains('underweight range'));
+      expect(bandFor(24.9), contains('normal range'));
+      expect(bandFor(25), contains('overweight range'));
+      expect(bandFor(30), contains('obese range'));
+    });
+
+    test('no body facts means no body slot', () {
+      final facts = buildWeightInsightFacts(
+        now: DateTime(2026, 9, 28),
+        heightCm: null,
+        records: [
+          WeightRecord(weight: 70, datetime: DateTime(2026, 9, 1)),
+          WeightRecord(weight: 69, datetime: DateTime(2026, 9, 20)),
+        ],
+      )!;
+      expect(facts.slots.map((s) => s.id), ['trend', 'advice']);
     });
 
     test('no records returns null', () {
@@ -403,7 +434,7 @@ void main() {
         location: 'SECRET-LOCATION',
         pleasureLevel: 4,
         duration: const Duration(minutes: 20),
-        thrustCount: 123456,
+        thrustCount: 12,
         notes: 'SECRET-NOTE',
         hadOrgasm: true,
         usedCondom: true,
@@ -418,6 +449,16 @@ void main() {
         datetime: DateTime(2026, 8, 20),
       ),
     ];
+    final partners = [
+      Partner(id: 'SECRET-PARTNER', name: 'Alice-NAME', emoji: '🦊'),
+      Partner(
+        id: 'SECRET-OLD',
+        name: 'Bob-NAME',
+        endDate: DateTime(2025, 1, 1),
+      ),
+    ];
+    final toys = [Toy(id: 'SECRET-TOY', name: 'Wand-NAME', price: 777)];
+    final positions = [Position(id: 'SECRET-POSITION', name: 'Pos-NAME')];
     const body = BodyProfile(
       underbustCm: 70,
       braStandard: 'eu',
@@ -425,66 +466,178 @@ void main() {
       erectLengthCm: 99,
     );
 
-    test('only statistics and body facts, nothing identifying', () {
-      final facts = buildIntimacyInsightFacts(
-        now: now,
-        records: records,
-        userBody: body,
-        cycleRecords: [CycleRecord(date: '2026-09-10')],
-        weightRecords: [
+    /// Purpose: Call the builder with this group's defaults.
+    /// Inputs: Optional overrides.
+    /// Returns: `InsightFacts?`.
+    /// Side effects: None.
+    /// Notes: Test helper.
+    InsightFacts? build({
+      List<IntimacyRecord>? rs,
+      BodyProfile? userBody = body,
+      List<CycleRecord> cycles = const [],
+      List<WeightRecord> weights = const [],
+      List<Partner>? ps,
+      List<Toy>? ts,
+      List<Position>? pos,
+      IntimacyChartSettings chart = const IntimacyChartSettings(),
+    }) => buildIntimacyInsightFacts(
+      now: now,
+      records: rs ?? records,
+      userBody: userBody,
+      cycleRecords: cycles,
+      weightRecords: weights,
+      partners: ps ?? partners,
+      toys: ts ?? toys,
+      positions: pos ?? positions,
+      chartSettings: chart,
+    );
+
+    test('statistics with anonymous labels, nothing identifying', () {
+      final facts = build(
+        cycles: [CycleRecord(date: '2026-09-10')],
+        weights: [
           WeightRecord(weight: 55, bustCm: 85, datetime: DateTime(2026, 9, 1)),
         ],
       )!;
       final prompt = insightPrompt(facts);
-      for (final secret in ['SECRET', '123456', '99', 'porn']) {
+      for (final secret in ['SECRET', 'NAME', '99', '777', '🦊']) {
         expect(prompt, isNot(contains(secret)), reason: secret);
       }
       final text = facts.lines.join('\n');
       expect(text, contains('Last 30 days: 1 entries (1 with a partner'));
       expect(text, contains('average length 20 min'));
+      expect(text, contains('porn watched in 100%'));
+      expect(text, contains('average thrust count 1200'));
+      expect(text, contains('average thrust rate 60/min'));
       expect(text, contains('protection used in 100% of partnered'));
+      expect(text, contains('Partners: 2 on record, 1 active'));
+      expect(
+        text,
+        contains(
+          'partner A 1 entries, average rating 4, climax 100%, '
+          'protection 100%, last 8 days ago',
+        ),
+      );
+      expect(
+        text,
+        contains('Toys: 1 on record, 1 in use; used in 50% of entries'),
+      );
+      expect(text, contains('toy 1 1 times'));
+      expect(text, contains('Positions: used in 50% of entries'));
+      expect(text, contains('position 1 1 times'));
+      expect(text, contains('Chart being viewed (last 3 months, 2 entries)'));
       expect(text, contains('bust 85 cm'));
       expect(text, contains('underbust 70 cm'));
       expect(text, contains('Cycle (estimate)'));
       expect(text, contains('last recorded start 2026-09-10'));
-      expect(facts.slots.map((s) => s.id), ['trend', 'advice', 'body']);
+      expect(facts.quotedTerms, isEmpty);
+      expect(facts.slots.map((s) => s.id), [
+        'trend',
+        'chart',
+        'advice',
+        'partners',
+        'body',
+      ]);
+    });
+
+    test('the chart line follows the chart selection', () {
+      final rs = [
+        IntimacyRecord(
+          type: 'Solo',
+          isSolo: true,
+          pleasureLevel: 5,
+          duration: Duration.zero,
+          datetime: DateTime(2026, 7, 1),
+        ),
+        IntimacyRecord(
+          type: 'Solo',
+          isSolo: true,
+          pleasureLevel: 2,
+          duration: const Duration(minutes: 10),
+          datetime: DateTime(2026, 9, 10),
+        ),
+        IntimacyRecord(
+          type: 'Solo',
+          isSolo: true,
+          pleasureLevel: 4,
+          duration: Duration.zero,
+          datetime: DateTime(2026, 9, 25),
+        ),
+      ];
+      String? chartLine(IntimacyChartSettings chart) => build(
+        rs: rs,
+        userBody: null,
+        chart: chart,
+      )!.lines.where((l) => l.startsWith('- Chart')).firstOrNull;
+
+      expect(
+        chartLine(
+          const IntimacyChartSettings(
+            metrics: ['duration', 'pleasure'],
+            range: '1m',
+          ),
+        ),
+        '- Chart being viewed (last month, 2 entries): '
+        'rating average 3 of 5 (first half 2 of 5, second half 4 of 5); '
+        'length average 10 min (first half 10 min, second half no data)',
+      );
+      final freq = chartLine(
+        const IntimacyChartSettings(metrics: ['frequency'], range: 'all'),
+      )!;
+      expect(freq, contains('all time since 2026-07-01, 3 entries'));
+      expect(freq, contains('frequency '));
+      expect(freq, isNot(contains('rating')));
+      // Unknown ids fall back to the chart's defaults.
+      final fallback = chartLine(
+        const IntimacyChartSettings(metrics: ['bogus'], range: 'zz'),
+      )!;
+      expect(fallback, contains('last 3 months'));
+      expect(fallback, contains('thrust rate no data'));
+      // Fewer than two entries in range: no chart line and no chart slot.
+      final week = build(
+        rs: rs,
+        userBody: null,
+        chart: const IntimacyChartSettings(range: '1w'),
+      )!;
+      expect(week.lines.where((l) => l.startsWith('- Chart')), isEmpty);
+      expect(week.slots.map((s) => s.id), isNot(contains('chart')));
+    });
+
+    test('partnered entries without a known partner stay anonymous', () {
+      final facts = build(
+        userBody: null,
+        ps: const [],
+        ts: const [],
+        pos: const [],
+      )!;
+      final text = facts.lines.join('\n');
+      expect(text, contains('unspecified partner 1 entries'));
+      expect(text, isNot(contains('Toys:')));
+      expect(text, isNot(contains('Positions:')));
+      expect(facts.slots.map((s) => s.id), [
+        'trend',
+        'chart',
+        'advice',
+        'partners',
+      ]);
     });
 
     test('partner cycles are not the user cycle', () {
-      final facts = buildIntimacyInsightFacts(
-        now: now,
-        records: records,
-        userBody: body,
-        cycleRecords: [CycleRecord(personId: 'p1', date: '2026-09-10')],
-        weightRecords: const [],
+      final facts = build(
+        cycles: [CycleRecord(personId: 'p1', date: '2026-09-10')],
       )!;
       final text = facts.lines.join('\n');
       expect(text, isNot(contains('Cycle')));
-      expect(facts.slots.map((s) => s.id), ['trend', 'advice', 'body']);
+      expect(facts.slots.map((s) => s.id), contains('body'));
     });
 
     test('body slot is requested only with body facts', () {
-      final facts = buildIntimacyInsightFacts(
-        now: now,
-        records: records,
-        userBody: null,
-        cycleRecords: const [],
-        weightRecords: const [],
-      )!;
-      expect(facts.slots.map((s) => s.id), ['trend', 'advice']);
+      final facts = build(userBody: null)!;
+      expect(facts.slots.map((s) => s.id), isNot(contains('body')));
     });
 
     test('no records and no body facts returns null', () {
-      expect(
-        buildIntimacyInsightFacts(
-          now: now,
-          records: const [],
-          userBody: null,
-          cycleRecords: const [],
-          weightRecords: const [],
-        ),
-        isNull,
-      );
+      expect(build(rs: const [], userBody: null), isNull);
     });
   });
 }

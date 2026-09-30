@@ -116,8 +116,8 @@ the lines (older lines dimmed while newer ones are generated), and the label and
 |---|---|---|
 | Todo | After the daily score card; in the last column when sections sit side by side. Only while today is selected. | Morning (before 12:00): `plan`, `first`, `tip`. Afternoon (12:00–18:00): `progress`, `remaining`, `tip`. Evening (from 18:00): `summary`, `tomorrow`, `encouragement`. |
 | Finance | After the upcoming-renewals strip. Collapsed to one preview line in the stacked (phone) layout; full in the left pane of the split layout. | `flowSummary`, `flowAdvice` under *Income & spending*; `subSummary`, `subAdvice` under *Subscriptions*. |
-| Weight | Between the summary card and the charts. | `trend`, `advice`. |
-| Intimacy | After the trend chart, only while on-device AI is on. | `trend`, `advice` under *Trend* (when there are records); `body` under *Body condition* (when there are body facts). A cycle disclaimer is shown when the user tracks their cycle. |
+| Weight | Between the summary card and the charts. | `trend`, `advice` under *Trend*; `body` under *Body condition* (when there is a BMI, body fat or a measurement; since 1.5.3). |
+| Intimacy | After the trend chart, only while on-device AI is on. | `trend`, `chart` (when the chart has two entries in range; since 1.5.3), `advice` under *Trend* (when there are records); `partners` under *Partners & toys* (when there are partner, toy or position facts; since 1.5.3); `body` under *Body condition* (when there are body facts). A cycle disclaimer is shown when the user tracks their cycle. |
 
 ### What each card is given
 
@@ -140,11 +140,18 @@ therefore parsed to nothing and the Todo card, whose prompt invited exactly that
 |---|---|---|
 | Todo | The date; titles of today's daily habits and one-off tasks (trimmed to 24 characters, at most 8 per line), each open one-off task with at most one qualifier — `overdue`, `due <date>` or its reminder time; done counts; the self-rating; tomorrow's tasks in the evening. If the model declines these or answers nothing usable, a second try sends the same facts as counts only, with no titles (`fallbackFacts`). | Task notes, subtask titles |
 | Finance | Income and spending per month for this month and the three before, in the default currency; the top three spending categories this month and last; the total across accounts; subscription count, cost and the costliest names; renewals in the next 7 days | Card numbers, expiry dates, security codes, bank or account names, transaction and subscription notes |
-| Weight | Latest weight and date, height, BMI, change over 7/30/90 days, recent range, weigh-in count, body fat, bust/waist/hip carried forward, waist-to-hip ratio | Record notes |
-| Intimacy | For the last 30 days and the 30 before: counts (partnered vs solo), average rating, average timed length, climax rate, protection rate; 90-day count; days since the last entry; the user's bust/waist/hip (from Weight), underbust and estimated bra size; when the user tracks their own cycle: typical length, last start, today's estimated phase and fertile window, days to the next estimated start | Notes, locations, partner, toy and position names, thrust counts, the porn flag, genital measurements, partners' cycles |
+| Weight | Latest weight and date, height, BMI with its band (underweight/normal/overweight/obese range, the page bar's cut-offs), change over 7/30/90 days, recent range, weigh-in count, tracking start and total count, body fat and its 90-day change, bust/waist/hip carried forward and their 90-day change, waist-to-hip ratio | Record notes |
+| Intimacy | For the last 30 days and the 30 before: counts (partnered vs solo), average rating, average timed length, climax rate, porn-watched share, average thrust count and rate, protection rate; 90-day count; days since the last entry; the trend chart as set up (range, entry count, and for each selected metric the average and the first-half and second-half averages); partners on record and active, per-partner 90-day entries, rating, climax and protection rates and days since the last entry; toys on record and in use, toy and position use over 90 days; the user's bust/waist/hip (from Weight), underbust and estimated bra size; when the user tracks their own cycle: typical length, last start, today's estimated phase and fertile window, days to the next estimated start | Notes, locations, partner, toy and position names, emoji, images, prices and links, genital measurements, partners' cycles |
 
-The Intimacy exclusions are for privacy and to stay inside the on-device models' acceptable-use
-rules; a `guardrail` refusal is cached as *skipped* so it is not retried until the facts change.
+Partners, toys and positions appear only under anonymous labels (`partner A`, `toy 1`,
+`position 1`), ranked by 90-day use with at most five of each; a partnered entry whose partner is
+unset or deleted counts as `unspecified partner`. The labels are not stable across time — they
+follow the ranking — and no user-typed name is sent, so `quotedTerms` stays empty. The chart line
+follows the persisted `IntimacyChartSettings`, falling back to the chart's defaults for unknown ids
+exactly as the widget does, so toggling a chip changes the fingerprint and regenerates the card.
+Thrust figures and the porn-watched share are sent since 1.5.3. The remaining exclusions are for
+privacy and to stay inside the on-device models' acceptable-use rules; a `guardrail` refusal is
+cached as *skipped* so it is not retried until the facts change.
 
 ### Language
 
@@ -250,7 +257,9 @@ also fails when nothing links it (the plugin did not make it into the build). Se
 Google Play's AI-Generated Content policy treats productivity apps that use AI to improve an
 existing feature as out of scope; the output is still labelled. Apple's acceptable-use requirements
 for Foundation Models prohibit generating adult content; the Intimacy card sends only neutral
-statistics and asks for neutral wording.
+statistics and asks for neutral wording. Since 1.5.3 those statistics include thrust figures and
+the porn-watched share, which makes a refusal more likely on some devices; a refusal is cached as
+*skipped* and the card says *declined*.
 
 ## Device checklist
 

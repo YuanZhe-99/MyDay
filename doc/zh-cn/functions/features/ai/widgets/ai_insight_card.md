@@ -38,7 +38,7 @@
   ```dart
   AiInsightSection(l10n.aiIntimacyBody, const {'body'}),
   ```
-  （`lib/features/intimacy/views/intimacy_page.dart`，第 669 行；财务以同样方式分组 `flowSummary`/`flowAdvice` 和 `subSummary`/`subAdvice`。）
+  （`lib/features/intimacy/views/intimacy_page.dart`，`_IntimacyPageState.build`；财务以同样方式分组 `flowSummary`/`flowAdvice` 和 `subSummary`/`subAdvice`，自 v1.5.3 起体重分组 `trend`/`advice` 和 `body`。）
 - **备注：** 槽位不属于任何小节的行最先显示，不分组。当前条目中没有行的小节连同标题一起跳过。
 
 ### `const AiInsightCard({super.key, required this.module, required this.buildRequest, this.sections = const [], this.compact = false, this.footnote, this.margin = const EdgeInsets.fromLTRB(16, 8, 16, 8)})` <a id="aiinsightcard-new"></a>

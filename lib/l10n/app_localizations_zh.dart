@@ -2270,6 +2270,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiIntimacyBody => '身体状况';
 
   @override
+  String get aiIntimacyPartners => '伴侣与玩具';
+
+  @override
+  String get aiWeightTrend => '趋势';
+
+  @override
+  String get aiWeightBody => '身体状况';
+
+  @override
   String get aiEstimateDisclaimer => '周期信息是统计估算，不是医疗建议。';
 }
 
@@ -4537,6 +4546,15 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get aiIntimacyBody => '身體狀況';
+
+  @override
+  String get aiIntimacyPartners => '伴侶與玩具';
+
+  @override
+  String get aiWeightTrend => '趨勢';
+
+  @override
+  String get aiWeightBody => '身體狀況';
 
   @override
   String get aiEstimateDisclaimer => '週期資訊是統計估算，不是醫療建議。';

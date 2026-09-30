@@ -4379,6 +4379,24 @@ abstract class AppLocalizations {
   /// **'Body condition'**
   String get aiIntimacyBody;
 
+  /// No description provided for @aiIntimacyPartners.
+  ///
+  /// In en, this message translates to:
+  /// **'Partners & toys'**
+  String get aiIntimacyPartners;
+
+  /// No description provided for @aiWeightTrend.
+  ///
+  /// In en, this message translates to:
+  /// **'Trend'**
+  String get aiWeightTrend;
+
+  /// No description provided for @aiWeightBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Body condition'**
+  String get aiWeightBody;
+
   /// No description provided for @aiEstimateDisclaimer.
   ///
   /// In en, this message translates to:

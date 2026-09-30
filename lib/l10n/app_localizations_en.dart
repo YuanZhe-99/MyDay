@@ -2322,6 +2322,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiIntimacyBody => 'Body condition';
 
   @override
+  String get aiIntimacyPartners => 'Partners & toys';
+
+  @override
+  String get aiWeightTrend => 'Trend';
+
+  @override
+  String get aiWeightBody => 'Body condition';
+
+  @override
   String get aiEstimateDisclaimer =>
       'Cycle information is a statistical estimate, not medical advice.';
 }

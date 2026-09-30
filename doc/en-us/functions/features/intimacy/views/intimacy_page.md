@@ -1456,10 +1456,11 @@ Tier A; `_applyIntimacyData`, `_currentIntimacyData`, `_showWriteBlocked` as Tie
   AI insight card while `platformMayHaveOnDeviceModel && settings.onDeviceAiEnabled`; it is empty
   below two records with AI off. The card's `buildRequest` returns `null` when
   `intimacyVisibilityProvider` reports the module hidden, and otherwise calls
-  `buildIntimacyInsightFacts` with `_records`, `_userBody`, `_cycleRecords` and
-  `_weightRecordsForInsight`. It carries two sections (`aiIntimacyTrend` over `trend`/`advice`,
-  `aiIntimacyBody` over `body`) and the `aiEstimateDisclaimer` footnote only when
-  `_userBody?.cycleEnabled == true`.
+  `buildIntimacyInsightFacts` with `_records`, `_userBody`, `_cycleRecords`,
+  `_weightRecordsForInsight` and, since v1.5.3, `_partners`, `_toys`, `_positions` and
+  `_chartSettings`. It carries three sections (`aiIntimacyTrend` over `trend`/`chart`/`advice`,
+  `aiIntimacyPartners` over `partners`, `aiIntimacyBody` over `body`) and the
+  `aiEstimateDisclaimer` footnote only when `_userBody?.cycleEnabled == true`.
 - **Notes:** Stacked, the calendar alone is most of a phone's height, so selecting a date scrolls
   the records it selected out of view; split, the calendar **and the chart** share the left pane
   while the history takes the rest. The chart moved left in v1.4.3: below the calendar the pane

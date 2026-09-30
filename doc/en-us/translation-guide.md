@@ -163,6 +163,8 @@ Not copied to the other repos — no other app has these.
 | quoted term | 引用词 | user-typed words ignored by the reply script check |
 | fallback facts | 回退事实 | the plainer facts a card sends once when the model declines the titled ones |
 | regenerate | 重新生成 | the card's refresh button |
+| anonymous label | 匿名标签 | Intimacy card: `partner A`, `toy 1`, `position 1` sent instead of a name, ranked by use (v1.5.3) |
+| position (Intimacy) | 姿势 | a recorded sex position; the Chinese docs use 姿势, not 体位 |
 | weak linking | 弱链接 | FoundationModels is linked with `LC_LOAD_WEAK_DYLIB` |
 | merge-by-id (sub-page save) | 按 id 合并（子页面保存） | Finance/Intimacy: a sub-page's list edits replayed onto a fresh read of the file (`IdListDelta`, v1.5.2) |
 | sub-page | 子页面 | a page pushed from a module home page (accounts, partner management, ...) |

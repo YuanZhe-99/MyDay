@@ -139,6 +139,8 @@
 | quoted term | 引用词 | 回复文字系统检查时忽略的用户输入词语 |
 | fallback facts | 回退事实 | 模型拒绝带标题的事实时卡片再试一次所发送的更简朴事实 |
 | regenerate | 重新生成 | 卡片的刷新按钮 |
+| anonymous label | 匿名标签 | 亲密卡片：代替名称发送的 `partner A`、`toy 1`、`position 1`，按使用次数排序（v1.5.3） |
+| position (Intimacy) | 姿势 | 记录的性爱姿势；中文文档用「姿势」，不用「体位」 |
 | weak linking | 弱链接 | FoundationModels 以 `LC_LOAD_WEAK_DYLIB` 链接 |
 | merge-by-id (sub-page save) | 按 id 合并（子页面保存） | 财务/亲密：把子页面的列表编辑重放到重新读取的文件上（`IdListDelta`，v1.5.2） |
 | sub-page | 子页面 | 从模块主页推入的页面（账户、伴侣管理……） |

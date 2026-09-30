@@ -56,7 +56,7 @@ static bool shouldSkipWeightReminderAt({
 
 ## AI 洞察卡片（1.5.0）
 
-端侧 AI 开启时（Android、iOS/macOS 26+），摘要卡片和图表之间有一张洞察卡片：体重趋势和一条温和的建议。事实由 `buildWeightInsightFacts`（`services/weight_insight_facts.dart`）构建：最新体重及日期、BMI、7/30/90 天内的变化、近期范围、称重次数、体脂，以及与页面显示完全一致的向前继承的胸/腰/臀。记录备注绝不发送。AI 关闭时卡片不渲染任何内容，因此页面间距不变。见 [端侧 AI](../on-device-ai.md)。
+端侧 AI 开启时（Android、iOS/macOS 26+），摘要卡片和图表之间有一张洞察卡片。它的*趋势*分区包含体重趋势和一条同时参考趋势与身体事实的温和建议；自 1.5.3 起，*身体状况*分区总结 BMI、体脂和围度以及它们的变化（至少有其中一项时才显示）。事实由 `buildWeightInsightFacts`（`services/weight_insight_facts.dart`）构建：最新体重及日期、身高、BMI 及与页面彩色条一致的区间（偏瘦、正常、超重或肥胖范围）、7/30/90 天内的变化、近期范围、称重次数、开始记录的日期和总次数、体脂及其 90 天变化、与页面显示完全一致的向前继承的胸/腰/臀及其 90 天变化，以及腰臀比。记录备注绝不发送。AI 关闭时卡片不渲染任何内容，因此页面间距不变。见 [端侧 AI](../on-device-ai.md)。
 
 ## 相关页面
 

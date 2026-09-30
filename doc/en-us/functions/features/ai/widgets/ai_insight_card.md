@@ -58,8 +58,9 @@ fields are not rows, as on the other pages.
   ```dart
   AiInsightSection(l10n.aiIntimacyBody, const {'body'}),
   ```
-  (`lib/features/intimacy/views/intimacy_page.dart`, line 669; Finance groups
-  `flowSummary`/`flowAdvice` and `subSummary`/`subAdvice` the same way.)
+  (`lib/features/intimacy/views/intimacy_page.dart`, `_IntimacyPageState.build`; Finance groups
+  `flowSummary`/`flowAdvice` and `subSummary`/`subAdvice` the same way, and since v1.5.3 Weight
+  groups `trend`/`advice` and `body`.)
 - **Notes:** Lines whose slot is in no section are shown first, ungrouped. A section with no lines
   in the current entry is skipped, heading included.
 

@@ -170,14 +170,21 @@ Gender-neutral, fully optional, with auto-save everywhere:
 With on-device AI on (Android, iOS/macOS 26+), an insight card follows the trend chart (in the left
 pane of the split layout). It is added to the chart blocks only while AI is on, so the pane's
 divider and spacing are unchanged otherwise, and the page itself stays unreachable while the module
-is hidden. Its *Trend* section compares the last 30 days with the 30 before and gives one gentle
-suggestion; its *Body condition* section summarizes the user's measurements (bust/waist/hip from
-Weight, underbust, estimated bra size) and, when the user tracks their own cycle, today's estimated
-phase and the days to the next estimated start, followed by the "statistical estimate, not medical
-advice" disclaimer. The facts are built by `buildIntimacyInsightFacts`
-(`services/intimacy_insight_facts.dart`) and are statistics only: **notes, locations, partner, toy
-and position names, thrust counts, the porn flag, genital measurements and partners' cycles are
-never sent**. To read the Weight measurements the page loads `weight_data.json` while AI is on; an
+is hidden. Its *Trend* section compares the last 30 days with the 30 before, describes the trend
+chart exactly as the user has set it up (the selected metrics over the selected range, first half
+against second half; since 1.5.3), and gives one gentle suggestion. Its *Partners & toys* section
+(since 1.5.3) sums up per-partner statistics over the last 90 days (entries, average rating, climax
+and protection rates, days since the last entry), how many partners and toys are on record and
+active, and how often toys and positions were used. Its *Body condition* section summarizes the
+user's measurements (bust/waist/hip from Weight, underbust, estimated bra size) and, when the user
+tracks their own cycle, today's estimated phase and the days to the next estimated start, followed
+by the "statistical estimate, not medical advice" disclaimer. The facts are built by
+`buildIntimacyInsightFacts` (`services/intimacy_insight_facts.dart`) and are statistics only.
+Since 1.5.3 thrust count and rate and the porn-watched share are included. **Partners, toys and
+positions are never named: they appear only as `partner A`, `toy 1`, `position 1`, ranked by
+use. Notes, locations, names, emoji, images, prices, links, genital measurements and partners'
+cycles are never sent.** Because the chart selection is part of the facts, changing a chart chip
+regenerates the card. To read the Weight measurements the page loads `weight_data.json` while AI is on; an
 unreadable weight file only leaves those facts out. See [On-device AI](../on-device-ai.md).
 
 ## Related pages

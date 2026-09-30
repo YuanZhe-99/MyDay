@@ -6,12 +6,12 @@
 
 | 度量 | 计数 |
 |---|---|
-| `grep -r '/// Purpose:' lib --include=*.dart` | **1637** |
-| 全部 101 页的声明表行 | **1703** |
-| ——其中 Tier A（完整条目） | 953 |
-| ——其中 Tier B（仅索引行） | 750 |
+| `grep -r '/// Purpose:' lib --include=*.dart` | **1651** |
+| 全部 101 页的声明表行 | **1718** |
+| ——其中 Tier A（完整条目） | 961 |
+| ——其中 Tier B（仅索引行） | 757 |
 
-下面的 **Declarations** 和 **Tier A** 列统计**每页声明表中的行**，这是可机械检查的数字。一行不总是一个 `/// Purpose:` 块，表行数超出 grep 计数的 66 行净差额被完整逐项列出——行数与自己的 `grep` 不同的每页都带一条 `**Reconciliation:**` 说明确切原因。有三个反复出现的原因：
+下面的 **Declarations** 和 **Tier A** 列统计**每页声明表中的行**，这是可机械检查的数字。一行不总是一个 `/// Purpose:` 块，表行数超出 grep 计数的 67 行净差额被完整逐项列出——行数与自己的 `grep` 不同的每页都带一条 `**Reconciliation:**` 说明确切原因。有三个反复出现的原因：
 
 - **文件级库注释**（`backup_service.dart`、`webdav_service.dart`、`import_export_service.dart`、`json_preservation.dart`、`sync_progress.dart`、`sync_wake_lock.dart`）：`import` 块上方的一个 `/// Purpose:` 块记录文件，不记录声明，因此被 `grep` 计数但得不到行。
 - **没有 `Purpose:` 块的真实声明**（枚举、typedef、顶层 `const`、Riverpod provider、`appRouter`）：无 `grep` 命中，但有一行，因为它们是文件表面的一部分。
@@ -86,7 +86,7 @@
 | `lib/features/intimacy/models/intimacy_record.dart` | [features/intimacy/models/intimacy_record.md](features/intimacy/models/intimacy_record.md) | 44 | 44 |
 | `lib/features/intimacy/services/body_metrics.dart` | [features/intimacy/services/body_metrics.md](features/intimacy/services/body_metrics.md) | 8 | 7 |
 | `lib/features/intimacy/services/cycle_predictor.dart` | [features/intimacy/services/cycle_predictor.md](features/intimacy/services/cycle_predictor.md) | 16 | 7 |
-| `lib/features/intimacy/services/intimacy_insight_facts.dart` | [features/intimacy/services/intimacy_insight_facts.md](features/intimacy/services/intimacy_insight_facts.md) | 2 | 2 |
+| `lib/features/intimacy/services/intimacy_insight_facts.dart` | [features/intimacy/services/intimacy_insight_facts.md](features/intimacy/services/intimacy_insight_facts.md) | 14 | 7 |
 | `lib/features/intimacy/services/intimacy_storage.dart` | [features/intimacy/services/intimacy_storage.md](features/intimacy/services/intimacy_storage.md) | 7 | 6 |
 | `lib/features/intimacy/views/body_page.dart` | [features/intimacy/views/body_page.md](features/intimacy/views/body_page.md) | 4 | 0 |
 | `lib/features/intimacy/views/intimacy_page.dart` | [features/intimacy/views/intimacy_page.md](features/intimacy/views/intimacy_page.md) | 184 | 58 |
@@ -126,13 +126,13 @@
 | 源文件 | 页面 | 声明数 | Tier A |
 |---|---|---|---|
 | `lib/features/weight/models/weight_record.dart` | [features/weight/models/weight_record.md](features/weight/models/weight_record.md) | 13 | 13 |
-| `lib/features/weight/services/weight_insight_facts.dart` | [features/weight/services/weight_insight_facts.md](features/weight/services/weight_insight_facts.md) | 2 | 2 |
+| `lib/features/weight/services/weight_insight_facts.dart` | [features/weight/services/weight_insight_facts.md](features/weight/services/weight_insight_facts.md) | 5 | 5 |
 | `lib/features/weight/services/weight_storage.dart` | [features/weight/services/weight_storage.md](features/weight/services/weight_storage.md) | 6 | 5 |
 | `lib/features/weight/views/weight_page.dart` | [features/weight/views/weight_page.md](features/weight/views/weight_page.md) | 73 | 33 |
 
 ## l10n/
 
-`lib/l10n/` 已在 [l10n/INDEX.md](l10n/INDEX.md) 中记录（生成代码，不属于上面 1637 个 `Purpose:` 块和 1703 个表行）。
+`lib/l10n/` 已在 [l10n/INDEX.md](l10n/INDEX.md) 中记录（生成代码，不属于上面 1651 个 `Purpose:` 块和 1718 个表行）。
 
 ## shared/
 
@@ -177,11 +177,11 @@
 | `app/` | 5 | 20 | 15 | 5 |
 | `features/ai/` | 9 | 132 | 68 | 64 |
 | `features/finance/` | 25 | 421 | 205 | 216 |
-| `features/intimacy/` | 12 | 377 | 184 | 193 |
+| `features/intimacy/` | 12 | 389 | 189 | 200 |
 | `features/settings/` | 3 | 33 | 8 | 25 |
 | `features/todo/` | 12 | 234 | 146 | 88 |
-| `features/weight/` | 4 | 94 | 53 | 41 |
+| `features/weight/` | 4 | 97 | 56 | 41 |
 | `shared/` | 30 | 391 | 273 | 118 |
-| **总计** | **101** | **1703** | **953** | **750** |
+| **总计** | **101** | **1718** | **961** | **757** |
 
-这里的每行都是上面逐文件行的算术和，在 v1.5.0 中重新派生，并按 v1.5.1 和 v1.5.2 触及的页面调整（v1.5.2 新增了 `id_list_delta.md`）。文件计数也与 `find lib -name '*.dart' -not -path 'lib/l10n/*'` 完全匹配——101 个源文件、101 个页面，没有无页面的文件，也没有无文件的页面。
+这里的每行都是上面逐文件行的算术和，在 v1.5.0 中重新派生，并按 v1.5.1、v1.5.2 和 v1.5.3 触及的页面调整（v1.5.2 新增了 `id_list_delta.md`；v1.5.3 扩充了体重和亲密的洞察事实页）。文件计数也与 `find lib -name '*.dart' -not -path 'lib/l10n/*'` 完全匹配——101 个源文件、101 个页面，没有无页面的文件，也没有无文件的页面。

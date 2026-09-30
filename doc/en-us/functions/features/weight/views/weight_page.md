@@ -20,8 +20,9 @@ Since v1.5.0 `_buildContent` also places the on-device AI insight card
 `module: InsightModule.weight` and margin `EdgeInsets.fromLTRB(16, 0, 16, 16)`) between the summary
 card and the chart section. Its request comes from
 [`buildWeightInsightFacts`](../services/weight_insight_facts.md#buildweightinsightfacts) fed `now`,
-`_height` and `_records`; the card renders nothing while on-device AI is off, so the spacing below
-the summary is unchanged then. See [On-device AI](../../../../on-device-ai.md#insight-cards).
+`_height` and `_records`. Since v1.5.3 it carries two sections, `aiWeightTrend` over
+`trend`/`advice` and `aiWeightBody` over `body`. The card renders nothing while on-device AI is
+off, so the spacing below the summary is unchanged then. See [On-device AI](../../../../on-device-ai.md#insight-cards).
 
 Despite being a view file, a large fraction of its declarations are classified Tier A: the summary
 statistics (BMI, weight change, tracking days, recent range), both EWMA-smoothing functions, the

@@ -102,10 +102,14 @@ trend charts take a column each below it, sharing one range picker. See
 ## AI insight card (1.5.0)
 
 With on-device AI on (Android, iOS/macOS 26+), an insight card sits between the summary card and
-the charts: the weight trend and one gentle suggestion. The facts are built by
-`buildWeightInsightFacts` (`services/weight_insight_facts.dart`): latest weight and date, BMI,
-change over 7/30/90 days, recent range, weigh-in count, body fat, and bust/waist/hip carried forward
-exactly as the page shows them. Record notes are never sent. While AI is off the card renders
+the charts. Its *Trend* section holds the weight trend and one gentle suggestion that draws on
+both the trend and the body facts; since 1.5.3 a *Body condition* section sums up BMI, body fat
+and measurements and how they moved (shown only when at least one of them exists). The facts are
+built by `buildWeightInsightFacts` (`services/weight_insight_facts.dart`): latest weight and date,
+height, BMI with the same band the page's color bar shows (underweight, normal, overweight or
+obese range), change over 7/30/90 days, recent range, weigh-in count, the tracking start and total
+count, body fat and its 90-day change, bust/waist/hip carried forward exactly as the page shows
+them, their 90-day change, and the waist-to-hip ratio. Record notes are never sent. While AI is off the card renders
 nothing, so the page's spacing is unchanged. See [On-device AI](../on-device-ai.md).
 
 ## Related pages

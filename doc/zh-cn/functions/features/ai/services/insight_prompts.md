@@ -6,9 +6,9 @@
 
 | 声明 | 种类 | Tier | 用途 |
 |---|---|---|---|
-| `insightPromptVersion` | 顶层常量（`int`） | B | 提示版本 `2`（v1.5.1），属于每个指纹；措辞或构建器输出改变时递增。 |
+| `insightPromptVersion` | 顶层常量（`int`） | B | 提示版本 `3`（v1.5.3；自 v1.5.1 起为 `2`），属于每个指纹；措辞或构建器输出改变时递增。 |
 | `insightLineMaxLength` | 顶层常量（`int`） | B | `200`：保留行的最大长度（字符）；更长的行被丢弃（v1.5.1 之前为 `160`）。 |
-| `insightMaxOutputTokens` | 顶层常量（`int`） | B | `400`：一张卡片的输出预算（v1.5.1 之前为 `320`）。 |
+| `insightMaxOutputTokens` | 顶层常量（`int`） | B | `520`：一张卡片的输出预算，按亲密卡片的五个槽位确定（v1.5.3 之前为 `400`，v1.5.1 之前为 `320`）。 |
 | `InsightModule`（枚举） | 枚举 | B | `todo` / `finance` / `weight` / `intimacy`；名称即 `ai_insights.json` 中的键。 |
 | `InsightTimeBucket`（枚举） | 枚举 | B | `none` / `morning` / `afternoon` / `evening`；只有 Todo 使用 `none` 以外的值。 |
 | [`todoBucketFor`](#todobucketfor) | 顶层函数 | A | 为本地时间选择 Todo 卡片的时段。 |

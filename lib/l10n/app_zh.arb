@@ -806,5 +806,8 @@
   "aiTodoEvening": "今日回顾与明日建议",
   "aiIntimacyTrend": "趋势",
   "aiIntimacyBody": "身体状况",
+  "aiIntimacyPartners": "伴侣与玩具",
+  "aiWeightTrend": "趋势",
+  "aiWeightBody": "身体状况",
   "aiEstimateDisclaimer": "周期信息是统计估算，不是医疗建议。"
 }

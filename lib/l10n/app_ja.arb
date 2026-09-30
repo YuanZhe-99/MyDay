@@ -806,5 +806,8 @@
   "aiTodoEvening": "今日の振り返りと明日",
   "aiIntimacyTrend": "傾向",
   "aiIntimacyBody": "体の状態",
+  "aiIntimacyPartners": "パートナーとトイ",
+  "aiWeightTrend": "傾向",
+  "aiWeightBody": "体の状態",
   "aiEstimateDisclaimer": "周期の情報は統計的な推定であり、医学的な助言ではありません。"
 }

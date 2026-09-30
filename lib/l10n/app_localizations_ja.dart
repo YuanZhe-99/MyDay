@@ -2285,5 +2285,14 @@ class AppLocalizationsJa extends AppLocalizations {
   String get aiIntimacyBody => '体の状態';
 
   @override
+  String get aiIntimacyPartners => 'パートナーとトイ';
+
+  @override
+  String get aiWeightTrend => '傾向';
+
+  @override
+  String get aiWeightBody => '体の状態';
+
+  @override
   String get aiEstimateDisclaimer => '周期の情報は統計的な推定であり、医学的な助言ではありません。';
 }

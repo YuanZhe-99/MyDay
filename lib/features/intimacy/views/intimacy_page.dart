@@ -764,7 +764,11 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
                     sections: [
                       AiInsightSection(l10n.aiIntimacyTrend, const {
                         'trend',
+                        'chart',
                         'advice',
+                      }),
+                      AiInsightSection(l10n.aiIntimacyPartners, const {
+                        'partners',
                       }),
                       AiInsightSection(l10n.aiIntimacyBody, const {'body'}),
                     ],
@@ -780,6 +784,10 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
                         userBody: _userBody,
                         cycleRecords: _cycleRecords,
                         weightRecords: _weightRecordsForInsight,
+                        partners: _partners,
+                        toys: _toys,
+                        positions: _positions,
+                        chartSettings: _chartSettings,
                       );
                       return facts == null
                           ? null

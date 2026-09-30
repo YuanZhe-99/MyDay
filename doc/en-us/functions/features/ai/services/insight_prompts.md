@@ -17,9 +17,9 @@ builders are [`todo_insight_facts.md`](../../todo/services/todo_insight_facts.md
 
 | Declaration | Kind | Tier | Purpose |
 |---|---|---|---|
-| `insightPromptVersion` | top-level const (`int`) | B | Prompt version `2` (v1.5.1), part of every fingerprint; bump when wording or builder output changes. |
+| `insightPromptVersion` | top-level const (`int`) | B | Prompt version `3` (v1.5.3; `2` since v1.5.1), part of every fingerprint; bump when wording or builder output changes. |
 | `insightLineMaxLength` | top-level const (`int`) | B | `200`: the longest line kept, in characters; longer lines are dropped (`160` before v1.5.1). |
-| `insightMaxOutputTokens` | top-level const (`int`) | B | `400`: the output budget for one card (`320` before v1.5.1). |
+| `insightMaxOutputTokens` | top-level const (`int`) | B | `520`: the output budget for one card, sized for the Intimacy card's five slots (`400` before v1.5.3, `320` before v1.5.1). |
 | `InsightModule` (enum) | enum | B | `todo` / `finance` / `weight` / `intimacy`; the name is the key in `ai_insights.json`. |
 | `InsightTimeBucket` (enum) | enum | B | `none` / `morning` / `afternoon` / `evening`; only Todo uses anything but `none`. |
 | [`todoBucketFor`](#todobucketfor) | top-level function | A | Pick the Todo card's time bucket for a local time. |

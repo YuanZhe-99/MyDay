@@ -1,6 +1,6 @@
 # lib/shared/utils/id_list_delta.dart
 
-子页面保存的按 id 合并支持（v1.5.2）。子页面（账户、订阅、分类、伴侣、玩具、体位、身体设置等）接收一个记录列表，编辑它，再经回调交回整个列表。原样写入该列表会覆盖子页面打开期间其他写入方（订阅续费循环、本地 API 服务器、WebDAV 同步）所做的任何更改。`IdListDelta` 只记录子页面相对其起始列表所做的更改，按记录 id 键控；`applyTo` 把这些更改重放到刚加载的磁盘列表上。`IdListBaseline` 保存子页面上次报告的列表，使每次回调只产生它自己的更改。本文件由 Finance 页面（见 [finance_page.dart](../../features/finance/views/finance_page.md)）和 Intimacy 页面（见 [intimacy_page.dart](../../features/intimacy/views/intimacy_page.md)）的 `_commitSubPage` 使用。
+子页面保存的按 id 合并支持（v1.5.2）。子页面（账户、订阅、分类、伴侣、玩具、姿势、身体设置等）接收一个记录列表，编辑它，再经回调交回整个列表。原样写入该列表会覆盖子页面打开期间其他写入方（订阅续费循环、本地 API 服务器、WebDAV 同步）所做的任何更改。`IdListDelta` 只记录子页面相对其起始列表所做的更改，按记录 id 键控；`applyTo` 把这些更改重放到刚加载的磁盘列表上。`IdListBaseline` 保存子页面上次报告的列表，使每次回调只产生它自己的更改。本文件由 Finance 页面（见 [finance_page.dart](../../features/finance/views/finance_page.md)）和 Intimacy 页面（见 [intimacy_page.dart](../../features/intimacy/views/intimacy_page.md)）的 `_commitSubPage` 使用。
 
 ## 声明
 
@@ -77,7 +77,7 @@
     subscriptions: subscriptions?.applyTo(base.subscriptions),
   );
   ```
-  （`lib/features/finance/views/finance_page.dart`，`_commitSubPage`，在页面的 I/O 队列内重新读取 `finance_data.json` 之后；`intimacy_page.dart` 的 `_commitSubPage` 对伴侣、玩具、体位、记录和周期记录做同样的事。）
+  （`lib/features/finance/views/finance_page.dart`，`_commitSubPage`，在页面的 I/O 队列内重新读取 `finance_data.json` 之后；`intimacy_page.dart` 的 `_commitSubPage` 对伴侣、玩具、姿势、记录和周期记录做同样的事。）
 - **备注：**
   - id 已被并发删除（不在 `fresh` 中）的 upsert 会在其编辑后索引处被重新加入：用户的编辑胜过并发删除。
   - 子页面未触碰的记录保持其新值，包括其他写入方期间新增、更改或删除的记录（在别处被删除的未触碰记录保持删除）。

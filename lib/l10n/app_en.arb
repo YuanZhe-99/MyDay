@@ -842,5 +842,8 @@
   "aiTodoEvening": "Today in review & tomorrow",
   "aiIntimacyTrend": "Trend",
   "aiIntimacyBody": "Body condition",
+  "aiIntimacyPartners": "Partners & toys",
+  "aiWeightTrend": "Trend",
+  "aiWeightBody": "Body condition",
   "aiEstimateDisclaimer": "Cycle information is a statistical estimate, not medical advice."
 }

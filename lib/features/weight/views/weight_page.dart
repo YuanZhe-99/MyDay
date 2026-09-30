@@ -477,6 +477,10 @@ class _WeightPageState extends ConsumerState<WeightPage> {
         AiInsightCard(
           module: InsightModule.weight,
           margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          sections: [
+            AiInsightSection(l10n.aiWeightTrend, const {'trend', 'advice'}),
+            AiInsightSection(l10n.aiWeightBody, const {'body'}),
+          ],
           buildRequest: (language, now) {
             final facts = buildWeightInsightFacts(
               now: now,
