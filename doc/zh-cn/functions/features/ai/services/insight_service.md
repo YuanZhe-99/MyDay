@@ -44,7 +44,7 @@
 
 ### `const AiInsightRequest({required this.facts, required this.language, required this.now, this.fallbackFacts})` <a id="aiinsightrequest-new"></a>
 - **种类：** `AiInsightRequest` 的 const 构造函数
-- **来源：** `lib/features/ai/services/insight_service.dart`（第 79 行）
+- **来源：** `lib/features/ai/services/insight_service.dart`（第 81 行）
 - **用途：** 创建一张卡片的请求。
 - **输入：** `facts`——来自某个 `*_insight_facts.dart` 构建器；`language`——回复语言；`now`——计算事实时的本地时间；`fallbackFacts`——更朴素的第二次尝试，或 null（v1.5.1）：当模型以 `guardrail` 拒绝 `facts` 或对其返回无法解析的内容时，由 [`_answer`](#_answer) 发送一次。
 - **返回：** 新 `AiInsightRequest`。
@@ -59,12 +59,12 @@
     fallbackFacts: plain,
   );
   ```
-  （`lib/features/todo/views/todo_page.dart`，Todo 卡片的 `buildRequest`，其中 `plain` 为 `buildTodoInsightFacts(..., includeTitles: false)`；财务、体重和亲密页面只传 `facts`、`language` 和 `now`，不带回退。）
-- **备注：** 只有 `now` 的日期进入指纹；Todo 的时段经事实进入指纹。`fallbackFacts` 完全不属于指纹，且必须与 `facts` 携带相同的模块和顺序相同的相同槽位 id，使卡片的各节仍适用于实际被回答的那组事实。
+  （`lib/features/todo/views/todo_page.dart`，Todo 卡片的 `buildRequest`，其中 `plain` 为 `buildTodoInsightFacts(..., includeTitles: false)`。自 v1.5.4 起，体重和亲密页面传入来自 `buildWeightFallbackInsightFacts` 和 `buildIntimacyFallbackInsightFacts` 的 v1.5.2 提示词；财务页面不带回退。）
+- **备注：** 只有 `now` 的日期进入指纹；Todo 的时段经事实进入指纹。`fallbackFacts` 完全不属于指纹。它必须携带相同的模块，其槽位 id 必须是 `facts` 槽位 id 的子集且顺序相同，使卡片的各节仍适用于实际被回答的那组事实。
 
 ### `String modelIdentityOf(GenAiStatusReport report)` <a id="modelidentityof"></a>
 - **种类：** 顶层函数
-- **来源：** `lib/features/ai/services/insight_service.dart`（第 92 行）
+- **来源：** `lib/features/ai/services/insight_service.dart`（第 94 行）
 - **用途：** 命名状态报告描述的模型。
 - **输入：** `report`——服务当前的状态报告。
 - **返回：** `String`——以 `' · '` 连接的非空 `variant` 和 `baseModelName`（如 `stable/full · nano-v3`），两者都为 null 时为 `apple`。
@@ -75,7 +75,7 @@
 
 ### `String insightFingerprint(AiInsightRequest request, String model)` <a id="insightfingerprint"></a>
 - **种类：** 顶层函数
-- **来源：** `lib/features/ai/services/insight_service.dart`（第 104 行）
+- **来源：** `lib/features/ai/services/insight_service.dart`（第 106 行）
 - **用途：** 计算一张卡片请求的指纹。
 - **输入：** `request`；`model`——来自 [`modelIdentityOf`](#modelidentityof)。
 - **返回：** `String`——小写十六进制 SHA-256。
@@ -86,7 +86,7 @@
 
 ### `AiInsightStore({OnDeviceAiService? ai, Future<AiInsights> Function()? load, Future<void> Function(AiInsights insights)? save, Future<void> Function()? clear, DateTime Function()? clock})` <a id="aiinsightstore-new"></a>
 - **种类：** `AiInsightStore` 的构造函数（扩展 `ChangeNotifier`）
-- **来源：** `lib/features/ai/services/insight_service.dart`（第 129 行）
+- **来源：** `lib/features/ai/services/insight_service.dart`（第 131 行）
 - **用途：** 创建存储。
 - **输入：** `ai`——模型服务（默认：`OnDeviceAiService.instance`，每次使用时解析）；`load` / `save` / `clear`——缓存 I/O（默认：`AiInsightsCache.load` / `.save` / `.clear`）；`clock`——`generatedAt` 的时钟（默认 `DateTime.now`，使用时转为 UTC）。
 - **返回：** 新 `AiInsightStore`。
@@ -97,7 +97,7 @@
 
 ### `AiInsightState stateOf(InsightModule module)` <a id="stateof"></a>
 - **种类：** `AiInsightStore` 的方法
-- **来源：** `lib/features/ai/services/insight_service.dart`（第 178 行）
+- **来源：** `lib/features/ai/services/insight_service.dart`（第 180 行）
 - **用途：** 读取卡片的当前状态。
 - **输入：** `module`。
 - **返回：** 已存的 `AiInsightState`，或 `const AiInsightState()`（idle，无条目）。
@@ -108,7 +108,7 @@
 
 ### `Future<AiInsights> _cached()` <a id="_cached"></a>
 - **种类：** `AiInsightStore` 的私有方法
-- **来源：** `lib/features/ai/services/insight_service.dart`（第 186 行）
+- **来源：** `lib/features/ai/services/insight_service.dart`（第 188 行）
 - **用途：** 只加载一次缓存并共享。
 - **输入：** 无。
 - **返回：** `Future<AiInsights>`——内存中的缓存。
@@ -119,7 +119,7 @@
 
 ### `Future<void> ensure(AiInsightRequest request, {bool force = false})` <a id="ensure"></a>
 - **种类：** `AiInsightStore` 的方法
-- **来源：** `lib/features/ai/services/insight_service.dart`（第 204 行）
+- **来源：** `lib/features/ai/services/insight_service.dart`（第 206 行）
 - **用途：** 使卡片保持最新：匹配时显示已缓存条目，否则生成。
 - **输入：** `request`；`force`——即使缓存匹配也重新生成（卡片的刷新按钮）。
 - **返回：** `Future<void>`——本次调用的工作完成后完成（包括它启动的生成，但不包括它仅排队的生成）。
@@ -136,7 +136,7 @@
 
 ### `Future<void> _run(AiInsightRequest request, String fingerprint, bool force)` <a id="_run"></a>
 - **种类：** `AiInsightStore` 的私有方法
-- **来源：** `lib/features/ai/services/insight_service.dart`（第 252 行）
+- **来源：** `lib/features/ai/services/insight_service.dart`（第 254 行）
 - **用途：** 生成一张卡片，然后处理期间替换它的请求。
 - **输入：** `request`；`fingerprint`——调用方已计算；`force`——决定优先级。
 - **返回：** `Future<void>`。
@@ -153,7 +153,7 @@
 
 ### `Future<Map<int, String>> _generateParsed(InsightFacts facts, InsightLanguage language, bool force)` <a id="_generateparsed"></a>
 - **种类：** `AiInsightStore` 的私有方法
-- **来源：** `lib/features/ai/services/insight_service.dart`（第 377 行）
+- **来源：** `lib/features/ai/services/insight_service.dart`（第 379 行）
 - **用途：** 为一个事实值运行模型一次并解析回复。
 - **输入：** `facts`；`language`；`force`——为 true 时用交互优先级，否则用后台优先级。
 - **返回：** `Future<Map<int, String>>`——槽位编号到句子的映射，来自 [`parseInsightReply`](insight_prompts.md#parseinsightreply)；回复中没有可用内容时为空。
@@ -164,21 +164,22 @@
 
 ### `Future<(InsightFacts, Map<int, String>)> _answer(AiInsightRequest request, bool force)` <a id="_answer"></a>
 - **种类：** `AiInsightStore` 的私有方法
-- **来源：** `lib/features/ai/services/insight_service.dart`（第 406 行）
+- **来源：** `lib/features/ai/services/insight_service.dart`（第 410 行）
 - **用途：** 回答一个请求，需要时尝试一次其回退事实。
 - **输入：** `request`；`force`——透传给 [`_generateParsed`](#_generateparsed)。
 - **返回：** `Future<(InsightFacts, Map<int, String>)>`——实际被回答的事实和解析后的回复，后者可能为空。
 - **副作用：** 运行模型一次或两次。
 - **算法：**
-  1. `_generateParsed(request.facts, ...)`。若结果非空，或请求没有 `fallbackFacts`，返回 `(request.facts, parsed)`。
+  0. 回退为 `request.fallbackFacts`；当它为 null 或其 `canonical()` 与主事实相同时为 null（v1.5.4）：相同的事实只会再被拒绝一次。
+  1. `_generateParsed(request.facts, ...)`。若结果非空，或没有回退，返回 `(request.facts, parsed)`。
   2. 若该调用抛出 `GenAiException`，除非其失败为 `guardrail` 且存在回退，否则重新抛出。
   3. 否则（解析为空或 guardrail，且存在回退）返回 `(fallback, await _generateParsed(fallback, ...))`。
 - **用法：** [`_run`](#_run) 中的 `final (facts, parsed) = await _answer(request, force);`。
-- **备注：** v1.5.1 为 Todo 卡片新增：其他模块正常工作时，端侧模型却拒绝了 Todo 带标题的事实或回答了没有可用内容；Todo 传入一个只含计数的变体。回退至多尝试一次，且只针对 `guardrail` 拒绝或解析为空——`unsupportedLanguage`、`busy`、`timeout` 及其余失败原样传播。回退本身的 guardrail 也会传播，因此 `_run` 像其他拒绝一样把它缓存为 `skipped`。
+- **备注：** v1.5.1 为 Todo 卡片新增：其他模块正常工作时，端侧模型却拒绝了 Todo 带标题的事实或回答了没有可用内容；Todo 传入一个只含计数的变体，自 v1.5.4 起体重和亲密传入各自的 v1.5.2 提示词。回退至多尝试一次，且只针对 `guardrail` 拒绝或解析为空——`unsupportedLanguage`、`busy`、`timeout` 及其余失败原样传播。回退本身的 guardrail 也会传播，因此 `_run` 像其他拒绝一样把它缓存为 `skipped`。
 
 ### `Future<void> _store(InsightModule module, AiInsightEntry entry, String fingerprint)` <a id="_store"></a>
 - **种类：** `AiInsightStore` 的私有方法
-- **来源：** `lib/features/ai/services/insight_service.dart`（第 427 行）
+- **来源：** `lib/features/ai/services/insight_service.dart`（第 434 行）
 - **用途：** 把条目放入缓存并持久化。
 - **输入：** `module`、`entry`、`fingerprint`。
 - **返回：** `Future<void>`。
@@ -189,7 +190,7 @@
 
 ### `Future<void> clearAll()` <a id="clearall"></a>
 - **种类：** `AiInsightStore` 的方法
-- **来源：** `lib/features/ai/services/insight_service.dart`（第 446 行）
+- **来源：** `lib/features/ai/services/insight_service.dart`（第 453 行）
 - **用途：** 忘记所有已生成的洞察。
 - **输入：** 无。
 - **返回：** `Future<void>`。

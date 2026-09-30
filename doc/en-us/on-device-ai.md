@@ -186,10 +186,13 @@ meanwhile replaces the pending one, so ticking several tasks in a row costs at m
 and a result whose facts are no longer current is discarded. A `failed`, `timeout` or unparseable
 reply is not cached and is retried only by the refresh button or by new facts, so it cannot loop;
 `busy`, `background`, `cancelled` and `unavailable` are retried on the next page build. A request
-may carry `fallbackFacts` (Todo does, since 1.5.1): when the model declines the primary facts
-(`guardrail`) or returns nothing usable for them, the store sends the fallback once, in the same
-run, and caches whatever it yields under the primary fingerprint; a refusal of the fallback too is
-cached as *skipped* like any other. *Clear generated insights* in Settings deletes the file.
+may carry `fallbackFacts` (Todo does, since 1.5.1; Weight and Intimacy do, since 1.5.4): when the
+model declines the primary facts (`guardrail`) or returns nothing usable for them, the store sends
+the fallback once, in the same run, and caches whatever it yields under the primary fingerprint; a
+refusal of the fallback too is cached as *skipped* like any other. Todo's fallback is its facts
+without task titles. Weight's and Intimacy's fallback is exactly the v1.5.2 prompt: no BMI band,
+tracking start or 90-day body changes for Weight, and no chart, partner, toy, position, thrust or
+porn facts for Intimacy. A fallback identical to the primary facts is not sent. *Clear generated insights* in Settings deletes the file.
 
 ## Android: ML Kit GenAI over AICore
 
@@ -258,8 +261,9 @@ Google Play's AI-Generated Content policy treats productivity apps that use AI t
 existing feature as out of scope; the output is still labelled. Apple's acceptable-use requirements
 for Foundation Models prohibit generating adult content; the Intimacy card sends only neutral
 statistics and asks for neutral wording. Since 1.5.3 those statistics include thrust figures and
-the porn-watched share, which makes a refusal more likely on some devices; a refusal is cached as
-*skipped* and the card says *declined*.
+the porn-watched share, which makes a refusal more likely on some devices. Since 1.5.4 a refusal
+first retries the v1.5.2 prompt, which carries none of them; only a refusal of that too is cached
+as *skipped*, and the card says *declined*.
 
 ## Device checklist
 

@@ -388,6 +388,24 @@ void main() {
       expect(generations(), 2);
     });
 
+    test('fallback facts equal to the primary ones are not retried', () async {
+      backend.generateReplies.add(const GenAiException(GenAiFailure.guardrail));
+      final primary = _request('weight 60 kg').facts;
+      await store.ensure(
+        AiInsightRequest(
+          facts: primary,
+          language: _en,
+          now: DateTime(2026, 9, 28, 9),
+          fallbackFacts: primary,
+        ),
+      );
+      expect(
+        store.stateOf(InsightModule.weight).entry!.status,
+        AiInsightStatus.skipped,
+      );
+      expect(generations(), 1);
+    });
+
     test('without fallback facts nothing is retried', () async {
       backend.generateReplies.add('');
       await store.ensure(_request('weight 60 kg'));

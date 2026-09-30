@@ -1460,7 +1460,10 @@ Tier A; `_applyIntimacyData`, `_currentIntimacyData`, `_showWriteBlocked` as Tie
   `_weightRecordsForInsight` and, since v1.5.3, `_partners`, `_toys`, `_positions` and
   `_chartSettings`. It carries three sections (`aiIntimacyTrend` over `trend`/`chart`/`advice`,
   `aiIntimacyPartners` over `partners`, `aiIntimacyBody` over `body`) and the
-  `aiEstimateDisclaimer` footnote only when `_userBody?.cycleEnabled == true`.
+  `aiEstimateDisclaimer` footnote only when `_userBody?.cycleEnabled == true`. Since v1.5.4 the
+  request also carries `buildIntimacyFallbackInsightFacts` over `_records`, `_userBody`,
+  `_cycleRecords` and `_weightRecordsForInsight` as `fallbackFacts`, so a refusal first retries the
+  v1.5.2 prompt.
 - **Notes:** Stacked, the calendar alone is most of a phone's height, so selecting a date scrolls
   the records it selected out of view; split, the calendar **and the chart** share the left pane
   while the history takes the rest. The chart moved left in v1.4.3: below the calendar the pane

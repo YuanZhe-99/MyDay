@@ -62,7 +62,7 @@ maps (`_states`, `_running`, `_pending`, `_latest`) and the value-class fields a
 
 ### `const AiInsightRequest({required this.facts, required this.language, required this.now, this.fallbackFacts})` <a id="aiinsightrequest-new"></a>
 - **Kind:** const constructor of `AiInsightRequest`
-- **Source:** `lib/features/ai/services/insight_service.dart` (line 79)
+- **Source:** `lib/features/ai/services/insight_service.dart` (line 81)
 - **Purpose:** Create one card's request.
 - **Inputs:** `facts` — from a `*_insight_facts.dart` builder; `language` — the reply language;
   `now` — local time the facts were computed for; `fallbackFacts` — a plainer second try, or null
@@ -81,16 +81,17 @@ maps (`_states`, `_running`, `_pending`, `_latest`) and the value-class fields a
   );
   ```
   (`lib/features/todo/views/todo_page.dart`, the Todo card's `buildRequest`, where `plain` is
-  `buildTodoInsightFacts(..., includeTitles: false)`; the Finance, Weight and Intimacy pages pass
-  `facts`, `language` and `now` only, with no fallback.)
+  `buildTodoInsightFacts(..., includeTitles: false)`. Since v1.5.4 the Weight and Intimacy pages
+  pass the v1.5.2 prompt from `buildWeightFallbackInsightFacts` and
+  `buildIntimacyFallbackInsightFacts`; the Finance page passes no fallback.)
 - **Notes:** Only the date of `now` enters the fingerprint; Todo's time bucket reaches it through
-  the facts. `fallbackFacts` is not part of the fingerprint at all, and must carry the same module
-  and the same slot ids in the same order as `facts`, so the card's sections still apply to
-  whichever facts were answered.
+  the facts. `fallbackFacts` is not part of the fingerprint at all. It must carry the same module,
+  and its slot ids must be a subset of `facts`'s in the same order, so the card's sections still
+  apply to whichever facts were answered.
 
 ### `String modelIdentityOf(GenAiStatusReport report)` <a id="modelidentityof"></a>
 - **Kind:** top-level function
-- **Source:** `lib/features/ai/services/insight_service.dart` (line 92)
+- **Source:** `lib/features/ai/services/insight_service.dart` (line 94)
 - **Purpose:** Name the model a status report describes.
 - **Inputs:** `report` — the service's current status report.
 - **Returns:** `String` — the non-null `variant` and `baseModelName` joined with `' · '` (e.g.
@@ -104,7 +105,7 @@ maps (`_states`, `_running`, `_pending`, `_latest`) and the value-class fields a
 
 ### `String insightFingerprint(AiInsightRequest request, String model)` <a id="insightfingerprint"></a>
 - **Kind:** top-level function
-- **Source:** `lib/features/ai/services/insight_service.dart` (line 104)
+- **Source:** `lib/features/ai/services/insight_service.dart` (line 106)
 - **Purpose:** Fingerprint one card request.
 - **Inputs:** `request`; `model` — from [`modelIdentityOf`](#modelidentityof).
 - **Returns:** `String` — lowercase hex SHA-256.
@@ -120,7 +121,7 @@ maps (`_states`, `_running`, `_pending`, `_latest`) and the value-class fields a
 
 ### `AiInsightStore({OnDeviceAiService? ai, Future<AiInsights> Function()? load, Future<void> Function(AiInsights insights)? save, Future<void> Function()? clear, DateTime Function()? clock})` <a id="aiinsightstore-new"></a>
 - **Kind:** constructor of `AiInsightStore` (extends `ChangeNotifier`)
-- **Source:** `lib/features/ai/services/insight_service.dart` (line 129)
+- **Source:** `lib/features/ai/services/insight_service.dart` (line 131)
 - **Purpose:** Create the store.
 - **Inputs:** `ai` — the model service (default: `OnDeviceAiService.instance`, resolved on every
   use); `load` / `save` / `clear` — cache I/O (default: `AiInsightsCache.load` / `.save` /
@@ -136,7 +137,7 @@ maps (`_states`, `_running`, `_pending`, `_latest`) and the value-class fields a
 
 ### `AiInsightState stateOf(InsightModule module)` <a id="stateof"></a>
 - **Kind:** method of `AiInsightStore`
-- **Source:** `lib/features/ai/services/insight_service.dart` (line 178)
+- **Source:** `lib/features/ai/services/insight_service.dart` (line 180)
 - **Purpose:** Read a card's current state.
 - **Inputs:** `module`.
 - **Returns:** The stored `AiInsightState`, or `const AiInsightState()` (idle, no entry).
@@ -149,7 +150,7 @@ maps (`_states`, `_running`, `_pending`, `_latest`) and the value-class fields a
 
 ### `Future<AiInsights> _cached()` <a id="_cached"></a>
 - **Kind:** private method of `AiInsightStore`
-- **Source:** `lib/features/ai/services/insight_service.dart` (line 186)
+- **Source:** `lib/features/ai/services/insight_service.dart` (line 188)
 - **Purpose:** Load the cache once and share it.
 - **Inputs:** None.
 - **Returns:** `Future<AiInsights>` — the in-memory cache.
@@ -165,7 +166,7 @@ maps (`_states`, `_running`, `_pending`, `_latest`) and the value-class fields a
 
 ### `Future<void> ensure(AiInsightRequest request, {bool force = false})` <a id="ensure"></a>
 - **Kind:** method of `AiInsightStore`
-- **Source:** `lib/features/ai/services/insight_service.dart` (line 204)
+- **Source:** `lib/features/ai/services/insight_service.dart` (line 206)
 - **Purpose:** Make a card current: show the cached entry when it matches, otherwise generate.
 - **Inputs:** `request`; `force` — regenerate even when the cache matches (the card's refresh
   button).
@@ -193,7 +194,7 @@ maps (`_states`, `_running`, `_pending`, `_latest`) and the value-class fields a
 
 ### `Future<void> _run(AiInsightRequest request, String fingerprint, bool force)` <a id="_run"></a>
 - **Kind:** private method of `AiInsightStore`
-- **Source:** `lib/features/ai/services/insight_service.dart` (line 252)
+- **Source:** `lib/features/ai/services/insight_service.dart` (line 254)
 - **Purpose:** Generate one card, then any request that replaced it meanwhile.
 - **Inputs:** `request`; `fingerprint` — already computed by the caller; `force` — selects the
   priority.
@@ -228,7 +229,7 @@ maps (`_states`, `_running`, `_pending`, `_latest`) and the value-class fields a
 
 ### `Future<Map<int, String>> _generateParsed(InsightFacts facts, InsightLanguage language, bool force)` <a id="_generateparsed"></a>
 - **Kind:** private method of `AiInsightStore`
-- **Source:** `lib/features/ai/services/insight_service.dart` (line 377)
+- **Source:** `lib/features/ai/services/insight_service.dart` (line 379)
 - **Purpose:** Run the model once for one facts value and parse the reply.
 - **Inputs:** `facts`; `language`; `force` — interactive priority when true, background otherwise.
 - **Returns:** `Future<Map<int, String>>` — slot number to sentence, from
@@ -246,15 +247,17 @@ maps (`_states`, `_running`, `_pending`, `_latest`) and the value-class fields a
 
 ### `Future<(InsightFacts, Map<int, String>)> _answer(AiInsightRequest request, bool force)` <a id="_answer"></a>
 - **Kind:** private method of `AiInsightStore`
-- **Source:** `lib/features/ai/services/insight_service.dart` (line 406)
+- **Source:** `lib/features/ai/services/insight_service.dart` (line 410)
 - **Purpose:** Answer a request, trying its fallback facts once if needed.
 - **Inputs:** `request`; `force` — passed through to [`_generateParsed`](#_generateparsed).
 - **Returns:** `Future<(InsightFacts, Map<int, String>)>` — the facts that were actually answered
   and the parsed reply, which may be empty.
 - **Side effects:** Runs the model once or twice.
 - **Algorithm:**
-  1. `_generateParsed(request.facts, ...)`. If the result is non-empty, or the request has no
-     `fallbackFacts`, return `(request.facts, parsed)`.
+  0. The fallback is `request.fallbackFacts`, or null when that is null or its `canonical()` equals
+     the primary facts' (v1.5.4): identical facts would only be refused again.
+  1. `_generateParsed(request.facts, ...)`. If the result is non-empty, or there is no fallback,
+     return `(request.facts, parsed)`.
   2. If that call threw a `GenAiException`, rethrow it unless its failure is `guardrail` and a
      fallback exists.
   3. Otherwise (empty parse or guardrail, and a fallback exists) return
@@ -262,14 +265,14 @@ maps (`_states`, `_running`, `_pending`, `_latest`) and the value-class fields a
 - **Usage:** `final (facts, parsed) = await _answer(request, force);` in [`_run`](#_run).
 - **Notes:** Added in v1.5.1 for the Todo card, whose titled facts the on-device model declined
   or answered with nothing usable while the other modules worked; Todo passes a counts-only
-  variant. The fallback is tried at most once, and only for a `guardrail` refusal or an empty
+  variant, and since v1.5.4 Weight and Intimacy pass their v1.5.2 prompt. The fallback is tried at most once, and only for a `guardrail` refusal or an empty
   parse — `unsupportedLanguage`, `busy`, `timeout` and the rest propagate unchanged. A guardrail
   from the fallback itself propagates too, so `_run` caches it as `skipped` like any other
   refusal.
 
 ### `Future<void> _store(InsightModule module, AiInsightEntry entry, String fingerprint)` <a id="_store"></a>
 - **Kind:** private method of `AiInsightStore`
-- **Source:** `lib/features/ai/services/insight_service.dart` (line 427)
+- **Source:** `lib/features/ai/services/insight_service.dart` (line 434)
 - **Purpose:** Put an entry into the cache and persist it.
 - **Inputs:** `module`, `entry`, `fingerprint`.
 - **Returns:** `Future<void>`.
@@ -284,7 +287,7 @@ maps (`_states`, `_running`, `_pending`, `_latest`) and the value-class fields a
 
 ### `Future<void> clearAll()` <a id="clearall"></a>
 - **Kind:** method of `AiInsightStore`
-- **Source:** `lib/features/ai/services/insight_service.dart` (line 446)
+- **Source:** `lib/features/ai/services/insight_service.dart` (line 453)
 - **Purpose:** Forget every generated insight.
 - **Inputs:** None.
 - **Returns:** `Future<void>`.

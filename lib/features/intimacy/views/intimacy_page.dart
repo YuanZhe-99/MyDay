@@ -789,12 +789,22 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
                         positions: _positions,
                         chartSettings: _chartSettings,
                       );
+                      // A refusal or an empty answer retries once with the
+                      // v1.5.2 prompt before the card says declined (v1.5.4).
+                      final plain = buildIntimacyFallbackInsightFacts(
+                        now: now,
+                        records: _records,
+                        userBody: _userBody,
+                        cycleRecords: _cycleRecords,
+                        weightRecords: _weightRecordsForInsight,
+                      );
                       return facts == null
                           ? null
                           : AiInsightRequest(
                               facts: facts,
                               language: language,
                               now: now,
+                              fallbackFacts: plain,
                             );
                     },
                   ),

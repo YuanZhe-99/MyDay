@@ -40,36 +40,39 @@ defaults, so it always describes the chart on screen. The card itself is
 | `_maxListed` | private top-level const (`int`) | B | `5`: the most partners, toys or positions listed on one fact line. |
 | [`_companions`](#_companions) | top-level function (private) | A | Describe partners, toys and positions with anonymous labels. |
 | [`buildIntimacyInsightFacts`](#buildintimacyinsightfacts) | top-level function | A | Build the Intimacy card's facts. |
+| [`buildIntimacyFallbackInsightFacts`](#buildintimacyfallbackinsightfacts) | top-level function | A | Build the Intimacy card's fallback facts: the v1.5.2 prompt. |
+| [`_intimacyFacts`](#_intimacyfacts) | top-level function (private) | A | Build either version of the Intimacy card's facts. |
 
 **Reconciliation:** `grep -c 'Purpose:' lib/features/intimacy/services/intimacy_insight_facts.dart`
-reports 13 against 14 rows. The extra row is `_maxListed`, a constant with a plain doc comment and
+reports 15 against 16 rows. The extra row is `_maxListed`, a constant with a plain doc comment and
 no `Purpose:` block. The two local functions `perWeek` and `fmt` each carry their own `Purpose:`
 block and have a row.
 
 ## Documentation
 
-### `String _window(List<IntimacyRecord> records, DateTime from, DateTime to)` <a id="_window"></a>
+### `String _window(List<IntimacyRecord> records, DateTime from, DateTime to, {required bool detailed})` <a id="_window"></a>
 - **Kind:** private top-level function
-- **Source:** `lib/features/intimacy/services/intimacy_insight_facts.dart` (line 59)
+- **Source:** `lib/features/intimacy/services/intimacy_insight_facts.dart` (line 61)
 - **Purpose:** Summarize the records in one window.
-- **Inputs:** `records`; `from` (inclusive); `to` (exclusive).
+- **Inputs:** `records`; `from` (inclusive); `to` (exclusive); `detailed` — false for the v1.5.2
+  wording.
 - **Returns:** `String` — `0 entries`, or the entry count split into partnered and solo, the average
-  `pleasureLevel` "of 5", the average timed length in minutes, the climax rate, the porn-watched
-  share, the average thrust count and rate when any entry has them, and the protection rate among
-  partnered entries.
+  `pleasureLevel` "of 5", the average timed length in minutes, the climax rate, and when `detailed`
+  the porn-watched share and the average thrust count and rate when any entry has them, then the
+  protection rate among partnered entries.
 - **Side effects:** None.
 - **Algorithm:** Filter to `from ≤ datetime < to`; compute each statistic over the window. The
   average length uses only entries with a positive `duration`; the thrust averages use
   `resolvedThrustCount` and `thrustsPerMinute` where they are non-null; each is left out when no
   entry has it. The protection rate (`usedCondom`) is left out when there are no partnered entries.
   Rates are rounded to whole percents.
-- **Usage:** `buildIntimacyInsightFacts` calls it for the last 30 days and the 30 before.
+- **Usage:** `_intimacyFacts` calls it for the last 30 days and the 30 before.
 - **Notes:** Durations of zero (no timer) are excluded from the average rather than counted as zero.
   Thrust figures and the porn-watched share were added in v1.5.3.
 
 ### `String _chartMetric(IntimacyChartMetric metric, List<IntimacyRecord> visible, DateTime start, DateTime mid, DateTime end)` <a id="_chartmetric"></a>
 - **Kind:** private top-level function
-- **Source:** `lib/features/intimacy/services/intimacy_insight_facts.dart` (line 98)
+- **Source:** `lib/features/intimacy/services/intimacy_insight_facts.dart` (line 108)
 - **Purpose:** Describe one metric of the trend chart over its visible span.
 - **Inputs:** `metric`; `visible` — records in the span, oldest first; `start`, `mid`, `end` — the
   span and the point splitting it in halves.
@@ -86,7 +89,7 @@ block and have a row.
 
 ### `String? _chartSummary(List<IntimacyRecord> sorted, IntimacyChartSettings settings, DateTime now)` <a id="_chartsummary"></a>
 - **Kind:** private top-level function
-- **Source:** `lib/features/intimacy/services/intimacy_insight_facts.dart` (line 167)
+- **Source:** `lib/features/intimacy/services/intimacy_insight_facts.dart` (line 177)
 - **Purpose:** Summarize the trend chart exactly as the user has set it up.
 - **Inputs:** `sorted` — past records, oldest first; `settings` — the persisted chart selection;
   `now`.
@@ -107,7 +110,7 @@ block and have a row.
 
 ### `List<String> _ranked(Map<String, int> counts, Map<String, DateTime> firstSeen)` <a id="_ranked"></a>
 - **Kind:** private top-level function
-- **Source:** `lib/features/intimacy/services/intimacy_insight_facts.dart` (line 215)
+- **Source:** `lib/features/intimacy/services/intimacy_insight_facts.dart` (line 225)
 - **Purpose:** Rank ids by how often they occur, most frequent first.
 - **Inputs:** `counts` — id to count; `firstSeen` — id to its earliest use.
 - **Returns:** `List<String>` — ids by count descending, then earliest use, then id.
@@ -117,7 +120,7 @@ block and have a row.
 
 ### `String? _usage(List<IntimacyRecord> recent, String noun, List<String> Function(IntimacyRecord r) ids, Set<String> validIds)` <a id="_usage"></a>
 - **Kind:** private top-level function
-- **Source:** `lib/features/intimacy/services/intimacy_insight_facts.dart` (line 231)
+- **Source:** `lib/features/intimacy/services/intimacy_insight_facts.dart` (line 241)
 - **Purpose:** Describe how often labelled items were used.
 - **Inputs:** `recent` — records, oldest first; `noun` — `toy` or `position`; `ids` — reader for a
   record's item ids; `validIds` — ids that still exist.
@@ -131,7 +134,7 @@ block and have a row.
 
 ### `List<String> _companions(List<IntimacyRecord> recent, DateTime today, DateTime now, List<Partner> partners, List<Toy> toys, List<Position> positions)` <a id="_companions"></a>
 - **Kind:** private top-level function
-- **Source:** `lib/features/intimacy/services/intimacy_insight_facts.dart` (line 271)
+- **Source:** `lib/features/intimacy/services/intimacy_insight_facts.dart` (line 281)
 - **Purpose:** Describe partners, toys and positions with anonymous labels.
 - **Inputs:** `recent` — past records of the last 90 days, oldest first; `today`; `now`; `partners`;
   `toys`; `positions`.
@@ -152,7 +155,7 @@ block and have a row.
 
 ### `InsightFacts? buildIntimacyInsightFacts({required DateTime now, required List<IntimacyRecord> records, required BodyProfile? userBody, required List<CycleRecord> cycleRecords, required List<WeightRecord> weightRecords, required List<Partner> partners, required List<Toy> toys, required List<Position> positions, required IntimacyChartSettings chartSettings})` <a id="buildintimacyinsightfacts"></a>
 - **Kind:** top-level function
-- **Source:** `lib/features/intimacy/services/intimacy_insight_facts.dart` (line 351)
+- **Source:** `lib/features/intimacy/services/intimacy_insight_facts.dart` (line 362)
 - **Purpose:** Build the Intimacy card's facts: trend, the chart being viewed, partners, toys and
   positions, and the body condition.
 - **Inputs:** `now` — local time; `records`; `userBody` — the user's body profile, or null;
@@ -165,6 +168,7 @@ block and have a row.
   and an "estimates" caveat when cycle facts were sent).
 - **Side effects:** None.
 - **Algorithm:**
+  `_intimacyFacts(..., detailed: true)`, which does:
   1. Keep records at or before `now`, sorted oldest first. `- Today:` is the local date.
   2. With past records: `_window` for the 30 days ending today (today − 29 through today) and for
      the 30 days before; the count in the last 90 days; days since the last entry; the
@@ -197,4 +201,48 @@ block and have a row.
   fingerprint and regenerates the card. The page shows the `aiEstimateDisclaimer` footnote while
   the user tracks their cycle. A `guardrail` refusal is cached as *skipped* by the store, so a
   refused set of facts is not retried until it changes. The chart, partner, toy, position, thrust
-  and porn facts were added in v1.5.3.
+  and porn facts were added in v1.5.3. Since v1.5.4 the page also sends
+  [`buildIntimacyFallbackInsightFacts`](#buildintimacyfallbackinsightfacts) as `fallbackFacts`, so a
+  refusal of these facts first retries the v1.5.2 prompt and only a second refusal is cached as
+  *declined*.
+
+### `InsightFacts? buildIntimacyFallbackInsightFacts({required DateTime now, required List<IntimacyRecord> records, required BodyProfile? userBody, required List<CycleRecord> cycleRecords, required List<WeightRecord> weightRecords})` <a id="buildintimacyfallbackinsightfacts"></a>
+- **Kind:** top-level function
+- **Source:** `lib/features/intimacy/services/intimacy_insight_facts.dart` (line 397)
+- **Purpose:** Build the Intimacy card's fallback facts: the v1.5.2 prompt.
+- **Inputs:** `now` — local time; `records`; `userBody`; `cycleRecords`; `weightRecords`.
+- **Returns:** `InsightFacts?` — null when there are no records and no body facts. Slots `trend`,
+  `advice` and `body`, each only when its facts exist.
+- **Side effects:** None.
+- **Algorithm:** `_intimacyFacts(..., detailed: false)` with empty partner, toy and position lists
+  and default chart settings, which are ignored: the same steps without the chart line, the partner,
+  toy and position lines, the thrust figures and the porn-watched share.
+- **Usage:**
+  ```dart
+  final plain = buildIntimacyFallbackInsightFacts(
+    now: now,
+    records: _records,
+    userBody: _userBody,
+    cycleRecords: _cycleRecords,
+    weightRecords: _weightRecordsForInsight,
+  );
+  ```
+  (`lib/features/intimacy/views/intimacy_page.dart`, passed as `AiInsightRequest.fallbackFacts`.)
+- **Notes:** Added in v1.5.4. When the model declines the detailed facts or answers nothing usable,
+  [`AiInsightStore`](../../ai/services/insight_service.md) sends these once in the same run; only a
+  refusal of these too is cached as *declined*. Its output equals what v1.5.2 sent, byte for byte.
+  Its slot ids are a subset of the detailed facts' in the same order, so the card's sections apply.
+
+### `InsightFacts? _intimacyFacts({required DateTime now, required List<IntimacyRecord> records, required BodyProfile? userBody, required List<CycleRecord> cycleRecords, required List<WeightRecord> weightRecords, required List<Partner> partners, required List<Toy> toys, required List<Position> positions, required IntimacyChartSettings chartSettings, required bool detailed})` <a id="_intimacyfacts"></a>
+- **Kind:** private top-level function
+- **Source:** `lib/features/intimacy/services/intimacy_insight_facts.dart` (line 423)
+- **Purpose:** Build either version of the Intimacy card's facts.
+- **Inputs:** As [`buildIntimacyInsightFacts`](#buildintimacyinsightfacts), plus `detailed` — true
+  for the v1.5.3 facts, false for the v1.5.2 facts.
+- **Returns:** `InsightFacts?`.
+- **Side effects:** None.
+- **Algorithm:** The steps listed under [`buildIntimacyInsightFacts`](#buildintimacyinsightfacts);
+  with `detailed` false, `_window` drops its v1.5.3 parts and the chart and companion lines are
+  skipped, so their slots are never asked.
+- **Usage:** The two public builders above.
+- **Notes:** With `detailed` false, `partners`, `toys`, `positions` and `chartSettings` are ignored.

@@ -487,9 +487,21 @@ class _WeightPageState extends ConsumerState<WeightPage> {
               heightCm: _height,
               records: _records,
             );
+            // A refusal or an empty answer retries once with the v1.5.2
+            // prompt before the card says declined (v1.5.4).
+            final plain = buildWeightFallbackInsightFacts(
+              now: now,
+              heightCm: _height,
+              records: _records,
+            );
             return facts == null
                 ? null
-                : AiInsightRequest(facts: facts, language: language, now: now);
+                : AiInsightRequest(
+                    facts: facts,
+                    language: language,
+                    now: now,
+                    fallbackFacts: plain,
+                  );
           },
         ),
 

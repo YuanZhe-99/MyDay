@@ -78,11 +78,40 @@ String _bmiBand(double bmi) {
 /// Side effects: None.
 /// Notes: Record notes are never sent. Measurements carry forward per field
 /// exactly as the Weight page shows them; the 90-day body-fat and
-/// measurement changes use only records that measured the field.
+/// measurement changes use only records that measured the field. The page
+/// pairs this with [buildWeightFallbackInsightFacts].
 InsightFacts? buildWeightInsightFacts({
   required DateTime now,
   required double? heightCm,
   required List<WeightRecord> records,
+}) => _weightFacts(now, heightCm, records, detailed: true);
+
+/// Purpose: Build the Weight card's fallback facts: the v1.5.2 prompt.
+/// Inputs: `now` — local time; `heightCm`; `records`.
+/// Returns: `InsightFacts?` — null without records. Slots `trend` and
+/// `advice`, with the v1.5.2 wording.
+/// Side effects: None.
+/// Notes: Sent once, as `AiInsightRequest.fallbackFacts`, only when the model
+/// declines the detailed facts or answers nothing usable. No BMI band, no
+/// tracking start, no 90-day body changes and no `body` question.
+InsightFacts? buildWeightFallbackInsightFacts({
+  required DateTime now,
+  required double? heightCm,
+  required List<WeightRecord> records,
+}) => _weightFacts(now, heightCm, records, detailed: false);
+
+/// Purpose: Build either version of the Weight card's facts.
+/// Inputs: `now`; `heightCm`; `records`; `detailed` — true for the v1.5.3
+/// facts, false for the v1.5.2 facts.
+/// Returns: `InsightFacts?` — null without records.
+/// Side effects: None.
+/// Notes: Internal helper used within this file only. With `detailed`
+/// false the output is exactly what v1.5.2 sent.
+InsightFacts? _weightFacts(
+  DateTime now,
+  double? heightCm,
+  List<WeightRecord> records, {
+  required bool detailed,
 }) {
   final sorted = records.where((r) => !r.datetime.isAfter(now)).toList()
     ..sort((a, b) => a.datetime.compareTo(b.datetime));
@@ -99,7 +128,11 @@ InsightFacts? buildWeightInsightFacts({
     lines.add('- Height: ${factNumber(heightCm)} cm');
     final bmi = WeightData.calculateBMI(heightCm, latest.weight);
     if (bmi != null) {
-      lines.add('- BMI: ${factNumber(bmi)} (${_bmiBand(bmi)})');
+      lines.add(
+        detailed
+            ? '- BMI: ${factNumber(bmi)} (${_bmiBand(bmi)})'
+            : '- BMI: ${factNumber(bmi)}',
+      );
       hasBody = true;
     }
   }
@@ -121,10 +154,12 @@ InsightFacts? buildWeightInsightFacts({
     '- Weigh-ins in the last 30 days: '
     '${sorted.where((r) => !r.datetime.isBefore(since30)).length}',
   );
-  lines.add(
-    '- Tracking since: ${factDate(sorted.first.datetime)} '
-    '(${sorted.length} weigh-ins in total)',
-  );
+  if (detailed) {
+    lines.add(
+      '- Tracking since: ${factDate(sorted.first.datetime)} '
+      '(${sorted.length} weigh-ins in total)',
+    );
+  }
   final fat = sorted.lastWhere(
     (r) => r.bodyFat != null && r.bodyFat! > 0,
     orElse: () => latest,
@@ -136,7 +171,9 @@ InsightFacts? buildWeightInsightFacts({
     hasBody = true;
   }
   final since90 = now.subtract(const Duration(days: 90));
-  final fatChange = _fieldChange(sorted, since90, now, (r) => r.bodyFat);
+  final fatChange = detailed
+      ? _fieldChange(sorted, since90, now, (r) => r.bodyFat)
+      : null;
   if (fatChange != null) {
     lines.add(
       '- Body fat change over 90 days: '
@@ -158,13 +195,14 @@ InsightFacts? buildWeightInsightFacts({
   final whr = WeightData.calculateWaistHipRatio(m.waistCm, m.hipCm);
   if (whr != null) lines.add('- Waist-to-hip ratio: ${factNumber(whr, 2)}');
   final moved = <String>[
-    for (final (name, read) in <(String, double? Function(WeightRecord))>[
-      ('bust', (r) => r.bustCm),
-      ('waist', (r) => r.waistCm),
-      ('hip', (r) => r.hipCm),
-    ])
-      if (_fieldChange(sorted, since90, now, read) case final c?)
-        '$name ${_signed(c.last - c.first)} cm',
+    if (detailed)
+      for (final (name, read) in <(String, double? Function(WeightRecord))>[
+        ('bust', (r) => r.bustCm),
+        ('waist', (r) => r.waistCm),
+        ('hip', (r) => r.hipCm),
+      ])
+        if (_fieldChange(sorted, since90, now, read) case final c?)
+          '$name ${_signed(c.last - c.first)} cm',
   ];
   if (moved.isNotEmpty) {
     lines.add('- Measurement change over 90 days: ${moved.join(', ')}');
@@ -176,17 +214,23 @@ InsightFacts? buildWeightInsightFacts({
     lines: lines,
     slots: [
       const InsightSlot('trend', 'Describe the weight trend.'),
-      if (hasBody)
+      if (detailed && hasBody)
         const InsightSlot(
           'body',
           'Sum up the body condition neutrally: BMI, body fat and '
               'measurements, and how they have moved.',
         ),
-      const InsightSlot(
-        'advice',
-        'One gentle, practical suggestion based on the trend and the body '
-            'facts.',
-      ),
+      if (detailed)
+        const InsightSlot(
+          'advice',
+          'One gentle, practical suggestion based on the trend and the body '
+              'facts.',
+        )
+      else
+        const InsightSlot(
+          'advice',
+          'One gentle, practical suggestion based on the trend.',
+        ),
     ],
   );
 }

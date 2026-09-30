@@ -411,6 +411,48 @@ void main() {
       expect(facts.slots.map((s) => s.id), ['trend', 'advice']);
     });
 
+    test('the fallback is the v1.5.2 prompt', () {
+      final now = DateTime(2026, 9, 28, 8);
+      final records = [
+        WeightRecord(
+          weight: 70,
+          bodyFat: 25,
+          waistCm: 80,
+          hipCm: 100,
+          datetime: DateTime(2026, 9, 1),
+        ),
+        WeightRecord(
+          weight: 68.5,
+          bodyFat: 24,
+          waistCm: 78,
+          datetime: DateTime(2026, 9, 27),
+        ),
+      ];
+      final plain = buildWeightFallbackInsightFacts(
+        now: now,
+        heightCm: 170,
+        records: records,
+      )!;
+      final text = plain.lines.join('\n');
+      expect(text, contains('- BMI: 23.7'));
+      expect(text, isNot(contains('range)')));
+      expect(text, isNot(contains('Tracking since')));
+      expect(text, isNot(contains('over 90 days:')));
+      expect(text, contains('Body fat: 24% on 2026-09-27'));
+      expect(text, contains('waist 78 cm, hip 100 cm'));
+      expect(plain.slots.map((s) => s.id), ['trend', 'advice']);
+      expect(
+        plain.slots.last.ask,
+        'One gentle, practical suggestion based on the trend.',
+      );
+      final full = buildWeightInsightFacts(
+        now: now,
+        heightCm: 170,
+        records: records,
+      )!;
+      expect(plain.canonical(), isNot(full.canonical()));
+    });
+
     test('no records returns null', () {
       expect(
         buildWeightInsightFacts(
@@ -620,6 +662,41 @@ void main() {
         'advice',
         'partners',
       ]);
+    });
+
+    test('the fallback is the v1.5.2 prompt', () {
+      final plain = buildIntimacyFallbackInsightFacts(
+        now: now,
+        records: records,
+        userBody: body,
+        cycleRecords: [CycleRecord(date: '2026-09-10')],
+        weightRecords: const [],
+      )!;
+      final prompt = insightPrompt(plain);
+      for (final gone in [
+        'porn',
+        'thrust',
+        'Chart',
+        'partner A',
+        'Partners',
+        'Toys',
+        'Positions',
+        'SECRET',
+        'NAME',
+        '99',
+      ]) {
+        expect(prompt, isNot(contains(gone)), reason: gone);
+      }
+      final text = plain.lines.join('\n');
+      expect(text, contains('Last 30 days: 1 entries (1 with a partner'));
+      expect(text, contains('protection used in 100% of partnered'));
+      expect(text, contains('Cycle (estimate)'));
+      expect(plain.slots.map((s) => s.id), ['trend', 'advice', 'body']);
+      // A subset of the full card's slots, in the same order.
+      final full = build(cycles: [CycleRecord(date: '2026-09-10')])!;
+      final fullIds = full.slots.map((s) => s.id).toList();
+      final plainIds = plain.slots.map((s) => s.id).toList();
+      expect(fullIds.where(plainIds.contains).toList(), plainIds);
     });
 
     test('partner cycles are not the user cycle', () {

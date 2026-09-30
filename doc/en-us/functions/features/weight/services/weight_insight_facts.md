@@ -22,9 +22,11 @@ float noise. Record notes are never sent. The card itself is
 | [`_bmiBand`](#_bmiband) | top-level function (private) | A | Name the BMI band the Weight page's colored bar shows. |
 | [`_fieldChange`](#_fieldchange) | top-level function (private) | A | Describe how one optional field moved inside a window. |
 | [`buildWeightInsightFacts`](#buildweightinsightfacts) | top-level function | A | Build the Weight card's facts. |
+| [`buildWeightFallbackInsightFacts`](#buildweightfallbackinsightfacts) | top-level function | A | Build the Weight card's fallback facts: the v1.5.2 prompt. |
+| [`_weightFacts`](#_weightfacts) | top-level function (private) | A | Build either version of the Weight card's facts. |
 
-`grep -c 'Purpose:' lib/features/weight/services/weight_insight_facts.dart` reports 5, matching the
-five declarations above exactly; there are no undocumented declarations.
+`grep -c 'Purpose:' lib/features/weight/services/weight_insight_facts.dart` reports 7, matching the
+seven declarations above exactly; there are no undocumented declarations.
 
 ## Documentation
 
@@ -82,14 +84,14 @@ five declarations above exactly; there are no undocumented declarations.
 
 ### `InsightFacts? buildWeightInsightFacts({required DateTime now, required double? heightCm, required List<WeightRecord> records})` <a id="buildweightinsightfacts"></a>
 - **Kind:** top-level function
-- **Source:** `lib/features/weight/services/weight_insight_facts.dart` (line 82)
+- **Source:** `lib/features/weight/services/weight_insight_facts.dart` (line 83)
 - **Purpose:** Build the Weight card's facts.
 - **Inputs:** `now` — local time; `heightCm` — the user's height, or null; `records`.
 - **Returns:** `InsightFacts?` with `module: weight`, bucket `none` and the slots `trend`, `body`
   (only when a BMI, body-fat or measurement line was sent) and `advice` — or null when no record is
   dated at or before `now`.
 - **Side effects:** None.
-- **Algorithm:**
+- **Algorithm:** `_weightFacts(now, heightCm, records, detailed: true)`, which does:
   1. Drop records after `now`; sort oldest first; the latest is the last.
   2. `- Today:`; the latest weight, its date and how many calendar days ago.
   3. When `heightCm > 0`: the height, and the BMI from `WeightData.calculateBMI` with its
@@ -116,3 +118,43 @@ five declarations above exactly; there are no undocumented declarations.
   `aiWeightTrend` and `body` under `aiWeightBody`; covered by `test/insight_facts_test.dart`.)
 - **Notes:** Record notes are never read. Future-dated records are ignored. The `body` slot was
   added in v1.5.3; before it the model was asked only about the trend and ignored the body facts.
+  The page sends [`buildWeightFallbackInsightFacts`](#buildweightfallbackinsightfacts) with it as
+  `fallbackFacts` (v1.5.4).
+
+### `InsightFacts? buildWeightFallbackInsightFacts({required DateTime now, required double? heightCm, required List<WeightRecord> records})` <a id="buildweightfallbackinsightfacts"></a>
+- **Kind:** top-level function
+- **Source:** `lib/features/weight/services/weight_insight_facts.dart` (line 97)
+- **Purpose:** Build the Weight card's fallback facts: the v1.5.2 prompt.
+- **Inputs:** Same as [`buildWeightInsightFacts`](#buildweightinsightfacts).
+- **Returns:** `InsightFacts?` with the slots `trend` and `advice`, the latter asking for "One
+  gentle, practical suggestion based on the trend." — or null when no record is dated at or before
+  `now`.
+- **Side effects:** None.
+- **Algorithm:** `_weightFacts(now, heightCm, records, detailed: false)`: the same steps without the
+  BMI band, the tracking start, the 90-day body-fat and measurement changes and the `body` slot.
+- **Usage:**
+  ```dart
+  final plain = buildWeightFallbackInsightFacts(
+    now: now,
+    heightCm: _height,
+    records: _records,
+  );
+  ```
+  (`lib/features/weight/views/weight_page.dart`, passed as `AiInsightRequest.fallbackFacts`.)
+- **Notes:** Added in v1.5.4. When the model declines the detailed facts or answers nothing usable,
+  [`AiInsightStore`](../../ai/services/insight_service.md) sends these once in the same run; only a
+  refusal of these too is cached as *declined*. Its output equals what v1.5.2 sent, byte for byte.
+
+### `InsightFacts? _weightFacts(DateTime now, double? heightCm, List<WeightRecord> records, {required bool detailed})` <a id="_weightfacts"></a>
+- **Kind:** private top-level function
+- **Source:** `lib/features/weight/services/weight_insight_facts.dart` (line 110)
+- **Purpose:** Build either version of the Weight card's facts.
+- **Inputs:** `now`; `heightCm`; `records`; `detailed` — true for the v1.5.3 facts, false for the
+  v1.5.2 facts.
+- **Returns:** `InsightFacts?` — null without records.
+- **Side effects:** None.
+- **Algorithm:** The steps listed under [`buildWeightInsightFacts`](#buildweightinsightfacts), with
+  the band, tracking start, 90-day changes and `body` slot only when `detailed`, and the advice
+  question worded for the version.
+- **Usage:** The two public builders above.
+- **Notes:** One body keeps the two prompts from drifting apart in the lines they share.

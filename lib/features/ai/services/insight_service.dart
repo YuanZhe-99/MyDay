@@ -67,15 +67,17 @@ class AiInsightRequest {
 
   /// A plainer second try, or null: sent once when the model declines
   /// [facts] or returns nothing usable for them. Todo passes a counts-only
-  /// version without task titles. Not part of the fingerprint.
+  /// version without task titles; Weight and Intimacy pass the v1.5.2
+  /// prompt (v1.5.4). Not part of the fingerprint.
   final InsightFacts? fallbackFacts;
 
   /// Purpose: Create a request.
   /// Inputs: see fields.
   /// Returns: A new `AiInsightRequest`.
   /// Side effects: None.
-  /// Notes: `fallbackFacts` must carry the same module and the same slot
-  /// ids in the same order as `facts`, so the card's sections still apply.
+  /// Notes: `fallbackFacts` must carry the same module, and its slot ids
+  /// must be a subset of `facts`'s in the same order, so the card's
+  /// sections still apply.
   const AiInsightRequest({
     required this.facts,
     required this.language,
@@ -401,14 +403,19 @@ class AiInsightStore extends ChangeNotifier {
   /// Side effects: Runs the model once or twice.
   /// Notes: Internal helper used within this file only. The fallback runs
   /// when the first reply is refused (guardrail) or parses to nothing, and
-  /// only when the request carries one. A guardrail on the fallback itself
-  /// propagates, so it is cached as skipped like any other refusal.
+  /// only when the request carries one that differs from the primary
+  /// facts; retrying identical facts would only repeat the refusal. A
+  /// guardrail on the fallback itself propagates, so it is cached as skipped
+  /// like any other refusal.
   Future<(InsightFacts, Map<int, String>)> _answer(
     AiInsightRequest request,
     bool force,
   ) async {
     final primary = request.facts;
-    final fallback = request.fallbackFacts;
+    final given = request.fallbackFacts;
+    final fallback = given != null && given.canonical() != primary.canonical()
+        ? given
+        : null;
     try {
       final parsed = await _generateParsed(primary, request.language, force);
       if (parsed.isNotEmpty || fallback == null) return (primary, parsed);

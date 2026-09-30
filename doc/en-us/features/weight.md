@@ -109,7 +109,7 @@ built by `buildWeightInsightFacts` (`services/weight_insight_facts.dart`): lates
 height, BMI with the same band the page's color bar shows (underweight, normal, overweight or
 obese range), change over 7/30/90 days, recent range, weigh-in count, the tracking start and total
 count, body fat and its 90-day change, bust/waist/hip carried forward exactly as the page shows
-them, their 90-day change, and the waist-to-hip ratio. Record notes are never sent. While AI is off the card renders
+them, their 90-day change, and the waist-to-hip ratio. Record notes are never sent. Since 1.5.4, if the model declines these facts or answers nothing usable, the card retries once with the v1.5.2 prompt before it says *declined*. While AI is off the card renders
 nothing, so the page's spacing is unchanged. See [On-device AI](../on-device-ai.md).
 
 ## Related pages

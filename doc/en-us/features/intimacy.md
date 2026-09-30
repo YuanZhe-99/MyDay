@@ -184,7 +184,7 @@ Since 1.5.3 thrust count and rate and the porn-watched share are included. **Par
 positions are never named: they appear only as `partner A`, `toy 1`, `position 1`, ranked by
 use. Notes, locations, names, emoji, images, prices, links, genital measurements and partners'
 cycles are never sent.** Because the chart selection is part of the facts, changing a chart chip
-regenerates the card. To read the Weight measurements the page loads `weight_data.json` while AI is on; an
+regenerates the card. Since 1.5.4, if the model declines these facts or answers nothing usable, the card retries once with the v1.5.2 prompt, which carries no chart, partner, toy, position, thrust or porn facts, before it says *declined*. To read the Weight measurements the page loads `weight_data.json` while AI is on; an
 unreadable weight file only leaves those facts out. See [On-device AI](../on-device-ai.md).
 
 ## Related pages

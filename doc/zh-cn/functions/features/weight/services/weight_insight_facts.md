@@ -11,8 +11,10 @@
 | [`_bmiBand`](#_bmiband) | 顶层函数（私有） | A | 给出体重页彩色条所显示的 BMI 区间名称。 |
 | [`_fieldChange`](#_fieldchange) | 顶层函数（私有） | A | 描述一个可选字段在窗口内的变化。 |
 | [`buildWeightInsightFacts`](#buildweightinsightfacts) | 顶层函数 | A | 构建体重卡片的事实。 |
+| [`buildWeightFallbackInsightFacts`](#buildweightfallbackinsightfacts) | 顶层函数 | A | 构建体重卡片的后备事实：v1.5.2 的提示词。 |
+| [`_weightFacts`](#_weightfacts) | 顶层函数（私有） | A | 构建两种版本之一的体重卡片事实。 |
 
-`grep -c 'Purpose:' lib/features/weight/services/weight_insight_facts.dart` 报告 5，与上面五个声明精确匹配；不存在未文档化声明。
+`grep -c 'Purpose:' lib/features/weight/services/weight_insight_facts.dart` 报告 7，与上面七个声明精确匹配；不存在未文档化声明。
 
 ## 文档
 
@@ -62,12 +64,12 @@
 
 ### `InsightFacts? buildWeightInsightFacts({required DateTime now, required double? heightCm, required List<WeightRecord> records})` <a id="buildweightinsightfacts"></a>
 - **种类：** 顶层函数
-- **来源：** `lib/features/weight/services/weight_insight_facts.dart`（第 82 行）
+- **来源：** `lib/features/weight/services/weight_insight_facts.dart`（第 83 行）
 - **用途：** 构建体重卡片的事实。
 - **输入：** `now` — 本地时间；`heightCm` — 用户身高，或 null；`records`。
 - **返回：** `InsightFacts?`，`module: weight`、分桶 `none`，槽位为 `trend`、`body`（仅当发送了 BMI、体脂或围度行时）和 `advice`——没有日期在 `now` 或之前的记录时为 null。
 - **副作用：** 无。
-- **算法：**
+- **算法：** `_weightFacts(now, heightCm, records, detailed: true)`，其步骤为：
   1. 丢弃 `now` 之后的记录；从旧到新排序；最新的是最后一条。
   2. `- Today:`；最新体重、其日期以及距今多少个日历日。
   3. 当 `heightCm > 0` 时：身高，以及在有定义时来自 `WeightData.calculateBMI` 的 BMI 及其 `_bmiBand`。
@@ -85,4 +87,34 @@
   );
   ```
   （`lib/features/weight/views/weight_page.dart`，第 485 行，其卡片把 `trend`/`advice` 归入 `aiWeightTrend`，把 `body` 归入 `aiWeightBody`；由 `test/insight_facts_test.dart` 覆盖。）
-- **备注：** 绝不读取记录备注。忽略日期在未来的记录。`body` 槽位于 v1.5.3 新增；此前模型只被问及趋势，因而忽略身体事实。
+- **备注：** 绝不读取记录备注。忽略日期在未来的记录。`body` 槽位于 v1.5.3 新增；此前模型只被问及趋势，因而忽略身体事实。页面把 [`buildWeightFallbackInsightFacts`](#buildweightfallbackinsightfacts) 作为 `fallbackFacts` 与它一起发送（v1.5.4）。
+
+### `InsightFacts? buildWeightFallbackInsightFacts({required DateTime now, required double? heightCm, required List<WeightRecord> records})` <a id="buildweightfallbackinsightfacts"></a>
+- **种类：** 顶层函数
+- **来源：** `lib/features/weight/services/weight_insight_facts.dart`（第 97 行）
+- **用途：** 构建体重卡片的后备事实：v1.5.2 的提示词。
+- **输入：** 与 [`buildWeightInsightFacts`](#buildweightinsightfacts) 相同。
+- **返回：** `InsightFacts?`，槽位为 `trend` 和 `advice`，后者请求 "One gentle, practical suggestion based on the trend."；没有日期在 `now` 或之前的记录时为 null。
+- **副作用：** 无。
+- **算法：** `_weightFacts(now, heightCm, records, detailed: false)`：相同的步骤，但没有 BMI 区间、开始记录日期、90 天体脂和围度变化，也没有 `body` 槽位。
+- **用法：**
+  ```dart
+  final plain = buildWeightFallbackInsightFacts(
+    now: now,
+    heightCm: _height,
+    records: _records,
+  );
+  ```
+  （`lib/features/weight/views/weight_page.dart`，作为 `AiInsightRequest.fallbackFacts` 传入。）
+- **备注：** v1.5.4 新增。当模型拒绝详细事实或没有给出可用回答时，[`AiInsightStore`](../../ai/services/insight_service.md) 在同一次运行中发送一次这些事实；只有它们也被拒绝时才缓存为*已拒绝*。其输出与 v1.5.2 发送的内容逐字节相同。
+
+### `InsightFacts? _weightFacts(DateTime now, double? heightCm, List<WeightRecord> records, {required bool detailed})` <a id="_weightfacts"></a>
+- **种类：** 私有顶层函数
+- **来源：** `lib/features/weight/services/weight_insight_facts.dart`（第 110 行）
+- **用途：** 构建两种版本之一的体重卡片事实。
+- **输入：** `now`；`heightCm`；`records`；`detailed` — true 为 v1.5.3 的事实，false 为 v1.5.2 的事实。
+- **返回：** `InsightFacts?` — 没有记录时为 null。
+- **副作用：** 无。
+- **算法：** [`buildWeightInsightFacts`](#buildweightinsightfacts) 下列出的步骤；区间、开始记录日期、90 天变化和 `body` 槽位只在 `detailed` 时出现，建议问题的措辞随版本而定。
+- **用法：** 上面两个公开构建器。
+- **备注：** 共用一个函数体，使两个提示词共有的行不会彼此偏离。

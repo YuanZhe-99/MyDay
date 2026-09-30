@@ -50,13 +50,20 @@ double? _rating(IntimacyRecord r) =>
     r.pleasureLevel > 0 ? r.pleasureLevel.toDouble() : null;
 
 /// Purpose: Summarize the records in one window.
-/// Inputs: `records`, `from` (inclusive), `to` (exclusive).
-/// Returns: `String` — counts, average rating, average duration, rates,
-/// the porn-watched share and, when recorded, thrust count and rate.
+/// Inputs: `records`, `from` (inclusive), `to` (exclusive); `detailed` —
+/// false for the v1.5.2 wording.
+/// Returns: `String` — counts, average rating, average duration, rates and,
+/// when `detailed`, the porn-watched share and the thrust count and rate
+/// when recorded.
 /// Side effects: None.
 /// Notes: Internal helper used within this file only. Durations of zero
 /// (no timer) and missing thrust counts are left out of their averages.
-String _window(List<IntimacyRecord> records, DateTime from, DateTime to) {
+String _window(
+  List<IntimacyRecord> records,
+  DateTime from,
+  DateTime to, {
+  required bool detailed,
+}) {
   final inWindow = records
       .where((r) => !r.datetime.isBefore(from) && r.datetime.isBefore(to))
       .toList();
@@ -73,9 +80,12 @@ String _window(List<IntimacyRecord> records, DateTime from, DateTime to) {
     'average rating ${factNumber(rating)} of 5',
     if (length != null) 'average length ${factNumber(length)} min',
     'climax in ${_pct(inWindow.where((r) => r.hadOrgasm).length, n)}%',
-    'porn watched in ${_pct(inWindow.where((r) => r.watchedPorn).length, n)}%',
-    if (thrusts != null) 'average thrust count ${factNumber(thrusts, 0)}',
-    if (rate != null) 'average thrust rate ${factNumber(rate, 0)}/min',
+    if (detailed) ...[
+      'porn watched in '
+          '${_pct(inWindow.where((r) => r.watchedPorn).length, n)}%',
+      if (thrusts != null) 'average thrust count ${factNumber(thrusts, 0)}',
+      if (rate != null) 'average thrust rate ${factNumber(rate, 0)}/min',
+    ],
   ];
   final withPartner = inWindow.where((r) => !r.isSolo).toList();
   if (withPartner.isNotEmpty) {
@@ -348,6 +358,7 @@ List<String> _companions(
 /// `partner A`, `toy 1`, `position 1`. Thrust figures and the porn-watched
 /// share are sent since v1.5.3. A cycle phase is sent only when the user
 /// tracks their own cycle; predictions are estimates and the card says so.
+/// The page pairs this with [buildIntimacyFallbackInsightFacts].
 InsightFacts? buildIntimacyInsightFacts({
   required DateTime now,
   required List<IntimacyRecord> records,
@@ -358,6 +369,68 @@ InsightFacts? buildIntimacyInsightFacts({
   required List<Toy> toys,
   required List<Position> positions,
   required IntimacyChartSettings chartSettings,
+}) => _intimacyFacts(
+  now: now,
+  records: records,
+  userBody: userBody,
+  cycleRecords: cycleRecords,
+  weightRecords: weightRecords,
+  partners: partners,
+  toys: toys,
+  positions: positions,
+  chartSettings: chartSettings,
+  detailed: true,
+);
+
+/// Purpose: Build the Intimacy card's fallback facts: the v1.5.2 prompt.
+/// Inputs: `now` — local time; `records`; `userBody`; `cycleRecords`;
+/// `weightRecords`.
+/// Returns: `InsightFacts?` — null when there are no records and no body
+/// facts. Slots `trend`, `advice` and `body`, each only when its facts
+/// exist.
+/// Side effects: None.
+/// Notes: Sent once, as `AiInsightRequest.fallbackFacts`, only when the model
+/// declines the detailed facts or answers nothing usable. No chart line, no
+/// partner, toy or position lines, no thrust figures and no porn-watched
+/// share: exactly what v1.5.2 sent. A refusal of these too is cached as
+/// skipped and the card says *declined*.
+InsightFacts? buildIntimacyFallbackInsightFacts({
+  required DateTime now,
+  required List<IntimacyRecord> records,
+  required BodyProfile? userBody,
+  required List<CycleRecord> cycleRecords,
+  required List<WeightRecord> weightRecords,
+}) => _intimacyFacts(
+  now: now,
+  records: records,
+  userBody: userBody,
+  cycleRecords: cycleRecords,
+  weightRecords: weightRecords,
+  partners: const [],
+  toys: const [],
+  positions: const [],
+  chartSettings: const IntimacyChartSettings(),
+  detailed: false,
+);
+
+/// Purpose: Build either version of the Intimacy card's facts.
+/// Inputs: as [buildIntimacyInsightFacts], plus `detailed` — true for the
+/// v1.5.3 facts, false for the v1.5.2 facts.
+/// Returns: `InsightFacts?`.
+/// Side effects: None.
+/// Notes: Internal helper used within this file only. With `detailed`
+/// false, `partners`, `toys`, `positions` and `chartSettings` are ignored.
+InsightFacts? _intimacyFacts({
+  required DateTime now,
+  required List<IntimacyRecord> records,
+  required BodyProfile? userBody,
+  required List<CycleRecord> cycleRecords,
+  required List<WeightRecord> weightRecords,
+  required List<Partner> partners,
+  required List<Toy> toys,
+  required List<Position> positions,
+  required IntimacyChartSettings chartSettings,
+  required bool detailed,
 }) {
   final today = dateOnly(now);
   final past = records.where((r) => !r.datetime.isAfter(now)).toList()
@@ -372,17 +445,25 @@ InsightFacts? buildIntimacyInsightFacts({
   if (past.isNotEmpty) {
     final recent = past.where((r) => !r.datetime.isBefore(d90)).toList();
     lines
-      ..add('- Last 30 days: ${_window(past, d30, tomorrow)}')
-      ..add('- The 30 days before: ${_window(past, d60, d30)}')
+      ..add(
+        '- Last 30 days: '
+        '${_window(past, d30, tomorrow, detailed: detailed)}',
+      )
+      ..add(
+        '- The 30 days before: '
+        '${_window(past, d60, d30, detailed: detailed)}',
+      )
       ..add('- Last 90 days: ${recent.length} entries')
       ..add(
         '- Days since the last entry: '
         '${today.difference(dateOnly(past.last.datetime)).inDays}',
       );
-    chart = _chartSummary(past, chartSettings, now);
-    if (chart != null) lines.add(chart);
-    companions = _companions(recent, today, now, partners, toys, positions);
-    lines.addAll(companions);
+    if (detailed) {
+      chart = _chartSummary(past, chartSettings, now);
+      if (chart != null) lines.add(chart);
+      companions = _companions(recent, today, now, partners, toys, positions);
+      lines.addAll(companions);
+    }
   }
 
   // Body condition.
