@@ -289,8 +289,10 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
 
     expect(find.text('Todo'), findsWidgets);
-    expect(find.text('Finance'), findsOneWidget);
+    // The default bottom bar shows only the selected label; the others are
+    // icons with tooltips (1.6.1).
+    expect(find.byTooltip('Finance'), findsOneWidget);
     expect(find.text('Intimacy'), findsNothing); // Hidden by default
-    expect(find.text('Settings'), findsOneWidget);
+    expect(find.byTooltip('Settings'), findsOneWidget);
   });
 }

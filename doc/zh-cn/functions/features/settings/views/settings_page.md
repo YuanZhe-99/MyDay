@@ -28,6 +28,8 @@
 | [`_showStoragePathDialog`](#showstoragepathdialog) | 方法（`_SettingsPageState`） | A | 编辑自定义存储路径，含重置回默认。 |
 | `_showThemePicker` | 方法（`_SettingsPageState`） | B | 显示主题模式选择器底部面板。 |
 | `_showUiStylePicker` | 方法（`_SettingsPageState`） | B | 显示界面风格选择器底部面板（Material 3 / Expressive，1.6.0）。 |
+| `_navPlacementLabel` | 方法（`_SettingsPageState`） | B | 返回导航栏位置选项的显示名称（1.6.1）。 |
+| `_showNavPlacementPicker` | 方法（`_SettingsPageState`） | B | 显示导航栏位置选择器底部面板（全部底部 / 宽屏侧边 / 全部侧边，1.6.1）。 |
 | `_showRailSidePicker` | 方法（`_SettingsPageState`） | B | 显示侧边导航栏位置选择器底部面板（左 / 右，1.6.1）。 |
 | `_showWeekStartPicker` | 方法（`_SettingsPageState`） | B | 显示全局周起始日选择器底部面板。 |
 | [`_showLanguagePicker`](#showlanguagepicker) | 方法（`_SettingsPageState`） | A | 显示应用语言选择器，把选择解析为 `Locale`。 |
@@ -37,7 +39,7 @@
 | [`_buildDetailPane`](#builddetailpane) | 方法（`_SettingsPageState`） | A | 构建双栏布局的右侧窗格。 |
 | [`_buildSettingsList`](#buildsettingslist) | 方法（`_SettingsPageState`） | A | 构建一级设置列表。 |
 
-**对账：** `grep -c 'Purpose:' lib/features/settings/views/settings_page.dart` 返回 29，对应 30 行；多出的一行是不带 `Purpose:` 块的 `_SettingsDetail` 枚举。28 个块都文档化真实声明（26 个方法/构造函数/getter，加在 `_showApiSettingsDialog` 内声明的嵌套本地函数 `signature()`，它自己有 `Purpose:` 块）——无错附块、未发现未文档化真实声明。`_SettingsPageState` 顶部的实例字段（`_storagePath`、`_apiPort` 等）无 `Purpose:` 块，与它们是状态而非函数一致。
+**对账：** `grep -c 'Purpose:' lib/features/settings/views/settings_page.dart` 返回 31，对应 32 行；多出的一行是不带 `Purpose:` 块的 `_SettingsDetail` 枚举。30 个块都文档化真实声明（26 个方法/构造函数/getter，加在 `_showApiSettingsDialog` 内声明的嵌套本地函数 `signature()`，它自己有 `Purpose:` 块）——无错附块、未发现未文档化真实声明。`_SettingsPageState` 顶部的实例字段（`_storagePath`、`_apiPort` 等）无 `Purpose:` 块，与它们是状态而非函数一致。
 
 ## 文档
 
@@ -186,7 +188,7 @@
 - **返回：** `Widget`——分区的滚动 `ListView`。
 - **副作用：** 除构建组件外无；磁贴自己的回调各有其副作用。
 - **个人资料与界面风格（1.6.0）：**`const ProfileHeader()`（头像与名称，见 [../../profile/views/profile_header.md](../../profile/views/profile_header.md)）是第一项，位于“通用”之前；“通用”在“主题”之后新增“界面风格”行（`Icons.auto_awesome_outlined`，副标题为当前风格），点击打开 `_showUiStylePicker`——带说明文字、Material 3 / Expressive 单选的底部面板，调用 `AppSettingsNotifier.setUiStyle`。该选择器沿用主题行的“列表项 + 底部面板”模式，而非分段按钮。
-- **宽屏导航（1.6.1）：** 在*界面风格*下方，首先是一个 `SwitchListTile`——*窄屏也使用侧边导航栏*（`Icons.vertical_split_outlined`，`AppSettings.alwaysSideNav`，`setAlwaysSideNav`；默认关闭，说明文字注明不推荐，因为侧边导航栏会占用内容的宽度），然后是仅 Expressive 显示的 `SwitchListTile`——*宽屏时导航栏放在底部*（“始终侧边”开启时隐藏；`Icons.call_to_action_outlined`，`AppSettings.expressiveWideBottomNav`，`setExpressiveWideBottomNav`）；对于 Material 3、“始终侧边”开启时，或“宽屏放底部”开关关闭时，显示一个*侧边导航栏位置*列表项（`Icons.view_sidebar_outlined`；副标题为左侧或右侧），打开 `_showRailSidePicker`——带说明文字和“左侧 / 右侧”`RadioListTile<bool>` 选项的底部面板，调用 `setNavRailOnRight`。宽窗口保留底栏时隐藏侧边位置选择，因为此时不显示侧边导航栏。三项设置都仅限本设备（`storage_config.json` 中的 `alwaysSideNav`、`wideBottomNav`、`navRailRight`），从不同步。
+- **导航栏位置（1.6.1）：** 在*界面风格*下方，一个*导航栏位置*列表项（`Icons.view_sidebar_outlined`；副标题为当前选项）打开 `_showNavPlacementPicker`——说明文字加三个单选行的底部面板：*全部底部*（默认，任何窗口都用底栏）、*宽屏侧边*（`useNavigationRail` 为真时用侧边导航栏）和*全部侧边*（任何地方都用侧边导航栏，手机上不推荐）——调用 `AppSettingsNotifier.setNavPlacement`。只要位置不是*全部底部*，就会显示一个*侧边导航栏位置*列表项（`Icons.align_horizontal_left`；副标题为左侧或右侧），打开 `_showRailSidePicker`——带“左侧 / 右侧”`RadioListTile<bool>` 选项的底部面板，调用 `setNavRailOnRight`。两者都沿用其他选择器“列表项 + 底部面板”的模式，且都仅限本设备（`storage_config.json` 中的 `navPlacement`、`navRailRight`），从不同步。
 - **算法：** v1.4.1 之前 `build` 返回的列表——常规、隐私、桌面（仅桌面）、数据、关于和调试分区——自 v1.5.0 起在隐私与桌面之间再加一个端侧 AI 分区（`l10n.aiSectionTitle`）。`platformMayHaveOnDeviceModel`（来自 `genai_backend.dart`）为真时该分区放 `const AiSettingsTiles()`，否则放一个带 `auto_awesome_outlined` 图标和 `l10n.aiNotSupportedHere` 的 `ListTile`（Windows、Linux）。
 - **用法：** 由 `build` 调用；它在窄窗口上是整个主体，在宽窗口上是左窗格。
 - **备注：** 抽取而不是复制，因此列表在两种模式下完全相同，变的只是它的 chevron 行落在哪里。自 v1.5.2 起，桌面分区的开关（最小化到托盘、关闭到托盘、开机启动、启用本地 API）在等待的平台或配置调用之后先检查 `mounted` 再调用 `setState`，因此在切换途中离开页面不会再对已销毁的 state 调用 `setState`。

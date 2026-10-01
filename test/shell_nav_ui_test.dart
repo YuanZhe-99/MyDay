@@ -62,8 +62,8 @@ void main() {
   /// Purpose: Pump the shell at a pinned viewport.
   /// Inputs: `tester`, `size` — the logical-pixel viewport; `uiStyle` — the
   /// interface style the shell is built with (Expressive by default).
-  /// `wideBottom`, `railRight` and `alwaysSide` — the 1.6.1 navigation
-  /// settings (`alwaysSide` forces the rail on narrow windows too).
+  /// `placement` — the 1.6.1 navigation placement (bottom everywhere by
+  /// default); `railRight` — the rail's side.
   /// Returns: `Future<void>`.
   /// Side effects: Renders widgets.
   /// Notes: The viewport is always pinned, because the default 800x600 test
@@ -73,9 +73,8 @@ void main() {
     WidgetTester tester,
     Size size, {
     AppUiStyle uiStyle = AppUiStyle.expressive,
-    bool wideBottom = false,
+    NavPlacement placement = NavPlacement.bottom,
     bool railRight = false,
-    bool alwaysSide = false,
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1.0;
@@ -111,9 +110,8 @@ void main() {
             AppSettingsNotifier.fixed(
               AppSettings(
                 uiStyle: uiStyle,
-                expressiveWideBottomNav: wideBottom,
+                navPlacement: placement,
                 navRailOnRight: railRight,
-                alwaysSideNav: alwaysSide,
               ),
             ),
           ),
@@ -154,7 +152,11 @@ void main() {
     addTearDown(() => dir.delete(recursive: true));
 
     // The width-only rule at work: 915 dp of width, only 412 dp of height.
-    await pumpShell(tester, const Size(915, 412));
+    await pumpShell(
+      tester,
+      const Size(915, 412),
+      placement: NavPlacement.sideOnWide,
+    );
 
     expect(find.byType(NavigationRail), findsOneWidget);
     expect(find.byType(NavigationBar), findsNothing);
@@ -167,10 +169,18 @@ void main() {
       final dir = await seedConfig(tester, intimacyVisible: true);
       addTearDown(() => dir.delete(recursive: true));
 
-      await pumpShell(tester, const Size(704, 932)); // portrait
+      await pumpShell(
+        tester,
+        const Size(704, 932),
+        placement: NavPlacement.sideOnWide,
+      ); // portrait
       expect(find.byType(NavigationRail), findsOneWidget);
 
-      await pumpShell(tester, const Size(932, 704)); // landscape
+      await pumpShell(
+        tester,
+        const Size(932, 704),
+        placement: NavPlacement.sideOnWide,
+      ); // landscape
       expect(find.byType(NavigationRail), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
@@ -192,7 +202,11 @@ void main() {
       for (final d in bar.destinations) (d as NavigationDestination).label,
     ];
 
-    await pumpShell(tester, const Size(932, 704));
+    await pumpShell(
+      tester,
+      const Size(932, 704),
+      placement: NavPlacement.sideOnWide,
+    );
     final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
     final railLabels = [
       for (final d in rail.destinations) (d.label as Text).data,
@@ -208,7 +222,11 @@ void main() {
     final dir = await seedConfig(tester, intimacyVisible: false);
     addTearDown(() => dir.delete(recursive: true));
 
-    await pumpShell(tester, const Size(932, 704));
+    await pumpShell(
+      tester,
+      const Size(932, 704),
+      placement: NavPlacement.sideOnWide,
+    );
     final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
 
     expect(rail.destinations.length, 4);
@@ -225,7 +243,11 @@ void main() {
 
     // A folded Fold 8 cover screen in landscape is only 416 dp tall, and an
     // ordinary phone in landscape 412 — both earn a rail on width alone.
-    await pumpShell(tester, const Size(915, 412));
+    await pumpShell(
+      tester,
+      const Size(915, 412),
+      placement: NavPlacement.sideOnWide,
+    );
 
     expect(tester.takeException(), isNull);
     expect(
@@ -237,42 +259,47 @@ void main() {
     );
   });
 
-  group('wide-window navigation (1.6.1)', () {
-    testWidgets('Expressive can keep its bottom bar on a wide window', (
-      tester,
-    ) async {
-      final dir = await seedConfig(tester, intimacyVisible: true);
-      addTearDown(() => dir.delete(recursive: true));
-
-      await pumpShell(tester, const Size(933, 704), wideBottom: true);
-      expect(find.byKey(island), findsOneWidget);
-      expect(find.byType(NavigationRail), findsNothing);
-    });
-
-    testWidgets('Material 3 ignores the wide bottom-bar setting', (
-      tester,
-    ) async {
-      final dir = await seedConfig(tester, intimacyVisible: true);
-      addTearDown(() => dir.delete(recursive: true));
-
-      await pumpShell(
-        tester,
-        const Size(933, 704),
-        uiStyle: AppUiStyle.material3,
-        wideBottom: true,
-      );
-      expect(find.byType(NavigationRail), findsOneWidget);
-    });
-
-    testWidgets('the rail sits on the left by default', (tester) async {
-      final dir = await seedConfig(tester, intimacyVisible: true);
-      addTearDown(() => dir.delete(recursive: true));
-
-      await pumpShell(tester, const Size(933, 704));
-      expect(tester.getTopLeft(find.byType(NavigationRail)).dx, 0);
+  group('navigation position (1.6.1)', () {
+    test('the default is bottom everywhere', () {
+      expect(const AppSettings().navPlacement, NavPlacement.bottom);
+      expect(const AppSettings().navRailOnRight, isFalse);
     });
 
     for (final style in AppUiStyle.values) {
+      testWidgets('bottom keeps the bar on a wide window (${style.name})', (
+        tester,
+      ) async {
+        final dir = await seedConfig(tester, intimacyVisible: true);
+        addTearDown(() => dir.delete(recursive: true));
+
+        await pumpShell(tester, const Size(933, 704), uiStyle: style);
+        expect(find.byType(NavigationRail), findsNothing);
+        expect(
+          style == AppUiStyle.expressive
+              ? find.byKey(island)
+              : find.byType(NavigationBar),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets('side puts the rail on a phone too (${style.name})', (
+        tester,
+      ) async {
+        final dir = await seedConfig(tester, intimacyVisible: true);
+        addTearDown(() => dir.delete(recursive: true));
+
+        await pumpShell(
+          tester,
+          const Size(412, 915),
+          uiStyle: style,
+          placement: NavPlacement.side,
+        );
+        expect(find.byType(NavigationRail), findsOneWidget);
+        expect(find.byType(NavigationBar), findsNothing);
+        expect(find.byKey(island), findsNothing);
+        expect(tester.takeException(), isNull);
+      });
+
       testWidgets('the rail can sit on the right (${style.name})', (
         tester,
       ) async {
@@ -283,6 +310,7 @@ void main() {
           tester,
           const Size(933, 704),
           uiStyle: style,
+          placement: NavPlacement.sideOnWide,
           railRight: true,
         );
         final rail = tester.getRect(find.byType(NavigationRail));
@@ -290,52 +318,30 @@ void main() {
         expect(find.text('page /todo'), findsOneWidget);
       });
     }
-  });
 
-  group('always-side navigation (1.6.1)', () {
-    for (final style in AppUiStyle.values) {
-      testWidgets('a 412-wide window shows the rail when on (${style.name})', (
+    testWidgets('side on wide keeps the bar on a phone', (tester) async {
+      final dir = await seedConfig(tester, intimacyVisible: true);
+      addTearDown(() => dir.delete(recursive: true));
+
+      await pumpShell(
         tester,
-      ) async {
-        final dir = await seedConfig(tester, intimacyVisible: true);
-        addTearDown(() => dir.delete(recursive: true));
+        const Size(412, 915),
+        placement: NavPlacement.sideOnWide,
+      );
+      expect(find.byType(NavigationRail), findsNothing);
+      expect(find.byKey(island), findsOneWidget);
+    });
 
-        await pumpShell(
-          tester,
-          const Size(412, 915),
-          uiStyle: style,
-          alwaysSide: true,
-        );
-        expect(find.byType(NavigationRail), findsOneWidget);
-        expect(find.byType(NavigationBar), findsNothing);
-        expect(find.byKey(island), findsNothing);
-        expect(tester.takeException(), isNull);
-      });
-    }
-
-    testWidgets('it overrides the Expressive wide bottom-bar choice', (
-      tester,
-    ) async {
+    testWidgets('the rail sits on the left by default', (tester) async {
       final dir = await seedConfig(tester, intimacyVisible: true);
       addTearDown(() => dir.delete(recursive: true));
 
       await pumpShell(
         tester,
         const Size(933, 704),
-        wideBottom: true,
-        alwaysSide: true,
+        placement: NavPlacement.sideOnWide,
       );
-      expect(find.byType(NavigationRail), findsOneWidget);
-      expect(find.byKey(island), findsNothing);
-    });
-
-    testWidgets('off by default, a phone keeps the bottom bar', (tester) async {
-      final dir = await seedConfig(tester, intimacyVisible: true);
-      addTearDown(() => dir.delete(recursive: true));
-
-      await pumpShell(tester, const Size(412, 915));
-      expect(find.byType(NavigationRail), findsNothing);
-      expect(find.byKey(island), findsOneWidget);
+      expect(tester.getTopLeft(find.byType(NavigationRail)).dx, 0);
     });
   });
 
@@ -373,7 +379,11 @@ void main() {
       final dir = await seedConfig(tester, intimacyVisible: true);
       addTearDown(() => dir.delete(recursive: true));
 
-      await pumpShell(tester, const Size(932, 704));
+      await pumpShell(
+        tester,
+        const Size(932, 704),
+        placement: NavPlacement.sideOnWide,
+      );
       expect(find.byType(NavigationRail), findsOneWidget);
       expect(find.byKey(island), findsNothing);
     });

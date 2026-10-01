@@ -95,10 +95,10 @@ navigation-mode decision.
 - **Algorithm:**
   1. Read `l10n`, watch `intimacyVisibilityProvider`, and resolve `routes`, `destinations` and
      `index` from the single `visible` flag. Watch three `appSettingsProvider` selections:
-     `expressive` (`uiStyle == AppUiStyle.expressive`), `wideBottom` (`expressiveWideBottomNav`) and
-     `railOnRight` (`navRailOnRight`) and `alwaysSide` (`alwaysSideNav`) (1.6.1).
+     `expressive` (`uiStyle == AppUiStyle.expressive`), `placement` (`navPlacement`) and
+     `railOnRight` (`navRailOnRight`) (1.6.1).
   2. Define `select(i) => context.go(routes[i])`.
-  3. `wide = useNavigationRail(width)`; `showRail = alwaysSide || (wide && !(expressive && wideBottom))` — the always-side setting forces the rail on narrow windows too and takes precedence over the wide bottom-bar choice.
+  3. `wide = useNavigationRail(width)`; `showRail = switch (placement) { bottom => false, sideOnWide => wide, side => true }` — the same for both styles; with the default `bottom`, Material 3 uses the standard `NavigationBar` on wide windows too.
   4. If `!showRail` and `expressive`: a `Scaffold(extendBody: true)` whose `bottomNavigationBar` is
      `_ExpressiveNavBar` (keyed `floatingNavBarIsland`) and whose body wraps the routed child in a
      `MediaQuery` that raises `viewPadding.bottom` to `max(viewPadding.bottom, padding.bottom)`.
@@ -113,7 +113,7 @@ navigation-mode decision.
 - **Notes:** Which surface appears is `useNavigationRail`'s **width-only** decision, deliberately
   not the app-wide split rule — see
   [../../../adaptive-layout.md](../../../adaptive-layout.md) for why a rail is not a split — except
-  that Expressive can keep its bottom bar on wide windows (1.6.1). Nothing
+  that the navigation placement setting (1.6.1) decides whether the rail ever shows: never (`bottom`, the default), on wide windows (`sideOnWide`) or always (`side`). Nothing
   here is stateful beyond the reminder callback, so folding a device swaps one surface for the
   other on the next frame with no route change and no state loss. Two details in the rail branch
   earn their place: `groupAlignment: 0` centres the destinations, because the default top alignment
@@ -122,8 +122,9 @@ navigation-mode decision.
   wrapper lets the rail scroll rather than overflow, because a rail can appear at compact heights
   (a phone in landscape is 915 x 412, and five labelled destinations run to roughly 370 logical
   pixels). Known approximation: pure-width helpers such as `shellContentWidth` still subtract the
-  rail width on wide windows, so with the wide bottom bar they under-estimate the content width by
-  about 81 dp (conservative, still correct).
+  rail width whenever `useNavigationRail(width)` is true, so with the bottom bar on a wide window they
+  under-estimate the content width by about 81 dp (conservative, still correct), and with the forced
+  `side` placement on a phone they over-estimate it by the rail's width.
 
 ### `_ExpressiveNavBar` and `_ExpressiveNavItem` <a id="expressivenavbar"></a>
 - **Kind:** private widgets

@@ -28,6 +28,7 @@
 - **返回：** 枚举值 `AppUiStyle.material3` 与 `AppUiStyle.expressive`。
 - **副作用：** 无。
 - **备注：** 1.6.0 新增；带有文档注释但没有 `Purpose:` 行，因此不计入 [INDEX.md](../INDEX.md)。`expressive` 为默认值。它**在主题层面**近似 Material 3 Expressive（Flutter 没有自带 Expressive 组件），并提供紧凑悬浮胶囊导航栏。`material3` 是原版 Material 3，配经典的通栏底栏。该风格由 `TodoStorage.setUiStyle` 持久化（字符串 `'material3'`，Expressive 则不写键），保存在 `AppSettings.uiStyle` 中，由 `MyDayApp.build` 传给 `AppTheme.light`/`dark`；`ShellScaffold` 读取它来选择底栏。两种风格共用相同的配色。
+- **备注（NavPlacement，1.6.1）：** `lib/app/theme.dart` 还包含 `enum NavPlacement { bottom, sideOnWide, side }`，决定两种风格下外壳把导航放在哪里：任何窗口都用底栏（默认）、宽窗口用侧边导航栏，或任何地方都用侧边导航栏。它保存在 `AppSettings.navPlacement` 中，并以 `navPlacement` 键持久化到 `storage_config.json`；见 [shell_scaffold.md](../shared/widgets/shell_scaffold.md)。它与 `AppUiStyle` 一样只有文档注释，不单独计入 [INDEX.md](../INDEX.md)。
 
 ### `static const Color seedColor` <a id="apptheme-seedcolor"></a>
 - **种类：** `AppTheme` 的静态常量

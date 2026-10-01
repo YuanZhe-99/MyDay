@@ -16,8 +16,10 @@ and `cropAvatarJpeg`; [`profile_store.md`](profile_store.md) stores the resultin
 | [`prepareAvatarSource`](#prepareavatarsource) | top-level function | A | Normalise a picked image for the editor. |
 | [`cropAvatarJpeg`](#cropavatarjpeg) | top-level function | A | Cut the square the user framed and encode it as the avatar. |
 | [`squareAvatarJpeg`](#squareavatarjpeg) | top-level function | A | Turn any decodable image into a centred square JPEG (moved here from `profile_store.dart`). |
+| [`prepareAvatarSourceInBackground`](#background-variants) | top-level function | A | Run `prepareAvatarSource` in another isolate (1.6.1). |
+| [`cropAvatarJpegInBackground`](#background-variants) | top-level function | A | Run `cropAvatarJpeg` in another isolate (1.6.1). |
 
-`grep -c 'Purpose:'` reports 5; `avatarSourceMaxEdge` and the `AvatarSource` fields carry plain `///` comments.
+`grep -c 'Purpose:'` reports 7; `avatarSourceMaxEdge` and the `AvatarSource` fields carry plain `///` comments.
 
 ## _decode
 
@@ -42,3 +44,7 @@ and `cropAvatarJpeg`; [`profile_store.md`](profile_store.md) stores the resultin
 - **Inputs:** `bytes`, `size`.
 - **Returns:** `Uint8List` — JPEG bytes.
 - **Notes:** The non-interactive path (no editor): applies EXIF orientation and takes the centred square with `copyResizeCropSquare`. Throws `FormatException` for non-images. Kept for callers and tests that want the centred crop.
+
+## Background variants
+
+`prepareAvatarSourceInBackground(bytes, {quarterTurns})` and `cropAvatarJpegInBackground(source, {x, y, side, size})` wrap the two functions in `Isolate.run` and return a `Future`. They are **top-level on purpose**: an `Isolate.run(() => ...)` closure written inside a widget's `State` method also captures the `State` and its controllers, which cannot be sent to another isolate, so the editor failed with *This image could not be used*. Here the closure captures only its arguments. The editor calls only these two; `test/profile_test.dart` runs both for real.

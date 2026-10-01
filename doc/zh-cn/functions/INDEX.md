@@ -6,10 +6,10 @@
 
 | 度量 | 计数 |
 |---|---|
-| `grep -r '/// Purpose:' lib --include=*.dart` | **1794** |
-| 全部 113 页的声明表行 | **1864** |
-| ——其中 Tier A（完整条目） | 1038 |
-| ——其中 Tier B（仅索引行） | 826 |
+| `grep -r '/// Purpose:' lib --include=*.dart` | **1795** |
+| 全部 113 页的声明表行 | **1865** |
+| ——其中 Tier A（完整条目） | 1037 |
+| ——其中 Tier B（仅索引行） | 828 |
 
 下面的 **Declarations** 和 **Tier A** 列统计**每页声明表中的行**，这是可机械检查的数字。一行不总是一个 `/// Purpose:` 块，表行数超出 grep 计数的 70 行净差额被完整逐项列出——行数与自己的 `grep` 不同的每页都带一条 `**Reconciliation:**` 说明确切原因。有三个反复出现的原因：
 
@@ -105,11 +105,12 @@
 |---|---|---|---|
 | `lib/features/profile/models/profile_data.dart` | [features/profile/models/profile_data.md](features/profile/models/profile_data.md) | 8 | 2 |
 | `lib/features/profile/providers/profile_provider.dart` | [features/profile/providers/profile_provider.md](features/profile/providers/profile_provider.md) | 7 | 2 |
-| `lib/features/profile/services/avatar_image.dart` | [features/profile/services/avatar_image.md](features/profile/services/avatar_image.md) | 6 | 3 |
-$1 | [features/profile/services/profile_merge.md](features/profile/services/profile_merge.md) | 4 | 2 |
-| `lib/features/profile/services/profile_store.dart` | [${1}11 | 7 |
+| `lib/features/profile/services/avatar_image.dart` | [features/profile/services/avatar_image.md](features/profile/services/avatar_image.md) | 8 | 5 |
+| `lib/features/profile/services/profile_merge.dart` | [features/profile/services/profile_merge.md](features/profile/services/profile_merge.md) | 4 | 2 |
+| `lib/features/profile/services/profile_store.dart` | [features/profile/services/profile_store.md](features/profile/services/profile_store.md) | 11 | 7 |
 | `lib/features/profile/views/avatar_editor.dart` | [features/profile/views/avatar_editor.md](features/profile/views/avatar_editor.md) | 11 | 4 |
-$1| `lib/features/profile/views/profile_header.dart` | [${1}11 | 5 |
+| `lib/features/profile/views/profile_avatar.dart` | [features/profile/views/profile_avatar.md](features/profile/views/profile_avatar.md) | 5 | 3 |
+| `lib/features/profile/views/profile_header.dart` | [features/profile/views/profile_header.md](features/profile/views/profile_header.md) | 11 | 5 |
 
 ## features/settings/
 
@@ -117,7 +118,7 @@ $1| `lib/features/profile/views/profile_header.dart` | [${1}11 | 5 |
 |---|---|---|---|
 | `lib/features/settings/views/license_page.dart` | [features/settings/views/license_page.md](features/settings/views/license_page.md) | 2 | 0 |
 | `lib/features/settings/views/privacy_policy_page.dart` | [features/settings/views/privacy_policy_page.md](features/settings/views/privacy_policy_page.md) | 3 | 0 |
-| `lib/features/settings/views/settings_page.dart` | [${1}30 | 8 |
+| `lib/features/settings/views/settings_page.dart` | [features/settings/views/settings_page.md](features/settings/views/settings_page.md) | 32 | 8 |
 
 ## features/todo/
 
@@ -127,7 +128,7 @@ $1| `lib/features/profile/views/profile_header.dart` | [${1}11 | 5 |
 | `lib/features/todo/constants/task_emojis.dart` | [features/todo/constants/task_emojis.md](features/todo/constants/task_emojis.md) | 1 | 1 |
 | `lib/features/todo/models/task.dart` | [features/todo/models/task.md](features/todo/models/task.md) | 38 | 37 |
 | `lib/features/todo/services/todo_insight_facts.dart` | [features/todo/services/todo_insight_facts.md](features/todo/services/todo_insight_facts.md) | 7 | 4 |
-| `lib/features/todo/services/todo_storage.dart` | [${1}59 | 58 |
+| `lib/features/todo/services/todo_storage.dart` | [features/todo/services/todo_storage.md](features/todo/services/todo_storage.md) | 57 | 56 |
 | `lib/features/todo/utils/emoji_suggester.dart` | [features/todo/utils/emoji_suggester.md](features/todo/utils/emoji_suggester.md) | 9 | 5 |
 | `lib/features/todo/views/todo_page.dart` | [features/todo/views/todo_page.md](features/todo/views/todo_page.md) | 74 | 34 |
 | `lib/features/todo/widgets/add_task_dialog.dart` | [features/todo/widgets/add_task_dialog.md](features/todo/widgets/add_task_dialog.md) | 17 | 6 |
@@ -153,7 +154,7 @@ $1| `lib/features/profile/views/profile_header.dart` | [${1}11 | 5 |
 
 | 源文件 | 页面 | 声明数 | Tier A |
 |---|---|---|---|
-| `lib/shared/providers/app_settings.dart` | [${1}19 | 18 |
+| `lib/shared/providers/app_settings.dart` | [shared/providers/app_settings.md](shared/providers/app_settings.md) | 18 | 17 |
 | `lib/shared/providers/intimacy_visibility.dart` | [shared/providers/intimacy_visibility.md](shared/providers/intimacy_visibility.md) | 6 | 5 |
 | `lib/shared/services/auto_sync_service.dart` | [shared/services/auto_sync_service.md](shared/services/auto_sync_service.md) | 11 | 11 |
 | `lib/shared/services/backup_service.dart` | [shared/services/backup_service.md](shared/services/backup_service.md) | 12 | 12 |
@@ -168,7 +169,7 @@ $1| `lib/features/profile/views/profile_header.dart` | [${1}11 | 5 |
 | `lib/shared/services/sync_wake_lock.dart` | [shared/services/sync_wake_lock.md](shared/services/sync_wake_lock.md) | 0 | 0 |
 | `lib/shared/services/tray_service.dart` | [shared/services/tray_service.md](shared/services/tray_service.md) | 16 | 13 |
 | `lib/shared/services/webdav_service.dart` | [shared/services/webdav_service.md](shared/services/webdav_service.md) | 12 | 12 |
-| `lib/shared/utils/adaptive_layout.dart` | [${1}58 | 18 |
+| `lib/shared/utils/adaptive_layout.dart` | [shared/utils/adaptive_layout.md](shared/utils/adaptive_layout.md) | 58 | 18 |
 | `lib/shared/utils/chinese_convert.dart` | [shared/utils/chinese_convert.md](shared/utils/chinese_convert.md) | 5 | 4 |
 | `lib/shared/utils/chinese_convert_data.dart` | [shared/utils/chinese_convert_data.md](shared/utils/chinese_convert_data.md) | 2 | 0 |
 | `lib/shared/utils/id_list_delta.dart` | [shared/utils/id_list_delta.md](shared/utils/id_list_delta.md) | 6 | 6 |
@@ -180,7 +181,7 @@ $1| `lib/features/profile/views/profile_header.dart` | [${1}11 | 5 |
 | `lib/shared/widgets/adaptive_tile_grid.dart` | [shared/widgets/adaptive_tile_grid.md](shared/widgets/adaptive_tile_grid.md) | 7 | 6 |
 | `lib/shared/widgets/app_date_picker.dart` | [shared/widgets/app_date_picker.md](shared/widgets/app_date_picker.md) | 23 | 13 |
 | `lib/shared/widgets/delete_confirm.dart` | [shared/widgets/delete_confirm.md](shared/widgets/delete_confirm.md) | 1 | 1 |
-| `lib/shared/widgets/shell_scaffold.dart` | [${1}12 | 4 |
+| `lib/shared/widgets/shell_scaffold.dart` | [shared/widgets/shell_scaffold.md](shared/widgets/shell_scaffold.md) | 12 | 4 |
 | `lib/shared/widgets/stored_image.dart` | [shared/widgets/stored_image.md](shared/widgets/stored_image.md) | 5 | 2 |
 | `lib/shared/widgets/sync_conflict_dialog.dart` | [shared/widgets/sync_conflict_dialog.md](shared/widgets/sync_conflict_dialog.md) | 6 | 0 |
 | `lib/shared/widgets/unsaved_changes_guard.dart` | [shared/widgets/unsaved_changes_guard.md](shared/widgets/unsaved_changes_guard.md) | 10 | 5 |
@@ -194,13 +195,13 @@ $1| `lib/features/profile/views/profile_header.dart` | [${1}11 | 5 |
 | `features/ai/` | 9 | 132 | 68 | 64 |
 | `features/finance/` | 25 | 421 | 205 | 216 |
 | `features/intimacy/` | 15 | 438 | 210 | 228 |
-| `features/profile/` | 8 | 63 | 28 | 35 |
-| `features/settings/` | 3 | 35 | 8 | 27 |
-| `features/todo/` | 12 | 242 | 154 | 88 |
+| `features/profile/` | 8 | 65 | 30 | 35 |
+| `features/settings/` | 3 | 37 | 8 | 29 |
+| `features/todo/` | 12 | 240 | 152 | 88 |
 | `features/weight/` | 4 | 99 | 58 | 41 |
-| `shared/` | 31 | 403 | 281 | 122 |
-| **总计** | **113** | **1864** | **1038** | **826** |
+| `shared/` | 31 | 402 | 280 | 122 |
+| **总计** | **113** | **1865** | **1037** | **828** |
 
 这里的每行都是上面逐文件行的算术和，在 v1.5.0 中重新派生，并按 v1.5.1 至 v1.5.5 触及的页面调整（v1.5.2 新增了 `id_list_delta.md`；v1.5.3 和 v1.5.4 扩充了体重和亲密的洞察事实页；v1.5.5 新增了 `thrust_timeline.md`、`record_detail_page.md` 和 `thrust_timeline_chart.md`，扩充了 `intimacy_record.md`、`intimacy_page.md`、`timer_page.md` 和 `adaptive_layout.md`，并更正了 `adaptive_layout.md` 的对账说明——它曾声称 17 个 `Purpose:` 块和 56 行，而文件实际是 16 和 55）。文件计数也与 `find lib -name '*.dart' -not -path 'lib/l10n/*'` 完全匹配——113 个源文件、113 个页面，没有无页面的文件，也没有无文件的页面。1.6.0 又新增了六个 `features/profile/` 页面和 `status_colors.md`，并扩充了 `theme.md`、`data_modules.md`、`shell_scaffold.md`、`app_settings.md`、`todo_storage.md` 和 `settings_page.md`。
 
-1.6.1 又新增了 `avatar_image.md` 和 `avatar_editor.md`，并扩充了 `shell_scaffold.md`、`adaptive_layout.md`、`app_settings.md`、`todo_storage.md`、`settings_page.md`、`profile_store.md`、`profile_provider.md` 和 `profile_header.md`：`grep` 计数现为 1794，对应 113 页中的 1864 个表行，每个源文件一页。
+1.6.1 又新增了 `avatar_image.md` 和 `avatar_editor.md`，并扩充了 `shell_scaffold.md`、`adaptive_layout.md`、`app_settings.md`、`todo_storage.md`、`settings_page.md`、`profile_store.md`、`profile_provider.md` 和 `profile_header.md`：`grep` 计数现为 1795，对应 113 页中的 1865 个表行，每个源文件一页。

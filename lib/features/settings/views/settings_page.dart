@@ -616,35 +616,19 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             trailing: const Icon(Icons.chevron_right),
             onTap: () => _showUiStylePicker(context, settings),
           ),
-          // Navigation placement (1.6.1). The always-side switch is off by default
-          // and not recommended: the rail takes width from the content on a
-          // phone. When on, it overrides the Expressive bottom-bar choice below.
-          SwitchListTile(
-            secondary: const Icon(Icons.vertical_split_outlined),
-            title: Text(l10n.settingsAlwaysSideNav),
-            subtitle: Text(l10n.settingsAlwaysSideNavDesc),
-            value: settings.alwaysSideNav,
-            onChanged: ref.read(appSettingsProvider.notifier).setAlwaysSideNav,
+          // Navigation placement (1.6.1), for both styles: bottom everywhere
+          // (default), side on wide windows, or side everywhere.
+          ListTile(
+            leading: const Icon(Icons.view_sidebar_outlined),
+            title: Text(l10n.settingsNavPlacement),
+            subtitle: Text(_navPlacementLabel(l10n, settings.navPlacement)),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _showNavPlacementPicker(context, settings),
           ),
-          // On wide windows Expressive may keep its floating bar at the bottom;
-          // whenever a side rail shows (both styles), it can sit on the left or
-          // the right.
-          if (settings.uiStyle == AppUiStyle.expressive &&
-              !settings.alwaysSideNav)
-            SwitchListTile(
-              secondary: const Icon(Icons.call_to_action_outlined),
-              title: Text(l10n.settingsWideBottomNav),
-              subtitle: Text(l10n.settingsWideBottomNavDesc),
-              value: settings.expressiveWideBottomNav,
-              onChanged: ref
-                  .read(appSettingsProvider.notifier)
-                  .setExpressiveWideBottomNav,
-            ),
-          if (settings.uiStyle == AppUiStyle.material3 ||
-              settings.alwaysSideNav ||
-              !settings.expressiveWideBottomNav)
+          // The rail's side matters whenever a rail can show.
+          if (settings.navPlacement != NavPlacement.bottom)
             ListTile(
-              leading: const Icon(Icons.view_sidebar_outlined),
+              leading: const Icon(Icons.align_horizontal_left),
               title: Text(l10n.settingsRailSide),
               subtitle: Text(
                 settings.navRailOnRight
@@ -1032,6 +1016,54 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 value: AppUiStyle.expressive,
                 controlAffinity: ListTileControlAffinity.trailing,
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Purpose: Return the display name of a navigation placement (1.6.1).
+  /// Inputs: `l10n`, `placement`.
+  /// Returns: `String`.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only.
+  String _navPlacementLabel(AppLocalizations l10n, NavPlacement placement) =>
+      switch (placement) {
+        NavPlacement.bottom => l10n.settingsNavPlacementBottom,
+        NavPlacement.sideOnWide => l10n.settingsNavPlacementSideOnWide,
+        NavPlacement.side => l10n.settingsNavPlacementSide,
+      };
+
+  /// Purpose: Show the navigation-placement picker (1.6.1).
+  /// Inputs: `context`, `settings`.
+  /// Returns: None.
+  /// Side effects: Updates app settings and persists the chosen placement.
+  /// Notes: Three radio rows (bottom, side on wide windows, side everywhere)
+  /// under the description; each row is tappable as a whole.
+  void _showNavPlacementPicker(BuildContext context, AppSettings settings) {
+    final l10n = AppLocalizations.of(context)!;
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: RadioGroup<NavPlacement>(
+          groupValue: settings.navPlacement,
+          onChanged: (placement) {
+            if (placement != null) {
+              ref.read(appSettingsProvider.notifier).setNavPlacement(placement);
+            }
+            Navigator.pop(context);
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(subtitle: Text(l10n.settingsNavPlacementDesc)),
+              for (final placement in NavPlacement.values)
+                RadioListTile<NavPlacement>(
+                  title: Text(_navPlacementLabel(l10n, placement)),
+                  value: placement,
+                  controlAffinity: ListTileControlAffinity.trailing,
+                ),
             ],
           ),
         ),

@@ -68,14 +68,14 @@
 - **返回：** 一个 `Scaffold`。
 - **副作用：** 创建 UI 组件；点击目的地时 `select` 调用 `context.go`。
 - **算法：**
-  1. 读 `l10n`、watch `intimacyVisibilityProvider`，并从单一的 `visible` 标志解析出 `routes`、`destinations` 和 `index`。watch `appSettingsProvider` 的三个 select：`expressive`（`uiStyle == AppUiStyle.expressive`）、`wideBottom`（`expressiveWideBottomNav`）、`railOnRight`（`navRailOnRight`）和 `alwaysSide`（`alwaysSideNav`）（1.6.1）。
+  1. 读 `l10n`、watch `intimacyVisibilityProvider`，并从单一的 `visible` 标志解析出 `routes`、`destinations` 和 `index`。watch `appSettingsProvider` 的三个 select：`expressive`（`uiStyle == AppUiStyle.expressive`）、`placement`（`navPlacement`）和 `railOnRight`（`navRailOnRight`）（1.6.1）。
   2. 定义 `select(i) => context.go(routes[i])`。
-  3. `wide = useNavigationRail(width)`；`showRail = alwaysSide || (wide && !(expressive && wideBottom))`——“始终侧边”设置会让窄窗口也显示侧边导航栏，并优先于“宽屏放底部”的选择。
+  3. `wide = useNavigationRail(width)`；`showRail = switch (placement) { bottom => false, sideOnWide => wide, side => true }`——两种风格相同；默认的 `bottom` 下，Material 3 在宽窗口上也使用标准 `NavigationBar`。
   4. 若 `!showRail` 且为 Expressive：返回 `Scaffold(extendBody: true)`，其 `bottomNavigationBar` 是 `_ExpressiveNavBar`（key 为 `floatingNavBarIsland`），body 把路由子页面包在一个 `MediaQuery` 里，把 `viewPadding.bottom` 提升为 `max(viewPadding.bottom, padding.bottom)`。`extendBody` 让页面绘制在栏的后面，并把栏高作为 `MediaQuery.padding.bottom` 报告（列表和 `navBarAwarePadding` 读取的就是它）；页面自己的 `Scaffold` 用 `viewPadding` 来摆放 FAB，所以也要一并提升，否则 FAB 会躲在栏的后面。
   5. 若 `!showRail` 且为 Material 3：普通 `Scaffold`，配经典通栏 `NavigationBar`。
   6. 否则返回一个 `Scaffold`，其 body 是一个 `Row`：路由子页面、`VerticalDivider(width: 1)` 和 `NavigationRail`——`railOnRight` 时按此顺序，否则导航栏在前。
 - **用法：** 由 Flutter 调用；外壳由 `lib/app/router.dart` 中的 `ShellRoute` 构建（见 [../../app/router.md](../../app/router.md)）。
-- **说明：** 出现哪种界面是 `useNavigationRail` 的**仅宽度**决策，刻意不是全应用的分栏规则——为什么导航栏不是分栏见 [../../../adaptive-layout.md](../../../adaptive-layout.md)——只是 Expressive 可以在宽窗口上保留底栏（1.6.1）。除提醒回调外这里没有任何状态，因此折叠设备会在下一帧把一种界面换成另一种，没有路由变化也没有状态丢失。导航栏分支中有两个细节值得它们的位置：`groupAlignment: 0` 让目的地居中，因为默认的顶部对齐是给位于前导菜单按钮或 FAB 之下的导航栏用的而这个两者都没有；以及 `LayoutBuilder` + `SingleChildScrollView` + `ConstrainedBox(minHeight:)` + `IntrinsicHeight` 包装让导航栏滚动而不是溢出，因为导航栏可能出现在高度紧凑的窗口上（手机横持是 915 x 412，而五个带标签的目的地大约要 370 逻辑像素）。已知近似：`shellContentWidth` 等纯宽度函数在宽窗口上仍会扣除导航栏宽度，因此宽屏底栏时会少算约 81 dp（偏保守，仍然正确）。
+- **说明：** 出现哪种界面是 `useNavigationRail` 的**仅宽度**决策，刻意不是全应用的分栏规则——为什么导航栏不是分栏见 [../../../adaptive-layout.md](../../../adaptive-layout.md)——只是导航栏位置设置（1.6.1）决定侧边导航栏是否出现：从不（`bottom`，默认）、仅宽窗口（`sideOnWide`）或始终（`side`）。除提醒回调外这里没有任何状态，因此折叠设备会在下一帧把一种界面换成另一种，没有路由变化也没有状态丢失。导航栏分支中有两个细节值得它们的位置：`groupAlignment: 0` 让目的地居中，因为默认的顶部对齐是给位于前导菜单按钮或 FAB 之下的导航栏用的而这个两者都没有；以及 `LayoutBuilder` + `SingleChildScrollView` + `ConstrainedBox(minHeight:)` + `IntrinsicHeight` 包装让导航栏滚动而不是溢出，因为导航栏可能出现在高度紧凑的窗口上（手机横持是 915 x 412，而五个带标签的目的地大约要 370 逻辑像素）。已知近似：`shellContentWidth` 等纯宽度函数只要 `useNavigationRail(width)` 为真就仍会扣除导航栏宽度，因此宽窗口用底栏时会少算约 81 dp（偏保守，仍然正确），手机上强制 `side` 时则会多算导航栏的宽度。
 
 ### `_ExpressiveNavBar` 与 `_ExpressiveNavItem` <a id="expressivenavbar"></a>
 - **种类：** 私有组件

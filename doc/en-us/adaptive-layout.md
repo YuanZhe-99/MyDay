@@ -114,17 +114,19 @@ so its last content scrolls fully above the bar. The shell also raises `viewPadd
 child, because a page's own Scaffold places its FAB from `viewPadding`, not `padding`. The existing
 `SizedBox(height: 80)` FAB clearance stays, with the bar's height added on top.
 
-Since 1.6.1 three device-local settings (Settings › General, below *Interface style*) steer the
-navigation layout. **Side navigation on narrow screens** (both styles, key `alwaysSideNav`, default off,
-labelled not recommended) forces the rail on phones too — the shell shows the rail when
-`alwaysSideNav || (useNavigationRail && !(expressive && wideBottomNav))` — and hides the wide bottom-bar
-switch, which it overrides. **Bottom navigation on wide screens** (Expressive only, key `wideBottomNav`, default off)
-keeps the floating bar at the bottom whenever `useNavigationRail` would otherwise pick the rail;
-Material 3 ignores it. **Side navigation position** (both styles, key `navRailRight`, default left)
-puts the rail on the left or right and is hidden only while Expressive keeps its bottom bar on wide
-windows (it shows for Material 3, and whenever always-side is on). Known approximation: width-only helpers such as `shellContentWidth` still subtract the rail
-width on wide windows, so with the wide bottom bar they under-estimate the content width by about
-81 dp (conservative, still correct).
+Since 1.6.1 two device-local settings (Settings › General, below *Interface style*) steer the
+navigation layout, the same for both styles. **Navigation position** (`NavPlacement`, key
+`navPlacement`) has three options: *Bottom* (the default — the bottom bar on every window, so a wide
+window no longer gets the rail unless asked; Material 3 then uses the standard `NavigationBar` on wide
+windows too), *Side on wide* (the rail when `useNavigationRail` is true, the bottom bar otherwise) and
+*Side* (the rail everywhere, phones included — not recommended, because it takes width from the
+content). The shell shows the rail when `switch (placement) { bottom => false, sideOnWide => wide,
+side => true }`. **Side navigation position** (both styles, key `navRailRight`, default left) puts the
+rail on the left or right and shows whenever the placement is not *Bottom*. Known approximation:
+width-only helpers such as `shellContentWidth` still subtract the rail width whenever
+`useNavigationRail` is true, so with the bottom bar on a wide window they under-estimate the content
+width by about 81 dp (conservative, still correct), and with *Side* on a phone they over-estimate it
+by the rail's width.
 
 Pages inside the shell compute capacities from `shellContentWidth(screenWidth)`, which subtracts
 the rail exactly when the rail is showing. **Pages pushed on top of the shell** — everything

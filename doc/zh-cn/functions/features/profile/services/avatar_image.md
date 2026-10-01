@@ -12,8 +12,10 @@
 | [`prepareAvatarSource`](#prepareavatarsource) | 顶层函数 | A | 为编辑器规范化所选图像。 |
 | [`cropAvatarJpeg`](#cropavatarjpeg) | 顶层函数 | A | 裁出用户取景的正方形并编码为头像。 |
 | [`squareAvatarJpeg`](#squareavatarjpeg) | 顶层函数 | A | 把任意可解码图像变成居中的正方形 JPEG（从 `profile_store.dart` 移来）。 |
+| [`prepareAvatarSourceInBackground`](#background-variants) | 顶层函数 | A | 在另一个 isolate 中运行 `prepareAvatarSource`（1.6.1）。 |
+| [`cropAvatarJpegInBackground`](#background-variants) | 顶层函数 | A | 在另一个 isolate 中运行 `cropAvatarJpeg`（1.6.1）。 |
 
-`grep -c 'Purpose:'` 报告 5；`avatarSourceMaxEdge` 和 `AvatarSource` 的字段带的是普通 `///` 注释。
+`grep -c 'Purpose:'` 报告 7；`avatarSourceMaxEdge` 和 `AvatarSource` 的字段带的是普通 `///` 注释。
 
 ## _decode
 
@@ -37,3 +39,7 @@
 - **输入：** `bytes`、`size`。
 - **返回：** `Uint8List`——JPEG 字节。
 - **说明：** 非交互路径（无编辑器）：应用 EXIF 方向，并用 `copyResizeCropSquare` 取居中正方形。非图像抛出 `FormatException`。保留给想要居中裁剪的调用方和测试。
+
+## Background variants
+
+`prepareAvatarSourceInBackground(bytes, {quarterTurns})` 和 `cropAvatarJpegInBackground(source, {x, y, side, size})` 把这两个函数包在 `Isolate.run` 中并返回 `Future`。它们**刻意是顶层函数**：写在组件 `State` 方法里的 `Isolate.run(() => ...)` 闭包会把 `State` 及其控制器一起捕获，而这些无法发送到另一个 isolate，导致编辑器显示“无法使用此图片”。这里的闭包只捕获它的参数。编辑器只调用这两个函数；`test/profile_test.dart` 会实际运行它们。

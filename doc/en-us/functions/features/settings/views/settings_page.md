@@ -41,6 +41,8 @@ page's WebDAV status tile reacts to.
 | [`_showStoragePathDialog`](#showstoragepathdialog) | method (`_SettingsPageState`) | A | Edit the custom storage path, including resetting to the default. |
 | `_showThemePicker` | method (`_SettingsPageState`) | B | Show the theme-mode picker bottom sheet. |
 | `_showUiStylePicker` | method (`_SettingsPageState`) | B | Show the interface-style picker bottom sheet (Material 3 / Expressive, 1.6.0). |
+| `_navPlacementLabel` | method (`_SettingsPageState`) | B | Return the display name of a navigation placement (1.6.1). |
+| `_showNavPlacementPicker` | method (`_SettingsPageState`) | B | Show the navigation-placement picker bottom sheet (Bottom / Side on wide / Side, 1.6.1). |
 | `_showRailSidePicker` | method (`_SettingsPageState`) | B | Show the navigation-rail side picker bottom sheet (Left / Right, 1.6.1). |
 | `_showWeekStartPicker` | method (`_SettingsPageState`) | B | Show the global week-start-day picker bottom sheet. |
 | [`_showLanguagePicker`](#showlanguagepicker) | method (`_SettingsPageState`) | A | Show the app-language picker, parsing the selection into a `Locale`. |
@@ -50,9 +52,9 @@ page's WebDAV status tile reacts to.
 | [`_buildDetailPane`](#builddetailpane) | method (`_SettingsPageState`) | A | Build the right-hand pane of the two-pane layout. |
 | [`_buildSettingsList`](#buildsettingslist) | method (`_SettingsPageState`) | A | Build the first-level settings list. |
 
-**Reconciliation:** `grep -c 'Purpose:' lib/features/settings/views/settings_page.dart` returns 29
-against 30 rows; the extra row is the `_SettingsDetail` enum, which carries no `Purpose:` block.
-All 28 blocks document real declarations (26 methods/constructors/a getter, plus the nested local
+**Reconciliation:** `grep -c 'Purpose:' lib/features/settings/views/settings_page.dart` returns 31
+against 32 rows; the extra row is the `_SettingsDetail` enum, which carries no `Purpose:` block.
+All 30 blocks document real declarations (26 methods/constructors/a getter, plus the nested local
 function `signature()` declared inside `_showApiSettingsDialog`, which itself has its own `Purpose:`
 block) — no misattached blocks and no undocumented real declarations were found. The instance fields
 at the top of `_SettingsPageState` (`_storagePath`, `_apiPort`, etc.) have no `Purpose:` block,
@@ -266,7 +268,7 @@ consistent with them being state, not functions.
 - **Returns:** `Widget` — the scrolling `ListView` of sections.
 - **Side effects:** None beyond building widgets; the tiles' own callbacks have their own.
 - **Profile and style (1.6.0):** `const ProfileHeader()` (avatar and name; see [../../profile/views/profile_header.md](../../profile/views/profile_header.md)) is the first item, before General, and General gains an *Interface style* row after *Theme* (`Icons.auto_awesome_outlined`; subtitle is the current style) that opens `_showUiStylePicker`, a bottom sheet with the explanation and a Material 3 / Expressive radio choice calling `AppSettingsNotifier.setUiStyle`. The picker follows the theme row's tile-plus-sheet pattern rather than a segmented button.
-- **Wide-window navigation (1.6.1):** below *Interface style*, first a `SwitchListTile` *Side navigation on narrow screens* (`Icons.vertical_split_outlined`, `AppSettings.alwaysSideNav`, `setAlwaysSideNav`; off by default, described as not recommended because the rail takes width from the content), then an Expressive-only `SwitchListTile` *Bottom navigation on wide screens*, hidden while the always-side switch is on (`Icons.call_to_action_outlined`, `AppSettings.expressiveWideBottomNav`, `setExpressiveWideBottomNav`) and, shown for Material 3, whenever the always-side switch is on, or whenever the wide-bottom switch is off, a *Side navigation position* tile (`Icons.view_sidebar_outlined`; subtitle Left or Right) opening `_showRailSidePicker`, a bottom sheet with the description and a Left / Right `RadioListTile<bool>` choice calling `setNavRailOnRight`. The side picker is hidden while the bottom bar is kept on wide windows, because no rail then shows. The three settings are device-local (`alwaysSideNav`, `wideBottomNav`, `navRailRight` in `storage_config.json`) and never synced.
+- **Navigation position (1.6.1):** below *Interface style*, a *Navigation position* tile (`Icons.view_sidebar_outlined`; subtitle is the current option) opens `_showNavPlacementPicker`, a bottom sheet with the description above three radio rows — *Bottom* (default, bottom bar on every window), *Side on wide* (rail when `useNavigationRail`) and *Side* (rail everywhere, not recommended on phones) — calling `AppSettingsNotifier.setNavPlacement`. A *Side navigation position* tile (`Icons.align_horizontal_left`; subtitle Left or Right) shows whenever the placement is not *Bottom* and opens `_showRailSidePicker`, a bottom sheet with a Left / Right `RadioListTile<bool>` choice calling `setNavRailOnRight`. Both follow the tile-plus-sheet pattern of the other pickers, and are device-local (`navPlacement`, `navRailRight` in `storage_config.json`), never synced.
 - **Algorithm:** The list `build` returned before v1.4.1 — General, Privacy, Desktop (desktop
   only), Data, About, and Debug sections — plus, since v1.5.0, an On-device AI section
   (`l10n.aiSectionTitle`) between Privacy and Desktop. That section holds

@@ -27,19 +27,19 @@ switches into `OnDeviceAiService`. See
 | [`setOnDeviceAiEnabled`](#setondeviceaienabled) | method (`AppSettingsNotifier`) | A | Turn on-device AI on or off, persisting it and switching `OnDeviceAiService`. |
 | [`setOnDeviceAiPreferFast`](#setondeviceaipreferfast) | method (`AppSettingsNotifier`) | A | Prefer the faster on-device model, persisting it and re-probing the service. |
 | [`setUiStyle`](#setuistyle) | method (`AppSettingsNotifier`) | A | Choose the interface style (Material 3 or Expressive) and persist it (1.6.0). |
-| [`setExpressiveWideBottomNav`](#setexpressivewidebottomnav) | method (`AppSettingsNotifier`) | A | Choose whether Expressive keeps its bottom bar on wide windows and persist it (1.6.1). |
-$1| [`setAlwaysSideNav`](#setalwayssidenav) | method (`AppSettingsNotifier`) | A | Choose whether the side rail is used even on narrow windows and persist it (1.6.1). |
+| [`setNavPlacement`](#setnavplacement) | method (`AppSettingsNotifier`) | A | Choose where navigation sits (bottom, side on wide, side) and persist it (1.6.1). |
+| [`setNavRailOnRight`](#setnavrailonright) | method (`AppSettingsNotifier`) | A | Choose which side the navigation rail sits on and persist it (1.6.1). |
 | [`AppSettings` (constructor)](#appsettings-new) | constructor (`AppSettings`) | A | Create an app settings value. |
 | [`copyWith`](#copywith) | method (`AppSettings`) | A | Create a copy of this value with selected fields replaced. |
 | `appSettingsProvider` | top-level variable (`StateNotifierProvider`) | B | Expose `AppSettingsNotifier` to the widget tree. |
 
-**Reconciliation:** `grep -c 'Purpose:' lib/shared/providers/app_settings.dart` reports 18,
-matching 18 of the 19 rows above exactly. The extra row is `appSettingsProvider`, the
+**Reconciliation:** `grep -c 'Purpose:' lib/shared/providers/app_settings.dart` reports 17,
+matching 17 of the 18 rows above exactly. The extra row is `appSettingsProvider`, the
 `StateNotifierProvider` top-level variable: it has no doc block at all (undocumented, not
 misattached) — a one-line `StateNotifierProvider<AppSettingsNotifier, AppSettings>((ref) =>
 AppSettingsNotifier())` factory, trivial enough for Tier B, but it is the file's public entry
 point. The `AppSettings` fields (`themeMode`, `locale`, `weekStartDay`, the four column fields,
-`uiStyle`, `expressiveWideBottomNav`, `navRailOnRight`, `alwaysSideNav`, `onDeviceAiEnabled`, `onDeviceAiPreferFast`) are data, not rows; the newer ones carry plain `///`
+`uiStyle`, `navPlacement`, `navRailOnRight`, `onDeviceAiEnabled`, `onDeviceAiPreferFast`) are data, not rows; the newer ones carry plain `///`
 field comments without `Purpose:`.
 
 ## Documentation
@@ -177,16 +177,16 @@ field comments without `Purpose:`.
 - **Inputs:** `style` — `AppUiStyle.material3` or `AppUiStyle.expressive`.
 - **Returns:** None.
 - **Side effects:** Replaces provider state; calls `TodoStorage.setUiStyle` (`'material3'` for Material 3, null for Expressive). The app rebuilds its theme and the shell its bottom bar.
-- **Notes:** Expressive is the default. It also selects the floating island bottom bar; Material 3 keeps the classic full-width bar. On wide windows both styles use the side rail unless Expressive opts into the bottom bar (`setExpressiveWideBottomNav`, 1.6.1). The style is device-local and never synced. `AppSettings.uiStyle` (default `AppUiStyle.expressive`) is loaded in `_loadPersisted` from `TodoStorage.getUiStyle()`.
+- **Notes:** Expressive is the default. It also selects the floating island bottom bar; Material 3 keeps the classic full-width bar. Where navigation sits is chosen separately by `setNavPlacement` (1.6.1); the default is the bottom bar everywhere. The style is device-local and never synced. `AppSettings.uiStyle` (default `AppUiStyle.expressive`) is loaded in `_loadPersisted` from `TodoStorage.getUiStyle()`.
 
-### `void setExpressiveWideBottomNav(bool enabled)` <a id="setexpressivewidebottomnav"></a>
+### `void setNavPlacement(NavPlacement placement)` <a id="setnavplacement"></a>
 - **Kind:** method of `AppSettingsNotifier`
 - **Source:** `lib/shared/providers/app_settings.dart`
-- **Purpose:** Choose whether the Expressive style keeps its bottom bar on wide windows instead of the side rail (1.6.1).
-- **Inputs:** `enabled`.
+- **Purpose:** Choose where the shell puts its navigation (1.6.1).
+- **Inputs:** `placement` — `NavPlacement.bottom` (default), `sideOnWide` or `side` (enum in `lib/app/theme.dart`).
 - **Returns:** None.
-- **Side effects:** Replaces provider state (`expressiveWideBottomNav`); calls `TodoStorage.setWideBottomNav`. The shell rebuilds.
-- **Notes:** Off (side rail) by default. Ignored by the Material 3 style. Device-local, never synced; stored as `wideBottomNav: true` only while on.
+- **Side effects:** Replaces provider state (`navPlacement`); calls `TodoStorage.setNavPlacement` (null for bottom, otherwise the enum name). The shell rebuilds.
+- **Notes:** Bottom is the default for both styles, on every window width (Material 3 then uses the standard `NavigationBar` on wide windows too). `sideOnWide` shows the rail when `useNavigationRail` is true; `side` shows it on phones as well, which is not recommended because it takes width from the content. Device-local, never synced.
 
 ### `void setNavRailOnRight(bool right)` <a id="setnavrailonright"></a>
 - **Kind:** method of `AppSettingsNotifier`
@@ -197,16 +197,7 @@ field comments without `Purpose:`.
 - **Side effects:** Replaces provider state (`navRailOnRight`); calls `TodoStorage.setNavRailRight`. The shell rebuilds.
 - **Notes:** Left by default; applies to both styles whenever the rail shows. Device-local, never synced; stored as `navRailRight: true` only while on.
 
-### `void setAlwaysSideNav(bool enabled)` <a id="setalwayssidenav"></a>
-- **Kind:** method of `AppSettingsNotifier`
-- **Source:** `lib/shared/providers/app_settings.dart`
-- **Purpose:** Choose whether the side rail is used even on narrow windows such as phones (1.6.1).
-- **Inputs:** `enabled`.
-- **Returns:** None.
-- **Side effects:** Replaces provider state (`alwaysSideNav`); calls `TodoStorage.setAlwaysSideNav`. The shell rebuilds.
-- **Notes:** Off by default and not recommended on phones, where the rail takes width from the content. When on it overrides the Expressive bottom-bar-on-wide-screens choice. Device-local, never synced; stored as `alwaysSideNav: true` only while on.
-
-$1{this.themeMode = ThemeMode.system, this.locale, this.weekStartDay = DateTime.monday, ..., this.onDeviceAiEnabled = false, this.onDeviceAiPreferFast = false})` <a id="appsettings-new"></a>
+### `const AppSettings({this.themeMode = ThemeMode.system, this.locale, this.weekStartDay = DateTime.monday, ..., this.onDeviceAiEnabled = false, this.onDeviceAiPreferFast = false})` <a id="appsettings-new"></a>
 - **Kind:** const constructor of `AppSettings`
 - **Source:** `lib/shared/providers/app_settings.dart` (line 220)
 - **Purpose:** Create an immutable settings value with system-following defaults.

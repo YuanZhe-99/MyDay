@@ -213,6 +213,26 @@ void main() {
   });
 
   group('avatar editor images', () {
+    test('the background variants run in a real isolate', () async {
+      final png = Uint8List.fromList(
+        img.encodePng(img.Image(width: 300, height: 200)),
+      );
+      final source = await prepareAvatarSourceInBackground(
+        png,
+        quarterTurns: 1,
+      );
+      expect(source.width, 200);
+      expect(source.height, 300);
+      final jpeg = await cropAvatarJpegInBackground(
+        source.bytes,
+        x: 0,
+        y: 0,
+        side: 200,
+        size: 64,
+      );
+      expect(img.decodeJpg(jpeg)!.width, 64);
+    });
+
     test('prepareAvatarSource rotates and limits the size', () {
       final png = Uint8List.fromList(
         img.encodePng(img.Image(width: 4000, height: 1000)),

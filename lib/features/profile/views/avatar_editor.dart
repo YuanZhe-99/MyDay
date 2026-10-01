@@ -1,4 +1,3 @@
-import 'dart:isolate';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
@@ -83,7 +82,7 @@ class _AvatarEditorPageState extends State<AvatarEditorPage> {
   /// Purpose: Decode, orient and size the source for the current rotation.
   /// Inputs: None.
   /// Returns: None.
-  /// Side effects: Runs [prepareAvatarSource] in another isolate; resets the
+  /// Side effects: Runs [prepareAvatarSourceInBackground]; resets the
   /// framing; updates the busy and failure flags.
   /// Notes: Internal helper used within this file only.
   Future<void> _prepare() async {
@@ -91,8 +90,9 @@ class _AvatarEditorPageState extends State<AvatarEditorPage> {
     final bytes = widget.source;
     final turns = _turns;
     try {
-      final image = await Isolate.run(
-        () => prepareAvatarSource(bytes, quarterTurns: turns),
+      final image = await prepareAvatarSourceInBackground(
+        bytes,
+        quarterTurns: turns,
       );
       if (!mounted) return;
       setState(() {
@@ -137,7 +137,7 @@ class _AvatarEditorPageState extends State<AvatarEditorPage> {
   /// Purpose: Crop what the circle shows and return it.
   /// Inputs: None.
   /// Returns: None.
-  /// Side effects: Runs [cropAvatarJpeg] in another isolate, then pops the
+  /// Side effects: Runs [cropAvatarJpegInBackground], then pops the
   /// route with the JPEG.
   /// Notes: Internal helper used within this file only. The view's top-left
   /// and size are mapped back through the zoom/pan matrix to image pixels.
@@ -154,14 +154,12 @@ class _AvatarEditorPageState extends State<AvatarEditorPage> {
     final side = (_viewport / scale * toPixels).round();
     final bytes = image.bytes;
     try {
-      final jpeg = await Isolate.run(
-        () => cropAvatarJpeg(
-          bytes,
-          x: x,
-          y: y,
-          side: side,
-          size: ProfileStore.avatarSize,
-        ),
+      final jpeg = await cropAvatarJpegInBackground(
+        bytes,
+        x: x,
+        y: y,
+        side: side,
+        size: ProfileStore.avatarSize,
       );
       if (mounted) Navigator.of(context).pop(jpeg);
     } catch (_) {

@@ -26,11 +26,11 @@
 
 ## _prepare
 
-- **副作用：** 在 `Isolate.run` 中运行 `prepareAvatarSource(bytes, quarterTurns: _turns)`，重置取景并更新忙碌与失败标志。无法解码的图像显示错误状态而不是抛出异常。
+- **副作用：** 运行 `prepareAvatarSourceInBackground(bytes, quarterTurns: _turns)`，重置取景并更新忙碌与失败标志。无法解码的图像显示错误状态而不是抛出异常。
 
 ## _save
 
-- **算法：** 读取 `InteractiveViewer` 的变换矩阵。视口的左上角和边长经矩阵（`平移 / 缩放`）和“基准尺寸到像素”的比例映射回源图像素，然后在 `Isolate.run` 中运行 `cropAvatarJpeg(... size: 512)`，路由带着 JPEG 弹出。
+- **算法：** 读取 `InteractiveViewer` 的变换矩阵。视口的左上角和边长经矩阵（`平移 / 缩放`）和“基准尺寸到像素”的比例映射回源图像素，然后运行 `cropAvatarJpegInBackground(... size: 512)`，路由带着 JPEG 弹出。
 
 ## build
 

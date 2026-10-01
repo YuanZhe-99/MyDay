@@ -31,11 +31,11 @@ square is what is stored, so the avatar always matches what was shown. Opened by
 
 ## _prepare
 
-- **Side effects:** Runs `prepareAvatarSource(bytes, quarterTurns: _turns)` in `Isolate.run`, resets the framing and updates the busy and failure flags. An undecodable image shows an error state instead of throwing.
+- **Side effects:** Runs `prepareAvatarSourceInBackground(bytes, quarterTurns: _turns)`, resets the framing and updates the busy and failure flags. An undecodable image shows an error state instead of throwing.
 
 ## _save
 
-- **Algorithm:** Reads the `InteractiveViewer`'s transformation matrix. The view's top-left and edge are mapped back through the matrix (`translation / scale`) and the base-size-to-pixel ratio into source-image pixels, then `cropAvatarJpeg(... size: 512)` runs in `Isolate.run` and the route pops with the JPEG.
+- **Algorithm:** Reads the `InteractiveViewer`'s transformation matrix. The view's top-left and edge are mapped back through the matrix (`translation / scale`) and the base-size-to-pixel ratio into source-image pixels, then `cropAvatarJpegInBackground(... size: 512)` runs and the route pops with the JPEG.
 
 ## build
 

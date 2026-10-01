@@ -44,6 +44,8 @@ app shell.
   `AppSettings.uiStyle` and passed to `AppTheme.light`/`dark` by `MyDayApp.build`; `ShellScaffold`
   reads it to choose the bottom bar. Both styles share the same colors.
 
+  `lib/app/theme.dart` also holds `enum NavPlacement { bottom, sideOnWide, side }` (1.6.1), where the shell puts its navigation for both styles: the bottom bar everywhere (the default), the side rail on wide windows, or the side rail everywhere. It is held in `AppSettings.navPlacement` and persisted as `navPlacement` in `storage_config.json`; see [shell_scaffold.md](../shared/widgets/shell_scaffold.md). It is a doc-comment-only enum like `AppUiStyle` and is not counted separately in [INDEX.md](../INDEX.md).
+
 ### `static const Color seedColor` <a id="apptheme-seedcolor"></a>
 - **Kind:** static constant of `AppTheme`
 - **Source:** `lib/app/theme.dart` (approx. line 32)

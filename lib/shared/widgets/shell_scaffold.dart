@@ -155,9 +155,9 @@ class _ShellScaffoldState extends ConsumerState<ShellScaffold> {
   /// Side effects: Creates UI widgets from the current state.
   /// Notes: Keep this method cheap because Flutter may call it often. The rail
   /// and the bottom bar are two renderings of the same destination list. The
-  /// rail appears when [useNavigationRail] says the window is wide enough,
-  /// except that the Expressive style can keep its bottom bar on wide windows
-  /// too (the bottom-navigation-on-wide-screens setting, 1.6.1), and a setting can force the rail on narrow windows as well (`alwaysSideNav`, 1.6.1). The rail sits
+  /// rail appears according to the navigation placement setting (1.6.1): never
+  /// (`bottom`, the default), when [useNavigationRail] says the window is wide
+  /// enough (`sideOnWide`), or always (`side`, phones included). The rail sits
   /// on the left or, by setting, the right. Expressive's bottom bar floats over
   /// the pages (`extendBody`), and the Scaffold reports its height as bottom
   /// padding so every page can leave room to scroll its last content above it
@@ -173,24 +173,25 @@ class _ShellScaffoldState extends ConsumerState<ShellScaffold> {
     final expressive = ref.watch(
       appSettingsProvider.select((s) => s.uiStyle == AppUiStyle.expressive),
     );
-    final wideBottom = ref.watch(
-      appSettingsProvider.select((s) => s.expressiveWideBottomNav),
+    final placement = ref.watch(
+      appSettingsProvider.select((s) => s.navPlacement),
     );
     final railOnRight = ref.watch(
       appSettingsProvider.select((s) => s.navRailOnRight),
-    );
-    final alwaysSide = ref.watch(
-      appSettingsProvider.select((s) => s.alwaysSideNav),
     );
     final index = _currentIndex(context, visible);
 
     void select(int i) => context.go(routes[i]);
 
     final wide = useNavigationRail(MediaQuery.sizeOf(context).width);
-    // The always-side setting (1.6.1, off by default) forces the rail on
-    // narrow windows too and takes precedence over Expressive's
-    // bottom-on-wide-screens choice.
-    final showRail = alwaysSide || (wide && !(expressive && wideBottom));
+    // Navigation placement (1.6.1, bottom by default): the same for both
+    // styles. Material 3 with the bottom placement uses the standard
+    // NavigationBar on wide windows too.
+    final showRail = switch (placement) {
+      NavPlacement.bottom => false,
+      NavPlacement.sideOnWide => wide,
+      NavPlacement.side => true,
+    };
 
     if (!showRail) {
       if (expressive) {
