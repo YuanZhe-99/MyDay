@@ -19,11 +19,13 @@
 | [`setOnDeviceAiEnabled`](#setondeviceaienabled) | 方法（`AppSettingsNotifier`） | A | 开启或关闭端侧 AI，持久化并切换 `OnDeviceAiService`。 |
 | [`setOnDeviceAiPreferFast`](#setondeviceaipreferfast) | 方法（`AppSettingsNotifier`） | A | 偏好更快的端侧模型，持久化并让服务重新探测。 |
 | [`setUiStyle`](#setuistyle) | 方法（`AppSettingsNotifier`） | A | 选择界面风格（Material 3 或 Expressive）并持久化（1.6.0）。 |
+| [`setExpressiveWideBottomNav`](#setexpressivewidebottomnav) | 方法（`AppSettingsNotifier`） | A | 选择 Expressive 是否在宽窗口上保留底部导航栏并持久化（1.6.1）。 |
+$1| [`setAlwaysSideNav`](#setalwayssidenav) | 方法（`AppSettingsNotifier`） | A | 选择窄窗口上是否也使用侧边导航栏并持久化（1.6.1）。 |
 | [`AppSettings`（构造函数）](#appsettings-new) | 构造函数（`AppSettings`） | A | 创建应用设置值。 |
 | [`copyWith`](#copywith) | 方法（`AppSettings`） | A | 创建此值的副本并替换所选字段。 |
 | `appSettingsProvider` | 顶层变量（`StateNotifierProvider`） | B | 向组件树暴露 `AppSettingsNotifier`。 |
 
-**对账：** `grep -c 'Purpose:' lib/shared/providers/app_settings.dart` 报告 14，与上面 15 行中的 14 行精确匹配。额外行是 `appSettingsProvider`，`StateNotifierProvider` 顶层变量：完全无文档块（未文档化，非错附）——一行 `StateNotifierProvider<AppSettingsNotifier, AppSettings>((ref) => AppSettingsNotifier())` 工厂，平凡到 Tier B，但它是文件的公共入口点。`AppSettings` 的字段（`themeMode`、`locale`、`weekStartDay`、四个列数字段、`onDeviceAiEnabled`、`onDeviceAiPreferFast`）是数据而非行；较新的字段带无 `Purpose:` 的普通 `///` 字段注释。
+**对账：** `grep -c 'Purpose:' lib/shared/providers/app_settings.dart` 报告 18，与上面 19 行中的 18 行精确匹配。额外行是 `appSettingsProvider`，`StateNotifierProvider` 顶层变量：完全无文档块（未文档化，非错附）——一行 `StateNotifierProvider<AppSettingsNotifier, AppSettings>((ref) => AppSettingsNotifier())` 工厂，平凡到 Tier B，但它是文件的公共入口点。`AppSettings` 的字段（`themeMode`、`locale`、`weekStartDay`、四个列数字段、`uiStyle`、`expressiveWideBottomNav`、`navRailOnRight`、`alwaysSideNav`、`onDeviceAiEnabled`、`onDeviceAiPreferFast`）是数据而非行；较新的字段带无 `Purpose:` 的普通 `///` 字段注释。
 
 ## 文档
 
@@ -127,9 +129,36 @@
 - **输入：** `style`——`AppUiStyle.material3` 或 `AppUiStyle.expressive`。
 - **返回：** 无。
 - **副作用：** 替换 provider 状态；调用 `TodoStorage.setUiStyle`（Material 3 存 `'material3'`，Expressive 传 null）。应用重建主题，外壳重建底栏。
-- **备注：** 默认 Expressive。Expressive 同时选用悬浮岛式底栏，Material 3 保持经典通栏；宽窗口的侧栏在两种风格下相同。该设置仅限本设备，从不同步。`AppSettings.uiStyle`（默认 `AppUiStyle.expressive`）在 `_loadPersisted` 中由 `TodoStorage.getUiStyle()` 加载。
+- **备注：** 默认 Expressive。Expressive 同时选用紧凑悬浮胶囊式底栏，Material 3 保持经典通栏；宽窗口上两种风格都使用侧边导航栏，除非 Expressive 选择保留底栏（`setExpressiveWideBottomNav`，1.6.1）。该设置仅限本设备，从不同步。`AppSettings.uiStyle`（默认 `AppUiStyle.expressive`）在 `_loadPersisted` 中由 `TodoStorage.getUiStyle()` 加载。
 
-### `const AppSettings({this.themeMode = ThemeMode.system, this.locale, this.weekStartDay = DateTime.monday, ..., this.onDeviceAiEnabled = false, this.onDeviceAiPreferFast = false})` <a id="appsettings-new"></a>
+### `void setExpressiveWideBottomNav(bool enabled)` <a id="setexpressivewidebottomnav"></a>
+- **种类：** `AppSettingsNotifier` 的方法
+- **来源：** `lib/shared/providers/app_settings.dart`
+- **用途：** 选择 Expressive 风格是否在宽窗口上保留底部导航栏而不是侧边导航栏（1.6.1）。
+- **输入：** `enabled`。
+- **返回：** 无。
+- **副作用：** 替换 provider 状态（`expressiveWideBottomNav`）；调用 `TodoStorage.setWideBottomNav`。外壳重建。
+- **备注：** 默认关闭（侧边导航栏）。Material 3 风格忽略它。仅限本设备，不同步；只在开启时存为 `wideBottomNav: true`。
+
+### `void setNavRailOnRight(bool right)` <a id="setnavrailonright"></a>
+- **种类：** `AppSettingsNotifier` 的方法
+- **来源：** `lib/shared/providers/app_settings.dart`
+- **用途：** 选择侧边导航栏位于窗口的哪一侧（1.6.1）。
+- **输入：** `right`。
+- **返回：** 无。
+- **副作用：** 替换 provider 状态（`navRailOnRight`）；调用 `TodoStorage.setNavRailRight`。外壳重建。
+- **备注：** 默认左侧；只要显示侧边导航栏，两种风格都适用。仅限本设备，不同步；只在开启时存为 `navRailRight: true`。
+
+### `void setAlwaysSideNav(bool enabled)` <a id="setalwayssidenav"></a>
+- **种类：** `AppSettingsNotifier` 的方法
+- **来源：** `lib/shared/providers/app_settings.dart`
+- **用途：** 选择手机等窄窗口上是否也使用侧边导航栏（1.6.1）。
+- **输入：** `enabled`。
+- **返回：** 无。
+- **副作用：** 替换 provider 状态（`alwaysSideNav`）；调用 `TodoStorage.setAlwaysSideNav`。外壳重建。
+- **备注：** 默认关闭，且不推荐在手机上使用，因为侧边导航栏会占用内容的宽度。开启时它会覆盖 Expressive 的“宽屏时导航栏放在底部”选择。仅限本设备，不同步；只在开启时存为 `alwaysSideNav: true`。
+
+$1{this.themeMode = ThemeMode.system, this.locale, this.weekStartDay = DateTime.monday, ..., this.onDeviceAiEnabled = false, this.onDeviceAiPreferFast = false})` <a id="appsettings-new"></a>
 - **种类：** `AppSettings` 的 const 构造函数
 - **来源：** `lib/shared/providers/app_settings.dart`（第 220 行）
 - **用途：** 创建带跟随系统默认的不可变设置值。

@@ -276,3 +276,7 @@
   3. 一个 `financeActiveSubscriptions` 小标题，然后每个激活订阅一行 `_SubscriptionOverviewTile`，带解析出的分类和账户，点击进入 `onOpenDetail`。
 - **用法：** 当 `twoPane` 且至少有一个激活订阅时，由 `_FinancePageState.build` 追加到 `summaryBlocks`——凡是可能渲染为空的块，都属于闸门。
 - **备注：** 刻意不含订阅页的提醒控件、历史列表和它自己的即将续费段——主页就在这个块正上方显示一条即将续费条。各行是只读的：编辑、取消和恢复留在订阅页，使主页不长出这些流程的第二份副本。
+
+## 导航栏内边距（1.6.1）
+
+Expressive 底栏悬浮在页面之上（见 [adaptive-layout.md](../../../../adaptive-layout.md)），数据错误视图的 `SingleChildScrollView` 把它显式的内边距经过 `navBarAwarePadding(context, ...)`，使最后的内容能滚动到栏的上方。页面的主列表没有显式内边距，Flutter 会自己加上栏的边距。

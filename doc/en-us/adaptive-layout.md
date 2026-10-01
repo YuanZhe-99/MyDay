@@ -101,13 +101,30 @@ top-aligned destinations would leave the whole lower half of a tall rail empty. 
 `SingleChildScrollView` + `ConstrainedBox(minHeight:)` because a rail can appear at compact heights
 (915 x 412), where it must scroll rather than overflow.
 
-Since 1.6.0 the narrow-window bottom bar has two looks, chosen by the **interface style** setting
-(Settings › General, device-local): the default **Expressive** style draws it as a floating,
-pill-shaped island with side and bottom margins (`_FloatingNavBar`, keyed `floatingNavBarIsland`,
-capped at 480 px wide), and **Material 3** keeps the classic full-width bar. The island sits in the
-Scaffold's `bottomNavigationBar` slot rather than over the body, so pages never draw underneath it and
-the `SizedBox(height: 80)` FAB clearance and every page layout are unchanged. The rail is identical
-in both styles.
+Since 1.6.0 the bottom bar has two looks, chosen by the **interface style** setting
+(Settings › General, device-local): the default **Expressive** style draws it as a compact floating
+pill (`_ExpressiveNavBar`, keyed `floatingNavBarIsland`) — as wide as its items, centred, the
+selected destination showing icon and label in a tonal pill and the others icon-only — and
+**Material 3** keeps the classic full-width bar. Since 1.6.1 the Expressive bar floats **over the
+page**: the shell uses `Scaffold(extendBody: true)`, so content draws behind the bar and the
+Scaffold reports the bar's height as `MediaQuery.padding.bottom`. A `ListView` or `GridView`
+without an explicit `padding` applies that inset by itself; a scroll view with an explicit padding
+(and any non-scrolling, bottom-anchored layout) wraps its padding in `navBarAwarePadding(context, ...)`
+so its last content scrolls fully above the bar. The shell also raises `viewPadding.bottom` for its
+child, because a page's own Scaffold places its FAB from `viewPadding`, not `padding`. The existing
+`SizedBox(height: 80)` FAB clearance stays, with the bar's height added on top.
+
+Since 1.6.1 three device-local settings (Settings › General, below *Interface style*) steer the
+navigation layout. **Side navigation on narrow screens** (both styles, key `alwaysSideNav`, default off,
+labelled not recommended) forces the rail on phones too — the shell shows the rail when
+`alwaysSideNav || (useNavigationRail && !(expressive && wideBottomNav))` — and hides the wide bottom-bar
+switch, which it overrides. **Bottom navigation on wide screens** (Expressive only, key `wideBottomNav`, default off)
+keeps the floating bar at the bottom whenever `useNavigationRail` would otherwise pick the rail;
+Material 3 ignores it. **Side navigation position** (both styles, key `navRailRight`, default left)
+puts the rail on the left or right and is hidden only while Expressive keeps its bottom bar on wide
+windows (it shows for Material 3, and whenever always-side is on). Known approximation: width-only helpers such as `shellContentWidth` still subtract the rail
+width on wide windows, so with the wide bottom bar they under-estimate the content width by about
+81 dp (conservative, still correct).
 
 Pages inside the shell compute capacities from `shellContentWidth(screenWidth)`, which subtracts
 the rail exactly when the rail is showing. **Pages pushed on top of the shell** — everything

@@ -18,3 +18,7 @@
 ## 相关页面
 
 - [设置](../../../../features/settings.md) — 链接到本页的关于小节。
+
+## 导航栏内边距（1.6.1）
+
+Expressive 底栏悬浮在页面之上（见 [adaptive-layout.md](../../../../adaptive-layout.md)），`SingleChildScrollView` 把它显式的内边距经过 `navBarAwarePadding(context, ...)`，使最后的内容能滚动到栏的上方。

@@ -1531,3 +1531,7 @@ Tier A; `_applyIntimacyData`, `_currentIntimacyData`, `_showWriteBlocked` as Tie
   sat empty, while above the records the chart pushed the first week of history down. Both panes
   scroll independently, because a calendar, several people's cycle rows and a chart can outgrow a
   compact height. See [../../../../adaptive-layout.md](../../../../adaptive-layout.md).
+
+## Navigation-bar padding (1.6.1)
+
+With the Expressive bottom bar floating over the page (see [../../../../adaptive-layout.md](../../../../adaptive-layout.md)), the data-error view's `SingleChildScrollView` passes its explicit padding through `navBarAwarePadding(context, ...)` so the last content can scroll above the bar. The page's main lists have no explicit padding, so Flutter applies the bar's inset to them itself.

@@ -38,7 +38,7 @@ app shell.
 - **Side effects:** None.
 - **Notes:** Added in 1.6.0; carries a doc comment but no `Purpose:` line, so it is not counted in
   [INDEX.md](../INDEX.md). `expressive` is the default. It approximates Material 3 Expressive **at the
-  theme level** (Flutter ships no Expressive components) and gives narrow windows the floating island
+  theme level** (Flutter ships no Expressive components) and gives the shell the compact floating pill
   navigation bar. `material3` is stock Material 3 with the classic full-width bottom bar. The style is
   persisted by `TodoStorage.setUiStyle` (as the string `'material3'`, or no key for Expressive), held in
   `AppSettings.uiStyle` and passed to `AppTheme.light`/`dark` by `MyDayApp.build`; `ShellScaffold`

@@ -616,6 +616,44 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             trailing: const Icon(Icons.chevron_right),
             onTap: () => _showUiStylePicker(context, settings),
           ),
+          // Navigation placement (1.6.1). The always-side switch is off by default
+          // and not recommended: the rail takes width from the content on a
+          // phone. When on, it overrides the Expressive bottom-bar choice below.
+          SwitchListTile(
+            secondary: const Icon(Icons.vertical_split_outlined),
+            title: Text(l10n.settingsAlwaysSideNav),
+            subtitle: Text(l10n.settingsAlwaysSideNavDesc),
+            value: settings.alwaysSideNav,
+            onChanged: ref.read(appSettingsProvider.notifier).setAlwaysSideNav,
+          ),
+          // On wide windows Expressive may keep its floating bar at the bottom;
+          // whenever a side rail shows (both styles), it can sit on the left or
+          // the right.
+          if (settings.uiStyle == AppUiStyle.expressive &&
+              !settings.alwaysSideNav)
+            SwitchListTile(
+              secondary: const Icon(Icons.call_to_action_outlined),
+              title: Text(l10n.settingsWideBottomNav),
+              subtitle: Text(l10n.settingsWideBottomNavDesc),
+              value: settings.expressiveWideBottomNav,
+              onChanged: ref
+                  .read(appSettingsProvider.notifier)
+                  .setExpressiveWideBottomNav,
+            ),
+          if (settings.uiStyle == AppUiStyle.material3 ||
+              settings.alwaysSideNav ||
+              !settings.expressiveWideBottomNav)
+            ListTile(
+              leading: const Icon(Icons.view_sidebar_outlined),
+              title: Text(l10n.settingsRailSide),
+              subtitle: Text(
+                settings.navRailOnRight
+                    ? l10n.settingsRailSideRight
+                    : l10n.settingsRailSideLeft,
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _showRailSidePicker(context, settings),
+            ),
         ]),
 
         _buildSection(context, l10n.settingsPrivacy, [
@@ -992,6 +1030,47 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               RadioListTile<AppUiStyle>(
                 title: Text(l10n.settingsUiStyleExpressive),
                 value: AppUiStyle.expressive,
+                controlAffinity: ListTileControlAffinity.trailing,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Purpose: Show the navigation-rail side picker (1.6.1).
+  /// Inputs: `context`, `settings`.
+  /// Returns: None.
+  /// Side effects: Updates app settings and persists the chosen side.
+  /// Notes: Left or Right; applies to both interface styles whenever the rail
+  /// shows. The description sits above the options, and each row is tappable
+  /// as a whole like the other pickers.
+  void _showRailSidePicker(BuildContext context, AppSettings settings) {
+    final l10n = AppLocalizations.of(context)!;
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: RadioGroup<bool>(
+          groupValue: settings.navRailOnRight,
+          onChanged: (right) {
+            if (right != null) {
+              ref.read(appSettingsProvider.notifier).setNavRailOnRight(right);
+            }
+            Navigator.pop(context);
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(subtitle: Text(l10n.settingsRailSideDesc)),
+              RadioListTile<bool>(
+                title: Text(l10n.settingsRailSideLeft),
+                value: false,
+                controlAffinity: ListTileControlAffinity.trailing,
+              ),
+              RadioListTile<bool>(
+                title: Text(l10n.settingsRailSideRight),
+                value: true,
                 controlAffinity: ListTileControlAffinity.trailing,
               ),
             ],

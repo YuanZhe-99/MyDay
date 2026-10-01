@@ -2,8 +2,8 @@
 
 The `ShellRoute` wrapper (`ShellScaffold`) that every routed page renders inside — see
 [../../../architecture.md#navigation](../../../architecture.md#navigation). It owns the shell's
-navigation, rendering one destination list either as a bottom `NavigationBar` or as a side
-`NavigationRail` depending on `useNavigationRail` (see
+navigation, rendering one destination list as a bottom bar (the Expressive floating pill, or the classic `NavigationBar` under Material 3) or as a side
+`NavigationRail` (on the left or, by setting, the right) depending on `useNavigationRail`, the interface style and the 1.6.1 wide-window settings (see
 [../utils/adaptive_layout.md#usenavigationrail](../utils/adaptive_layout.md#usenavigationrail)),
 filters the Intimacy destination in/out based on `intimacyVisibilityProvider` (see
 [../providers/intimacy_visibility.md](../providers/intimacy_visibility.md)), and wires
@@ -24,9 +24,10 @@ mounted.
 | `_showReminderSnackbar` | method (`_ShellScaffoldState`) | B | Show a reminder notification as an in-app snackbar. |
 | [`build`](#build) | method (`_ShellScaffoldState`) | A | Build the scaffold body and either navigation surface. |
 | `_ShellDestination` (constructor) | constructor (`_ShellDestination`) | B | Create a shell destination instance. |
-| `_FloatingNavBar` (class and constructor) | widget (private) | B | The bottom bar drawn as a floating pill-shaped island (1.6.0). |
+| `_ExpressiveNavBar` (class, constructor and `build`) | widget (private) | B | The Expressive bottom bar: a compact floating pill that hugs its items (1.6.1; replaces 1.6.0's full-width `_FloatingNavBar` island). |
+| `_ExpressiveNavItem` (class, constructor and `build`) | widget (private) | B | One destination of the pill: icon, plus the label while selected (1.6.1). |
 
-`grep -c 'Purpose:' lib/shared/widgets/shell_scaffold.dart` reports 12: the ten original declarations plus the `_FloatingNavBar` constructor and `build` (1.6.0), which share its single row. No misattachment or undocumented declarations found. `build` was
+`grep -c 'Purpose:' lib/shared/widgets/shell_scaffold.dart` reports 14: the ten original declarations plus the constructor and `build` of `_ExpressiveNavBar` and of `_ExpressiveNavItem` (1.6.1), which share one row each. No misattachment or undocumented declarations found. `build` was
 promoted to Tier A in v1.4.0, when it stopped being a single `Scaffold` and became the app's one
 navigation-mode decision.
 
@@ -86,29 +87,33 @@ navigation-mode decision.
 
 ### `Widget build(BuildContext context)` <a id="build"></a>
 - **Kind:** method of `_ShellScaffoldState`
-- **Source:** `lib/shared/widgets/shell_scaffold.dart` (line 159)
-- **Purpose:** Build the shell — the routed child plus either a bottom navigation bar or a side
-  navigation rail.
+- **Source:** `lib/shared/widgets/shell_scaffold.dart`
+- **Purpose:** Build the shell — the routed child plus a bottom navigation bar or a side navigation rail.
 - **Inputs:** `context`.
 - **Returns:** A `Scaffold`.
 - **Side effects:** Creates UI widgets; `select` calls `context.go` when a destination is tapped.
 - **Algorithm:**
   1. Read `l10n`, watch `intimacyVisibilityProvider`, and resolve `routes`, `destinations` and
-     `index` from the single `visible` flag. Also watch `appSettingsProvider.select((s) => s.uiStyle == AppUiStyle.expressive)` as `floatingNavBar` (1.6.0).
+     `index` from the single `visible` flag. Watch three `appSettingsProvider` selections:
+     `expressive` (`uiStyle == AppUiStyle.expressive`), `wideBottom` (`expressiveWideBottomNav`) and
+     `railOnRight` (`navRailOnRight`) and `alwaysSide` (`alwaysSideNav`) (1.6.1).
   2. Define `select(i) => context.go(routes[i])`.
-  3. If `!useNavigationRail(MediaQuery.sizeOf(context).width)`: return a `Scaffold` whose body is
-     the routed child and whose `bottomNavigationBar` is, when `floatingNavBar` is true (the default Expressive interface style), a
-     `_FloatingNavBar` — the stock `NavigationBar` inside a stadium-shaped `Material` island (keyed
-     `floatingNavBarIsland`) with side and bottom margins, capped at 480 px wide — and otherwise the classic
-     full-width `NavigationBar`, both built from the same `destinations`. The island sits in the
-     `bottomNavigationBar` slot rather than over the body, so page layout and FAB positions do not change.
-  4. Otherwise return a `Scaffold` whose body is a `Row` of: a `NavigationRail` built from the same
-     `destinations`, a `VerticalDivider(width: 1)`, and `Expanded(child: widget.child)`.
+  3. `wide = useNavigationRail(width)`; `showRail = alwaysSide || (wide && !(expressive && wideBottom))` — the always-side setting forces the rail on narrow windows too and takes precedence over the wide bottom-bar choice.
+  4. If `!showRail` and `expressive`: a `Scaffold(extendBody: true)` whose `bottomNavigationBar` is
+     `_ExpressiveNavBar` (keyed `floatingNavBarIsland`) and whose body wraps the routed child in a
+     `MediaQuery` that raises `viewPadding.bottom` to `max(viewPadding.bottom, padding.bottom)`.
+     `extendBody` makes the page draw behind the bar and reports the bar's height as
+     `MediaQuery.padding.bottom` (what lists and `navBarAwarePadding` read); a page's own `Scaffold`
+     places its FAB from `viewPadding`, so that is raised too, or the FAB would sit behind the bar.
+  5. If `!showRail` and Material 3: a plain `Scaffold` with the classic full-width `NavigationBar`.
+  6. Otherwise a `Scaffold` whose body is a `Row` of the routed child, a `VerticalDivider(width: 1)`
+     and the `NavigationRail` — in that order when `railOnRight`, reversed (rail first) otherwise.
 - **Usage:** Invoked by Flutter; the shell is built by `ShellRoute` in `lib/app/router.dart` (see
   [../../app/router.md](../../app/router.md)).
 - **Notes:** Which surface appears is `useNavigationRail`'s **width-only** decision, deliberately
   not the app-wide split rule — see
-  [../../../adaptive-layout.md](../../../adaptive-layout.md) for why a rail is not a split. Nothing
+  [../../../adaptive-layout.md](../../../adaptive-layout.md) for why a rail is not a split — except
+  that Expressive can keep its bottom bar on wide windows (1.6.1). Nothing
   here is stateful beyond the reminder callback, so folding a device swaps one surface for the
   other on the next frame with no route change and no state loss. Two details in the rail branch
   earn their place: `groupAlignment: 0` centres the destinations, because the default top alignment
@@ -116,4 +121,13 @@ navigation-mode decision.
   `LayoutBuilder` + `SingleChildScrollView` + `ConstrainedBox(minHeight:)` + `IntrinsicHeight`
   wrapper lets the rail scroll rather than overflow, because a rail can appear at compact heights
   (a phone in landscape is 915 x 412, and five labelled destinations run to roughly 370 logical
-  pixels).
+  pixels). Known approximation: pure-width helpers such as `shellContentWidth` still subtract the
+  rail width on wide windows, so with the wide bottom bar they under-estimate the content width by
+  about 81 dp (conservative, still correct).
+
+### `_ExpressiveNavBar` and `_ExpressiveNavItem` <a id="expressivenavbar"></a>
+- **Kind:** private widgets
+- **Source:** `lib/shared/widgets/shell_scaffold.dart`
+- **Purpose:** Draw the Expressive bottom bar (1.6.1): a compact floating pill, centred, as wide as its items rather than full width, modelled on Material 3 Expressive's floating navigation.
+- **Algorithm:** `_ExpressiveNavBar` is a `SafeArea` (minimum 16/0/16/12) around a `Center` and a `FittedBox(scaleDown)` — so a very narrow screen scales the pill down instead of overflowing — holding a `Material` (`surfaceContainer`, elevation 3, `StadiumBorder`, key `floatingNavBarIsland`) with 8 px padding and a `Row` of `_ExpressiveNavItem`s 4 px apart. The selected item is a 48 px-high `secondaryContainer` stadium with icon and `labelLarge` label side by side; unselected items show only the outlined icon, with a `Tooltip` and a `Semantics` label. Width and colour animate over 250 ms.
+- **Notes:** Replaces 1.6.0's `_FloatingNavBar`, a full-width island wrapping a stock `NavigationBar`. The key is kept for tests.

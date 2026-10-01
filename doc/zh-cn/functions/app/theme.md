@@ -27,7 +27,7 @@
 - **输入：** 无。
 - **返回：** 枚举值 `AppUiStyle.material3` 与 `AppUiStyle.expressive`。
 - **副作用：** 无。
-- **备注：** 1.6.0 新增；带有文档注释但没有 `Purpose:` 行，因此不计入 [INDEX.md](../INDEX.md)。`expressive` 为默认值。它**在主题层面**近似 Material 3 Expressive（Flutter 没有自带 Expressive 组件），并为窄窗口提供悬浮岛导航栏。`material3` 是原版 Material 3，配经典的通栏底栏。该风格由 `TodoStorage.setUiStyle` 持久化（字符串 `'material3'`，Expressive 则不写键），保存在 `AppSettings.uiStyle` 中，由 `MyDayApp.build` 传给 `AppTheme.light`/`dark`；`ShellScaffold` 读取它来选择底栏。两种风格共用相同的配色。
+- **备注：** 1.6.0 新增；带有文档注释但没有 `Purpose:` 行，因此不计入 [INDEX.md](../INDEX.md)。`expressive` 为默认值。它**在主题层面**近似 Material 3 Expressive（Flutter 没有自带 Expressive 组件），并提供紧凑悬浮胶囊导航栏。`material3` 是原版 Material 3，配经典的通栏底栏。该风格由 `TodoStorage.setUiStyle` 持久化（字符串 `'material3'`，Expressive 则不写键），保存在 `AppSettings.uiStyle` 中，由 `MyDayApp.build` 传给 `AppTheme.light`/`dark`；`ShellScaffold` 读取它来选择底栏。两种风格共用相同的配色。
 
 ### `static const Color seedColor` <a id="apptheme-seedcolor"></a>
 - **种类：** `AppTheme` 的静态常量

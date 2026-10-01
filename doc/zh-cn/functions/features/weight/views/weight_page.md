@@ -597,3 +597,7 @@
 - [`ReminderService`](../../../shared/services/reminder_service.md) — 读取本文件写入的提醒字段/宽限窗口。
 - [`UnsavedChangesGuard`/`formSignature`](../../../shared/widgets/unsaved_changes_guard.md) — `_setHeight` 和 `_WeightRecordDialogState` 使用的脏检查模式。
 - [`groupByWeek`/`formatMonthDayRange`](../../../shared/utils/week_grouping.md) — `_buildGroupedRecordTiles`/`_buildWeekHeader` 使用的历史分组。
+
+## 导航栏内边距（1.6.1）
+
+Expressive 底栏悬浮在页面之上（见 [adaptive-layout.md](../../../../adaptive-layout.md)），数据错误视图的 `SingleChildScrollView` 把它显式的内边距经过 `navBarAwarePadding(context, ...)`，使最后的内容能滚动到栏的上方。页面的主列表没有显式内边距，Flutter 会自己加上栏的边距。

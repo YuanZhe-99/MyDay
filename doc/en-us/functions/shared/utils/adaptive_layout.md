@@ -1,9 +1,10 @@
 # lib/shared/utils/adaptive_layout.dart
 
 The app-wide layout policy module: every threshold, every clamp, and every rule that decides what
-MyDay does with the room a tablet, a desktop window, or an unfolded foldable gives it. **It imports
-nothing** — not `package:flutter/*`, not even `dart:math` — so every decision is a pure function
-testable without pumping a widget tree, and one device answers the same way everywhere in the app.
+MyDay does with the room a tablet, a desktop window, or an unfolded foldable gives it. **Every decision
+is a pure function** testable without pumping a widget tree (the module imports only
+`package:flutter/widgets.dart`, for the one widget-context helper `navBarAwarePadding`, added in 1.6.1; no
+threshold function reads it), and one device answers the same way everywhere in the app.
 
 The prose derivation of each number lives in [../../../adaptive-layout.md](../../../adaptive-layout.md);
 this page is the declaration-by-declaration reference. The consumers are
@@ -76,11 +77,12 @@ named predicate.
 | [`todoCalendarPaneWidth`](#todocalendarpanewidth) | top-level function | A | Return the width of the Todo calendar page's month-grid pane. |
 | [`useCompactTimerDisplay`](#usecompacttimerdisplay) | top-level function | A | Report whether the timer page should use its compact stopwatch digits (v1.5.5). |
 | [`dialogHorizontalInset`](#dialoghorizontalinset) | top-level function | A | Return the horizontal inset that caps a dialog's content width. |
+| [`navBarAwarePadding`](#navbarawarepadding) | top-level function | A | Add the floating navigation bar's height to a page's padding (1.6.1). |
 
-**Reconciliation:** `grep -c 'Purpose:' lib/shared/utils/adaptive_layout.dart` reports 17 against 57
+**Reconciliation:** `grep -c 'Purpose:' lib/shared/utils/adaptive_layout.dart` reports 18 against 58
 rows. The forty top-level `const` declarations carry a prose doc comment stating where their
 value came from rather than a `Purpose:` block, matching how the index treats top-level constants
-elsewhere; they are part of the file's surface and therefore get rows. All seventeen functions are
+elsewhere; they are part of the file's surface and therefore get rows. All eighteen functions are
 Tier A per the blanket rule for top-level functions under `shared/`. The constants are Tier B:
 their whole content is the value and the reason for it, both of which the tables below and
 [../../../adaptive-layout.md](../../../adaptive-layout.md) already carry. (Before v1.5.5 this note
@@ -480,3 +482,15 @@ safely change later.
   the dialog rather than stretching it. A dialog is drawn on the root overlay, so measure the
   **screen**, not the page behind it — the navigation rail's width is part of what the dialog
   covers.
+
+### `EdgeInsets navBarAwarePadding(BuildContext context, EdgeInsets padding)` <a id="navbarawarepadding"></a>
+- **Kind:** top-level function
+- **Source:** `lib/shared/utils/adaptive_layout.dart`
+- **Purpose:** Add the floating navigation bar's height to a page's own padding (1.6.1).
+- **Inputs:** `context` — inside a shell page; `padding` — the page's own padding.
+- **Returns:** `EdgeInsets` — `padding` with `MediaQuery.paddingOf(context).bottom` added to its bottom.
+- **Side effects:** None.
+- **Algorithm:** `padding.copyWith(bottom: padding.bottom + MediaQuery.paddingOf(context).bottom)`.
+- **Usage:** `ListView(padding: navBarAwarePadding(context, const EdgeInsets.all(16)), ...)`. Used by the Settings detail pages (`webdav_config_page.dart`, `license_page.dart`, `privacy_policy_page.dart`) and the four modules' data-error views.
+- **Notes:** The one function here that needs Flutter (`package:flutter/widgets.dart`, for `BuildContext`, `EdgeInsets` and `MediaQuery`); every other declaration stays pure. With the Expressive bottom bar the shell uses `extendBody`, so pages draw behind the bar and the enclosing `Scaffold` reports the bar's height as `MediaQuery.padding.bottom`. A `ListView`/`GridView` with **no** explicit `padding` applies that inset itself; one with an explicit padding, and a non-scrolling bottom-anchored layout, must route its padding through this function. Elsewhere (classic bar, rail, pushed routes) the inset is only the system's, so using it is harmless.
+

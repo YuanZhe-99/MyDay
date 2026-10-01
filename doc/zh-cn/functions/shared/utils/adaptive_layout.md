@@ -1,6 +1,6 @@
 # lib/shared/utils/adaptive_layout.dart
 
-全应用的布局策略模块：所有阈值、所有钳制、以及决定 MyDay 如何使用平板、桌面窗口或展开的折叠屏设备所给出的空间的每一条规则。**它不引入任何东西**——不引入 `package:flutter/*`，甚至不引入 `dart:math`——因此每个决策都是无需 pump 组件树即可测试的纯函数，并且同一台设备在应用各处得到同样的答案。
+全应用的布局策略模块：所有阈值、所有钳制、以及决定 MyDay 如何使用平板、桌面窗口或展开的折叠屏设备所给出的空间的每一条规则。**每个决策都是无需 pump 组件树即可测试的纯函数**（本模块只引入 `package:flutter/widgets.dart`，供 1.6.1 新增的那个与组件上下文有关的辅助函数 `navBarAwarePadding` 使用，没有任何阈值函数读取它），并且同一台设备在应用各处得到同样的答案。
 
 每个数字的散文推导位于 [../../../adaptive-layout.md](../../../adaptive-layout.md)；本页是逐声明的参考。消费方是 [../widgets/shell_scaffold.md](../widgets/shell_scaffold.md)（导航栏）和 [../widgets/adaptive_tile_grid.md](../widgets/adaptive_tile_grid.md)（多列列表行和列数控件）。
 
@@ -67,8 +67,9 @@
 | [`todoCalendarPaneWidth`](#todocalendarpanewidth) | 顶层函数 | A | 返回待办日历页月历窗格的宽度。 |
 | [`useCompactTimerDisplay`](#usecompacttimerdisplay) | 顶层函数 | A | 报告计时器页是否应使用紧凑的秒表数字（v1.5.5）。 |
 | [`dialogHorizontalInset`](#dialoghorizontalinset) | 顶层函数 | A | 返回限定对话框内容宽度的水平内缩值。 |
+| [`navBarAwarePadding`](#navbarawarepadding) | 顶层函数 | A | 把悬浮导航栏的高度加到页面的内边距上（1.6.1）。 |
 
-**对账：** `grep -c 'Purpose:' lib/shared/utils/adaptive_layout.dart` 报告 17，对应 57 行。四十个顶层 `const` 声明带的是说明其取值来源的散文文档注释而不是 `Purpose:` 块，与索引在别处处理顶层常量的方式一致；它们是文件表面的一部分，因此有对应行。十七个函数全部按 `shared/` 下顶层函数的通用规则为 Tier A。常量为 Tier B：它们的全部内容就是取值及其理由，而这两者下面的表格和 [../../../adaptive-layout.md](../../../adaptive-layout.md) 已经承载。（v1.5.5 之前此说明写的是「17，对应 56 行」，而文件当时有 16 个 `Purpose:` 块、16 个函数和 55 行；v1.5.5 的 `useCompactTimerDisplay` 和 `timerCompactDisplayWidth` 使其变为此处所述的 17 和 57。）
+**对账：** `grep -c 'Purpose:' lib/shared/utils/adaptive_layout.dart` 报告 18，对应 58 行。四十个顶层 `const` 声明带的是说明其取值来源的散文文档注释而不是 `Purpose:` 块，与索引在别处处理顶层常量的方式一致；它们是文件表面的一部分，因此有对应行。十八个函数全部按 `shared/` 下顶层函数的通用规则为 Tier A。常量为 Tier B：它们的全部内容就是取值及其理由，而这两者下面的表格和 [../../../adaptive-layout.md](../../../adaptive-layout.md) 已经承载。（v1.5.5 之前此说明写的是「17，对应 56 行」，而文件当时有 16 个 `Purpose:` 块、16 个函数和 55 行；v1.5.5 的 `useCompactTimerDisplay` 和 `timerCompactDisplayWidth` 使其变为此处所述的 17 和 57。）
 
 ## 常量
 
@@ -354,3 +355,14 @@
 - **算法：** `(screenWidth - dialogMaxContentWidth) / 2`，下限为 `dialogMinHorizontalInset`。
 - **用法：** 经由 `adaptiveDialogInset`——见 [../widgets/adaptive_tile_grid.md#adaptivedialoginset](../widgets/adaptive_tile_grid.md#adaptivedialoginset)。
 - **说明：** 仅看宽度且没有闸门。在约 720 以下结果就是 Flutter 自己的默认值，因此手机上的对话框不受影响；在其之上，多出的宽度变成两侧的内缩，于是对话框被居中而不是被拉伸。对话框绘制在根 overlay 上，因此测量的是**屏幕**而不是它背后的页面——导航栏的宽度也在对话框覆盖的范围之内。
+
+### `EdgeInsets navBarAwarePadding(BuildContext context, EdgeInsets padding)` <a id="navbarawarepadding"></a>
+- **种类：** 顶层函数
+- **来源：** `lib/shared/utils/adaptive_layout.dart`
+- **用途：** 把悬浮导航栏的高度加到页面自己的内边距上（1.6.1）。
+- **输入：** `context`——位于某个外壳页面内；`padding`——页面自己的内边距。
+- **返回：** `EdgeInsets`——底部加上 `MediaQuery.paddingOf(context).bottom` 后的 `padding`。
+- **副作用：** 无。
+- **算法：** `padding.copyWith(bottom: padding.bottom + MediaQuery.paddingOf(context).bottom)`。
+- **用法：** `ListView(padding: navBarAwarePadding(context, const EdgeInsets.all(16)), ...)`。由设置详情页（`webdav_config_page.dart`、`license_page.dart`、`privacy_policy_page.dart`）和四个模块的数据错误视图使用。
+- **说明：** 本文件中唯一需要 Flutter 的函数（`package:flutter/widgets.dart`，用于 `BuildContext`、`EdgeInsets` 和 `MediaQuery`）；其余声明保持纯函数。Expressive 底栏时外壳使用 `extendBody`，页面绘制在栏的后面，外层 `Scaffold` 把栏高作为 `MediaQuery.padding.bottom` 报告。**没有**显式 `padding` 的 `ListView`/`GridView` 会自己加上这段；显式传了 padding 的，以及不滚动、贴底的布局，必须让其内边距经过本函数。其他情形（经典底栏、侧边导航栏、被推入的路由）下该值只是系统边距，使用它无害。

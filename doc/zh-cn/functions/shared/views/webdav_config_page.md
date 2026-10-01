@@ -175,3 +175,7 @@ WebDAV 同步屏：服务器/凭据/远程路径字段、测试连接、手动�
 - [同步演练](../../../examples/sync-walkthrough.md) — 经本页 `SyncConflictDialog` 和 `_syncNow` 终定路径解决的完整跨模块冲突。
 - [`WebDAVService`](../services/webdav_service.md) — 本页每个网络调用背后的服务。
 - [`sync_conflict_dialog.md`](../widgets/sync_conflict_dialog.md) — `_syncNow` 显示的冲突解决对话框。
+
+## 导航栏内边距（1.6.1）
+
+Expressive 底栏悬浮在页面之上（见 [adaptive-layout.md](../../../adaptive-layout.md)），`ListView` 把它显式的内边距经过 `navBarAwarePadding(context, ...)`，使最后的内容能滚动到栏的上方。

@@ -256,3 +256,7 @@ fields have no `Purpose:` block, consistent with them being state, not functions
   makes.
 - [`sync_conflict_dialog.md`](../widgets/sync_conflict_dialog.md) — the conflict-resolution dialog
   shown by `_syncNow`.
+
+## Navigation-bar padding (1.6.1)
+
+With the Expressive bottom bar floating over the page (see [../../../adaptive-layout.md](../../../adaptive-layout.md)), the `ListView` passes its explicit padding through `navBarAwarePadding(context, ...)` so the last content can scroll above the bar. The page's main lists have no explicit padding, so Flutter applies the bar's inset to them itself.

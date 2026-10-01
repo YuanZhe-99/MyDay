@@ -20,3 +20,7 @@
 
 - [设置](../../../../features/settings.md) — 链接到本页、以及此文本应跟随 `PRIVACY_POLICY.md` 的说明。
 - [端侧 AI](../../../../on-device-ai.md) — "端侧 AI"政策小节所描述的功能。
+
+## 导航栏内边距（1.6.1）
+
+Expressive 底栏悬浮在页面之上（见 [adaptive-layout.md](../../../../adaptive-layout.md)），`SingleChildScrollView` 把它显式的内边距经过 `navBarAwarePadding(context, ...)`，使最后的内容能滚动到栏的上方。

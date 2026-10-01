@@ -68,7 +68,9 @@ const navRailWidth    = 81.0;  // 80 dp NavigationRail + 1 dp VerticalDivider
 
 `ShellScaffold`（`lib/shared/widgets/shell_scaffold.dart`）从**同一份目的地列表**构建导航栏和底部导航栏，因此一个目的地不可能只出现在其中之一，也不可能在两者之间顺序不同——包括亲密模块的目的地，当该模块被隐藏时它在这唯一的一处被过滤掉。导航栏设置 `groupAlignment: 0`：默认的顶部对齐是给位于前导菜单按钮或 FAB 之下的导航栏用的，而 MyDay 两者都没有，因此顶部对齐会让高导航栏的整个下半部分空着。它被包在 `SingleChildScrollView` + `ConstrainedBox(minHeight:)` 里，因为导航栏可能出现在高度紧凑的窗口上（915 x 412），那里它必须滚动而不是溢出。
 
-自 1.6.0 起，窄窗口的底部导航栏有两种外观，由**界面风格**设置（设置 › 常规，仅本设备）决定：默认的 **Expressive** 风格把它画成带左右与底部边距的悬浮胶囊形“岛”（`_FloatingNavBar`，key 为 `floatingNavBarIsland`，最宽 480 px），**Material 3** 则保持经典通栏。浮岛位于 Scaffold 的 `bottomNavigationBar` 槽位而非页面之上，因此页面不会绘制到它下面，`SizedBox(height: 80)` 的 FAB 空隙和各页面布局都不变。侧栏在两种风格下相同。
+自 1.6.0 起，底部导航栏有两种外观，由**界面风格**设置（设置 › 常规，仅本设备）决定：默认的 **Expressive** 风格把它画成紧凑的悬浮胶囊（`_ExpressiveNavBar`，key 为 `floatingNavBarIsland`）——宽度随内容、居中，选中的目的地在淡色胶囊里同时显示图标和文字，其余只显示图标——**Material 3** 则保持经典通栏。自 1.6.1 起 Expressive 底栏悬浮在**页面之上**：外壳使用 `Scaffold(extendBody: true)`，内容绘制在栏的后面，Scaffold 把栏高作为 `MediaQuery.padding.bottom` 报告。**没有**显式 `padding` 的 `ListView` 或 `GridView` 会自己加上这段；显式传了 padding 的滚动视图（以及任何不滚动、贴底的布局）要把其 padding 包进 `navBarAwarePadding(context, ...)`，使最后的内容能完整滚到栏的上方。外壳还会为其子页面提升 `viewPadding.bottom`，因为页面自己的 Scaffold 用 `viewPadding` 而不是 `padding` 来摆放 FAB。原有的 `SizedBox(height: 80)` FAB 空隙保留，栏高另外叠加其上。
+
+自 1.6.1 起，三个仅限本设备的设置（设置 › 常规，位于*界面风格*下方）控制导航布局。**窄屏也使用侧边导航栏**（两种风格，键 `alwaysSideNav`，默认关闭，标注为不推荐）让手机上也显示侧边导航栏——外壳在 `alwaysSideNav || (useNavigationRail && !(expressive && wideBottomNav))` 时显示侧边导航栏——并隐藏被它覆盖的“宽屏放底部”开关。**宽屏时导航栏放在底部**（仅 Expressive，键 `wideBottomNav`，默认关闭）让悬浮底栏在 `useNavigationRail` 本会选择侧边导航栏时仍然保留在底部；Material 3 忽略它。**侧边导航栏位置**（两种风格，键 `navRailRight`，默认左侧）把侧边导航栏放在左侧或右侧，仅当 Expressive 在宽窗口保留底栏时隐藏（Material 3 以及“始终侧边”开启时都会显示）。已知近似：`shellContentWidth` 等纯宽度函数在宽窗口上仍会扣除导航栏宽度，因此宽屏底栏时会少算约 81 dp（偏保守，仍然正确）。
 
 外壳内的页面用 `shellContentWidth(screenWidth)` 计算容量，它恰好在导航栏显示时扣除导航栏宽度。**压在外壳之上的页面**——所有用 `Navigator.push` 到达的页面——没有导航栏可扣；它们测量自己的 `LayoutBuilder` 约束，且不得调用 `shellContentWidth`。
 

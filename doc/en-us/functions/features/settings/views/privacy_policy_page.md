@@ -41,3 +41,7 @@ the table above for each declaration's one-line purpose; this file has no Tier A
   note that this text should track `PRIVACY_POLICY.md`.
 - [On-device AI](../../../../on-device-ai.md) — the feature the "On-Device AI" policy section
   describes.
+
+## Navigation-bar padding (1.6.1)
+
+With the Expressive bottom bar floating over the page (see [../../../../adaptive-layout.md](../../../../adaptive-layout.md)), the `SingleChildScrollView` passes its explicit padding through `navBarAwarePadding(context, ...)` so the last content can scroll above the bar. The page's main lists have no explicit padding, so Flutter applies the bar's inset to them itself.

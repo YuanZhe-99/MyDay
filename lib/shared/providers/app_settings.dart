@@ -45,6 +45,9 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
     final uiStyle = (await TodoStorage.getUiStyle()) == 'material3'
         ? AppUiStyle.material3
         : AppUiStyle.expressive;
+    final expressiveWideBottomNav = await TodoStorage.getWideBottomNav();
+    final navRailOnRight = await TodoStorage.getNavRailRight();
+    final alwaysSideNav = await TodoStorage.getAlwaysSideNav();
     final onDeviceAiEnabled = await TodoStorage.getOnDeviceAiEnabled();
     final onDeviceAiPreferFast = await TodoStorage.getOnDeviceAiPreferFast();
 
@@ -69,6 +72,9 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
       weightListColumns: weightListColumns,
       intimacyListColumns: intimacyListColumns,
       uiStyle: uiStyle,
+      expressiveWideBottomNav: expressiveWideBottomNav,
+      navRailOnRight: navRailOnRight,
+      alwaysSideNav: alwaysSideNav,
       onDeviceAiEnabled: onDeviceAiEnabled,
       onDeviceAiPreferFast: onDeviceAiPreferFast,
     );
@@ -101,11 +107,45 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
   /// Side effects: Persists the preference; the app rebuilds its theme and
   /// the shell its bottom bar.
   /// Notes: Expressive by default. Expressive also selects the floating
-  /// island bottom bar, Material 3 the classic full-width bar; the
-  /// wide-window rail is the same in both.
+  /// island bottom bar, Material 3 the classic full-width bar.
   void setUiStyle(AppUiStyle style) {
     state = state.copyWith(uiStyle: style);
     TodoStorage.setUiStyle(style == AppUiStyle.material3 ? 'material3' : null);
+  }
+
+  /// Purpose: Choose whether the Expressive style keeps its bottom bar on
+  /// wide windows instead of the side rail (1.6.1).
+  /// Inputs: `enabled`.
+  /// Returns: None.
+  /// Side effects: Persists the preference; the shell rebuilds.
+  /// Notes: Off (side rail) by default. Ignored by the Material 3 style.
+  void setExpressiveWideBottomNav(bool enabled) {
+    state = state.copyWith(expressiveWideBottomNav: enabled);
+    TodoStorage.setWideBottomNav(enabled);
+  }
+
+  /// Purpose: Choose which side of the window the navigation rail sits on
+  /// (1.6.1).
+  /// Inputs: `right`.
+  /// Returns: None.
+  /// Side effects: Persists the preference; the shell rebuilds.
+  /// Notes: Left by default; applies to both styles whenever the rail shows.
+  void setNavRailOnRight(bool right) {
+    state = state.copyWith(navRailOnRight: right);
+    TodoStorage.setNavRailRight(right);
+  }
+
+  /// Purpose: Choose whether the side rail is used even on narrow windows
+  /// (1.6.1).
+  /// Inputs: `enabled`.
+  /// Returns: None.
+  /// Side effects: Persists the preference; the shell rebuilds.
+  /// Notes: Off by default and not recommended on phones, where the rail
+  /// takes width from the content. When on it overrides the Expressive
+  /// bottom-on-wide-screens choice.
+  void setAlwaysSideNav(bool enabled) {
+    state = state.copyWith(alwaysSideNav: enabled);
+    TodoStorage.setAlwaysSideNav(enabled);
   }
 
   /// Purpose: Implement the set locale behavior for this file.
@@ -227,6 +267,18 @@ class AppSettings {
   /// island bottom bar) or stock Material 3 (classic bottom bar).
   final AppUiStyle uiStyle;
 
+  /// Whether the Expressive style keeps its bottom bar on wide windows
+  /// instead of the side rail (1.6.1). Off by default.
+  final bool expressiveWideBottomNav;
+
+  /// Whether the navigation rail sits on the right of the window (1.6.1).
+  /// Off (left) by default; applies to both styles.
+  final bool navRailOnRight;
+
+  /// Whether the side rail is used even on narrow windows such as phones
+  /// (1.6.1). Off by default; not recommended there.
+  final bool alwaysSideNav;
+
   /// Whether on-device AI (the module insight cards) is on. Device-local.
   final bool onDeviceAiEnabled;
 
@@ -235,7 +287,8 @@ class AppSettings {
 
   /// Purpose: Create a app settings instance.
   /// Inputs: `themeMode`, `locale`, `weekStartDay`, the four column
-  /// preferences, `uiStyle`, `onDeviceAiEnabled`, `onDeviceAiPreferFast`.
+  /// preferences, `uiStyle`, `expressiveWideBottomNav`, `navRailOnRight`,
+  /// `alwaysSideNav`, `onDeviceAiEnabled`, `onDeviceAiPreferFast`.
   /// Returns: A new `AppSettings` instance.
   /// Side effects: None.
   /// Notes: `weekStartDay` uses Dart's Monday=1 through Sunday=7 numbering.
@@ -248,6 +301,9 @@ class AppSettings {
     this.weightListColumns = listColumnsAuto,
     this.intimacyListColumns = listColumnsAuto,
     this.uiStyle = AppUiStyle.expressive,
+    this.expressiveWideBottomNav = false,
+    this.navRailOnRight = false,
+    this.alwaysSideNav = false,
     this.onDeviceAiEnabled = false,
     this.onDeviceAiPreferFast = false,
   });
@@ -266,6 +322,9 @@ class AppSettings {
     int? weightListColumns,
     int? intimacyListColumns,
     AppUiStyle? uiStyle,
+    bool? expressiveWideBottomNav,
+    bool? navRailOnRight,
+    bool? alwaysSideNav,
     bool? onDeviceAiEnabled,
     bool? onDeviceAiPreferFast,
     bool clearLocale = false,
@@ -279,6 +338,10 @@ class AppSettings {
       weightListColumns: weightListColumns ?? this.weightListColumns,
       intimacyListColumns: intimacyListColumns ?? this.intimacyListColumns,
       uiStyle: uiStyle ?? this.uiStyle,
+      expressiveWideBottomNav:
+          expressiveWideBottomNav ?? this.expressiveWideBottomNav,
+      navRailOnRight: navRailOnRight ?? this.navRailOnRight,
+      alwaysSideNav: alwaysSideNav ?? this.alwaysSideNav,
       onDeviceAiEnabled: onDeviceAiEnabled ?? this.onDeviceAiEnabled,
       onDeviceAiPreferFast: onDeviceAiPreferFast ?? this.onDeviceAiPreferFast,
     );

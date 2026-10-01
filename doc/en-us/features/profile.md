@@ -18,18 +18,19 @@ the file format is in [`../data-formats.md`](../data-formats.md#profilejson) and
 
 ## Editing
 
-The edit dialog (*Profile*) holds the large avatar, a *Choose avatar* button, a *Remove* button that
-appears only while an avatar is set, and a *Name* field (at most 40 characters).
+The edit dialog (*Profile*) holds the large avatar, a *Choose avatar* button, an *Adjust avatar* button and a *Remove* button
+that appear only while an avatar is set, and a *Name* field (at most 40 characters).
 
-- **Avatar changes save immediately.** *Choose avatar* opens the platform file picker for an image;
+- **Avatar changes save immediately.** *Choose avatar* opens the platform file picker for an image and then the **avatar editor** (1.6.1);
   *Remove* clears the avatar. If the chosen file cannot be used as an image, a snack bar says *This
   image could not be used* and nothing changes.
+- **Avatar editor (1.6.1).** A full-screen page that frames the image inside a circle: drag to move, pinch or scroll to zoom (1 to 8 times, always covering the circle), *Rotate* in quarter turns, *Reset*, *Save*. Backing out saves nothing. *Adjust avatar* (or tapping the large avatar) re-opens the current avatar in the editor; with no avatar, tapping the large avatar picks an image instead. The stored avatar is already a 512-pixel square, so adjusting it can only zoom in further, rotate or re-centre.
 - **The name saves on Save.** Cancel discards it. The name is trimmed; an empty name clears it, and
   saving an unchanged name writes nothing.
 
 ## Avatar processing
 
-The picked image is decoded, rotated upright according to its EXIF orientation, cropped to a centred
+The picked image is decoded, rotated upright according to its EXIF orientation (and by any editor rotation), limited to 2048 pixels on its longest edge, framed in the editor, cropped to the framed
 **square**, scaled to **512 x 512** pixels and stored as a **JPEG** (quality 88) at
 `images/avatar_<uuid>.jpg`. The work runs in a separate isolate so the UI does not stall. A fresh
 file name is used for every avatar. Replacing or removing the avatar deletes the previous avatar file

@@ -211,12 +211,20 @@ settings, local API settings (`apiPort`, `apiListenAddress`, `apiEnabled`, `apiU
 intimacy timer keep-screen-awake preference (`intimacyTimerKeepScreenAwake`), the local-only
 body weight-sync warning opt-out (`intimacyBodyWeightSyncWarningDisabled`), the four
 device-local list column preferences (`todoSectionColumns`, `financeListColumns`,
-`weightListColumns`, `intimacyListColumns`), and the on-device AI switches (`onDeviceAiEnabled`,
-`onDeviceAiPreferFast`, v1.5.0).
+`weightListColumns`, `intimacyListColumns`), the on-device AI switches (`onDeviceAiEnabled`,
+`onDeviceAiPreferFast`, v1.5.0), the interface style (`uiStyle`, v1.6.0), and the three navigation
+placement keys `alwaysSideNav`, `wideBottomNav` and `navRailRight` (v1.6.1).
 
 The two on-device AI keys are written only when `true` and removed when switched off, so an
 absent key means off. They are device-local because whether a model exists is a property of the
 device — see [on-device-ai.md](on-device-ai.md).
+
+`alwaysSideNav` (the side rail is used even on narrow windows; the setting is labelled not recommended),
+`wideBottomNav` (Expressive keeps its floating bottom bar on wide windows instead of the side rail) and
+`navRailRight` (the side rail sits on the right) are written only as `true` and removed when switched
+off, so an absent key means the default (bottom bar on narrow windows, side rail on the left on wide
+ones). All three are device-local and never synced — they describe the device's window, like the column
+preferences. See [adaptive-layout.md](adaptive-layout.md).
 
 The four list column preferences are stored here, and therefore never synced, on purpose: window
 size is a property of the device, not of the account — see
@@ -240,7 +248,7 @@ platform app documents directory on mobile; desktop users can choose a custom st
 
 | Data | File | Synced | Notes |
 | --- | --- | --- | --- |
-| Core preferences | `storage_config.json` | No | Custom path, intimacy visibility, theme, locale, week start day, tray, backup, local API settings, today's fired desktop reminder keys (`reminderNotifiedKeys`), local-only intimacy timer keep-screen-awake preference (`intimacyTimerKeepScreenAwake`), local-only body weight-sync warning opt-out (`intimacyBodyWeightSyncWarningDisabled`), device-local list column preferences (`todoSectionColumns`, `financeListColumns`, `weightListColumns`, `intimacyListColumns`), on-device AI switches (`onDeviceAiEnabled`, `onDeviceAiPreferFast`), interface style (`uiStyle`, 1.6.0: written only as `"material3"` when Material 3 is chosen; absent means Expressive, the default, which also shows the floating navigation bar) |
+| Core preferences | `storage_config.json` | No | Custom path, intimacy visibility, theme, locale, week start day, tray, backup, local API settings, today's fired desktop reminder keys (`reminderNotifiedKeys`), local-only intimacy timer keep-screen-awake preference (`intimacyTimerKeepScreenAwake`), local-only body weight-sync warning opt-out (`intimacyBodyWeightSyncWarningDisabled`), device-local list column preferences (`todoSectionColumns`, `financeListColumns`, `weightListColumns`, `intimacyListColumns`), on-device AI switches (`onDeviceAiEnabled`, `onDeviceAiPreferFast`), interface style (`uiStyle`, 1.6.0: written only as `"material3"` when Material 3 is chosen; absent means Expressive, the default, which also shows the floating navigation bar), navigation placement (`alwaysSideNav`, `wideBottomNav`, `navRailRight`, 1.6.1: each written only as `true`; absent means the default: bottom bar on narrow windows, side rail on the left on wide ones) |
 | Todo | `todo_data.json` | Yes | Tasks, daily templates, completion log, daily score log, reminders, task sort/custom order |
 | Finance | `finance_data.json` | Yes | Accounts including optional fee waiver criteria, categories, transactions, subscriptions, finance settings, transaction account picker settings |
 | Exchange rates | `exchange_rates.json` | Yes | Rate snapshots and `lastFetchedAt` |

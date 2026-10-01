@@ -473,7 +473,7 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
           : AdaptiveContentWidth(
               maxWidth: formMaxContentWidth,
               child: ListView(
-                padding: const EdgeInsets.all(16),
+                padding: navBarAwarePadding(context, const EdgeInsets.all(16)),
                 children: [
                   // Presets
                   Row(

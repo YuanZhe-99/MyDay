@@ -1417,7 +1417,7 @@ class _IntimacyDataError extends StatelessWidget {
     final theme = Theme.of(context);
     return Center(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: navBarAwarePadding(context, const EdgeInsets.all(24)),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

@@ -475,3 +475,7 @@ this codebase's convention of documenting callable members rather than data fiel
   its own upcoming strip — the home page shows an upcoming strip directly above this block. The
   tiles are read-only: editing, cancelling and restoring stay on the subscriptions page so the
   home page does not grow a second copy of those flows.
+
+## Navigation-bar padding (1.6.1)
+
+With the Expressive bottom bar floating over the page (see [../../../../adaptive-layout.md](../../../../adaptive-layout.md)), the data-error view's `SingleChildScrollView` passes its explicit padding through `navBarAwarePadding(context, ...)` so the last content can scroll above the bar. The page's main lists have no explicit padding, so Flutter applies the bar's inset to them itself.

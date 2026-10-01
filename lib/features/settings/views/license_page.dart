@@ -26,7 +26,7 @@ class LicensePage extends StatelessWidget {
       body: AdaptiveContentWidth(
         maxWidth: readingMaxContentWidth,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: navBarAwarePadding(context, const EdgeInsets.all(16)),
           child: SelectableText(
             _licenseText,
             style: Theme.of(context).textTheme.bodyMedium,

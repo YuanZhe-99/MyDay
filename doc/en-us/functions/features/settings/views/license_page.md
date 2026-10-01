@@ -29,3 +29,7 @@ this file has no Tier A entries.
 ## Related pages
 
 - [Settings](../../../../features/settings.md) — the About section that links to this page.
+
+## Navigation-bar padding (1.6.1)
+
+With the Expressive bottom bar floating over the page (see [../../../../adaptive-layout.md](../../../../adaptive-layout.md)), the `SingleChildScrollView` passes its explicit padding through `navBarAwarePadding(context, ...)` so the last content can scroll above the bar. The page's main lists have no explicit padding, so Flutter applies the bar's inset to them itself.

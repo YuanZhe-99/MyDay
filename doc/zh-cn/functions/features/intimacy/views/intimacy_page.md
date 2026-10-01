@@ -1155,3 +1155,7 @@
   2. 否则是由 `SizedBox(width: leftPaneWidth, child: ListView([...calendarBlocks, Divider, ...chartBlocks]))`（仅在有图表时放分隔线）、`VerticalDivider(width: 1)` 和 `Expanded(child: ListView(recordBlocks))` 组成的 `Row`。
 - **用法：** 在分栏决策和窗格宽度解析完成后由 `_IntimacyPageState.build` 构建；`chartBlocks` 在记录达到两条起包含趋势图，并自 v1.5.0 起在 `platformMayHaveOnDeviceModel && settings.onDeviceAiEnabled` 时包含端侧 AI 洞察卡片；记录少于两条且 AI 关闭时它为空。卡片的 `buildRequest` 在 `intimacyVisibilityProvider` 报告模块隐藏时返回 `null`，否则用 `_records`、`_userBody`、`_cycleRecords`、`_weightRecordsForInsight` 以及自 v1.5.3 起的 `_partners`、`_toys`、`_positions` 和 `_chartSettings` 调用 `buildIntimacyInsightFacts`。它带三个小节（`aiIntimacyTrend` 涵盖 `trend`/`chart`/`advice`，`aiIntimacyPartners` 涵盖 `partners`，`aiIntimacyBody` 涵盖 `body`），仅当 `_userBody?.cycleEnabled == true` 时带 `aiEstimateDisclaimer` 脚注。自 v1.5.4 起请求还把以 `_records`、`_userBody`、`_cycleRecords` 和 `_weightRecordsForInsight` 调用的 `buildIntimacyFallbackInsightFacts` 作为 `fallbackFacts` 携带，因此被拒绝时会先用 v1.5.2 的提示词重试。
 - **备注：** 堆叠时日历本身就占掉手机的大部分高度，因此选中一个日期会把它所选出的记录滚出视野；分栏时日历**和图表**共用左窗格，历史拿走其余空间。图表在 v1.4.3 移到了左边：日历下方的窗格原本空着，而图表在记录上方则把第一周的历史往下推。两个窗格各自独立滚动，因为日历、几个人的周期行加上一张图表可能超出紧凑高度。见 [../../../../adaptive-layout.md](../../../../adaptive-layout.md)。
+
+## 导航栏内边距（1.6.1）
+
+Expressive 底栏悬浮在页面之上（见 [adaptive-layout.md](../../../../adaptive-layout.md)），数据错误视图的 `SingleChildScrollView` 把它显式的内边距经过 `navBarAwarePadding(context, ...)`，使最后的内容能滚动到栏的上方。页面的主列表没有显式内边距，Flutter 会自己加上栏的边距。

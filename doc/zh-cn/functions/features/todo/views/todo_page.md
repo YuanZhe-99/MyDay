@@ -702,3 +702,7 @@
 - **算法：** 由 `TaskSectionWidget(daily)`、`TaskSectionWidget(routineOnce)` 和 `TaskSectionWidget(workOnce)` 组成的列表字面量。
 - **用法：** 仅由 `_buildTaskArea` 调用。
 - **备注：** 抽取出来，使单列和多列布局成为同一份列表的两种排布，而不是同样三个分区的两份副本——与外壳只构建一次目的地是同一个理由。评分卡片刻意不在其中：`_buildTaskArea` 把它放在最后一个分区之后。（在 v1.4.3 之前名为 `_taskAreaBlocks`，长度为四个块。）
+
+## 导航栏内边距（1.6.1）
+
+Expressive 底栏悬浮在页面之上（见 [adaptive-layout.md](../../../../adaptive-layout.md)），数据错误视图的 `SingleChildScrollView` 把它显式的内边距经过 `navBarAwarePadding(context, ...)`，使最后的内容能滚动到栏的上方。页面的主列表没有显式内边距，Flutter 会自己加上栏的边距。

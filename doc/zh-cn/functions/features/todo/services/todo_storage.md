@@ -30,6 +30,11 @@
 | [`setOnDeviceAiPreferFast`](#setondeviceaipreferfast) | 静态方法（`TodoStorage`） | A | 持久化更快模型偏好。 |
 | [`getUiStyle`](#getuistyle) | 静态方法（`TodoStorage`） | A | 读取已存储的界面风格名称（1.6.0）。 |
 | [`setUiStyle`](#setuistyle) | 静态方法（`TodoStorage`） | A | 持久化界面风格（1.6.0）。 |
+| [`getWideBottomNav`](#getwidebottomnav) | 静态方法（`TodoStorage`） | A | 读取 Expressive 风格是否在宽窗口上保留底部导航栏（1.6.1）。 |
+| [`setWideBottomNav`](#setwidebottomnav) | 静态方法（`TodoStorage`） | A | 持久化该选择（1.6.1）。 |
+| [`getNavRailRight`](#getnavrailright) | 静态方法（`TodoStorage`） | A | 读取侧边导航栏是否位于右侧（1.6.1）。 |
+$1| [`getAlwaysSideNav`](#getalwayssidenav) | 静态方法（`TodoStorage`） | A | 读取窄窗口上是否也使用侧边导航栏（1.6.1）。 |
+| [`setAlwaysSideNav`](#setalwayssidenav) | 静态方法（`TodoStorage`） | A | 持久化该选择（1.6.1）。 |
 | [`getThemeMode`](#getthememode) | 静态方法（`TodoStorage`） | A | 获取持久化主题模式。 |
 | [`setThemeMode`](#setthememode) | 静态方法（`TodoStorage`） | A | 设置并持久化主题模式。 |
 | [`getLocaleTag`](#getlocaletag) | 静态方法（`TodoStorage`） | A | 获取持久化语言区域标签。 |
@@ -60,7 +65,7 @@
 | `getIntimacyListColumns` | 静态方法（`TodoStorage`） | A | 读取亲密页的记录列数偏好。 |
 | `setIntimacyListColumns` | 静态方法（`TodoStorage`） | A | 持久化亲密页的记录列数偏好。 |
 
-`grep -c 'Purpose:' lib/features/todo/services/todo_storage.dart` 报告 51，与上面列出的全部五十一个真实声明精确匹配（v1.5.0 之前的 43 个，加四个端侧 AI 访问器，再加 v1.5.2 的四个配置队列辅助函数：`_enqueueConfig`、`_readConfigForWrite`、`_writeConfigFile`、`_saveConfigNow`）。未发现错附文档注释——每个 `/// Purpose:` 块都恰好位于其文档化的真实构造函数/方法正上方——也不存在未文档化真实声明；唯一非 `Purpose:` 文档化的成员是普通字段（`_fileName`、`_customPath`、`_configLoaded`、`_intimacyVisible`、`_themeMode`、`_localeTag`、`_weekStartDay`、`_minimizeToTray`、`_closeToTray`、`_writeQueue`、`_configQueue`、`_dataFileNames`），它们是数据而非行为声明，正确排除在表格外。Tier 划分：50 个 Tier A / 1 个 Tier B。唯一 Tier B 行是 `TodoStorageException.toString`，返回存储 `message` 字段的平凡访问器，无逻辑（与 [`weight_storage.dart`](../../weight/services/weight_storage.md#weightstorageexception-new) 的 `WeightStorageException.toString` 相同模式）。每个其他声明都是 Tier A：`TodoData` 的构造函数/`toJson`/`fromJson` 和 `TodoStorageException` 的构造函数属于显式模型 Tier A 规则，每个 `TodoStorage` 静态方法执行真实配置缓存、文件路径解析或文件 IO——显式服务/IO Tier A 规则——即使个别方法体只有一两行（如 `_getConfigFile`、`getConfigFile`），与本仓库其他存储服务（如 `WeightStorage._getFile`）把简短 IO 邻近辅助归为 Tier A 而非平凡转发的方式一致。
+`grep -c 'Purpose:' lib/features/todo/services/todo_storage.dart` 报告 59，与上面列出的全部五十九个真实声明精确匹配（v1.5.0 之前的 43 个，加四个端侧 AI 访问器，再加 v1.5.2 的四个配置队列辅助函数：`_enqueueConfig`、`_readConfigForWrite`、`_writeConfigFile`、`_saveConfigNow`，再加 v1.6.0 的 `getUiStyle`/`setUiStyle`，再加 v1.6.1 的六个导航访问器 `getWideBottomNav`、`setWideBottomNav`、`getNavRailRight`、`setNavRailRight`、`getAlwaysSideNav`、`setAlwaysSideNav`）。未发现错附文档注释——每个 `/// Purpose:` 块都恰好位于其文档化的真实构造函数/方法正上方——也不存在未文档化真实声明；唯一非 `Purpose:` 文档化的成员是普通字段（`_fileName`、`_customPath`、`_configLoaded`、`_intimacyVisible`、`_themeMode`、`_localeTag`、`_weekStartDay`、`_minimizeToTray`、`_closeToTray`、`_writeQueue`、`_configQueue`、`_dataFileNames`），它们是数据而非行为声明，正确排除在表格外。Tier 划分：58 个 Tier A / 1 个 Tier B。唯一 Tier B 行是 `TodoStorageException.toString`，返回存储 `message` 字段的平凡访问器，无逻辑（与 [`weight_storage.dart`](../../weight/services/weight_storage.md#weightstorageexception-new) 的 `WeightStorageException.toString` 相同模式）。每个其他声明都是 Tier A：`TodoData` 的构造函数/`toJson`/`fromJson` 和 `TodoStorageException` 的构造函数属于显式模型 Tier A 规则，每个 `TodoStorage` 静态方法执行真实配置缓存、文件路径解析或文件 IO——显式服务/IO Tier A 规则——即使个别方法体只有一两行（如 `_getConfigFile`、`getConfigFile`），与本仓库其他存储服务（如 `WeightStorage._getFile`）把简短 IO 邻近辅助归为 Tier A 而非平凡转发的方式一致。
 
 ## 文档
 
@@ -374,7 +379,64 @@
 - **算法：** `writeConfig({'uiStyle': name == 'material3' ? 'material3' : null})`。
 - **备注：** 只存储非默认的 Material 3 风格，即 `uiStyle: "material3"`；null 会移除该键。
 
-### `static Future<String?> getThemeMode()` <a id="getthememode"></a>
+### `static Future<bool> getWideBottomNav()` <a id="getwidebottomnav"></a>
+- **种类：** `TodoStorage` 的静态方法
+- **来源：** `lib/features/todo/services/todo_storage.dart`
+- **用途：** 返回 Expressive 风格是否在宽窗口上保留底部导航栏（1.6.1）。
+- **输入：** 无。
+- **返回：** `Future<bool>`——默认 false（侧边导航栏）。
+- **副作用：** 通过 [`readConfig`](#readconfig) 读取 `storage_config.json`。
+- **备注：** 仅限本设备，不同步。Material 3 风格忽略它，宽窗口上始终使用侧边导航栏。
+
+### `static Future<void> setWideBottomNav(bool enabled)` <a id="setwidebottomnav"></a>
+- **种类：** `TodoStorage` 的静态方法
+- **来源：** `lib/features/todo/services/todo_storage.dart`
+- **用途：** 持久化 Expressive 风格是否在宽窗口上保留底部导航栏（1.6.1）。
+- **输入：** `enabled`。
+- **返回：** `Future<void>`。
+- **副作用：** 通过 [`writeConfig`](#writeconfig) 合并写入 `storage_config.json`。
+- **算法：** `writeConfig({'wideBottomNav': enabled ? true : null})`。
+- **备注：** 只存储 `true`，即 `wideBottomNav: true`；false 会移除该键。
+
+### `static Future<bool> getNavRailRight()` <a id="getnavrailright"></a>
+- **种类：** `TodoStorage` 的静态方法
+- **来源：** `lib/features/todo/services/todo_storage.dart`
+- **用途：** 返回侧边导航栏是否位于窗口右侧（1.6.1）。
+- **输入：** 无。
+- **返回：** `Future<bool>`——默认 false（左侧）。
+- **副作用：** 通过 [`readConfig`](#readconfig) 读取 `storage_config.json`。
+- **备注：** 仅限本设备，不同步。只要显示侧边导航栏，两种界面风格都适用。
+
+### `static Future<void> setNavRailRight(bool right)` <a id="setnavrailright"></a>
+- **种类：** `TodoStorage` 的静态方法
+- **来源：** `lib/features/todo/services/todo_storage.dart`
+- **用途：** 持久化侧边导航栏所在的一侧（1.6.1）。
+- **输入：** `right`。
+- **返回：** `Future<void>`。
+- **副作用：** 通过 [`writeConfig`](#writeconfig) 合并写入 `storage_config.json`。
+- **算法：** `writeConfig({'navRailRight': right ? true : null})`。
+- **备注：** 只存储右侧，即 `navRailRight: true`；左侧会移除该键。
+
+### `static Future<bool> getAlwaysSideNav()` <a id="getalwayssidenav"></a>
+- **种类：** `TodoStorage` 的静态方法
+- **来源：** `lib/features/todo/services/todo_storage.dart`
+- **用途：** 返回窄窗口上是否也使用侧边导航栏（1.6.1）。
+- **输入：** 无。
+- **返回：** `Future<bool>`——默认 false。
+- **副作用：** 通过 [`readConfig`](#readconfig) 读取 `storage_config.json`。
+- **备注：** 仅限本设备，不同步；不推荐在手机上使用，因此默认关闭。
+
+### `static Future<void> setAlwaysSideNav(bool enabled)` <a id="setalwayssidenav"></a>
+- **种类：** `TodoStorage` 的静态方法
+- **来源：** `lib/features/todo/services/todo_storage.dart`
+- **用途：** 持久化窄窗口上是否也使用侧边导航栏（1.6.1）。
+- **输入：** `enabled`。
+- **返回：** `Future<void>`。
+- **副作用：** 通过 [`writeConfig`](#writeconfig) 合并写入 `storage_config.json`。
+- **算法：** `writeConfig({'alwaysSideNav': enabled ? true : null})`。
+- **备注：** 只存储 `true`，即 `alwaysSideNav: true`；false 会移除该键。
+
+$1 <a id="getthememode"></a>
 - **种类：** `TodoStorage` 的静态方法
 - **来源：** `lib/features/todo/services/todo_storage.dart`（第 445 行）
 - **用途：** 获取持久化主题模式字符串。

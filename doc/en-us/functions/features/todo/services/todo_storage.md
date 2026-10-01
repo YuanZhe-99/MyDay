@@ -46,6 +46,11 @@ atomic-write conventions this file implements. `Task`/`DailyCompletionLog`/`Dail
 | [`setOnDeviceAiPreferFast`](#setondeviceaipreferfast) | static method (`TodoStorage`) | A | Persist the faster-model preference. |
 | [`getUiStyle`](#getuistyle) | static method (`TodoStorage`) | A | Read the stored interface style name (1.6.0). |
 | [`setUiStyle`](#setuistyle) | static method (`TodoStorage`) | A | Persist the interface style (1.6.0). |
+| [`getWideBottomNav`](#getwidebottomnav) | static method (`TodoStorage`) | A | Read whether Expressive keeps its bottom bar on wide windows (1.6.1). |
+| [`setWideBottomNav`](#setwidebottomnav) | static method (`TodoStorage`) | A | Persist that choice (1.6.1). |
+| [`getNavRailRight`](#getnavrailright) | static method (`TodoStorage`) | A | Read whether the navigation rail sits on the right (1.6.1). |
+$1| [`getAlwaysSideNav`](#getalwayssidenav) | static method (`TodoStorage`) | A | Read whether the side rail is used even on narrow windows (1.6.1). |
+| [`setAlwaysSideNav`](#setalwayssidenav) | static method (`TodoStorage`) | A | Persist that choice (1.6.1). |
 | [`getThemeMode`](#getthememode) | static method (`TodoStorage`) | A | Get persisted theme mode. |
 | [`setThemeMode`](#setthememode) | static method (`TodoStorage`) | A | Set and persist theme mode. |
 | [`getLocaleTag`](#getlocaletag) | static method (`TodoStorage`) | A | Get persisted locale tag. |
@@ -76,15 +81,16 @@ atomic-write conventions this file implements. `Task`/`DailyCompletionLog`/`Dail
 | `getIntimacyListColumns` | static method (`TodoStorage`) | A | Read the Intimacy page's record-column preference. |
 | `setIntimacyListColumns` | static method (`TodoStorage`) | A | Persist the Intimacy page's record-column preference. |
 
-`grep -c 'Purpose:' lib/features/todo/services/todo_storage.dart` reports 51, matching all
-fifty-one real declarations listed above exactly (43 before v1.5.0, plus the four on-device AI
+`grep -c 'Purpose:' lib/features/todo/services/todo_storage.dart` reports 59, matching all
+fifty-nine real declarations listed above exactly (43 before v1.5.0, plus the four on-device AI
 accessors, plus v1.5.2's four config-queue helpers: `_enqueueConfig`, `_readConfigForWrite`,
-`_writeConfigFile`, `_saveConfigNow`). No misattached doc comments were found — every
+`_writeConfigFile`, `_saveConfigNow`, plus v1.6.0's `getUiStyle`/`setUiStyle`, plus v1.6.1's six
+navigation accessors `getWideBottomNav`, `setWideBottomNav`, `getNavRailRight`, `setNavRailRight`, `getAlwaysSideNav`, `setAlwaysSideNav`). No misattached doc comments were found — every
 `/// Purpose:` block sits directly above the real constructor/method it documents — and no
 undocumented real declaration exists either; the only non-`Purpose:`-documented members are plain
 fields (`_fileName`, `_customPath`, `_configLoaded`, `_intimacyVisible`, `_themeMode`, `_localeTag`,
 `_weekStartDay`, `_minimizeToTray`, `_closeToTray`, `_writeQueue`, `_configQueue`, `_dataFileNames`), which are data,
-not declarations of behavior, and are correctly excluded from the table. Tier split: 50 Tier A / 1
+not declarations of behavior, and are correctly excluded from the table. Tier split: 58 Tier A / 1
 Tier B. The single Tier B row is `TodoStorageException.toString`, a trivial accessor returning the
 stored `message` field with no logic (the same pattern as `WeightStorageException.toString` in
 [`weight_storage.dart`](../../weight/services/weight_storage.md#weightstorageexception-new)). Every
@@ -523,7 +529,64 @@ trivial forwarding.
 - **Algorithm:** `writeConfig({'uiStyle': name == 'material3' ? 'material3' : null})`.
 - **Notes:** Only the non-default Material 3 style is stored, as `uiStyle: "material3"`; null removes the key.
 
-### `static Future<String?> getThemeMode()` <a id="getthememode"></a>
+### `static Future<bool> getWideBottomNav()` <a id="getwidebottomnav"></a>
+- **Kind:** static method of `TodoStorage`
+- **Source:** `lib/features/todo/services/todo_storage.dart`
+- **Purpose:** Return whether the Expressive style keeps its bottom bar on wide windows (1.6.1).
+- **Inputs:** None.
+- **Returns:** `Future<bool>` — false (side rail) by default.
+- **Side effects:** Reads `storage_config.json` via [`readConfig`](#readconfig).
+- **Notes:** Device-local, never synced. The Material 3 style ignores it and always uses the rail on wide windows.
+
+### `static Future<void> setWideBottomNav(bool enabled)` <a id="setwidebottomnav"></a>
+- **Kind:** static method of `TodoStorage`
+- **Source:** `lib/features/todo/services/todo_storage.dart`
+- **Purpose:** Persist whether the Expressive style keeps its bottom bar on wide windows (1.6.1).
+- **Inputs:** `enabled`.
+- **Returns:** `Future<void>`.
+- **Side effects:** Merge-writes `storage_config.json` via [`writeConfig`](#writeconfig).
+- **Algorithm:** `writeConfig({'wideBottomNav': enabled ? true : null})`.
+- **Notes:** Only `true` is stored, as `wideBottomNav: true`; false removes the key.
+
+### `static Future<bool> getNavRailRight()` <a id="getnavrailright"></a>
+- **Kind:** static method of `TodoStorage`
+- **Source:** `lib/features/todo/services/todo_storage.dart`
+- **Purpose:** Return whether the navigation rail sits on the right of the window (1.6.1).
+- **Inputs:** None.
+- **Returns:** `Future<bool>` — false (left) by default.
+- **Side effects:** Reads `storage_config.json` via [`readConfig`](#readconfig).
+- **Notes:** Device-local, never synced. Applies to both interface styles whenever a rail shows.
+
+### `static Future<void> setNavRailRight(bool right)` <a id="setnavrailright"></a>
+- **Kind:** static method of `TodoStorage`
+- **Source:** `lib/features/todo/services/todo_storage.dart`
+- **Purpose:** Persist which side the navigation rail sits on (1.6.1).
+- **Inputs:** `right`.
+- **Returns:** `Future<void>`.
+- **Side effects:** Merge-writes `storage_config.json` via [`writeConfig`](#writeconfig).
+- **Algorithm:** `writeConfig({'navRailRight': right ? true : null})`.
+- **Notes:** Only the right side is stored, as `navRailRight: true`; left removes the key.
+
+### `static Future<bool> getAlwaysSideNav()` <a id="getalwayssidenav"></a>
+- **Kind:** static method of `TodoStorage`
+- **Source:** `lib/features/todo/services/todo_storage.dart`
+- **Purpose:** Return whether the side rail is used even on narrow windows (1.6.1).
+- **Inputs:** None.
+- **Returns:** `Future<bool>` — false by default.
+- **Side effects:** Reads `storage_config.json` via [`readConfig`](#readconfig).
+- **Notes:** Device-local, never synced; not recommended on phones, so off by default.
+
+### `static Future<void> setAlwaysSideNav(bool enabled)` <a id="setalwayssidenav"></a>
+- **Kind:** static method of `TodoStorage`
+- **Source:** `lib/features/todo/services/todo_storage.dart`
+- **Purpose:** Persist whether the side rail is used even on narrow windows (1.6.1).
+- **Inputs:** `enabled`.
+- **Returns:** `Future<void>`.
+- **Side effects:** Merge-writes `storage_config.json` via [`writeConfig`](#writeconfig).
+- **Algorithm:** `writeConfig({'alwaysSideNav': enabled ? true : null})`.
+- **Notes:** Only `true` is stored, as `alwaysSideNav: true`; false removes the key.
+
+$1 <a id="getthememode"></a>
 - **Kind:** static method of `TodoStorage`
 - **Source:** `lib/features/todo/services/todo_storage.dart` (line 445)
 - **Purpose:** Get the persisted theme mode string.

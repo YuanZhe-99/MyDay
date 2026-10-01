@@ -31,6 +31,9 @@ import 'package:my_day/shared/widgets/shell_scaffold.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  // The Expressive bottom bar (the default style) has this key.
+  const island = ValueKey('floatingNavBarIsland');
+
   /// Purpose: Point app storage at a fresh temp dir with a known visibility.
   /// Inputs: `tester`, `intimacyVisible`.
   /// Returns: `Future<Directory>` — the temp directory, for teardown.
@@ -59,6 +62,8 @@ void main() {
   /// Purpose: Pump the shell at a pinned viewport.
   /// Inputs: `tester`, `size` — the logical-pixel viewport; `uiStyle` — the
   /// interface style the shell is built with (Expressive by default).
+  /// `wideBottom`, `railRight` and `alwaysSide` — the 1.6.1 navigation
+  /// settings (`alwaysSide` forces the rail on narrow windows too).
   /// Returns: `Future<void>`.
   /// Side effects: Renders widgets.
   /// Notes: The viewport is always pinned, because the default 800x600 test
@@ -68,6 +73,9 @@ void main() {
     WidgetTester tester,
     Size size, {
     AppUiStyle uiStyle = AppUiStyle.expressive,
+    bool wideBottom = false,
+    bool railRight = false,
+    bool alwaysSide = false,
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1.0;
@@ -100,7 +108,14 @@ void main() {
       ProviderScope(
         overrides: [
           appSettingsProvider.overrideWithValue(
-            AppSettingsNotifier.fixed(AppSettings(uiStyle: uiStyle)),
+            AppSettingsNotifier.fixed(
+              AppSettings(
+                uiStyle: uiStyle,
+                expressiveWideBottomNav: wideBottom,
+                navRailOnRight: railRight,
+                alwaysSideNav: alwaysSide,
+              ),
+            ),
           ),
         ],
         child: MaterialApp.router(
@@ -128,7 +143,7 @@ void main() {
     // Pixel-class phone in portrait.
     await pumpShell(tester, const Size(412, 915));
 
-    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.byKey(island), findsOneWidget);
     expect(find.byType(NavigationRail), findsNothing);
   });
 
@@ -167,7 +182,11 @@ void main() {
     final dir = await seedConfig(tester, intimacyVisible: true);
     addTearDown(() => dir.delete(recursive: true));
 
-    await pumpShell(tester, const Size(412, 915));
+    await pumpShell(
+      tester,
+      const Size(412, 915),
+      uiStyle: AppUiStyle.material3,
+    );
     final bar = tester.widget<NavigationBar>(find.byType(NavigationBar));
     final barLabels = [
       for (final d in bar.destinations) (d as NavigationDestination).label,
@@ -218,9 +237,109 @@ void main() {
     );
   });
 
-  group('bottom bar style', () {
-    const island = ValueKey('floatingNavBarIsland');
+  group('wide-window navigation (1.6.1)', () {
+    testWidgets('Expressive can keep its bottom bar on a wide window', (
+      tester,
+    ) async {
+      final dir = await seedConfig(tester, intimacyVisible: true);
+      addTearDown(() => dir.delete(recursive: true));
 
+      await pumpShell(tester, const Size(933, 704), wideBottom: true);
+      expect(find.byKey(island), findsOneWidget);
+      expect(find.byType(NavigationRail), findsNothing);
+    });
+
+    testWidgets('Material 3 ignores the wide bottom-bar setting', (
+      tester,
+    ) async {
+      final dir = await seedConfig(tester, intimacyVisible: true);
+      addTearDown(() => dir.delete(recursive: true));
+
+      await pumpShell(
+        tester,
+        const Size(933, 704),
+        uiStyle: AppUiStyle.material3,
+        wideBottom: true,
+      );
+      expect(find.byType(NavigationRail), findsOneWidget);
+    });
+
+    testWidgets('the rail sits on the left by default', (tester) async {
+      final dir = await seedConfig(tester, intimacyVisible: true);
+      addTearDown(() => dir.delete(recursive: true));
+
+      await pumpShell(tester, const Size(933, 704));
+      expect(tester.getTopLeft(find.byType(NavigationRail)).dx, 0);
+    });
+
+    for (final style in AppUiStyle.values) {
+      testWidgets('the rail can sit on the right (${style.name})', (
+        tester,
+      ) async {
+        final dir = await seedConfig(tester, intimacyVisible: true);
+        addTearDown(() => dir.delete(recursive: true));
+
+        await pumpShell(
+          tester,
+          const Size(933, 704),
+          uiStyle: style,
+          railRight: true,
+        );
+        final rail = tester.getRect(find.byType(NavigationRail));
+        expect(rail.right, 933);
+        expect(find.text('page /todo'), findsOneWidget);
+      });
+    }
+  });
+
+  group('always-side navigation (1.6.1)', () {
+    for (final style in AppUiStyle.values) {
+      testWidgets('a 412-wide window shows the rail when on (${style.name})', (
+        tester,
+      ) async {
+        final dir = await seedConfig(tester, intimacyVisible: true);
+        addTearDown(() => dir.delete(recursive: true));
+
+        await pumpShell(
+          tester,
+          const Size(412, 915),
+          uiStyle: style,
+          alwaysSide: true,
+        );
+        expect(find.byType(NavigationRail), findsOneWidget);
+        expect(find.byType(NavigationBar), findsNothing);
+        expect(find.byKey(island), findsNothing);
+        expect(tester.takeException(), isNull);
+      });
+    }
+
+    testWidgets('it overrides the Expressive wide bottom-bar choice', (
+      tester,
+    ) async {
+      final dir = await seedConfig(tester, intimacyVisible: true);
+      addTearDown(() => dir.delete(recursive: true));
+
+      await pumpShell(
+        tester,
+        const Size(933, 704),
+        wideBottom: true,
+        alwaysSide: true,
+      );
+      expect(find.byType(NavigationRail), findsOneWidget);
+      expect(find.byKey(island), findsNothing);
+    });
+
+    testWidgets('off by default, a phone keeps the bottom bar', (tester) async {
+      final dir = await seedConfig(tester, intimacyVisible: true);
+      addTearDown(() => dir.delete(recursive: true));
+
+      await pumpShell(tester, const Size(412, 915));
+      expect(find.byType(NavigationRail), findsNothing);
+      expect(find.byKey(island), findsOneWidget);
+    });
+  });
+
+  group('bottom bar style', () {
     testWidgets('the default Expressive style floats the bar as an island', (
       tester,
     ) async {
@@ -229,13 +348,12 @@ void main() {
 
       await pumpShell(tester, const Size(412, 915));
       expect(find.byKey(island), findsOneWidget);
-      expect(
-        find.descendant(
-          of: find.byKey(island),
-          matching: find.byType(NavigationBar),
-        ),
-        findsOneWidget,
-      );
+      expect(find.byType(NavigationBar), findsNothing);
+      // Only the selected destination shows its label; the others are icons
+      // with tooltips.
+      expect(find.text('待办'), findsOneWidget);
+      expect(find.text('财务'), findsNothing);
+      expect(find.byTooltip('财务'), findsOneWidget);
     });
 
     testWidgets('the Material 3 style keeps the classic bar', (tester) async {

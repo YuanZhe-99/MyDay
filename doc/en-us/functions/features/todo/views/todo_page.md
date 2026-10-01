@@ -753,3 +753,7 @@ the 74 rows above (34 Tier A, 40 Tier B).
   rather than two copies of the same three sections — the same reason the shell builds its
   destinations once. The score card is deliberately not one of them: `_buildTaskArea` places it
   after whichever section comes last. (Named `_taskAreaBlocks` and four blocks long until v1.4.3.)
+
+## Navigation-bar padding (1.6.1)
+
+With the Expressive bottom bar floating over the page (see [../../../../adaptive-layout.md](../../../../adaptive-layout.md)), the data-error view's `SingleChildScrollView` passes its explicit padding through `navBarAwarePadding(context, ...)` so the last content can scroll above the bar. The page's main lists have no explicit padding, so Flutter applies the bar's inset to them itself.
