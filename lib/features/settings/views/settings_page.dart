@@ -984,13 +984,15 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(subtitle: Text(l10n.settingsUiStyleDesc)),
-              ListTile(
+              RadioListTile<AppUiStyle>(
                 title: Text(l10n.settingsUiStyleMaterial3),
-                trailing: const Radio<AppUiStyle>(value: AppUiStyle.material3),
+                value: AppUiStyle.material3,
+                controlAffinity: ListTileControlAffinity.trailing,
               ),
-              ListTile(
+              RadioListTile<AppUiStyle>(
                 title: Text(l10n.settingsUiStyleExpressive),
-                trailing: const Radio<AppUiStyle>(value: AppUiStyle.expressive),
+                value: AppUiStyle.expressive,
+                controlAffinity: ListTileControlAffinity.trailing,
               ),
             ],
           ),
@@ -1028,10 +1030,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 ThemeMode.light: (l10n.settingsThemeLight, Icons.light_mode),
                 ThemeMode.dark: (l10n.settingsThemeDark, Icons.dark_mode),
               }.entries)
-                ListTile(
-                  leading: Icon(entry.value.$2),
+                RadioListTile<ThemeMode>(
+                  secondary: Icon(entry.value.$2),
                   title: Text(entry.value.$1),
-                  trailing: Radio<ThemeMode>(value: entry.key),
+                  value: entry.key,
+                  controlAffinity: ListTileControlAffinity.trailing,
                 ),
             ],
           ),
@@ -1067,7 +1070,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               ),
               const Divider(height: 1),
               for (final weekday in weekdaySequence(DateTime.monday))
-                ListTile(
+                RadioListTile<int>(
                   title: Text(
                     localizedWeekdayLabel(
                       weekday,
@@ -1075,7 +1078,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       width: WeekdayLabelWidth.long,
                     ),
                   ),
-                  trailing: Radio<int>(value: weekday),
+                  value: weekday,
+                  controlAffinity: ListTileControlAffinity.trailing,
                 ),
             ],
           ),
@@ -1112,25 +1116,30 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ListTile(
+              RadioListTile<String>(
                 title: Text(l10n.settingsThemeSystem),
-                trailing: Radio<String>(value: 'system'),
+                value: 'system',
+                controlAffinity: ListTileControlAffinity.trailing,
               ),
-              ListTile(
+              RadioListTile<String>(
                 title: const Text('English'),
-                trailing: Radio<String>(value: 'en'),
+                value: 'en',
+                controlAffinity: ListTileControlAffinity.trailing,
               ),
-              ListTile(
+              RadioListTile<String>(
                 title: const Text('简体中文'),
-                trailing: Radio<String>(value: 'zh'),
+                value: 'zh',
+                controlAffinity: ListTileControlAffinity.trailing,
               ),
-              ListTile(
+              RadioListTile<String>(
                 title: const Text('繁體中文'),
-                trailing: Radio<String>(value: 'zh_TW'),
+                value: 'zh_TW',
+                controlAffinity: ListTileControlAffinity.trailing,
               ),
-              ListTile(
+              RadioListTile<String>(
                 title: const Text('日本語'),
-                trailing: Radio<String>(value: 'ja'),
+                value: 'ja',
+                controlAffinity: ListTileControlAffinity.trailing,
               ),
             ],
           ),
