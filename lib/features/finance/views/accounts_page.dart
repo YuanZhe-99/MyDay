@@ -1067,7 +1067,7 @@ class _AccountPickerSettingsPageState
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.only(bottom: 24),
+        padding: navBarAwarePadding(context, const EdgeInsets.only(bottom: 24)),
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),

@@ -993,6 +993,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       builder: (context) => SafeArea(
         child: RadioGroup<AppUiStyle>(
           groupValue: settings.uiStyle,
@@ -1045,6 +1046,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       builder: (context) => SafeArea(
         child: RadioGroup<NavPlacement>(
           groupValue: settings.navPlacement,
@@ -1082,6 +1084,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       builder: (context) => SafeArea(
         child: RadioGroup<bool>(
           groupValue: settings.navRailOnRight,
@@ -1121,6 +1124,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       builder: (context) => SafeArea(
         child: RadioGroup<ThemeMode>(
           groupValue: settings.themeMode,
@@ -1163,6 +1167,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       builder: (context) => SafeArea(
         child: RadioGroup<int>(
           groupValue: settings.weekStartDay,
@@ -1211,6 +1216,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         : 'system';
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       builder: (context) => SafeArea(
         child: RadioGroup<String>(
           groupValue: currentTag,

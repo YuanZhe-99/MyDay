@@ -497,8 +497,13 @@ const pickerMaxColumns = 12;
 /// draw behind the bar and the Scaffold reports the bar's height as
 /// `MediaQuery.padding.bottom`. Scroll views with an explicit padding do not
 /// apply that inset themselves; passing their padding through here leaves room
-/// to scroll the last content above the bar. Elsewhere (classic bar, rail,
-/// pushed routes) the inset is just the system's, so this is harmless.
+/// to scroll the last content above the bar. Pages pushed with
+/// `Navigator.push` (non-root) live inside the same shell navigator, so they
+/// sit under the bar too and need this as well; only routes pushed with
+/// `rootNavigator: true`, dialogs and root-navigator bottom sheets are above
+/// it. `SingleChildScrollView`, `CustomScrollView` and `ReorderableListView`
+/// never add the inset themselves, even with a null padding. Elsewhere
+/// (classic bar, rail) the inset is just the system's, so this is harmless.
 EdgeInsets navBarAwarePadding(BuildContext context, EdgeInsets padding) =>
     padding.copyWith(
       bottom: padding.bottom + MediaQuery.paddingOf(context).bottom,

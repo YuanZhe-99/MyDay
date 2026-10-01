@@ -211,6 +211,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
   ) async {
     final result = await showModalBottomSheet<String>(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       useSafeArea: true,
       builder: (_) => _CalcKeyboard(initial: controller.text, label: label),

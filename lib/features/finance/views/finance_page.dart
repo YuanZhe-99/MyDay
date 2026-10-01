@@ -1057,6 +1057,7 @@ class _FinancePageState extends ConsumerState<FinancePage> {
     final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       builder: (context) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,

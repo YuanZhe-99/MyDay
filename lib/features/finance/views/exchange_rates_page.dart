@@ -181,7 +181,7 @@ class _ExchangeRatesPageState extends State<ExchangeRatesPage> {
     final l10n = AppLocalizations.of(context)!;
     return Center(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: navBarAwarePadding(context, const EdgeInsets.all(24)),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

@@ -961,6 +961,9 @@ class _TimerBody extends StatelessWidget {
             sliver: SliverToBoxAdapter(child: Center(child: timer)),
           ),
           SliverList(delegate: SliverChildListDelegate(history)),
+          SliverToBoxAdapter(
+            child: SizedBox(height: MediaQuery.paddingOf(context).bottom),
+          ),
         ],
       );
     }
@@ -969,7 +972,7 @@ class _TimerBody extends StatelessWidget {
       children: [
         Expanded(
           child: SingleChildScrollView(
-            padding: _timerPadding,
+            padding: navBarAwarePadding(context, _timerPadding),
             child: Center(child: timer),
           ),
         ),

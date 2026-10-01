@@ -57,6 +57,7 @@ const _countryOrder = [
 Future<BankPreset?> showBankPresetPicker(BuildContext context) {
   return showModalBottomSheet<BankPreset>(
     context: context,
+    useRootNavigator: true,
     isScrollControlled: true,
     useSafeArea: true,
     builder: (_) => const _BankPickerSheet(),

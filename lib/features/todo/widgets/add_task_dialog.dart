@@ -456,6 +456,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   void _showEmojiPicker(BuildContext context) {
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       builder: (context) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -707,6 +708,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   void _showRecurrencePicker(AppLocalizations l10n) {
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       builder: (ctx) => RecurrencePicker(
         initial: _recurrence,

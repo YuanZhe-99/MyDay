@@ -371,7 +371,7 @@ class _CategoriesPageState extends State<CategoriesPage>
     return ListView.builder(
       // Rows, not tiles, so the builder keeps virtualizing a long category list.
       itemCount: listRowCount(cats.length, columns),
-      padding: const EdgeInsets.only(bottom: 80),
+      padding: navBarAwarePadding(context, const EdgeInsets.only(bottom: 80)),
       itemBuilder: (context, row) => adaptiveTileRow(
         rowIndex: row,
         columns: columns,

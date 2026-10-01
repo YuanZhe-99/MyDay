@@ -697,9 +697,11 @@ no row, like the state class's own constants; it is covered under
 - **Algorithm:**
   1. `!twoPane || history.isEmpty` → `CustomScrollView(slivers: [SliverPadding(padding:
      _timerPadding, sliver: SliverToBoxAdapter(child: Center(child: timer))),
-     SliverList(delegate: SliverChildListDelegate(history))])` — one scroll view for both.
-  2. Otherwise a `Row` (cross-axis stretch) of `Expanded(child: SingleChildScrollView(padding:
-     _timerPadding, child: Center(child: timer)))`, a `VerticalDivider`, and a
+     SliverList(delegate: SliverChildListDelegate(history)), SliverToBoxAdapter(child:
+     SizedBox(height: MediaQuery.paddingOf(context).bottom))])` — one scroll view for both; the trailing
+     spacer lets the last history row scroll above the floating navigation bar.
+  2. Otherwise a `Row` (cross-axis stretch) of `Expanded(child: SingleChildScrollView(padding: navBarAwarePadding(context,
+     _timerPadding), child: Center(child: timer)))`, a `VerticalDivider`, and a
      `SizedBox(width: timerHistoryPaneWidth, child: ListView(children: history))`.
 - **Usage:** Built by `TimerPage`'s `build` once the split decision is resolved.
 - **Notes:** v1.5.5 changed the stacked arrangement. It used to be `Column([Expanded(timer),

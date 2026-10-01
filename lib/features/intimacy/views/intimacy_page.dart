@@ -940,6 +940,7 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
     );
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       builder: (_) => DraggableScrollableSheet(
         expand: false,
@@ -1140,6 +1141,7 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
   void _showManageMenu(BuildContext context) {
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       builder: (context) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -5241,7 +5243,10 @@ class _ToyCostOverviewPageState extends State<_ToyCostOverviewPage> {
       body: AdaptiveContentWidth(
         maxWidth: readingMaxContentWidth,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+          padding: navBarAwarePadding(
+            context,
+            const EdgeInsets.fromLTRB(16, 12, 16, 24),
+          ),
           children: [
             _buildScopeSelector(l10n),
             const SizedBox(height: 12),

@@ -576,7 +576,10 @@ class _AnalysisPageState extends State<AnalysisPage>
                 ),
               Expanded(
                 child: ListView(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: navBarAwarePadding(
+                    context,
+                    const EdgeInsets.symmetric(horizontal: 16),
+                  ),
                   children: legendEntries.map((e) {
                     return ListTile(
                       leading: Row(
@@ -665,7 +668,10 @@ class _AnalysisPageState extends State<AnalysisPage>
     }
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(8, 16, 16, 16),
+      padding: navBarAwarePadding(
+        context,
+        const EdgeInsets.fromLTRB(8, 16, 16, 16),
+      ),
       children: [
         if (hasFlowData)
           _buildLineChartPanel(

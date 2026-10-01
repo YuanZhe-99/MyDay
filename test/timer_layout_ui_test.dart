@@ -130,6 +130,86 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  group('floating navigation bar inset', () {
+    const barInset = 100.0;
+
+    /// Purpose: Scroll `scrollable` to its end.
+    /// Inputs: `tester`, `scrollable`.
+    /// Returns: `Future<void>`.
+    /// Side effects: Jumps the scroll position and pumps a frame.
+    /// Notes: A jump rather than a drag, which can stop short of the end. Jumps
+    /// repeatedly because the extent of a lazy list is revised as rows build.
+    Future<void> scrollToEnd(WidgetTester tester, Finder scrollable) async {
+      final position = tester
+          .state<ScrollableState>(
+            find
+                .descendant(of: scrollable, matching: find.byType(Scrollable))
+                .first,
+          )
+          .position;
+      for (var i = 0; i < 3; i++) {
+        position.jumpTo(position.maxScrollExtent);
+        await tester.pump();
+      }
+      await tester.pump();
+    }
+
+    /// Purpose: Report the bottom edge of the last history row once the page
+    /// is scrolled to its end under a simulated bar inset.
+    /// Inputs: `tester`, `size`, `scrollable`.
+    /// Returns: `Future<double>`.
+    /// Side effects: Renders the page and drags it.
+    /// Notes: The shell reports the Expressive bar's height as
+    /// `MediaQuery.padding.bottom`; the test fakes it with the view padding.
+    Future<double> lastRowBottom(
+      WidgetTester tester,
+      Size size,
+      Finder scrollable,
+    ) async {
+      tester.view.padding = const FakeViewPadding(bottom: barInset);
+      tester.view.viewPadding = const FakeViewPadding(bottom: barInset);
+      addTearDown(tester.view.resetPadding);
+      addTearDown(tester.view.resetViewPadding);
+      await pumpTimer(tester, size, _history(30));
+      await scrollToEnd(tester, scrollable);
+      return tester.getRect(find.byType(ListTile).last).bottom;
+    }
+
+    testWidgets('the stacked layout scrolls its last row above the bar', (
+      tester,
+    ) async {
+      const size = Size(412, 915);
+      final bottom = await lastRowBottom(
+        tester,
+        size,
+        find.byType(CustomScrollView),
+      );
+      expect(bottom, lessThanOrEqualTo(size.height - barInset));
+    });
+
+    testWidgets('the two-pane layout keeps the stopwatch above the bar', (
+      tester,
+    ) async {
+      const size = Size(1440, 900);
+      tester.view.padding = const FakeViewPadding(bottom: barInset);
+      tester.view.viewPadding = const FakeViewPadding(bottom: barInset);
+      addTearDown(tester.view.resetPadding);
+      addTearDown(tester.view.resetViewPadding);
+      await pumpTimer(tester, size, _history(30));
+      final pane = find.ancestor(
+        of: find.text('00:00:00'),
+        matching: find.byType(SingleChildScrollView),
+      );
+      final scroll = tester.widget<SingleChildScrollView>(pane.first);
+      expect((scroll.padding as EdgeInsets).bottom, 24 + barInset);
+
+      await scrollToEnd(tester, find.byType(ListView));
+      await tester.pump();
+      final bottom = tester.getRect(find.byType(ListTile).last).bottom;
+      expect(bottom, lessThanOrEqualTo(size.height - barInset));
+    });
+  });
+
   group('thrust counter', () {
     /// Purpose: Pump a paused session so the counter buttons are shown.
     /// Inputs: `tester`.

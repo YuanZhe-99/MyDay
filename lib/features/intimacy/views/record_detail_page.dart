@@ -145,7 +145,7 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: navBarAwarePadding(context, const EdgeInsets.all(16)),
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: readingMaxContentWidth),

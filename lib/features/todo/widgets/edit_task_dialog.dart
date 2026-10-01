@@ -668,6 +668,7 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
   void _showEmojiPicker(BuildContext context) {
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       builder: (context) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -825,6 +826,7 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
   void _showRecurrencePicker(AppLocalizations l10n) {
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       builder: (ctx) => RecurrencePicker(
         initial: _recurrence,

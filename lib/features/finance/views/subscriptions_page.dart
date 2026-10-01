@@ -378,6 +378,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -511,6 +512,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     // Mutable copy for reorder
     final items = List.of(active);
     return ReorderableListView.builder(
+      padding: navBarAwarePadding(context, EdgeInsets.zero),
       itemCount: items.length,
       onReorderItem: (oldIndex, newIndex) {
         setState(() {
@@ -1177,6 +1179,7 @@ class _SubscriptionTile extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,

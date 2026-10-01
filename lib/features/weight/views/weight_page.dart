@@ -1860,6 +1860,7 @@ class _WeightPageState extends ConsumerState<WeightPage> {
     final sorted = List<WeightRecord>.of(_recordsNewestFirst);
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       builder: (_) => DraggableScrollableSheet(
         expand: false,
@@ -1894,6 +1895,7 @@ class _WeightPageState extends ConsumerState<WeightPage> {
     final l10n = AppLocalizations.of(context)!;
     await showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       builder: (ctx) {
         return StatefulBuilder(

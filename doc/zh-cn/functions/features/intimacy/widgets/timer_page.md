@@ -503,8 +503,8 @@
 - **返回：** 堆叠时为 `CustomScrollView`，分栏时为 `Row`。
 - **副作用：** 除构建组件外无。
 - **算法：**
-  1. `!twoPane || history.isEmpty` → `CustomScrollView(slivers: [SliverPadding(padding: _timerPadding, sliver: SliverToBoxAdapter(child: Center(child: timer))), SliverList(delegate: SliverChildListDelegate(history))])`——两者共用一个滚动视图。
-  2. 否则是一个 `Row`（交叉轴拉伸），包含 `Expanded(child: SingleChildScrollView(padding: _timerPadding, child: Center(child: timer)))`、一条 `VerticalDivider` 和 `SizedBox(width: timerHistoryPaneWidth, child: ListView(children: history))`。
+  1. `!twoPane || history.isEmpty` → `CustomScrollView(slivers: [SliverPadding(padding: _timerPadding, sliver: SliverToBoxAdapter(child: Center(child: timer))), SliverList(delegate: SliverChildListDelegate(history)), SliverToBoxAdapter(child: SizedBox(height: MediaQuery.paddingOf(context).bottom))])`——两者共用一个滚动视图；末尾的空白让最后一条历史能滚到悬浮导航栏的上方。
+  2. 否则是一个 `Row`（交叉轴拉伸），包含 `Expanded(child: SingleChildScrollView(padding: navBarAwarePadding(context, _timerPadding), child: Center(child: timer)))`、一条 `VerticalDivider` 和 `SizedBox(width: timerHistoryPaneWidth, child: ListView(children: history))`。
 - **用法：** 在分栏决策解析完成后由 `TimerPage` 的 `build` 构建。
 - **备注：** v1.5.5 改变了堆叠排布。它原来是 `Column([Expanded(timer), ...historyTiles])`，因此历史条目先占满自己的高度，把秒表挤进剩下的空间——在 Galaxy Z Fold 的外屏上或历史很长时，控件缩成一条细缝（`test/timer_layout_ui_test.dart` 中 412 x 915 视口、30 条历史溢出 1254 px）。现在秒表始终保持自然高度，长历史在它下方滚动。双栏外观不变；两种排布中秒表都顶部对齐、水平居中，四周是 `_timerPadding`（水平 16、垂直 24）。历史为空的情形回退到堆叠分支而不是渲染一个空白窗格——只要一个块可能渲染成空，它就属于闸门的一部分。为与其他所有分栏界面保持一致而以 `canSplitLayout` 为闸门，这让手机横持失去了它最能受益的分栏；该取舍以及低于 `timerCompactDisplayWidth` 时的紧凑数字记录在 [../../../../adaptive-layout.md](../../../../adaptive-layout.md)。
 

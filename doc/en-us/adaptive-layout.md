@@ -110,7 +110,11 @@ page**: the shell uses `Scaffold(extendBody: true)`, so content draws behind the
 Scaffold reports the bar's height as `MediaQuery.padding.bottom`. A `ListView` or `GridView`
 without an explicit `padding` applies that inset by itself; a scroll view with an explicit padding
 (and any non-scrolling, bottom-anchored layout) wraps its padding in `navBarAwarePadding(context, ...)`
-so its last content scrolls fully above the bar. The shell also raises `viewPadding.bottom` for its
+so its last content scrolls fully above the bar. `SingleChildScrollView`, `CustomScrollView` and
+`ReorderableListView` never add the inset, even with a null padding, and pages opened with
+`Navigator.push` (non-root) live inside the same shell navigator (`ShellRoute`) and so sit under the
+bar too; bottom sheets opened from them pass `useRootNavigator: true` so they cover the bar like a
+modal. The shell also raises `viewPadding.bottom` for its
 child, because a page's own Scaffold places its FAB from `viewPadding`, not `padding`. The existing
 `SizedBox(height: 80)` FAB clearance stays, with the bar's height added on top.
 

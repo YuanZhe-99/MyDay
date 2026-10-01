@@ -212,6 +212,7 @@ class _TodoPageState extends ConsumerState<TodoPage> {
   Future<void> _showDailyReminderSettings() async {
     await showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       builder: (ctx) {
         return StatefulBuilder(
           builder: (ctx, setSheetState) {
