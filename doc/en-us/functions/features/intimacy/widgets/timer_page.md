@@ -5,13 +5,17 @@
 It is a wall-clock based timer (immune to screen-off/app-suspend, unlike a naive tick-counter), with
 a non-negative thrust counter that stores estimates as `x100` and exact non-round counts as `x1`, a
 retained/pruned history list, and a local-only keep-screen-awake switch backed by `wakelock_plus`.
+Since v1.5.5 the counter is derived from a [`ThrustTimeline`](../utils/thrust_timeline.md) held in
+`_timeline`: every `+100`/`+50`/`+10` press is stamped with the stopwatch's elapsed time, `-100`
+undoes the latest presses (splitting one if needed so exactly 100 is removed), and the timeline
+travels with the timer session, the history entry and the saved record.
 Critically, this widget owns no persistence itself — every state-changing action calls
 `widget.onStateChanged` (typed as `TimerStateChanged`), which the caller (`views/intimacy_page.dart`,
 via `_saveTimerState`) uses to write `intimacy_data.json` immediately, so an accidental app/page exit
-mid-session still keeps the latest running/paused state and thrust count. On save, it opens
-[`AddRecordDialog`](add_record_dialog.md) pre-filled with the elapsed duration and thrust count. The
-page returns a `TimerPageResult` describing what changed (`record`, history, timer session,
-retention) so the caller only re-saves what's actually dirty.
+mid-session still keeps the latest running/paused state, thrust count and press timeline. On save,
+it opens [`AddRecordDialog`](add_record_dialog.md) pre-filled with the elapsed duration, thrust count
+and timeline. The page returns a `TimerPageResult` describing what changed (`record`, history, timer
+session, retention) so the caller only re-saves what's actually dirty.
 
 ## Declarations
 
@@ -22,7 +26,9 @@ retention) so the caller only re-saves what's actually dirty.
 | `TimerPage` (constructor) | constructor (`TimerPage`) | B | Create a timer page instance from positions, current timer state, and the persistence callback. |
 | `TimerPage.createState` | method (`TimerPage`) | B | Create the mutable `_TimerPageState`. |
 | [`_elapsed`](#elapsed) | getter (`_TimerPageState`) | A | Compute wall-clock elapsed time: accumulated time plus time since the last resume, if running. |
-| [`initState`](#initstate) | method (`_TimerPageState`) | A | Restore an interrupted timer session (running/paused) from `widget.timerSession` and load the wakelock preference. |
+| `_thrustCount` | getter (`_TimerPageState`) | B | Return the live thrust count in actual repetitions — `_timeline.total` (v1.5.5; previously an `int` field). |
+| [`_restoreTimeline`](#restoretimeline) | method (`_TimerPageState`) | A | Recover a press timeline from a stored session or history entry, seeding one event for pre-1.5.5 data or a mismatched total. |
+| [`initState`](#initstate) | method (`_TimerPageState`) | A | Restore an interrupted timer session (running/paused, with its press timeline) from `widget.timerSession` and load the wakelock preference. |
 | `dispose` | method (`_TimerPageState`) | B | Cancel the ticker, remove the lifecycle observer, and release any held wakelock. |
 | [`didChangeAppLifecycleState`](#didchangeapplifecyclestate) | method (`_TimerPageState`) | A | Re-arm the ticker and wakelock when the app resumes while the timer is running. |
 | [`_loadKeepScreenAwakeSetting`](#loadkeepscreenawakesetting) | method (`_TimerPageState`) | A | Load the local-only keep-screen-awake preference and apply it. |
@@ -32,39 +38,43 @@ retention) so the caller only re-saves what's actually dirty.
 | [`_applyRetention`](#applyretention) | method (`_TimerPageState`) | A | Drop history entries older than the configured retention window. |
 | [`_start`](#start) | method (`_TimerPageState`) | A | Start or resume the stopwatch and persist the running session. |
 | [`_pause`](#pause) | method (`_TimerPageState`) | A | Pause the stopwatch, folding elapsed time into the accumulated total, and persist the paused session. |
-| [`_changeThrustCount`](#changethrustcount) | method (`_TimerPageState`) | A | Adjust the thrust count by a signed delta, clamped at zero, and persist the session. |
+| [`_changeThrustCount`](#changethrustcount) | method (`_TimerPageState`) | A | Record a press at the current stopwatch time, or undo the latest presses for `-100`, and persist the session. |
 | [`_actualThrustCount`](#actualthrustcount) | method (`_TimerPageState`) | A | Convert a stored count/unit pair back into an actual repetition count. |
 | [`_storedThrustCountUnit`](#storedthrustcountunit) | getter (`_TimerPageState`) | A | Decide whether the current count must be stored as exact `x1` or estimated `x100`. |
 | [`_storedThrustCount`](#storedthrustcount) | getter (`_TimerPageState`) | A | Compute the count value to persist under the current storage unit. |
 | `_thrustCountLabel` | getter (`_TimerPageState`) | B | Format the current thrust count as `"<count> x<unit>"` for display. |
-| [`_reset`](#reset) | method (`_TimerPageState`) | A | Clear the stopwatch back to zero (time and thrust count) and persist the cleared session. |
+| [`_reset`](#reset) | method (`_TimerPageState`) | A | Clear the stopwatch back to zero (time and press timeline) and persist the cleared session. |
 | [`_ensureTicker`](#ensureticker) | method (`_TimerPageState`) | A | (Re)start the one-second periodic timer that drives the visible elapsed-time display. |
 | `_sessionStartTime` | getter (`_TimerPageState`) | B | Return `_firstStartedAt` (the session's original start time, if any). |
-| [`_timerSession`](#timersession) | getter (`_TimerPageState`) | A | Build a persistable `IntimacyTimerSession` snapshot of the current stopwatch state. |
+| [`_timerSession`](#timersession) | getter (`_TimerPageState`) | A | Build a persistable `IntimacyTimerSession` snapshot of the current stopwatch state, timeline included. |
 | [`_persistState`](#persiststate) | method (`_TimerPageState`) | A | Forward changed-field flags and a state snapshot to `widget.onStateChanged`, only when something actually changed. |
 | [`_popWithHistoryIfChanged`](#popwithhistoryifchanged) | method (`_TimerPageState`) | A | Pop the page, returning a `TimerPageResult` only if history/session/retention actually changed. |
-| [`_saveRecord`](#saverecord) | method (`_TimerPageState`) | A | Stop the timer (unless restoring from history), add a history entry, open `AddRecordDialog`, and pop with the result. |
+| [`_saveRecord`](#saverecord) | method (`_TimerPageState`) | A | Stop the timer (unless saving from history), add a history entry, open `AddRecordDialog` with the timeline, and pop with the result. |
 | [`_formatDuration`](#formatduration) | method (`_TimerPageState`) | A | Format a `Duration` as `HH:MM:SS`. |
 | `_formatDateTime` | method (`_TimerPageState`) | B | Format a `DateTime` as `MM/dd HH:mm:ss` via `intl`. |
-| [`_confirmRestoreHistory`](#confirmrestorehistory) | method (`_TimerPageState`) | A | Confirm, then restore a timer-history entry as a new running stopwatch session, removing it from history. |
-| `build` | method (`_TimerPageState`) | B | Render the elapsed-time display, thrust controls, start/pause/save/reset buttons, and the history list. |
+| [`_confirmRestoreHistory`](#confirmrestorehistory) | method (`_TimerPageState`) | A | Confirm, then restore a timer-history entry (with its timeline) as a new running stopwatch session, removing it from history. |
+| `build` | method (`_TimerPageState`) | B | Render the elapsed-time display (compact digits below 400 dp), thrust controls (the `-100` with an undo tooltip), start/pause/save/reset buttons, and the history list. |
 | `_buildRetentionChip` | method (widget helper) | B | Render the history-retention popup-menu chip (3d/7d/14d/forever). |
-| `_TimerBody({...})` | constructor (`_TimerBody`) | B | Create the timer body arranger. |
-| [`build`](#timerbody-build) | method (`_TimerBody`) | A | Stack the stopwatch above its history, or put it in a pane beside it. |
+| `_TimerBody({...})` | constructor (`_TimerBody`) | B | Create the timer body arranger; `timer` is the bare stopwatch column, and this widget adds its padding and scrolling. |
+| [`build`](#timerbody-build) | method (`_TimerBody`) | A | Put the stopwatch and its history in one scroll view, or the stopwatch in a pane beside the history. |
 
-`grep -c 'Purpose:' lib/features/intimacy/widgets/timer_page.dart` reports 34, matching all 34 rows
+`grep -c 'Purpose:' lib/features/intimacy/widgets/timer_page.dart` reports 36, matching all 36 rows
 above exactly (no undocumented real declaration was found, and no `/// Purpose:` block is misattached
 above a call site rather than a real declaration). Several blocks use generic auto-generated-looking
 phrasing in the source ("Provide the internal ... helper for this file", "Internal helper used within
 this file only") — this page's Purpose column and Documentation entries replace that phrasing with
 descriptions verified against the actual implementation, per the per-file template's instruction to
-refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier B.
+refine (not just copy) the source `///` comment. Tier split: 24 Tier A, 12 Tier B. v1.5.5 added two
+rows: `_thrustCount`, which replaced the `int _thrustCount` field, and `_restoreTimeline`. The
+private constant `_TimerBody._timerPadding` (16 horizontal, 24 vertical) has no `Purpose:` block and
+no row, like the state class's own constants; it is covered under
+[`_TimerBody.build`](#timerbody-build).
 
 ## Documentation
 
 ### `Duration get _elapsed` <a id="elapsed"></a>
 - **Kind:** getter of `_TimerPageState`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 118)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 119)
 - **Purpose:** Compute the stopwatch's current elapsed time from wall-clock timestamps rather than a
   ticking in-memory counter.
 - **Inputs:** None (reads `_accumulated`, `_running`, `_startedAt`).
@@ -74,11 +84,14 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
   — accumulated time from prior run segments, plus time since the last resume if currently running.
 - **Usage:**
   ```dart
-  // build, line 626:
+  // build, line 671:
   Text(_formatDuration(_elapsed), ...),
 
-  // build, line 590:
+  // build, line 633:
   final hasElapsed = _elapsed > Duration.zero;
+
+  // _changeThrustCount, line 329 — the press timestamp:
+  : _timeline.add(_elapsed.inMilliseconds, delta);
   ```
 - **Notes:** This is the widget-level equivalent of the model's own
   `IntimacyTimerSession.elapsedAt(now)` described in
@@ -86,9 +99,41 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
   because it's derived from `DateTime.now()` every time it's read, the displayed time is correct even
   immediately after an app restart, before the first ticker callback fires.
 
+### `ThrustTimeline _restoreTimeline(ThrustTimeline? timeline, int count, int unit, Duration elapsed)` <a id="restoretimeline"></a>
+- **Kind:** method of `_TimerPageState`
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 142)
+- **Purpose:** Recover the press timeline when a stored session or history entry becomes the live
+  stopwatch again.
+- **Inputs:** `timeline` — the stored timeline, if any; `count`/`unit` — the stored total;
+  `elapsed` — where to place a seeded event.
+- **Returns:** `ThrustTimeline`.
+- **Side effects:** None.
+- **Algorithm:** `actual = _actualThrustCount(count, unit)`; if `timeline` is non-null and its
+  `total == actual`, return it unchanged; otherwise return `ThrustTimeline.seed(elapsed.inMilliseconds,
+  actual)` — one event at `elapsed`, or an empty timeline for a zero count.
+- **Usage:**
+  ```dart
+  // initState, lines 175-180 (the session's current elapsed time):
+  _timeline = _restoreTimeline(
+    session.thrustTimeline,
+    session.thrustCount,
+    session.thrustCountUnit,
+    session.elapsedAt(DateTime.now()),
+  );
+
+  // _confirmRestoreHistory, lines 609-614 (the entry's saved duration):
+  _timeline = _restoreTimeline(entry.thrustTimeline, entry.thrustCount,
+      entry.thrustCountUnit, entry.duration);
+  ```
+- **Notes:** Data saved before v1.5.5 has only a total, which becomes one event — the counter shows
+  the same number as before, and a single event never draws a chart. The mismatch branch covers a
+  session or history row whose count was changed by a build that does not know about timelines
+  (it keeps the old `thrustTimeline` as an unknown field): the stored **count** wins, so the number
+  shown never changes on restore.
+
 ### `void initState()` <a id="initstate"></a>
 - **Kind:** method of `_TimerPageState` (override of `State.initState`)
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 132)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 161)
 - **Purpose:** Restore whatever timer session the caller passed in — running, paused, or none — and
   begin loading the keep-screen-awake preference.
 - **Inputs:** None (reads `widget.timerHistory`, `widget.timerHistoryRetentionDays`,
@@ -104,13 +149,15 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
      the timer).
   3. If `widget.timerSession` is non-null: restore `_firstStartedAt`, and `_startedAt` only if
      `session.running` (a paused session has no live `_startedAt`); restore `_accumulated`, `_running`;
-     restore `_thrustCount` via `_actualThrustCount(session.thrustCount, session.thrustCountUnit)`
-     (converting the stored x100/x1 form back to an actual repetition count); if `_running`, call
-     `_ensureTicker()` so the display starts advancing immediately.
+     restore `_timeline` via [`_restoreTimeline`](#restoretimeline)`(session.thrustTimeline,
+     session.thrustCount, session.thrustCountUnit, session.elapsedAt(DateTime.now()))` — the stored
+     timeline when its total matches the stored x100/x1 count, otherwise one seeded event at the
+     session's current elapsed time; if `_running`, call `_ensureTicker()` so the display starts
+     advancing immediately.
   4. `unawaited(_loadKeepScreenAwakeSetting())`.
 - **Usage:**
   ```dart
-  // views/intimacy_page.dart, lines 548-560 (opening the page restores whatever session was saved):
+  // views/intimacy_page.dart, lines 688-696 (opening the page restores whatever session was saved):
   builder: (_) => TimerPage(
     partners: _partners.where((p) => p.endDate == null).toList(),
     toys: _toys.where((t) => t.retiredDate == null).toList(),
@@ -124,12 +171,12 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
 - **Notes:** This is exactly the session-recovery behavior documented in
   [Intimacy](../../../../features/intimacy.md#timerstopwatch-session-persistence): "stopped-but-unsaved
   and paused sessions restore as paused" (here: `session.running == false` so `_startedAt` stays
-  `null` while `_accumulated`/`_thrustCount` still restore) and "running sessions resume from
+  `null` while `_accumulated`/`_timeline` still restore) and "running sessions resume from
   wall-clock time" (here: `_ensureTicker()` plus the `_elapsed` getter's live computation).
 
 ### `void didChangeAppLifecycleState(AppLifecycleState state)` <a id="didchangeapplifecyclestate"></a>
 - **Kind:** method of `_TimerPageState` (override of `WidgetsBindingObserver.didChangeAppLifecycleState`)
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 175)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 206)
 - **Purpose:** Re-arm the ticker and wakelock after the app returns to the foreground.
 - **Inputs:** `state` — the new `AppLifecycleState`.
 - **Returns:** None.
@@ -146,7 +193,7 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
 
 ### `Future<void> _loadKeepScreenAwakeSetting()` <a id="loadkeepscreenawakesetting"></a>
 - **Kind:** method of `_TimerPageState`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 192)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 223)
 - **Purpose:** Load the remembered local-only keep-screen-awake preference and apply it immediately.
 - **Inputs:** None.
 - **Returns:** `Future<void>`.
@@ -156,7 +203,7 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
   true`; if still mounted, `setState` to store it, then `await _applyWakelock()`.
 - **Usage:**
   ```dart
-  // initState, line 151:
+  // initState, line 183:
   unawaited(_loadKeepScreenAwakeSetting());
   ```
 - **Notes:** Uses key `intimacyTimerKeepScreenAwake` (`_keepScreenAwakeConfigKey`), which is
@@ -165,7 +212,7 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
 
 ### `Future<void> _setKeepScreenAwake(bool enabled)` <a id="setkeepscreenawake"></a>
 - **Kind:** method of `_TimerPageState`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 205)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 236)
 - **Purpose:** Handle the user toggling the keep-screen-awake switch.
 - **Inputs:** `enabled` — the new switch value.
 - **Returns:** `Future<void>`.
@@ -178,7 +225,7 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
   serialized config write queue, so unrelated keys are preserved.
 - **Usage:**
   ```dart
-  // build, line 682-684:
+  // build, lines 728-730:
   onChanged: (value) {
     unawaited(_setKeepScreenAwake(value));
   },
@@ -188,7 +235,7 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
 
 ### `Future<void> _applyWakelock()` <a id="applywakelock"></a>
 - **Kind:** method of `_TimerPageState`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 216)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 247)
 - **Purpose:** Reconcile the platform screen wakelock with the current `_keepScreenAwake` preference,
   without stepping on a wakelock some other feature may hold.
 - **Inputs:** None.
@@ -202,10 +249,10 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
      it and clear the flag.
 - **Usage:**
   ```dart
-  // _loadKeepScreenAwakeSetting, line 196:
+  // _loadKeepScreenAwakeSetting, line 228:
   await _applyWakelock();
 
-  // didChangeAppLifecycleState, line 181:
+  // didChangeAppLifecycleState, line 213:
   unawaited(_applyWakelock());
   ```
 - **Notes:** `_wakelockEnabledByPage` tracks whether *this page* is the one holding the lock, so
@@ -214,7 +261,7 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
 
 ### `void _releaseWakelock()` <a id="releasewakelock"></a>
 - **Kind:** method of `_TimerPageState`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 236)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 267)
 - **Purpose:** Release the wakelock on page teardown, but only if this page is the one that enabled
   it.
 - **Inputs:** None.
@@ -224,7 +271,7 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
   `WakelockPlus.disable()` without awaiting.
 - **Usage:**
   ```dart
-  // dispose, line 164:
+  // dispose, line 196:
   _releaseWakelock();
   ```
 - **Notes:** The doc comment explicitly notes the unawaited call is intentional: `dispose()` cannot be
@@ -232,7 +279,7 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
 
 ### `List<TimerHistoryEntry> _applyRetention(List<TimerHistoryEntry> entries)` <a id="applyretention"></a>
 - **Kind:** method of `_TimerPageState`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 249)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 280)
 - **Purpose:** Prune history entries older than the configured retention window.
 - **Inputs:** `entries` — the history list to filter.
 - **Returns:** `List<TimerHistoryEntry>` — `entries` unchanged if retention is permanent.
@@ -242,10 +289,10 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
   where `e.start.isAfter(cutoff)`.
 - **Usage:**
   ```dart
-  // initState, line 135:
+  // initState, line 165:
   _history = _applyRetention(List.of(widget.timerHistory));
 
-  // _buildRetentionChip, onSelected, line 859:
+  // _buildRetentionChip, onSelected, line 902:
   _history = _applyRetention(_history);
   ```
 - **Notes:** Retention is applied both at load time (in case the setting changed while the page was
@@ -253,7 +300,7 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
 
 ### `Future<void> _start()` <a id="start"></a>
 - **Kind:** method of `_TimerPageState`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 262)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 293)
 - **Purpose:** Start the stopwatch from zero, or resume it from a paused state.
 - **Inputs:** None.
 - **Returns:** `Future<void>`.
@@ -265,7 +312,7 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
   3. `_ensureTicker()`; `setState(() {})`; `await _persistState(timerSessionChanged: true)`.
 - **Usage:**
   ```dart
-  // build, line 696 (fresh start) and line 734 (resume from paused):
+  // build, line 742 (fresh start) and line 780 (resume from paused):
   onPressed: () => _start(),
   ```
 - **Notes:** `_firstStartedAt` is what survives a pause/resume cycle unchanged — it's the value stored
@@ -274,7 +321,7 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
 
 ### `Future<void> _pause()` <a id="pause"></a>
 - **Kind:** method of `_TimerPageState`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 276)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 307)
 - **Purpose:** Pause the stopwatch, folding the just-elapsed run segment into `_accumulated`.
 - **Inputs:** None.
 - **Returns:** `Future<void>`.
@@ -287,7 +334,7 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
   3. `setState(() {})`; `await _persistState(timerSessionChanged: true)`.
 - **Usage:**
   ```dart
-  // build, line 708-710:
+  // build, lines 754-757:
   OutlinedButton.icon(
     onPressed: () => _pause(),
     icon: const Icon(Icons.pause),
@@ -295,24 +342,29 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
   ),
   ```
 - **Notes:** Also called internally by `_saveRecord` (when not restoring from a history prefill) so
-  that saving a running timer first stops it cleanly through the same accumulation logic.
+  that saving a running timer first stops it cleanly through the same accumulation logic. Presses
+  made while paused are stamped with the paused elapsed time, so they land at the pause point.
 
 ### `Future<void> _changeThrustCount(int delta)` <a id="changethrustcount"></a>
 - **Kind:** method of `_TimerPageState`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 292)
-- **Purpose:** Adjust the thrust counter by a signed delta (the `+100`/`+50`/`+10`/`-100` buttons).
-- **Inputs:** `delta` — signed change to apply.
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 326)
+- **Purpose:** Handle the `+100`/`+50`/`+10` buttons (record a press) and the `-100` button (undo).
+- **Inputs:** `delta` — positive to record a press, negative to undo that many repetitions.
 - **Returns:** `Future<void>`.
-- **Side effects:** Updates `_thrustCount`; persists the session.
-- **Algorithm:** `next = (_thrustCount + delta).clamp(0, 999999).toInt()`; if unchanged, return early;
-  otherwise `setState` the new count and `await _persistState(timerSessionChanged: true)`.
+- **Side effects:** Replaces `_timeline`; persists the session.
+- **Algorithm:** `next = delta < 0 ? _timeline.undo(-delta) : _timeline.add(_elapsed.inMilliseconds,
+  delta)`; if `identical(next, _timeline)` (nothing changed), return early; otherwise `setState`
+  the new timeline and `await _persistState(timerSessionChanged: true)`.
 - **Usage:**
   ```dart
-  // build, lines 647-666 (the four buttons):
-  OutlinedButton.icon(
-    onPressed: _thrustCount > 0 ? () => _changeThrustCount(-100) : null,
-    icon: const Icon(Icons.remove),
-    label: const Text('-100'),
+  // build, lines 691-715 (the four buttons):
+  Tooltip(
+    message: l10n.intimacyThrustUndoHint,
+    child: OutlinedButton.icon(
+      onPressed: _thrustCount > 0 ? () => _changeThrustCount(-100) : null,
+      icon: const Icon(Icons.remove),
+      label: const Text('-100'),
+    ),
   ),
   FilledButton.icon(
     onPressed: () => _changeThrustCount(100),
@@ -320,15 +372,20 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
     label: const Text('+100'),
   ),
   ```
-- **Notes:** The `clamp(0, ...)` is what guarantees the "non-negative thrust counter" invariant
-  described in [Intimacy](../../../../features/intimacy.md#timerstopwatch-session-persistence); the
-  `-100` button itself is additionally disabled in the UI whenever `_thrustCount == 0`.
+- **Notes:** Since v1.5.5 `-100` is an **undo**, not a plain subtraction: it removes the latest
+  presses until exactly 100 is gone, trimming the last press it reaches if that press is larger
+  than what is left to remove, and clears everything when the total is below 100 — see
+  [`ThrustTimeline.undo`](../utils/thrust_timeline.md#undo). The resulting total is the same as the
+  old `clamp(0, …)` arithmetic; what changed is that the timeline stays consistent with it. A press
+  that would pass 999 999 is ignored ([`ThrustTimeline.add`](../utils/thrust_timeline.md#add)).
+  The `-100` button is additionally disabled in the UI whenever `_thrustCount == 0`, and its tooltip
+  (`intimacyThrustUndoHint`) explains the undo.
 
 ### `int _actualThrustCount(int count, int unit)` <a id="actualthrustcount"></a>
 - **Kind:** method of `_TimerPageState`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 304)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 340)
 - **Purpose:** Convert a stored `(count, unit)` pair — as read from a persisted session or history
-  entry — back into an actual repetition count for the live counter.
+  entry — back into an actual repetition count.
 - **Inputs:** `count`, `unit` — the stored values (`unit` is always normalized to `1` or `100`).
 - **Returns:** `int` — the actual repetition count.
 - **Side effects:** None.
@@ -336,11 +393,8 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
   stored count of, say, `3` expands back to `300`).
 - **Usage:**
   ```dart
-  // initState, line 145-148 (restoring a session):
-  _thrustCount = _actualThrustCount(session.thrustCount, session.thrustCountUnit);
-
-  // _confirmRestoreHistory, line 568-571 (restoring from history):
-  _thrustCount = _actualThrustCount(entry.thrustCount, entry.thrustCountUnit);
+  // _restoreTimeline, line 148 (used for both session and history restores):
+  final actual = _actualThrustCount(count, unit);
   ```
 - **Notes:** This is the exact inverse of `_storedThrustCount`/`_storedThrustCountUnit` — together
   they implement the x100/x1 storage rule from
@@ -348,7 +402,7 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
 
 ### `int get _storedThrustCountUnit` <a id="storedthrustcountunit"></a>
 - **Kind:** getter of `_TimerPageState`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 314)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 350)
 - **Purpose:** Decide whether the current live thrust count must be stored as an exact `x1` value or
   a compact `x100` estimate.
 - **Inputs:** None (reads `_thrustCount`).
@@ -359,10 +413,10 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
   (unit `1`); zero or an exact multiple of 100 stores as unit `100`.
 - **Usage:**
   ```dart
-  // _timerSession getter, line 386:
+  // _timerSession getter, line 421:
   thrustCountUnit: _storedThrustCountUnit,
 
-  // _saveRecord, line 450:
+  // _saveRecord, line 485:
   prefillEntry?.thrustCountUnit ?? _storedThrustCountUnit,
   ```
 - **Notes:** Because the buttons are `+100`/`+50`/`+10`/`-100`, any combination other than repeated
@@ -371,7 +425,7 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
 
 ### `int get _storedThrustCount` <a id="storedthrustcount"></a>
 - **Kind:** getter of `_TimerPageState`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 324)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 360)
 - **Purpose:** Compute the count value to actually persist, consistent with `_storedThrustCountUnit`.
 - **Inputs:** None (reads `_thrustCount`).
 - **Returns:** `int`.
@@ -380,27 +434,29 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
   store `_thrustCount ~/ _estimatedThrustUnit` (the count of hundreds).
 - **Usage:**
   ```dart
-  // _saveRecord, line 448 and _timerSession, line 385:
+  // _saveRecord, line 500 and _timerSession, line 420:
   thrustCount: _storedThrustCount,
   ```
 - **Notes:** A live count of `250` (not a clean multiple of 100) stores as unit `1`, count `250`
   exactly — it is never rounded down to `2` hundreds, which would silently lose 50 repetitions.
+  Because the conversion is exact, `count * unit` always equals the timeline's total, which is what
+  lets `AddRecordDialog` keep the timeline on save.
 
 ### `Future<void> _reset()` <a id="reset"></a>
 - **Kind:** method of `_TimerPageState`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 341)
-- **Purpose:** Clear the stopwatch entirely — elapsed time and thrust count — back to a fresh, unstarted
-  state.
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 377)
+- **Purpose:** Clear the stopwatch entirely — elapsed time and press timeline — back to a fresh,
+  unstarted state.
 - **Inputs:** None.
 - **Returns:** `Future<void>`.
-- **Side effects:** Clears `_accumulated`/`_firstStartedAt`/`_startedAt`/`_running`/`_thrustCount`;
-  cancels the ticker; persists the (now-empty) session.
+- **Side effects:** Clears `_accumulated`/`_firstStartedAt`/`_startedAt`/`_running`, sets `_timeline`
+  to `ThrustTimeline.empty()`; cancels the ticker; persists the (now-empty) session.
 - **Algorithm:** Zero every timer field, cancel `_ticker`, `setState(() {})`, then
   `await _persistState(timerSessionChanged: true)` — which persists a session snapshot of `null`
   since `_timerSession` returns `null` once `_firstStartedAt` is `null`.
 - **Usage:**
   ```dart
-  // build, line 755-759 (only shown once paused with elapsed time):
+  // build, lines 801-805 (only shown once paused with elapsed time):
   TextButton.icon(
     onPressed: () => _reset(),
     icon: const Icon(Icons.refresh),
@@ -414,7 +470,7 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
 
 ### `void _ensureTicker()` <a id="ensureticker"></a>
 - **Kind:** method of `_TimerPageState`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 357)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 393)
 - **Purpose:** (Re)start the one-second periodic timer that keeps the displayed elapsed time advancing
   while the stopwatch is running.
 - **Inputs:** None.
@@ -426,10 +482,10 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
   always comes from the wall-clock `_elapsed` getter, not from a counter incremented by this timer.
 - **Usage:**
   ```dart
-  // _start, line 267:
+  // _start, line 297:
   _ensureTicker();
 
-  // initState, line 149 (restoring a running session):
+  // initState, line 181 (restoring a running session):
   if (_running) _ensureTicker();
   ```
 - **Notes:** Because the ticker only triggers a redraw and never itself tracks time, missed ticks
@@ -438,32 +494,35 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
 
 ### `IntimacyTimerSession? get _timerSession` <a id="timersession"></a>
 - **Kind:** getter of `_TimerPageState`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 376)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 412)
 - **Purpose:** Build the persistable snapshot of the current stopwatch state for `_persistState`/the
   page's `TimerPageResult`.
-- **Inputs:** None (reads the timer fields plus `_storedThrustCount`/`_storedThrustCountUnit`).
+- **Inputs:** None (reads the timer fields, `_storedThrustCount`/`_storedThrustCountUnit` and
+  `_timeline`).
 - **Returns:** `IntimacyTimerSession?` — `null` when there is no session to restore.
 - **Side effects:** None.
 - **Algorithm:** If `_firstStartedAt == null`, return `null` (nothing to restore — the "stopped and
   cleared" state). Otherwise construct an `IntimacyTimerSession` with `firstStartedAt`, `startedAt:
-  _running ? _startedAt : null`, `accumulated`, `running: _running`, and the current
-  `_storedThrustCount`/`_storedThrustCountUnit`.
+  _running ? _startedAt : null`, `accumulated`, `running: _running`, the current
+  `_storedThrustCount`/`_storedThrustCountUnit`, and `thrustTimeline: _timeline` (the model stores
+  an empty timeline as `null`, so no key is written until the first press).
 - **Usage:**
   ```dart
-  // _persistState, line 406:
+  // _persistState, line 442:
   session: _timerSession,
 
-  // _popWithHistoryIfChanged, line 427:
+  // _popWithHistoryIfChanged, line 463:
   updatedTimerSession: _timerSession,
   ```
 - **Notes:** A paused session's `startedAt` is explicitly `null` in the snapshot even though
   `_startedAt` may still hold a stale in-memory value from before the pause — the getter always derives
   `startedAt` from the current `_running` flag rather than reusing whatever `_startedAt` happens to
-  contain.
+  contain. Because every press persists the session, an interrupted session restores with its press
+  times intact.
 
 ### `Future<void> _persistState({bool historyChanged = false, bool timerSessionChanged = false, bool retentionChanged = false})` <a id="persiststate"></a>
 - **Kind:** method of `_TimerPageState`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 394)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 431)
 - **Purpose:** Bridge every timer-affecting action to the caller's persistence callback, only when
   something actually changed.
 - **Inputs:** Three independent change flags for history, timer session, and retention.
@@ -482,7 +541,7 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
      sticky accumulated ones.
 - **Usage:**
   ```dart
-  // _start, line 269:
+  // _start, line 299:
   await _persistState(timerSessionChanged: true);
 
   // views/intimacy_page.dart's _saveTimerState (the onStateChanged implementation), consumed via:
@@ -495,7 +554,7 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
 
 ### `void _popWithHistoryIfChanged()` <a id="popwithhistoryifchanged"></a>
 - **Kind:** method of `_TimerPageState`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 420)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 457)
 - **Purpose:** Close the page, returning a `TimerPageResult` only if there's actually something for
   the caller to persist.
 - **Inputs:** None.
@@ -506,7 +565,7 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
   flags; otherwise pop with no result at all.
 - **Usage:**
   ```dart
-  // build, line 593-598 (PopScope intercepts the back gesture/button):
+  // build, lines 645-650 (PopScope intercepts the back gesture/button):
   return PopScope(
     canPop: false,
     onPopInvokedWithResult: (didPop, _) {
@@ -522,7 +581,7 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
 
 ### `Future<void> _saveRecord({TimerHistoryEntry? prefillEntry})` <a id="saverecord"></a>
 - **Kind:** method of `_TimerPageState`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 445)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 482)
 - **Purpose:** Turn the current stopwatch (or a re-opened history entry) into an `IntimacyRecord`,
   via `AddRecordDialog`.
 - **Inputs:** `prefillEntry` — when non-null, save from an existing history entry instead of the live
@@ -532,41 +591,48 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
   `AddRecordDialog`; on a successful save, may clear the live timer session and persist that; pops the
   page with a `TimerPageResult`.
 - **Algorithm:**
-  1. Resolve `elapsed`/`prefillThrustCount`/`prefillThrustCountUnit`/`sessionStart` from
-     `prefillEntry` if given, otherwise from the live `_elapsed`/`_storedThrustCount`/
-     `_storedThrustCountUnit`/`_sessionStartTime` (falling back to `DateTime.now().subtract(elapsed)`
-     if there's no recorded start).
+  1. Resolve `elapsed`/`prefillThrustCount`/`prefillThrustCountUnit`/`prefillThrustTimeline`/
+     `sessionStart` from `prefillEntry` if given (its `thrustTimeline`, possibly `null` for a
+     pre-1.5.5 entry), otherwise from the live `_elapsed`/`_storedThrustCount`/
+     `_storedThrustCountUnit`/`_timeline`/`_sessionStartTime` (falling back to
+     `DateTime.now().subtract(elapsed)` if there's no recorded start).
   2. If `prefillEntry == null`, `await _pause()` first (stop the live timer cleanly).
-  3. If `prefillEntry == null`, build a new `TimerHistoryEntry` from the live session, insert it at
-     the front of `_history`, re-apply retention, mark history changed, and `await
-     _persistState(historyChanged: true)` — so the history row exists even if the user then cancels
-     the record dialog.
+  3. If `prefillEntry == null`, build a new `TimerHistoryEntry` from the live session — including
+     `thrustTimeline: _timeline` — insert it at the front of `_history`, re-apply retention, mark
+     history changed, and `await _persistState(historyChanged: true)` — so the history row exists
+     even if the user then cancels the record dialog.
   4. `await showDialog<IntimacyRecord>(... AddRecordDialog(prefillDuration: elapsed,
-     initialThrustCount: prefillThrustCount > 0 ? prefillThrustCount : null, ...))`.
+     initialThrustCount: prefillThrustCount > 0 ? prefillThrustCount : null,
+     initialThrustCountUnit: prefillThrustCountUnit, prefillThrustTimeline: prefillThrustTimeline,
+     ...))`.
   5. If a record was returned: if this was a live-timer save (`prefillEntry == null`), clear every
-     timer field to its reset state and `await _persistState(timerSessionChanged: true)` — a
-     history-prefill save leaves the live timer untouched.
+     timer field to its reset state (`_timeline = ThrustTimeline.empty()`) and `await
+     _persistState(timerSessionChanged: true)` — a history-prefill save leaves the live timer
+     untouched.
   6. Pop with a `TimerPageResult` carrying the record, updated history, updated (possibly now-null)
      timer session, and the corresponding change flags.
 - **Usage:**
   ```dart
-  // build, line 719-722 (Stop & Save while running):
+  // build, lines 765-768 (Stop & Save while running):
   FilledButton.icon(
     onPressed: () => _saveRecord(),
     icon: const Icon(Icons.stop),
     label: Text(l10n.intimacyStopSave),
   ),
 
-  // build, line 823 (tapping a history row to re-save it):
+  // build, line 866 (tapping a history row to re-save it):
   onTap: () => _saveRecord(prefillEntry: entry),
   ```
 - **Notes:** Step 3's early persist of the history entry (before the dialog even opens) means a
   history row for this session exists even if the user backs out of `AddRecordDialog` without
-  completing it — only the record itself is lost, not the timer's history trace.
+  completing it — only the record itself is lost, not the timer's history trace. `elapsed` keeps its
+  seconds, and since v1.5.5 the dialog keeps them on the record unless the user edits the duration
+  fields; it also keeps the timeline only while the entered count still equals its total — see
+  [`AddRecordDialog._submit`](add_record_dialog.md#submit).
 
 ### `String _formatDuration(Duration d)` <a id="formatduration"></a>
 - **Kind:** method of `_TimerPageState`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 518)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 560)
 - **Purpose:** Format a duration as a zero-padded `HH:MM:SS` string for the main timer display and
   history rows.
 - **Inputs:** `d` — the duration to format.
@@ -576,16 +642,17 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
   d.inSeconds % 60`, each `padLeft(2, '0')`, joined with `:`.
 - **Usage:**
   ```dart
-  // build, line 626 (the big display) and line 812 (each history row):
+  // build, line 671 (the big display) and line 855 (each history row):
   Text(_formatDuration(_elapsed), ...),
   Text(_formatDuration(entry.duration), ...),
   ```
 - **Notes:** `hours` is not wrapped modulo 24, so a session over a day long (however unlikely) would
-  display e.g. `26:14:03` rather than wrapping to `02:14:03`.
+  display e.g. `26:14:03` rather than wrapping to `02:14:03`. The record detail page's
+  `_formatDuration` uses the same format, so a timer-made record reads the same in both places.
 
 ### `Future<void> _confirmRestoreHistory(TimerHistoryEntry entry)` <a id="confirmrestorehistory"></a>
 - **Kind:** method of `_TimerPageState`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 538)
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 580)
 - **Purpose:** Let the user turn a saved history entry back into a live running stopwatch, after
   confirmation.
 - **Inputs:** `entry` — the history entry to restore.
@@ -599,12 +666,13 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
   3. Inside `setState`: remove `entry` from `_history`, mark `_historyChanged`; set `_firstStartedAt =
      entry.start`, `_startedAt = DateTime.now()` (a fresh resume point), `_accumulated =
      entry.duration` (the entry's saved elapsed time becomes the new accumulated base), `_running =
-     true`; restore `_thrustCount` via `_actualThrustCount(entry.thrustCount,
-     entry.thrustCountUnit)`; mark `_timerSessionChanged`.
+     true`; restore `_timeline` via [`_restoreTimeline`](#restoretimeline)`(entry.thrustTimeline,
+     entry.thrustCount, entry.thrustCountUnit, entry.duration)` — a pre-1.5.5 entry is seeded as one
+     event at its duration; mark `_timerSessionChanged`.
   4. `_ensureTicker()`; `await _persistState(historyChanged: true, timerSessionChanged: true)`.
 - **Usage:**
   ```dart
-  // build, line 824-828 (the restore icon on each history row):
+  // build, lines 867-871 (the restore icon on each history row):
   IconButton(
     tooltip: l10n.intimacyTimerRestore,
     icon: const Icon(Icons.restore, size: 20),
@@ -617,34 +685,47 @@ refine (not just copy) the source `///` comment. Tier split: 23 Tier A, 11 Tier 
   on the confirmation dialog notes "any current running timer keeps ticking while the confirmation
   dialog is open" — the live timer isn't paused just because a restore is being considered.
 
+### `Widget build(BuildContext context)` (`_TimerBody`) <a id="timerbody-build"></a>
+- **Kind:** method of `_TimerBody`
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 955)
+- **Purpose:** Arrange the stopwatch and its session history either stacked or in two panes, and
+  give the stopwatch its padding and scrolling.
+- **Inputs:** `context`; the widget's own `twoPane`, `timer` and `history` fields. `timer` is the
+  bare stopwatch `Column` (`mainAxisSize: MainAxisSize.min`), not wrapped in anything.
+- **Returns:** A `CustomScrollView` when stacked, a `Row` when split.
+- **Side effects:** None beyond building widgets.
+- **Algorithm:**
+  1. `!twoPane || history.isEmpty` → `CustomScrollView(slivers: [SliverPadding(padding:
+     _timerPadding, sliver: SliverToBoxAdapter(child: Center(child: timer))),
+     SliverList(delegate: SliverChildListDelegate(history))])` — one scroll view for both.
+  2. Otherwise a `Row` (cross-axis stretch) of `Expanded(child: SingleChildScrollView(padding:
+     _timerPadding, child: Center(child: timer)))`, a `VerticalDivider`, and a
+     `SizedBox(width: timerHistoryPaneWidth, child: ListView(children: history))`.
+- **Usage:** Built by `TimerPage`'s `build` once the split decision is resolved.
+- **Notes:** v1.5.5 changed the stacked arrangement. It used to be `Column([Expanded(timer),
+  ...historyTiles])`, so the history tiles took their full height first and squeezed the stopwatch
+  into whatever was left — on a Galaxy Z Fold's outer screen, or with a long history, the controls
+  shrank to a sliver (a 412 x 915 viewport with 30 entries overflowed by 1254 px in
+  `test/timer_layout_ui_test.dart`). Now the stopwatch always keeps its natural height and a long
+  history scrolls below it. The two-pane look is unchanged; in both arrangements the stopwatch is
+  top-aligned and horizontally centred, with `_timerPadding` (16 horizontal, 24 vertical) around it.
+  The empty-history case falls back to the stacked branch rather than rendering a blank pane —
+  whenever a block can render to nothing, it belongs in the gate. Gated on `canSplitLayout` for
+  consistency with every other split surface, which costs a phone in landscape the split it would
+  benefit from most; that trade, and the compact digits below `timerCompactDisplayWidth`, are
+  recorded in [../../../../adaptive-layout.md](../../../../adaptive-layout.md).
+
 ## Related pages
 
 - [Intimacy — Timer/stopwatch session persistence](../../../../features/intimacy.md#timerstopwatch-session-persistence) —
-  the running/paused/stopped recovery contract, the x100/x1 thrust-count storage rule, and the
-  keep-screen-awake preference this file implements in full.
+  the running/paused/stopped recovery contract, the x100/x1 thrust-count storage rule, the press
+  timeline, and the keep-screen-awake preference this file implements in full.
+- [`thrust_timeline.dart`](../utils/thrust_timeline.md) — `ThrustTimeline`, the press list behind
+  the counter.
 - [`add_record_dialog.dart`](add_record_dialog.md) — `AddRecordDialog`, opened by `_saveRecord` and
   pre-filled from the finished (or re-opened) stopwatch session.
+- [`adaptive_layout.dart`](../../../shared/utils/adaptive_layout.md#usecompacttimerdisplay) —
+  `useCompactTimerDisplay`, which picks the digit size.
 - `shared/services/sync_wake_lock.dart` — the independent, reference-counted wakelock used by
   foreground sync operations; `_applyWakelock`/`_releaseWakelock` here never interferes with it
   because each tracks its own "did I enable this" flag.
-
-### `Widget build(BuildContext context)` (`_TimerBody`) <a id="timerbody-build"></a>
-- **Kind:** method of `_TimerBody`
-- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 915)
-- **Purpose:** Arrange the stopwatch and its session history either stacked or in two panes.
-- **Inputs:** `context`; the widget's own `twoPane`, `timer` and `history` fields.
-- **Returns:** A `Column` when stacked, a `Row` when split.
-- **Side effects:** None beyond building widgets.
-- **Algorithm:**
-  1. `!twoPane || history.isEmpty` → `Column(children: [timer, ...history])`, which is exactly the
-     body the page had before v1.4.2.
-  2. Otherwise a `Row` of `Expanded(child: Column(children: [timer]))`, a `VerticalDivider`, and a
-     `SizedBox(width: timerHistoryPaneWidth, child: ListView(children: history))`.
-- **Usage:** Built by `TimerPage`'s `build` once the split decision is resolved.
-- **Notes:** Stacked, a long session history pushes the stopwatch up and eventually off the top of
-  the screen, which is the one thing this page must always show. `timer` arrives already wrapped in
-  an `Expanded`, so both arrangements put it in a `Flex`. The empty-history case falls back to the
-  stacked branch rather than rendering a blank pane — whenever a block can render to nothing, it
-  belongs in the gate. Gated on `canSplitLayout` for consistency with every other split surface,
-  which costs a phone in landscape the split it would benefit from most; that trade is recorded in
-  [../../../adaptive-layout.md](../../../adaptive-layout.md).

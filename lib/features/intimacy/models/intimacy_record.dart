@@ -1,5 +1,7 @@
 import 'package:uuid/uuid.dart';
 
+import '../utils/thrust_timeline.dart';
+
 /// Optional gender-neutral body measurements and preferences for one person.
 class BodyProfile {
   final double? bustCm;
@@ -65,8 +67,7 @@ class BodyProfile {
     if (cycleEnabled) 'cycleEnabled': cycleEnabled,
     if (showCycleOnCalendar) 'showCycleOnCalendar': showCycleOnCalendar,
     if (erectLengthCm != null) 'erectLengthCm': erectLengthCm,
-    if (baseCircumferenceCm != null)
-      'baseCircumferenceCm': baseCircumferenceCm,
+    if (baseCircumferenceCm != null) 'baseCircumferenceCm': baseCircumferenceCm,
     if (frontCircumferenceCm != null)
       'frontCircumferenceCm': frontCircumferenceCm,
   };
@@ -467,6 +468,9 @@ class IntimacyRecord {
   final Duration duration;
   final int? thrustCount;
   final int thrustCountUnit;
+
+  /// When each thrust was counted on the timer; null for typed-in counts.
+  final ThrustTimeline? thrustTimeline;
   final DateTime datetime;
   final String? notes;
   final bool hadOrgasm;
@@ -475,10 +479,13 @@ class IntimacyRecord {
   final DateTime modifiedAt;
 
   /// Purpose: Create a intimacy record instance.
-  /// Inputs: `isSolo`, optional thrust count value/unit, and protection flag.
+  /// Inputs: `isSolo`, optional thrust count value/unit, optional
+  /// `thrustTimeline`, and protection flag.
   /// Returns: A new `IntimacyRecord` instance.
   /// Side effects: None.
-  /// Notes: None.
+  /// Notes: An empty `thrustTimeline` is stored as null. When present, its
+  /// total is expected to equal `resolvedThrustCount`; `AddRecordDialog`
+  /// enforces that, readers do not.
   IntimacyRecord({
     String? id,
     required this.type,
@@ -491,6 +498,7 @@ class IntimacyRecord {
     required this.duration,
     this.thrustCount,
     int? thrustCountUnit,
+    ThrustTimeline? thrustTimeline,
     DateTime? datetime,
     this.notes,
     this.hadOrgasm = false,
@@ -499,6 +507,9 @@ class IntimacyRecord {
     DateTime? modifiedAt,
   }) : id = id ?? const Uuid().v4(),
        thrustCountUnit = thrustCountUnit == 1 ? 1 : 100,
+       thrustTimeline = thrustTimeline == null || thrustTimeline.isEmpty
+           ? null
+           : thrustTimeline,
        datetime = datetime ?? DateTime.now(),
        modifiedAt = modifiedAt ?? DateTime.now().toUtc();
 
@@ -511,6 +522,20 @@ class IntimacyRecord {
     final count = thrustCount;
     if (count == null || count <= 0) return null;
     return count * thrustCountUnit.toDouble();
+  }
+
+  /// Purpose: Report whether this record has enough timer presses to chart.
+  /// Inputs: None.
+  /// Returns: `bool` — true with at least two timeline events whose total
+  /// equals `resolvedThrustCount`.
+  /// Side effects: None.
+  /// Notes: Gates the curve on the record detail page. The total check hides
+  /// a stale timeline left behind when a build older than v1.5.5, which keeps
+  /// the key as unknown data, changed the record's count.
+  bool get hasThrustTimeline {
+    final timeline = thrustTimeline;
+    if (timeline == null || timeline.events.length < 2) return false;
+    return timeline.total == (resolvedThrustCount ?? 0);
   }
 
   /// Purpose: Return this record's average thrusting rate in thrusts per minute.
@@ -544,6 +569,8 @@ class IntimacyRecord {
     'duration': duration.inSeconds,
     if (thrustCount != null) 'thrustCount': thrustCount,
     if (thrustCount != null) 'thrustCountUnit': thrustCountUnit,
+    if (thrustTimeline != null)
+      ThrustTimeline.jsonKey: thrustTimeline!.toJson(),
     'datetime': datetime.toIso8601String(),
     if (notes != null) 'notes': notes,
     'hadOrgasm': hadOrgasm,
@@ -580,6 +607,7 @@ class IntimacyRecord {
       duration: Duration(seconds: json['duration'] as int),
       thrustCount: (json['thrustCount'] as num?)?.toInt(),
       thrustCountUnit: json['thrustCountUnit'] == 1 ? 1 : 100,
+      thrustTimeline: ThrustTimeline.fromJson(json[ThrustTimeline.jsonKey]),
       datetime: DateTime.parse(json['datetime'] as String),
       notes: json['notes'] as String?,
       hadOrgasm: json['hadOrgasm'] as bool? ?? false,
@@ -599,18 +627,25 @@ class TimerHistoryEntry {
   final int thrustCount;
   final int thrustCountUnit;
 
+  /// When each thrust was counted; null for entries saved before v1.5.5.
+  final ThrustTimeline? thrustTimeline;
+
   /// Purpose: Create a timer history entry instance.
-  /// Inputs: `duration` and optional thrust count value/unit.
+  /// Inputs: `duration`, optional thrust count value/unit, optional `thrustTimeline`.
   /// Returns: A new `TimerHistoryEntry` instance.
   /// Side effects: None.
-  /// Notes: None.
+  /// Notes: An empty `thrustTimeline` is stored as null.
   TimerHistoryEntry({
     required this.start,
     required this.duration,
     int thrustCount = 0,
     int? thrustCountUnit,
+    ThrustTimeline? thrustTimeline,
   }) : thrustCount = thrustCount < 0 ? 0 : thrustCount,
-       thrustCountUnit = thrustCountUnit == 1 ? 1 : 100;
+       thrustCountUnit = thrustCountUnit == 1 ? 1 : 100,
+       thrustTimeline = thrustTimeline == null || thrustTimeline.isEmpty
+           ? null
+           : thrustTimeline;
 
   /// Purpose: Serialize this value into a JSON-compatible map.
   /// Inputs: None.
@@ -622,6 +657,8 @@ class TimerHistoryEntry {
     'durationMs': duration.inMilliseconds,
     if (thrustCount > 0) 'thrustCount': thrustCount,
     if (thrustCount > 0) 'thrustCountUnit': thrustCountUnit,
+    if (thrustTimeline != null)
+      ThrustTimeline.jsonKey: thrustTimeline!.toJson(),
   };
 
   /// Purpose: Create an instance from a JSON-compatible map.
@@ -633,6 +670,9 @@ class TimerHistoryEntry {
     final rawThrustCount = (json['thrustCount'] as num?)?.toInt() ?? 0;
     final thrustCount = rawThrustCount > 0 ? rawThrustCount : 0;
     final thrustCountUnit = json['thrustCountUnit'] == 1 ? 1 : 100;
+    final thrustTimeline = ThrustTimeline.fromJson(
+      json[ThrustTimeline.jsonKey],
+    );
     // Support legacy entries that stored 'end' instead of 'durationMs'
     if (json.containsKey('durationMs')) {
       return TimerHistoryEntry(
@@ -640,6 +680,7 @@ class TimerHistoryEntry {
         duration: Duration(milliseconds: json['durationMs'] as int),
         thrustCount: thrustCount,
         thrustCountUnit: thrustCountUnit,
+        thrustTimeline: thrustTimeline,
       );
     }
     final start = DateTime.parse(json['start'] as String);
@@ -649,6 +690,7 @@ class TimerHistoryEntry {
       duration: end.difference(start),
       thrustCount: thrustCount,
       thrustCountUnit: thrustCountUnit,
+      thrustTimeline: thrustTimeline,
     );
   }
 }
@@ -661,11 +703,15 @@ class IntimacyTimerSession {
   final int thrustCount;
   final int thrustCountUnit;
 
+  /// When each thrust was counted; null for sessions saved before v1.5.5.
+  final ThrustTimeline? thrustTimeline;
+
   /// Purpose: Create an intimacy timer session snapshot.
-  /// Inputs: `firstStartedAt`, optional `startedAt`, elapsed `accumulated`, `running`, and optional thrust count value/unit.
+  /// Inputs: `firstStartedAt`, optional `startedAt`, elapsed `accumulated`, `running`, optional thrust count value/unit, and optional `thrustTimeline`.
   /// Returns: A new `IntimacyTimerSession` instance.
   /// Side effects: None.
   /// Notes: `accumulated` stores elapsed time before the latest running segment.
+  /// An empty `thrustTimeline` is stored as null.
   IntimacyTimerSession({
     required this.firstStartedAt,
     this.startedAt,
@@ -673,8 +719,12 @@ class IntimacyTimerSession {
     required this.running,
     int thrustCount = 0,
     int? thrustCountUnit,
+    ThrustTimeline? thrustTimeline,
   }) : thrustCount = thrustCount < 0 ? 0 : thrustCount,
-       thrustCountUnit = thrustCountUnit == 1 ? 1 : 100;
+       thrustCountUnit = thrustCountUnit == 1 ? 1 : 100,
+       thrustTimeline = thrustTimeline == null || thrustTimeline.isEmpty
+           ? null
+           : thrustTimeline;
 
   /// Purpose: Calculate elapsed timer duration at a wall-clock instant.
   /// Inputs: `now`.
@@ -698,6 +748,8 @@ class IntimacyTimerSession {
     'running': running,
     if (thrustCount > 0) 'thrustCount': thrustCount,
     if (thrustCount > 0) 'thrustCountUnit': thrustCountUnit,
+    if (thrustTimeline != null)
+      ThrustTimeline.jsonKey: thrustTimeline!.toJson(),
   };
 
   /// Purpose: Create a timer session from a JSON-compatible map.
@@ -719,6 +771,7 @@ class IntimacyTimerSession {
       running: running,
       thrustCount: rawThrustCount > 0 ? rawThrustCount : 0,
       thrustCountUnit: json['thrustCountUnit'] == 1 ? 1 : 100,
+      thrustTimeline: ThrustTimeline.fromJson(json[ThrustTimeline.jsonKey]),
     );
   }
 }

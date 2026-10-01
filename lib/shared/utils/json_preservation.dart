@@ -269,6 +269,7 @@ const _intimacyRecordSchema = JsonPreservationSchema(
     'duration',
     'thrustCount',
     'thrustCountUnit',
+    'thrustTimeline',
     'datetime',
     'notes',
     'hadOrgasm',
@@ -279,7 +280,14 @@ const _intimacyRecordSchema = JsonPreservationSchema(
 );
 
 const _timerHistorySchema = JsonPreservationSchema(
-  knownKeys: {'start', 'durationMs', 'end', 'thrustCount', 'thrustCountUnit'},
+  knownKeys: {
+    'start',
+    'durationMs',
+    'end',
+    'thrustCount',
+    'thrustCountUnit',
+    'thrustTimeline',
+  },
 );
 
 const _timerSessionSchema = JsonPreservationSchema(
@@ -290,6 +298,7 @@ const _timerSessionSchema = JsonPreservationSchema(
     'running',
     'thrustCount',
     'thrustCountUnit',
+    'thrustTimeline',
   },
 );
 

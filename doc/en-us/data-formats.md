@@ -125,21 +125,45 @@ Source: `lib/features/intimacy/models/intimacy_record.dart`.
   `isSolo` (default `false`), optional `partnerId`, `toyIds`/`positionIds` (`List<String>`),
   `pleasureLevel` (1-5), `duration` (stored as `duration`-in-seconds), optional `thrustCount`,
   `thrustCountUnit` (normalized to exactly `1` or `100`; any non-`1` value is coerced to `100`),
-  `datetime`, optional `notes`, `hadOrgasm`/`watchedPorn`/`usedCondom` (default `false`),
-  `modifiedAt`. `thrustCount`/`thrustCountUnit` are omitted from JSON entirely when `thrustCount`
-  is null. Two derived values are computed at read time and **never persisted**:
-  `resolvedThrustCount` (`thrustCount * thrustCountUnit`, null when no positive count was
-  recorded) and `thrustsPerMinute` (the record's average thrusting rate,
+  optional `thrustTimeline` (v1.5.5, see below), `datetime`, optional `notes`,
+  `hadOrgasm`/`watchedPorn`/`usedCondom` (default `false`), `modifiedAt`.
+  `thrustCount`/`thrustCountUnit` are omitted from JSON entirely when `thrustCount` is null.
+  `duration` keeps its seconds for timer-made records (since v1.5.5, also through the record
+  dialog unless its duration fields are edited). Three derived values are computed at read time
+  and **never persisted**: `resolvedThrustCount` (`thrustCount * thrustCountUnit`, null when no
+  positive count was recorded), `thrustsPerMinute` (the record's average thrusting rate,
   `resolvedThrustCount / duration-in-minutes`, null unless both inputs are present and the
-  duration is non-zero).
+  duration is non-zero), and `hasThrustTimeline` (v1.5.5: the timeline has at least two events
+  and its total equals `resolvedThrustCount`, which gates the chart).
 - **`TimerHistoryEntry`**: `start`, `duration` (serialized as `durationMs`), `thrustCount` (clamped
-  `>= 0`), `thrustCountUnit` (normalized to `1` or `100`). Reads legacy entries that stored an `end`
-  timestamp instead of `durationMs` and derives `duration = end - start`.
+  `>= 0`), `thrustCountUnit` (normalized to `1` or `100`), optional `thrustTimeline` (v1.5.5). Reads
+  legacy entries that stored an `end` timestamp instead of `durationMs` and derives
+  `duration = end - start`.
 - **`IntimacyTimerSession`**: `firstStartedAt`, optional `startedAt`, `accumulated` (elapsed time
   before the current running segment, serialized as `accumulatedMs`), `running`, `thrustCount`,
-  `thrustCountUnit`. `elapsedAt(now)` returns `accumulated` when paused, or
-  `accumulated + (now - startedAt)` while running — so a running session's elapsed time is always
-  derived from wall-clock time, never from a stored "current" duration.
+  `thrustCountUnit`, optional `thrustTimeline` (v1.5.5). `elapsedAt(now)` returns `accumulated`
+  when paused, or `accumulated + (now - startedAt)` while running — so a running session's elapsed
+  time is always derived from wall-clock time, never from a stored "current" duration.
+- **`thrustTimeline`** (v1.5.5), on all three models above: the timer's thrust-counter presses as
+  `[[elapsedMs, delta], ...]` — integer pairs, oldest first, `elapsedMs >= 0` the stopwatch time of
+  the press in milliseconds and `delta > 0` the repetitions it added. For example
+  `"thrustTimeline": [[61000, 100], [95500, 50], [130250, 10]]`. Its total (the sum of the deltas)
+  is expected to equal the item's actual count (`thrustCount * thrustCountUnit`):
+  `AddRecordDialog` drops the timeline on save when they differ, and the timer page re-seeds it on
+  restore, but readers do not enforce it. The key is **omitted** when there is no timeline (an
+  empty one is normalized to absent), so data that never used the v1.5.5 timer serializes exactly
+  as before and the WebDAV golden transcripts are byte-identical. Reading is tolerant
+  (`ThrustTimeline.fromJson`): a pair that is not two numbers, or has a negative time or a
+  non-positive delta, is skipped, the rest are sorted by time, and nothing usable reads as absent —
+  a damaged timeline never makes the file unreadable. A single-event timeline is valid (a
+  pre-1.5.5 session restored and then saved carries one) but draws no chart. `thrustTimeline` is a
+  known key in the record, timer-history and timer-session preservation schemas
+  (`json_preservation.dart`). Builds before v1.5.5 do not know the key and carry it forward as an
+  unknown field — on their own saves (preserved from the file on disk) and through sync — so the
+  data survives a round trip through an older device. Such a build can still change the count
+  beside it; the timer page then re-seeds on restore, but a record edited that way keeps a timeline
+  whose total no longer matches its count. `hasThrustTimeline` then reports false, so the detail
+  page hides the stale curve, and the next save from `AddRecordDialog` drops the timeline.
 - **`IntimacyData`**: `partners`, `toys`, `positions`, `records`, `timerHistory`
   (`List<TimerHistoryEntry>`), optional `timerSession`, `timerSessionModifiedAt` (own LWW
   timestamp, epoch-UTC default), optional `userBody` (`BodyProfile?` — the user's own profile,

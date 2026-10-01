@@ -1,12 +1,14 @@
 # lib/features/intimacy/views/intimacy_page.dart
 
-亲密功能的主视图文件——整个应用迄今为止最大的源文件（5987 行）。它托管主页 `IntimacyPage`（日历、记录列表、趋势图、管理菜单）以及从它到达的每个管理/详情子页：伴侣管理、玩具管理、姿势管理、过滤的逐伴侣/逐玩具详情页（带记录/身体标签）、聚合玩具成本总览，以及跨它们使用的小型共享组件（`_CalendarWidget`、`_RecordTile`、`_DatePickerTile`）。模型来自 `../models/intimacy_record.dart`；存储是 `../services/intimacy_storage.dart`；周期数学是 `../services/cycle_predictor.dart`。完整功能描述见 [亲密](../../../../features/intimacy.md)，磁盘 JSON 形态见 [数据格式](../../../../data-formats.md#intimacy--intimacy_datajson)，这里经 `_buildCycleOverlays` 消费的周期预测细节见 [身体指标](../../../../algorithms/body-metrics.md)。
+亲密功能的主视图文件——整个应用迄今为止最大的源文件（6064 行）。它托管主页 `IntimacyPage`（日历、记录列表、趋势图、管理菜单）以及从它到达的每个管理/详情子页：伴侣管理、玩具管理、姿势管理、过滤的逐伴侣/逐玩具详情页（带记录/身体标签）、聚合玩具成本总览，以及跨它们使用的小型共享组件（`_CalendarWidget`、`_RecordTile`、`_DatePickerTile`）。模型来自 `../models/intimacy_record.dart`；存储是 `../services/intimacy_storage.dart`；周期数学是 `../services/cycle_predictor.dart`。完整功能描述见 [亲密](../../../../features/intimacy.md)，磁盘 JSON 形态见 [数据格式](../../../../data-formats.md#intimacy--intimacy_datajson)，这里经 `_buildCycleOverlays` 消费的周期预测细节见 [身体指标](../../../../algorithms/body-metrics.md)。
 
 结构上文件是一个主页（`IntimacyPage` / `_IntimacyPageState`）加十个支撑类，按源码顺序：`_IntimacyDataError`、`_CalendarWidget`、`_RecordTile`、`_PartnerManagementPage`（+ 状态）、`_ToyManagementPage`（+ 状态）、`_PositionManagementPage`（+ 状态）、`_FilteredRecordsPage`（+ 状态）、`_ToyCostOverviewPage`（+ 状态）、`_ToyCostTrendData` 和 `_DatePickerTile`。伴侣和玩具管理状态是近乎镜像的实现（自定义排序/重排、激活/非激活或激活/退役分组）。
 
 截至 v1.3.2，记录指标趋势图不再住在这里。主页的两个图表和 `_FilteredRecordsTrendSection` 的两个近乎逐字副本被单个 [`IntimacyTrendChart`](../widgets/intimacy_trend_chart.md) 组件取代，两个表面现在都嵌入它；27 个声明（点构建器、吸附辅助、图例项、日期间隔辅助和整个 `_FilteredRecordsTrendSection` 对）被删除，`_saveChartSettings` 被添加以持久化图表的共享选择。`_ToyCostOverviewPage` 上的玩具每日成本趋势图留在这里——它在对数刻度上把金额绘制在投影日期时间线上——并且现在共享图表组件导出的公共 `IntimacyChartRange` 枚举，而不是私有重复。
 
 自 v1.5.0 起，主页的图表小节还带有端侧 AI 洞察卡片（[`AiInsightCard`](../../ai/widgets/ai_insight_card.md#aiinsightcard-new)，`module: InsightModule.intimacy`），由 [`buildIntimacyInsightFacts`](../services/intimacy_insight_facts.md#buildintimacyinsightfacts) 提供事实。为了卡片的身体事实，`_loadData` 还会从 [`WeightStorage`](../../weight/services/weight_storage.md) 把用户自己的胸围/腰围/臀围记录读进 `_weightRecordsForInsight` 字段，但仅在可能有模型的平台上端侧 AI 开启时。见[端侧 AI](../../../../on-device-ai.md#insight-cards)。
+
+自 v1.5.5 起，点击记录条目——在主页或伴侣/玩具详情页上——经 `_openRecordDetail` 打开 [记录详情页](record_detail_page.md)（一个单独的文件）；`_RecordTile` 为此获得了 `onTap`，两个 `_editRecord` 方法都返回保存后的记录，使详情页能就地显示编辑结果。滑动编辑和滑动删除不变。
 
 ## 声明
 
@@ -33,12 +35,13 @@
 | [`_filteredRecords`](#filteredrecords-main) | getter（`_IntimacyPageState`） | A | 对记录列表应用所选日期、类型和排序过滤器。 |
 | [`_addRecord`](#addrecord-main) | 方法（`_IntimacyPageState`） | A | 打开添加记录对话框（仅激活伴侣/玩具）并持久化结果。 |
 | [`_deleteRecord`](#deleterecord-main) | 方法（`_IntimacyPageState`） | A | 按 id 移除记录并持久化。 |
-| [`_editRecord`](#editrecord-main) | 方法（`_IntimacyPageState`） | A | 打开编辑记录对话框并持久化更新记录。 |
+| [`_editRecord`](#editrecord-main) | 方法（`_IntimacyPageState`） | A | 打开编辑记录对话框、持久化更新记录并返回它（或 null）。 |
+| [`_openRecordDetail`](#openrecorddetail-main) | 方法（`_IntimacyPageState`） | A | 推入记录详情页，接到本页的编辑和删除路径（v1.5.5）。 |
 | `_IntimacyPageState.build` | 方法（组件） | B | 构建主页：日历、图表小节（趋势图，以及自 v1.5.0 起的端侧 AI 洞察卡片）和记录列表/摘要。 |
 | `_showAllRecords` | 方法（组件辅助） | B | 在模态底部面板显示完整过滤记录列表。 |
 | `_buildRecordListWidgets` | 方法（组件辅助） | B | 构建周分组记录列表组件（主页）。 |
 | `_buildWeekHeader` | 方法（组件辅助） | B | 构建 ISO 周组页头行（主页）。 |
-| `_buildRecordDismissible` | 方法（组件辅助） | B | 构建滑动删除记录行（主页）。 |
+| `_buildRecordDismissible` | 方法（组件辅助） | B | 构建可滑动编辑/删除、点击打开记录详情页的记录行（主页）。 |
 | `_buildSortChip` | 方法（组件辅助） | B | 构建排序模式 chip/菜单。 |
 | `_buildFilterChip` | 方法（组件辅助） | B | 构建过滤模式 chip/菜单。 |
 | `_showManageMenu` | 方法（组件辅助） | B | 显示底部面板管理菜单（身体/伴侣/玩具/姿势）。 |
@@ -52,8 +55,8 @@
 | `_CalendarWidget.build` | 方法（组件） | B | 渲染月网格、页头和星期标签。 |
 | `_buildDayGrid` | 方法（组件辅助） | B | 构建日历的日数字网格。 |
 | `_isSameDay` | 方法（`_CalendarWidget`） | B | 忽略日内时间比较两个日期。 |
-| `_RecordTile.new` | 构造函数 | B | 平凡转发构造函数。 |
-| `_RecordTile.build` | 方法（组件） | B | 渲染一条记录的摘要块（伴侣/玩具/姿势/标志）。 |
+| `_RecordTile.new` | 构造函数 | B | 转发构造函数；可选 `onTap`（v1.5.5）打开记录详情页。 |
+| `_RecordTile.build` | 方法（组件） | B | 在可点击的 `InkWell` 内渲染一条记录的摘要块（伴侣/玩具/姿势/标志）。 |
 | `_PartnerManagementPage.new` | 构造函数 | B | 平凡转发构造函数。 |
 | `_PartnerManagementPage.createState` | 方法（`_PartnerManagementPage`） | B | 创建 `_PartnerManagementPageState`。 |
 | `_PartnerManagementPageState.initState` | 方法（生命周期） | B | 把传入伴侣/排序状态复制进本地可变字段。 |
@@ -150,13 +153,14 @@
 | [`_dialogToys`](#dialogtoys) | 方法（`_FilteredRecordsPageState`） | A | 为增/改记录对话框构建玩具选择器列表。 |
 | `_notifyRecordsChanged` | 方法（`_FilteredRecordsPageState`） | B | 把本地记录列表副本转发给父回调。 |
 | [`_addRecord`](#addrecord-filtered) | 方法（`_FilteredRecordsPageState`） | A | 打开预选当前伴侣/玩具的添加记录对话框。 |
-| [`_editRecord`](#editrecord-filtered) | 方法（`_FilteredRecordsPageState`） | A | 为一条记录打开编辑记录对话框并更新本地状态。 |
+| [`_editRecord`](#editrecord-filtered) | 方法（`_FilteredRecordsPageState`） | A | 为一条记录打开编辑记录对话框、更新本地状态并返回结果（或 null）。 |
+| [`_openRecordDetail`](#openrecorddetail-filtered) | 方法（`_FilteredRecordsPageState`） | A | 推入记录详情页，接到本页的编辑和删除路径（v1.5.5）。 |
 | [`_deleteRecord`](#deleterecord-filtered) | 方法（`_FilteredRecordsPageState`） | A | 按 id 从本地状态移除记录并通知父级。 |
 | [`_formatDuration`](#formatduration) | 方法（`_FilteredRecordsPageState`） | A | 把时长格式化为 `Xh Ym` 或 `Ym`。 |
 | `_formatMoney`（过滤页） | 方法（`_FilteredRecordsPageState`） | B | 格式化普通美元金额。 |
 | `_buildSummaryCard`（过滤页） | 方法（组件辅助） | B | 构建顶部摘要卡片（平均值，玩具加成本指标）。 |
 | `_buildSummaryMetric` | 方法（组件辅助） | B | 在摘要卡片内构建一个带标签指标列。 |
-| `_buildRecordDismissible`（过滤页） | 方法（组件辅助） | B | 构建滑动删除记录行（过滤页）。 |
+| `_buildRecordDismissible`（过滤页） | 方法（组件辅助） | B | 构建可滑动编辑/删除、点击打开记录详情页的记录行（过滤页）。 |
 | `_buildRecordListWidgets`（过滤页） | 方法（组件辅助） | B | 构建周分组记录列表组件（过滤页）。 |
 | `_buildWeekHeader`（过滤页） | 方法（组件辅助） | B | 构建 ISO 周组页头行（过滤页）。 |
 | `_FilteredRecordsPageState.build` | 方法（组件） | B | 渲染普通布局或伴侣记录/身体标签布局。 |
@@ -197,7 +201,7 @@
 | `_IntimacyBody({...})` | 构造函数（`_IntimacyBody`） | B | 创建亲密主体排布器。 |
 | [`build`](#intimacybody-build) | 方法（`_IntimacyBody`） | A | 堆叠日历、图表和记录，或把日历和图表放进记录旁边的窗格里。 |
 
-**行数对账：** 上面 184 行，与 `grep -c '/// Purpose:'` = 184 精确匹配（58 个 Tier A、126 个 Tier B）。v1.3.2 在记录指标图移入 [`intimacy_trend_chart.dart`](../widgets/intimacy_trend_chart.md) 时移除了 27 行（17 个 Tier A、10 个 Tier B），并添加了一个（`_saveChartSettings`，Tier A）。重名声明（同一辅助名在多个类中重新实现，如 `_IntimacyPageState` 和 `_FilteredRecordsPageState` 中都有 `_filteredRecords`）如何在锚点中消歧见本页末尾说明。普通状态字段没有行，因此 v1.5.0 的 `_weightRecordsForInsight` 字段（第 85 行；一行 `///` 注释，没有 `Purpose:` 块）在 [`_loadDataNow`](#loaddatanow) 中说明，而不在表格中；v1.5.2 的 `_ioQueue` future 同样在 [`_io`](#io) 中说明。v1.5.0 没有改变行数。v1.5.2 添加了七行（`_io`、`_loadDataNow`、`_saveDataNow`、`_commitSubPage` 为 Tier A；`_applyIntimacyData`、`_currentIntimacyData`、`_showWriteBlocked` 为 Tier B）。
+**行数对账：** 上面 186 行，与 `grep -c '/// Purpose:'` = 186 精确匹配（60 个 Tier A、126 个 Tier B）。v1.5.5 添加了两行 Tier A，`_IntimacyPageState` 和 `_FilteredRecordsPageState` 中各一个 `_openRecordDetail`。v1.3.2 在记录指标图移入 [`intimacy_trend_chart.dart`](../widgets/intimacy_trend_chart.md) 时移除了 27 行（17 个 Tier A、10 个 Tier B），并添加了一个（`_saveChartSettings`，Tier A）。重名声明（同一辅助名在多个类中重新实现，如 `_IntimacyPageState` 和 `_FilteredRecordsPageState` 中都有 `_filteredRecords`）如何在锚点中消歧见本页末尾说明。普通状态字段没有行，因此 v1.5.0 的 `_weightRecordsForInsight` 字段（第 85 行；一行 `///` 注释，没有 `Purpose:` 块）在 [`_loadDataNow`](#loaddatanow) 中说明，而不在表格中；v1.5.2 的 `_ioQueue` future 同样在 [`_io`](#io) 中说明。v1.5.0 没有改变行数。v1.5.2 添加了七行（`_io`、`_loadDataNow`、`_saveDataNow`、`_commitSubPage` 为 Tier A；`_applyIntimacyData`、`_currentIntimacyData`、`_showWriteBlocked` 为 Tier B）。
 
 ## 文档
 
@@ -395,7 +399,7 @@
 
 ### `void _deleteRecord(IntimacyRecord record)`（`_IntimacyPageState` 中） <a id="deleterecord-main"></a>
 - **种类：** `_IntimacyPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 572 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 573 行）
 - **用途：** 按 id 移除一条记录并持久化。
 - **输入：** `record` — 要删除的记录（按 id 匹配）。
 - **返回：** 无。
@@ -405,23 +409,48 @@
   ```dart
   onDismissed: (_) => _deleteRecord(record),
   ```
-  （来自 `_buildRecordDismissible`，共享删除确认对话框后）。
-- **备注：** 这里没有确认逻辑——`Dismissible` 调用方负责在运行前确认。
+  （来自 `_buildRecordDismissible`，共享删除确认对话框后；自 v1.5.5 起也作为记录详情页的 `onDelete`，包装为 `(r) async => _deleteRecord(r)`）。
+- **备注：** 这里没有确认逻辑——`Dismissible` 调用方或详情页的 `_delete` 负责在运行前确认。
 
-### `Future<void> _editRecord(IntimacyRecord record)`（`_IntimacyPageState` 中） <a id="editrecord-main"></a>
+### `Future<IntimacyRecord?> _editRecord(IntimacyRecord record)`（`_IntimacyPageState` 中） <a id="editrecord-main"></a>
 - **种类：** `_IntimacyPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 582 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 584 行）
 - **用途：** 为既有记录打开编辑记录对话框并持久化更新。
 - **输入：** `record` — 被编辑的记录。
-- **返回：** `Future<void>`。
+- **返回：** `Future<IntimacyRecord?>` — 保存后的记录，对话框被取消时为 `null`（v1.5.5；此前为 `Future<void>`）。
 - **副作用：** 显示预填的 `AddRecordDialog`；非 null 结果时经 `setState` 替换 `_records` 中的记录并调用 `_saveData()`。
-- **算法：** 与 `_addRecord` 相同的激活伴侣/激活玩具计算，但对话框被给既有 `record` 预填；返回非 null 且仍 mounted（v1.5.2 添加的守卫）时，按 id 找记录并覆盖，然后 await `_saveData()`。
+- **算法：** 与 `_addRecord` 相同的激活伴侣/激活玩具计算，但对话框被给既有 `record` 预填；返回非 null 且仍 mounted（v1.5.2 添加的守卫）时，按 id 找记录并覆盖，然后 await `_saveData()`；返回对话框的结果。
 - **用法：**
   ```dart
-  _editRecord(record);
+  // _buildRecordDismissible, swipe start-to-end (the return value is ignored):
+  if (direction == DismissDirection.startToEnd) {
+    _editRecord(record);
+    return false;
+  }
+
+  // _openRecordDetail — the detail page shows the returned record in place:
+  onEdit: _editRecord,
   ```
-  （来自记录块的点击处理器 / 可关闭菜单，在 `_buildRecordDismissible` 中）。
 - **备注：** 因为对话框的伴侣/玩具选择器从*仅激活*列表构建，编辑引用已删除或分手伴侣/玩具的记录仍正确显示和保存，只因选择器构建（在姊妹 `_FilteredRecordsPageState` 变体中——见 [`_dialogPartners`](#dialogpartners)/[`_dialogToys`](#dialogtoys)）即使非激活也显式包含记录的*当前*引用。此主页 `_editRecord` 自己不对悬空 id 特判，只是保留任何已存储的 id——它绝不重新分配或清除，按 [亲密 § 已删除伴侣处理](../../../../features/intimacy.md#deleted-partner-handling) 描述的已删除伴侣容忍策略。
+
+### `Future<void> _openRecordDetail(IntimacyRecord record)`（`_IntimacyPageState` 中） <a id="openrecorddetail-main"></a>
+- **种类：** `_IntimacyPageState` 的方法
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 612 行）
+- **用途：** 为一条记录打开只读的 [记录详情页](record_detail_page.md)。
+- **输入：** `record` — 被点击的记录。
+- **返回：** `Future<void>` — 详情页弹出时完成。
+- **副作用：** 推入一个带 `RecordDetailPage` 的 `MaterialPageRoute`。
+- **算法：** `Navigator.push(RecordDetailPage(record: record, partners: _partners, toys: _toys, positions: _positions, onEdit: _editRecord, onDelete: (r) async => _deleteRecord(r)))`。
+- **用法：**
+  ```dart
+  // _buildRecordDismissible:
+  child: _RecordTile(
+    record: record,
+    onTap: () => _openRecordDetail(record),
+    ...
+  ),
+  ```
+- **备注：** v1.5.5 新增。它传入**全部**伴侣和玩具，而不只是激活的，使记录中提到的已结束伴侣或已退役玩具仍显示名称；从详情页打开的编辑对话框仍由 `_editRecord` 从激活列表构建。列表上的滑动编辑和滑动删除不变；详情页自己的删除在调用 `_deleteRecord` 前要求确认。
 
 ### `int _compareNullableDates(DateTime? a, DateTime? b)`（`_PartnerManagementPageState` 中） <a id="comparenullabledates-partner"></a>
 - **种类：** `_PartnerManagementPageState` 的方法
@@ -820,24 +849,35 @@
 - **用法：** 接到 `build()`/`_buildRecordsListView` 中此详情页的添加按钮。
 - **备注：** 与主页的 `_addRecord` 不同，这操作页面本地 `_records` 副本并经 `onRecordsChanged` 把变更推上去，而不是直接调用存储——实际持久化在被通知的父 `_IntimacyPageState` 中发生。
 
-### `Future<void> _editRecord(IntimacyRecord record)`（`_FilteredRecordsPageState` 中） <a id="editrecord-filtered"></a>
+### `Future<IntimacyRecord?> _editRecord(IntimacyRecord record)`（`_FilteredRecordsPageState` 中） <a id="editrecord-filtered"></a>
 - **种类：** `_FilteredRecordsPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 4655 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 4709 行）
 - **用途：** 从详情页为一条记录打开编辑记录对话框并更新本地状态。
 - **输入：** `record`。
-- **返回：** `Future<void>`。
+- **返回：** `Future<IntimacyRecord?>` — 保存后的记录，取消时为 `null`（v1.5.5；此前为 `Future<void>`）。
 - **副作用：** 显示预填 `AddRecordDialog`；成功时经 `setState` 按 id 替换 `_records` 中的记录；调用 `_notifyRecordsChanged()`。
-- **算法：** 显示带 `record:` 设置和范围包含选择器的对话框；非 null 结果时按 id 找索引并原地覆盖（id 不知何故未找到则空操作）。
+- **算法：** 显示带 `record:` 设置和范围包含选择器的对话框；结果为 `null` 或页面不再 mounted 时原样返回结果；否则按 id 找索引并原地覆盖（id 不知何故未找到则空操作）、通知，并返回它。
 - **用法：**
   ```dart
   _editRecord(record);
   ```
-  （来自 `_buildRecordDismissible` 的点击/菜单处理器）。
-- **备注：** 编辑把记录的伴侣/玩具改离本页范围时，记录下次重建时简单从 `_filteredRecords` 消失——没有特判处理，它直接落出过滤器。
+  （来自 `_buildRecordDismissible` 的滑动处理器；自 v1.5.5 起也经 [`_openRecordDetail`](#openrecorddetail-filtered) 作为记录详情页的 `onEdit`）。
+- **备注：** 编辑把记录的伴侣/玩具改离本页范围时，记录下次重建时简单从 `_filteredRecords` 消失——没有特判处理，它直接落出过滤器。详情页在关闭前仍显示编辑后的记录。
+
+### `Future<void> _openRecordDetail(IntimacyRecord record)`（`_FilteredRecordsPageState` 中） <a id="openrecorddetail-filtered"></a>
+- **种类：** `_FilteredRecordsPageState` 的方法
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 4734 行）
+- **用途：** 为本伴侣/玩具列表中的一条记录打开记录详情页。
+- **输入：** `record` — 被点击的记录。
+- **返回：** `Future<void>` — 详情页弹出时完成。
+- **副作用：** 推入一个带 `RecordDetailPage` 的 `MaterialPageRoute`。
+- **算法：** `Navigator.push(RecordDetailPage(record: record, partners: widget.partners, toys: widget.toys, positions: widget.positions, onEdit: _editRecord, onDelete: (r) async => _deleteRecord(r)))`。
+- **用法：** 本页 `_buildRecordDismissible` 构建的 `_RecordTile` 上的 `onTap: () => _openRecordDetail(record)`。
+- **备注：** v1.5.5 新增；与主页的 [`_openRecordDetail`](#openrecorddetail-main) 对应，因此从详情页进行的编辑和删除走本页的本地状态加 `_notifyRecordsChanged` 路径。
 
 ### `void _deleteRecord(IntimacyRecord record)`（`_FilteredRecordsPageState` 中） <a id="deleterecord-filtered"></a>
 - **种类：** `_FilteredRecordsPageState` 的方法
-- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 4678 行）
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 4754 行）
 - **用途：** 从本地状态移除记录并通知父级。
 - **输入：** `record`。
 - **返回：** 无。
@@ -847,7 +887,7 @@
   ```dart
   onDismissed: (_) => _deleteRecord(record),
   ```
-- **备注：** 与主页的 `_editRecord`/`_deleteRecord` 一样，`Dismissible` 调用方在运行前处理删除确认。
+- **备注：** 与主页的 `_editRecord`/`_deleteRecord` 一样，`Dismissible` 调用方（或自 v1.5.5 起记录详情页的 `_delete`）在运行前处理删除确认。
 
 ### `String _formatDuration(Duration duration)` <a id="formatduration"></a>
 - **种类：** `_FilteredRecordsPageState` 的方法

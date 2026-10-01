@@ -1049,6 +1049,66 @@ abstract class AppLocalizations {
   /// **'Remember this local timer preference.'**
   String get intimacyTimerKeepScreenAwakeDesc;
 
+  /// No description provided for @intimacyThrustUndoHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo the last 100'**
+  String get intimacyThrustUndoHint;
+
+  /// No description provided for @intimacyRecordDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Record details'**
+  String get intimacyRecordDetail;
+
+  /// No description provided for @intimacyThrustTimeline.
+  ///
+  /// In en, this message translates to:
+  /// **'Thrust count over time'**
+  String get intimacyThrustTimeline;
+
+  /// No description provided for @intimacyThrustTimelineSmoothed.
+  ///
+  /// In en, this message translates to:
+  /// **'Smoothed'**
+  String get intimacyThrustTimelineSmoothed;
+
+  /// No description provided for @intimacyThrustTimelineMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Minutes'**
+  String get intimacyThrustTimelineMinutes;
+
+  /// No description provided for @intimacyNotRecorded.
+  ///
+  /// In en, this message translates to:
+  /// **'Not recorded'**
+  String get intimacyNotRecorded;
+
+  /// No description provided for @intimacyDetailLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Location'**
+  String get intimacyDetailLocation;
+
+  /// No description provided for @intimacyDetailNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get intimacyDetailNotes;
+
+  /// No description provided for @intimacyOrgasmStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Orgasm'**
+  String get intimacyOrgasmStatus;
+
+  /// No description provided for @intimacyWatchedPornStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Watched porn'**
+  String get intimacyWatchedPornStatus;
+
   /// No description provided for @intimacyManage.
   ///
   /// In en, this message translates to:

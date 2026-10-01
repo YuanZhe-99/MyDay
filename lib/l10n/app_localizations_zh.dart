@@ -505,6 +505,36 @@ class AppLocalizationsZh extends AppLocalizations {
   String get intimacyTimerKeepScreenAwakeDesc => '记住此本机计时器偏好。';
 
   @override
+  String get intimacyThrustUndoHint => '撤销最近 100 次';
+
+  @override
+  String get intimacyRecordDetail => '记录详情';
+
+  @override
+  String get intimacyThrustTimeline => '抽插次数曲线';
+
+  @override
+  String get intimacyThrustTimelineSmoothed => '平滑';
+
+  @override
+  String get intimacyThrustTimelineMinutes => '分钟';
+
+  @override
+  String get intimacyNotRecorded => '未记录';
+
+  @override
+  String get intimacyDetailLocation => '地点';
+
+  @override
+  String get intimacyDetailNotes => '备注';
+
+  @override
+  String get intimacyOrgasmStatus => '高潮';
+
+  @override
+  String get intimacyWatchedPornStatus => '观看色情片';
+
+  @override
   String get intimacyManage => '管理';
 
   @override
@@ -2781,6 +2811,36 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get intimacyTimerKeepScreenAwakeDesc => '記住此本機計時器偏好。';
+
+  @override
+  String get intimacyThrustUndoHint => '撤銷最近 100 次';
+
+  @override
+  String get intimacyRecordDetail => '記錄詳情';
+
+  @override
+  String get intimacyThrustTimeline => '抽插次數曲線';
+
+  @override
+  String get intimacyThrustTimelineSmoothed => '平滑';
+
+  @override
+  String get intimacyThrustTimelineMinutes => '分鐘';
+
+  @override
+  String get intimacyNotRecorded => '未記錄';
+
+  @override
+  String get intimacyDetailLocation => '地點';
+
+  @override
+  String get intimacyDetailNotes => '備註';
+
+  @override
+  String get intimacyOrgasmStatus => '高潮';
+
+  @override
+  String get intimacyWatchedPornStatus => '觀看色情片';
 
   @override
   String get intimacyManage => '管理';

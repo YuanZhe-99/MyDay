@@ -508,6 +508,36 @@ class AppLocalizationsEn extends AppLocalizations {
       'Remember this local timer preference.';
 
   @override
+  String get intimacyThrustUndoHint => 'Undo the last 100';
+
+  @override
+  String get intimacyRecordDetail => 'Record details';
+
+  @override
+  String get intimacyThrustTimeline => 'Thrust count over time';
+
+  @override
+  String get intimacyThrustTimelineSmoothed => 'Smoothed';
+
+  @override
+  String get intimacyThrustTimelineMinutes => 'Minutes';
+
+  @override
+  String get intimacyNotRecorded => 'Not recorded';
+
+  @override
+  String get intimacyDetailLocation => 'Location';
+
+  @override
+  String get intimacyDetailNotes => 'Notes';
+
+  @override
+  String get intimacyOrgasmStatus => 'Orgasm';
+
+  @override
+  String get intimacyWatchedPornStatus => 'Watched porn';
+
+  @override
   String get intimacyManage => 'Manage';
 
   @override

@@ -32,7 +32,8 @@ declarations that carry no `Purpose:` block and are grouped one row each.
   bake `extraJson` into their models. Unknown fields are re-applied at write time from the
   base/local/remote snapshots, in that order. That is why every structured module in the registry
   sets a `preUploadTransform`. Adding a field to a model means adding it to the matching schema here,
-  or it will be treated as unknown.
+  or it will be treated as unknown. Example: v1.5.5 added `thrustTimeline` to the intimacy record,
+  timer-history and timer-session schemas together with the model field.
 
 ## Where the engine documentation lives
 

@@ -148,6 +148,12 @@
 | calendar day (step) | 日历日 | 跨夏令时切换仍保留钟面时间的日期步进（`addCalendarDays`） |
 | single-key patch | 单键补丁 | `TodoStorage.writeConfig` 只传要更改的键（`null` 值移除该键），v1.5.2 |
 | config queue | 配置队列 | 每次 `storage_config.json` 读-合并-写都经过的串行队列，使并发的设置保存不会互相丢失（v1.5.2） |
+| thrust timeline | 抽插时间线 | 亲密：计时器抽插计数按钮的每次按下及其秒表时间（`thrustTimeline`，v1.5.5） |
+| undo (thrust counter) | 撤销 | v1.5.5 起计时器的 `-100` 按钮：撤销最近的按下，必要时拆分其中一次 |
+| record detail page | 记录详情页 | 亲密：点击记录打开的只读页面（v1.5.5） |
+| step line | 阶梯线 | 抽插时间线图表的原始累计序列 |
+| moving average | 移动平均 | 抽插时间线图表平滑线所用的平滑方法；不是趋势图的 EWMA |
+| smoothed (fit) line | 平滑线 | 叠加在阶梯线上的虚线拟合线 |
 
 ## 6. 复查清单（提交中文页面之前运行）
 

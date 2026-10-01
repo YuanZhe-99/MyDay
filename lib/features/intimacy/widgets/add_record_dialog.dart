@@ -6,6 +6,7 @@ import '../../../shared/widgets/adaptive_tile_grid.dart';
 import '../../../shared/widgets/app_date_picker.dart';
 import '../../../shared/widgets/unsaved_changes_guard.dart';
 import '../models/intimacy_record.dart';
+import '../utils/thrust_timeline.dart';
 
 class AddRecordDialog extends StatefulWidget {
   final Duration? prefillDuration;
@@ -17,12 +18,14 @@ class AddRecordDialog extends StatefulWidget {
   final List<String> initialToyIds;
   final int? initialThrustCount;
   final int? initialThrustCountUnit;
+  final ThrustTimeline? prefillThrustTimeline;
 
   /// Purpose: Create a add record dialog instance.
-  /// Inputs: `positions`, optional initial partner, toy, and thrust selections.
+  /// Inputs: `positions`, optional initial partner, toy, and thrust
+  /// selections, and the timer's `prefillThrustTimeline`.
   /// Returns: A new `AddRecordDialog` instance.
   /// Side effects: None.
-  /// Notes: None.
+  /// Notes: When editing, the record's own timeline wins over the prefill.
   const AddRecordDialog({
     super.key,
     this.prefillDuration,
@@ -34,6 +37,7 @@ class AddRecordDialog extends StatefulWidget {
     this.initialToyIds = const [],
     this.initialThrustCount,
     this.initialThrustCountUnit,
+    this.prefillThrustTimeline,
   });
 
   /// Purpose: Create the mutable state object for this widget.
@@ -62,6 +66,12 @@ class _AddRecordDialogState extends State<AddRecordDialog> {
   late bool _watchedPorn;
   late bool _usedCondom;
   late final String _initialSignature;
+
+  // Carried through untouched; see `_submit` for when each is kept.
+  late final ThrustTimeline? _timeline;
+  late final Duration? _exactDuration;
+  late final String _initialHoursText;
+  late final String _initialMinutesText;
 
   /// Purpose: Return is editing.
   /// Inputs: None.
@@ -104,12 +114,13 @@ class _AddRecordDialogState extends State<AddRecordDialog> {
     if (widget.prefillDuration != null && r == null) {
       initMinutes = widget.prefillDuration!.inMinutes.clamp(0, 5999);
     }
-    _hoursController = TextEditingController(
-      text: (initMinutes ~/ 60).toString(),
-    );
-    _minutesController = TextEditingController(
-      text: (initMinutes % 60).toString(),
-    );
+    _timeline = r != null ? r.thrustTimeline : widget.prefillThrustTimeline;
+    final exact = r?.duration ?? widget.prefillDuration;
+    _exactDuration = exact != null && exact.inMinutes <= 5999 ? exact : null;
+    _initialHoursText = (initMinutes ~/ 60).toString();
+    _initialMinutesText = (initMinutes % 60).toString();
+    _hoursController = TextEditingController(text: _initialHoursText);
+    _minutesController = TextEditingController(text: _initialMinutesText);
     // Default to first partner if none selected and not solo
     if (!_isSolo && _selectedPartnerId == null && widget.partners.isNotEmpty) {
       _selectedPartnerId = widget.partners.first.id;
@@ -506,18 +517,34 @@ class _AddRecordDialogState extends State<AddRecordDialog> {
     _usedCondom,
   ]);
 
-  /// Purpose: Provide the internal submit helper for this file.
+  /// Purpose: Build the record from the form and close the dialog with it.
   /// Inputs: `guard`.
   /// Returns: None.
-  /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
+  /// Side effects: Pops the dialog with the new or edited record.
+  /// Notes: If the hour and minute fields still show their initial values, the
+  /// exact prefilled or existing duration is kept, seconds included; any edit
+  /// falls back to whole minutes. The thrust timeline is kept only while the
+  /// count entered still equals its total, so the record's curve can never
+  /// disagree with its headline count.
   void _submit(UnsavedChangesController guard) {
     final hours = int.tryParse(_hoursController.text) ?? 0;
     final minutes = int.tryParse(_minutesController.text) ?? 0;
     final totalMinutes = (hours * 60 + minutes).clamp(0, 5999);
+    final durationUntouched =
+        _hoursController.text.trim() == _initialHoursText &&
+        _minutesController.text.trim() == _initialMinutesText;
+    final duration = durationUntouched && _exactDuration != null
+        ? _exactDuration
+        : Duration(minutes: totalMinutes);
     final thrustCount = int.tryParse(_thrustCountController.text.trim());
     final normalizedThrustCount = thrustCount != null && thrustCount > 0
         ? thrustCount
+        : null;
+    final resolvedCount = normalizedThrustCount == null
+        ? 0
+        : normalizedThrustCount * (_thrustCountUnit == 1 ? 1 : 100);
+    final timeline = _timeline != null && _timeline.total == resolvedCount
+        ? _timeline
         : null;
     final record = IntimacyRecord(
       id: widget.record?.id,
@@ -525,9 +552,10 @@ class _AddRecordDialogState extends State<AddRecordDialog> {
       partnerId: _isSolo ? null : _selectedPartnerId,
       isSolo: _isSolo,
       pleasureLevel: _pleasureLevel,
-      duration: Duration(minutes: totalMinutes),
+      duration: duration,
       thrustCount: normalizedThrustCount,
       thrustCountUnit: _thrustCountUnit,
+      thrustTimeline: timeline,
       datetime: _datetime,
       toyIds: _selectedToyIds.toList(),
       positionIds: _selectedPositionIds.toList(),

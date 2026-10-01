@@ -34,6 +34,7 @@ import '../widgets/cycle_calendar.dart';
 import '../widgets/intimacy_trend_chart.dart';
 import '../widgets/timer_page.dart';
 import 'body_page.dart';
+import 'record_detail_page.dart';
 
 enum _SortMode { dateDesc, dateAsc, pleasureDesc, durationDesc }
 
@@ -574,12 +575,13 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
     _saveData();
   }
 
-  /// Purpose: Provide the internal edit record helper for this file.
+  /// Purpose: Edit a record in `AddRecordDialog` and save the result.
   /// Inputs: `record`.
-  /// Returns: `Future<void>`.
-  /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
-  Future<void> _editRecord(IntimacyRecord record) async {
+  /// Returns: `Future<IntimacyRecord?>` — the saved record, or null if cancelled.
+  /// Side effects: Opens a dialog; replaces the record and writes intimacy data.
+  /// Notes: The return value lets the record detail page show the edit in
+  /// place; the swipe-to-edit caller ignores it.
+  Future<IntimacyRecord?> _editRecord(IntimacyRecord record) async {
     final activePartners = _partners.where((p) => p.endDate == null).toList();
     final activeToys = _toys.where((t) => t.retiredDate == null).toList();
     final updated = await showDialog<IntimacyRecord>(
@@ -598,6 +600,28 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
       });
       await _saveData();
     }
+    return updated;
+  }
+
+  /// Purpose: Open the detail page for one record.
+  /// Inputs: `record`.
+  /// Returns: `Future<void>`.
+  /// Side effects: Pushes `RecordDetailPage`, whose edit and delete actions
+  /// run this page's own edit and delete paths.
+  /// Notes: Passes every partner and toy so ended or retired ones still show.
+  Future<void> _openRecordDetail(IntimacyRecord record) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => RecordDetailPage(
+          record: record,
+          partners: _partners,
+          toys: _toys,
+          positions: _positions,
+          onEdit: _editRecord,
+          onDelete: (r) async => _deleteRecord(r),
+        ),
+      ),
+    );
   }
 
   /// Purpose: Build the current widget subtree for the active UI state.
@@ -1037,6 +1061,7 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
       onDismissed: (_) => _deleteRecord(record),
       child: _RecordTile(
         record: record,
+        onTap: () => _openRecordDetail(record),
         partner: record.partnerId != null
             ? _partners.where((p) => p.id == record.partnerId).firstOrNull
             : null,
@@ -1664,17 +1689,20 @@ class _RecordTile extends StatelessWidget {
   final Partner? partner;
   final List<Toy> toys;
   final List<Position> positions;
+  final VoidCallback? onTap;
 
   /// Purpose: Create a record tile instance.
-  /// Inputs: `toys`.
+  /// Inputs: `record`, resolved `partner`, `toys`, `positions`, optional `onTap`.
   /// Returns: A new `_RecordTile` instance.
   /// Side effects: None.
-  /// Notes: Internal helper used within this file only.
+  /// Notes: Internal helper used within this file only. `onTap` opens the
+  /// record detail page; swipes still belong to the enclosing `Dismissible`.
   const _RecordTile({
     required this.record,
     this.partner,
     this.toys = const [],
     this.positions = const [],
+    this.onTap,
   });
 
   /// Purpose: Build the current widget subtree for the active UI state.
@@ -1704,153 +1732,170 @@ class _RecordTile extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                if (!record.isSolo && partner?.imagePath != null)
-                  FutureBuilder<File>(
-                    future: ImageService.resolve(partner!.imagePath!),
-                    builder: (context, snap) {
-                      if (snap.hasData && snap.data!.existsSync()) {
-                        return CircleAvatar(
-                          radius: 12,
-                          backgroundImage: FileImage(snap.data!),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  if (!record.isSolo && partner?.imagePath != null)
+                    FutureBuilder<File>(
+                      future: ImageService.resolve(partner!.imagePath!),
+                      builder: (context, snap) {
+                        if (snap.hasData && snap.data!.existsSync()) {
+                          return CircleAvatar(
+                            radius: 12,
+                            backgroundImage: FileImage(snap.data!),
+                          );
+                        }
+                        return Icon(
+                          Icons.favorite,
+                          size: 18,
+                          color: theme.colorScheme.primary,
                         );
-                      }
-                      return Icon(
-                        Icons.favorite,
-                        size: 18,
-                        color: theme.colorScheme.primary,
-                      );
-                    },
-                  )
-                else
-                  Icon(
-                    record.isSolo ? Icons.person : Icons.favorite,
-                    size: 18,
-                    color: theme.colorScheme.primary,
-                  ),
-                const SizedBox(width: 8),
-                Text(
-                  record.isSolo ? l10n.intimacySolo : partnerLabel,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  dateStr,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Wrap(
-              spacing: 12,
-              runSpacing: 4,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Text(
-                  stars,
-                  style: TextStyle(
-                    color: theme.colorScheme.primary,
-                    fontSize: 14,
-                  ),
-                ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
+                      },
+                    )
+                  else
                     Icon(
-                      Icons.timer_outlined,
+                      record.isSolo ? Icons.person : Icons.favorite,
+                      size: 18,
+                      color: theme.colorScheme.primary,
+                    ),
+                  const SizedBox(width: 8),
+                  Text(
+                    record.isSolo ? l10n.intimacySolo : partnerLabel,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    dateStr,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 12,
+                runSpacing: 4,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Text(
+                    stars,
+                    style: TextStyle(
+                      color: theme.colorScheme.primary,
+                      fontSize: 14,
+                    ),
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.timer_outlined,
+                        size: 14,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(durationStr, style: theme.textTheme.bodySmall),
+                    ],
+                  ),
+                  if (thrustStr != null)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.swap_horiz,
+                          size: 14,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(thrustStr, style: theme.textTheme.bodySmall),
+                      ],
+                    ),
+                  if (record.hadOrgasm)
+                    Icon(
+                      Icons.favorite,
+                      size: 14,
+                      color: theme.colorScheme.tertiary,
+                    ),
+                  if (record.watchedPorn) ...[
+                    Icon(
+                      Icons.ondemand_video,
                       size: 14,
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
-                    const SizedBox(width: 4),
-                    Text(durationStr, style: theme.textTheme.bodySmall),
                   ],
-                ),
-                if (thrustStr != null)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.swap_horiz,
-                        size: 14,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(thrustStr, style: theme.textTheme.bodySmall),
-                    ],
-                  ),
-                if (record.hadOrgasm)
-                  Icon(
-                    Icons.favorite,
-                    size: 14,
-                    color: theme.colorScheme.tertiary,
-                  ),
-                if (record.watchedPorn) ...[
-                  Icon(
-                    Icons.ondemand_video,
-                    size: 14,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+                  if (record.usedCondom)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.health_and_safety_outlined,
+                          size: 14,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          l10n.intimacyUsedCondomStatus,
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  if (record.location != null)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.location_on_outlined,
+                          size: 14,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          record.location!,
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
                 ],
-                if (record.usedCondom)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.health_and_safety_outlined,
-                        size: 14,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        l10n.intimacyUsedCondomStatus,
-                        style: theme.textTheme.bodySmall,
-                      ),
-                    ],
-                  ),
-                if (record.location != null)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.location_on_outlined,
-                        size: 14,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(record.location!, style: theme.textTheme.bodySmall),
-                    ],
-                  ),
-              ],
-            ),
-            if (toys.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Wrap(
-                spacing: 6,
-                children: toys.map((t) {
-                  final label = t.emoji != null
-                      ? '${t.emoji} ${t.name}'
-                      : t.name;
-                  if (t.imagePath != null) {
-                    return FutureBuilder<File>(
-                      future: ImageService.resolve(t.imagePath!),
-                      builder: (context, snap) {
-                        if (snap.hasData && snap.data!.existsSync()) {
+              ),
+              if (toys.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 6,
+                  children: toys.map((t) {
+                    final label = t.emoji != null
+                        ? '${t.emoji} ${t.name}'
+                        : t.name;
+                    if (t.imagePath != null) {
+                      return FutureBuilder<File>(
+                        future: ImageService.resolve(t.imagePath!),
+                        builder: (context, snap) {
+                          if (snap.hasData && snap.data!.existsSync()) {
+                            return Chip(
+                              avatar: CircleAvatar(
+                                backgroundImage: FileImage(snap.data!),
+                                radius: 12,
+                              ),
+                              label: Text(t.name),
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                              labelPadding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                              ),
+                              materialTapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
+                            );
+                          }
                           return Chip(
-                            avatar: CircleAvatar(
-                              backgroundImage: FileImage(snap.data!),
-                              radius: 12,
-                            ),
-                            label: Text(t.name),
+                            label: Text(label),
                             visualDensity: VisualDensity.compact,
                             padding: EdgeInsets.zero,
                             labelPadding: const EdgeInsets.symmetric(
@@ -1859,58 +1904,48 @@ class _RecordTile extends StatelessWidget {
                             materialTapTargetSize:
                                 MaterialTapTargetSize.shrinkWrap,
                           );
-                        }
-                        return Chip(
-                          label: Text(label),
-                          visualDensity: VisualDensity.compact,
-                          padding: EdgeInsets.zero,
-                          labelPadding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                          ),
-                          materialTapTargetSize:
-                              MaterialTapTargetSize.shrinkWrap,
-                        );
-                      },
+                        },
+                      );
+                    }
+                    return Chip(
+                      label: Text(label),
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      labelPadding: const EdgeInsets.symmetric(horizontal: 6),
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     );
-                  }
-                  return Chip(
-                    label: Text(label),
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.zero,
-                    labelPadding: const EdgeInsets.symmetric(horizontal: 6),
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  );
-                }).toList(),
-              ),
-            ],
-            if (positions.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Wrap(
-                spacing: 6,
-                children: positions.map((p) {
-                  final label = p.emoji != null
-                      ? '${p.emoji} ${p.name}'
-                      : p.name;
-                  return Chip(
-                    label: Text(label),
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.zero,
-                    labelPadding: const EdgeInsets.symmetric(horizontal: 6),
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  );
-                }).toList(),
-              ),
-            ],
-            if (record.notes != null && record.notes!.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text(
-                record.notes!,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+                  }).toList(),
                 ),
-              ),
+              ],
+              if (positions.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 6,
+                  children: positions.map((p) {
+                    final label = p.emoji != null
+                        ? '${p.emoji} ${p.name}'
+                        : p.name;
+                    return Chip(
+                      label: Text(label),
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      labelPadding: const EdgeInsets.symmetric(horizontal: 6),
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    );
+                  }).toList(),
+                ),
+              ],
+              if (record.notes != null && record.notes!.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  record.notes!,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -4667,10 +4702,11 @@ class _FilteredRecordsPageState extends ConsumerState<_FilteredRecordsPage> {
 
   /// Purpose: Edit an existing record from this filtered detail page.
   /// Inputs: `record`.
-  /// Returns: `Future<void>`.
+  /// Returns: `Future<IntimacyRecord?>` — the saved record, or null if cancelled.
   /// Side effects: Opens a dialog, updates local records, and notifies the parent.
   /// Notes: If the edit removes the current partner or toy, the record disappears from this filter.
-  Future<void> _editRecord(IntimacyRecord record) async {
+  /// The return value lets the record detail page show the edit in place.
+  Future<IntimacyRecord?> _editRecord(IntimacyRecord record) async {
     final updated = await showDialog<IntimacyRecord>(
       context: context,
       builder: (_) => AddRecordDialog(
@@ -4680,12 +4716,34 @@ class _FilteredRecordsPageState extends ConsumerState<_FilteredRecordsPage> {
         positions: widget.positions,
       ),
     );
-    if (updated == null) return;
+    if (updated == null || !mounted) return updated;
     setState(() {
       final index = _records.indexWhere((r) => r.id == updated.id);
       if (index != -1) _records[index] = updated;
     });
     _notifyRecordsChanged();
+    return updated;
+  }
+
+  /// Purpose: Open the detail page for one record of this filtered list.
+  /// Inputs: `record`.
+  /// Returns: `Future<void>`.
+  /// Side effects: Pushes `RecordDetailPage`, wired to this page's edit and
+  /// delete paths.
+  /// Notes: Mirrors the main intimacy page.
+  Future<void> _openRecordDetail(IntimacyRecord record) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => RecordDetailPage(
+          record: record,
+          partners: widget.partners,
+          toys: widget.toys,
+          positions: widget.positions,
+          onEdit: _editRecord,
+          onDelete: (r) async => _deleteRecord(r),
+        ),
+      ),
+    );
   }
 
   /// Purpose: Delete an existing record from this filtered detail page.
@@ -4896,6 +4954,7 @@ class _FilteredRecordsPageState extends ConsumerState<_FilteredRecordsPage> {
       onDismissed: (_) => _deleteRecord(record),
       child: _RecordTile(
         record: record,
+        onTap: () => _openRecordDetail(record),
         partner: record.partnerId != null
             ? widget.partners
                   .where((partner) => partner.id == record.partnerId)

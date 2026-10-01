@@ -90,11 +90,14 @@ lib/
       services/cycle_predictor.dart
       services/intimacy_insight_facts.dart
       services/intimacy_storage.dart
+      utils/thrust_timeline.dart
       views/body_page.dart
       views/intimacy_page.dart
+      views/record_detail_page.dart
       widgets/add_record_dialog.dart
       widgets/body_section.dart
       widgets/cycle_calendar.dart
+      widgets/thrust_timeline_chart.dart
       widgets/timer_page.dart
     weight/
       models/weight_record.dart

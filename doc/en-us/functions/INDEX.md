@@ -8,14 +8,14 @@ mirroring the `lib/` tree (with `.dart` replaced by `.md`).
 
 | Measure | Count |
 |---|---|
-| `grep -r '/// Purpose:' lib --include=*.dart` | **1655** |
-| Declarations-table rows across all 101 pages | **1722** |
-| — of those rows, Tier A (full entry) | 965 |
-| — of those rows, Tier B (index row only) | 757 |
+| `grep -r '/// Purpose:' lib --include=*.dart` | **1701** |
+| Declarations-table rows across all 104 pages | **1771** |
+| — of those rows, Tier A (full entry) | 985 |
+| — of those rows, Tier B (index row only) | 786 |
 
 The **Declarations** and **Tier A** columns below count **rows in each page's Declarations
 table**, which is the mechanically checkable figure. A row is not always one `/// Purpose:` block,
-and the 67-row net excess of the table count over the grep count is fully itemized — every page whose row count
+and the 70-row net excess of the table count over the grep count is fully itemized — every page whose row count
 differs from its own `grep` carries a `**Reconciliation:**` note saying exactly why. There are
 three recurring reasons:
 
@@ -98,18 +98,21 @@ drifted from the per-file rows.)
 
 | Source file | Page | Declarations | Tier A |
 |---|---|---|---|
-| `lib/features/intimacy/models/intimacy_record.dart` | [features/intimacy/models/intimacy_record.md](features/intimacy/models/intimacy_record.md) | 44 | 44 |
+| `lib/features/intimacy/models/intimacy_record.dart` | [features/intimacy/models/intimacy_record.md](features/intimacy/models/intimacy_record.md) | 45 | 45 |
 | `lib/features/intimacy/services/body_metrics.dart` | [features/intimacy/services/body_metrics.md](features/intimacy/services/body_metrics.md) | 8 | 7 |
 | `lib/features/intimacy/services/cycle_predictor.dart` | [features/intimacy/services/cycle_predictor.md](features/intimacy/services/cycle_predictor.md) | 16 | 7 |
 | `lib/features/intimacy/services/intimacy_insight_facts.dart` | [features/intimacy/services/intimacy_insight_facts.md](features/intimacy/services/intimacy_insight_facts.md) | 16 | 9 |
 | `lib/features/intimacy/services/intimacy_storage.dart` | [features/intimacy/services/intimacy_storage.md](features/intimacy/services/intimacy_storage.md) | 7 | 6 |
+| `lib/features/intimacy/utils/thrust_timeline.dart` | [features/intimacy/utils/thrust_timeline.md](features/intimacy/utils/thrust_timeline.md) | 17 | 8 |
 | `lib/features/intimacy/views/body_page.dart` | [features/intimacy/views/body_page.md](features/intimacy/views/body_page.md) | 4 | 0 |
-| `lib/features/intimacy/views/intimacy_page.dart` | [features/intimacy/views/intimacy_page.md](features/intimacy/views/intimacy_page.md) | 184 | 58 |
+| `lib/features/intimacy/views/intimacy_page.dart` | [features/intimacy/views/intimacy_page.md](features/intimacy/views/intimacy_page.md) | 186 | 60 |
+| `lib/features/intimacy/views/record_detail_page.dart` | [features/intimacy/views/record_detail_page.md](features/intimacy/views/record_detail_page.md) | 19 | 4 |
 | `lib/features/intimacy/widgets/add_record_dialog.dart` | [features/intimacy/widgets/add_record_dialog.md](features/intimacy/widgets/add_record_dialog.md) | 9 | 2 |
 | `lib/features/intimacy/widgets/body_section.dart` | [features/intimacy/widgets/body_section.md](features/intimacy/widgets/body_section.md) | 35 | 18 |
 | `lib/features/intimacy/widgets/cycle_calendar.dart` | [features/intimacy/widgets/cycle_calendar.md](features/intimacy/widgets/cycle_calendar.md) | 9 | 1 |
 | `lib/features/intimacy/widgets/intimacy_trend_chart.dart` | [features/intimacy/widgets/intimacy_trend_chart.md](features/intimacy/widgets/intimacy_trend_chart.md) | 25 | 16 |
-| `lib/features/intimacy/widgets/timer_page.dart` | [features/intimacy/widgets/timer_page.md](features/intimacy/widgets/timer_page.md) | 34 | 23 |
+| `lib/features/intimacy/widgets/thrust_timeline_chart.dart` | [features/intimacy/widgets/thrust_timeline_chart.md](features/intimacy/widgets/thrust_timeline_chart.md) | 6 | 3 |
+| `lib/features/intimacy/widgets/timer_page.dart` | [features/intimacy/widgets/timer_page.md](features/intimacy/widgets/timer_page.md) | 36 | 24 |
 
 ## features/settings/
 
@@ -148,7 +151,7 @@ drifted from the per-file rows.)
 ## l10n/
 
 `lib/l10n/` is already documented at [l10n/INDEX.md](l10n/INDEX.md) (generated code, not part of
-the 1655 `Purpose:` blocks and 1722 table rows above).
+the 1701 `Purpose:` blocks and 1771 table rows above).
 
 ## shared/
 
@@ -169,7 +172,7 @@ the 1655 `Purpose:` blocks and 1722 table rows above).
 | `lib/shared/services/sync_wake_lock.dart` | [shared/services/sync_wake_lock.md](shared/services/sync_wake_lock.md) | 0 | 0 |
 | `lib/shared/services/tray_service.dart` | [shared/services/tray_service.md](shared/services/tray_service.md) | 16 | 13 |
 | `lib/shared/services/webdav_service.dart` | [shared/services/webdav_service.md](shared/services/webdav_service.md) | 12 | 12 |
-| `lib/shared/utils/adaptive_layout.dart` | [shared/utils/adaptive_layout.md](shared/utils/adaptive_layout.md) | 55 | 16 |
+| `lib/shared/utils/adaptive_layout.dart` | [shared/utils/adaptive_layout.md](shared/utils/adaptive_layout.md) | 57 | 17 |
 | `lib/shared/utils/chinese_convert.dart` | [shared/utils/chinese_convert.md](shared/utils/chinese_convert.md) | 5 | 4 |
 | `lib/shared/utils/chinese_convert_data.dart` | [shared/utils/chinese_convert_data.md](shared/utils/chinese_convert_data.md) | 2 | 0 |
 | `lib/shared/utils/id_list_delta.dart` | [shared/utils/id_list_delta.md](shared/utils/id_list_delta.md) | 6 | 6 |
@@ -193,14 +196,18 @@ the 1655 `Purpose:` blocks and 1722 table rows above).
 | `app/` | 5 | 20 | 15 | 5 |
 | `features/ai/` | 9 | 132 | 68 | 64 |
 | `features/finance/` | 25 | 421 | 205 | 216 |
-| `features/intimacy/` | 12 | 391 | 191 | 200 |
+| `features/intimacy/` | 15 | 438 | 210 | 228 |
 | `features/settings/` | 3 | 33 | 8 | 25 |
 | `features/todo/` | 12 | 234 | 146 | 88 |
 | `features/weight/` | 4 | 99 | 58 | 41 |
-| `shared/` | 30 | 391 | 273 | 118 |
-| **Total** | **101** | **1722** | **965** | **757** |
+| `shared/` | 30 | 393 | 274 | 119 |
+| **Total** | **104** | **1771** | **985** | **786** |
 
 Every row here is the arithmetic sum of the per-file rows above, re-derived in v1.5.0 and
-adjusted for the pages v1.5.1, v1.5.2 and v1.5.3 touched (v1.5.2 added `id_list_delta.md`; v1.5.3 and v1.5.4 grew the Weight and Intimacy insight-fact pages). The file
-counts also match `find lib -name '*.dart' -not -path 'lib/l10n/*'` exactly — 101 source files, 101
-pages, no file without a page and no page without a file.
+adjusted for the pages v1.5.1 through v1.5.5 touched (v1.5.2 added `id_list_delta.md`; v1.5.3 and
+v1.5.4 grew the Weight and Intimacy insight-fact pages; v1.5.5 added `thrust_timeline.md`,
+`record_detail_page.md` and `thrust_timeline_chart.md`, grew `intimacy_record.md`,
+`intimacy_page.md`, `timer_page.md` and `adaptive_layout.md`, and corrected the `adaptive_layout.md`
+reconciliation note, which had claimed 17 `Purpose:` blocks and 56 rows against the file's 16 and
+55). The file counts also match `find lib -name '*.dart' -not -path 'lib/l10n/*'` exactly — 104
+source files, 104 pages, no file without a page and no page without a file.

@@ -432,6 +432,23 @@ double todoCalendarPaneWidth(double contentWidth) =>
 /// stopwatch, which is what the page exists to show.
 const timerHistoryPaneWidth = 320.0;
 
+/// Screen width, in logical pixels, below which the timer's stopwatch digits
+/// drop from `displayLarge` to `displayMedium`.
+///
+/// `HH:MM:SS` at `displayLarge` is about 300 logical pixels wide; on a folded
+/// phone's outer screen that leaves almost no margin, and the page's controls
+/// sit below the digits, so every row the digits wrap onto pushes them down.
+const timerCompactDisplayWidth = 400.0;
+
+/// Purpose: Decide whether the timer page should use its compact digits.
+/// Inputs: `screenWidth` — the page's own width in logical pixels.
+/// Returns: `bool` — true below [timerCompactDisplayWidth].
+/// Side effects: None.
+/// Notes: The timer page is pushed over the shell, so callers pass the full
+/// screen width rather than `shellContentWidth`.
+bool useCompactTimerDisplay(double screenWidth) =>
+    screenWidth < timerCompactDisplayWidth;
+
 /// Widest a dialog's content grows before the dialog starts centring instead,
 /// in logical pixels.
 ///

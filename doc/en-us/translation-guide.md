@@ -172,6 +172,12 @@ Not copied to the other repos — no other app has these.
 | calendar day (step) | 日历日 | a date step that keeps the wall-clock time across a DST change (`addCalendarDays`) |
 | single-key patch | 单键补丁 | `TodoStorage.writeConfig` given only the keys being changed (a `null` value removes the key), v1.5.2 |
 | config queue | 配置队列 | the serial queue every `storage_config.json` read-merge-write runs through, so concurrent settings saves cannot drop each other (v1.5.2) |
+| thrust timeline | 抽插时间线 | Intimacy: the timer's thrust-counter presses with their stopwatch times (`thrustTimeline`, v1.5.5) |
+| undo (thrust counter) | 撤销 | the timer's `-100` button since v1.5.5: removes the latest presses, splitting one if needed |
+| record detail page | 记录详情页 | Intimacy: the read-only page a tapped record opens (v1.5.5) |
+| step line | 阶梯线 | the raw cumulative series of the thrust timeline chart |
+| moving average | 移动平均 | the smoothing of the thrust timeline chart's fit line; not the trend chart's EWMA |
+| smoothed (fit) line | 平滑线 | the dashed fit line drawn over the step line |
 
 ## 6. Review checklist (run before committing a Chinese page)
 

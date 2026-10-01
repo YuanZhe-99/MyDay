@@ -152,7 +152,7 @@ Those pages cap and centre instead, through `AdaptiveContentWidth`:
 | Cap | Value | Applies to |
 |---|---|---|
 | `formMaxContentWidth` | 720 | Backup, WebDAV, Body, the partner and toy management lists, subscriptions |
-| `readingMaxContentWidth` | 840 | Licence, privacy policy, the toy-cost overview |
+| `readingMaxContentWidth` | 840 | Licence, privacy policy, the toy-cost overview, the intimacy record detail page |
 | `dialogMaxContentWidth` | 640 | Every form dialog, via `Dialog.insetPadding` |
 
 This is **width only and has no gate**, which is the point: a page narrower than its cap is
@@ -194,6 +194,8 @@ decision is recorded here.
 | Todo — sections fill columns in reading order | A + C, dealt by `columnMajorFill` | v1.4.3 |
 | Intimacy — trend chart in the calendar pane | A; pane 0.42 of content, clamped 320–480 | v1.4.3 |
 | Weight — summary strip above the two trend charts, paired | A + width floor + "is there a chart" | v1.4.4 |
+| Timer — stopwatch and history in one scroll view when stacked; compact digits below 400 dp (`timerCompactDisplayWidth`) | Width only (digits) | v1.5.5 |
+| Intimacy record detail page | Width cap, no gate | v1.5.5 |
 
 **No inline breakpoint remains.** As of v1.4.2 the whole tree is clean, and this is the check that
 says so — run it over `lib/` entire, not just the files a change touched, because the last time a

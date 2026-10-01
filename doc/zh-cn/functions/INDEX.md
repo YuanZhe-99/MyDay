@@ -6,12 +6,12 @@
 
 | 度量 | 计数 |
 |---|---|
-| `grep -r '/// Purpose:' lib --include=*.dart` | **1655** |
-| 全部 101 页的声明表行 | **1722** |
-| ——其中 Tier A（完整条目） | 965 |
-| ——其中 Tier B（仅索引行） | 757 |
+| `grep -r '/// Purpose:' lib --include=*.dart` | **1701** |
+| 全部 104 页的声明表行 | **1771** |
+| ——其中 Tier A（完整条目） | 985 |
+| ——其中 Tier B（仅索引行） | 786 |
 
-下面的 **Declarations** 和 **Tier A** 列统计**每页声明表中的行**，这是可机械检查的数字。一行不总是一个 `/// Purpose:` 块，表行数超出 grep 计数的 67 行净差额被完整逐项列出——行数与自己的 `grep` 不同的每页都带一条 `**Reconciliation:**` 说明确切原因。有三个反复出现的原因：
+下面的 **Declarations** 和 **Tier A** 列统计**每页声明表中的行**，这是可机械检查的数字。一行不总是一个 `/// Purpose:` 块，表行数超出 grep 计数的 70 行净差额被完整逐项列出——行数与自己的 `grep` 不同的每页都带一条 `**Reconciliation:**` 说明确切原因。有三个反复出现的原因：
 
 - **文件级库注释**（`backup_service.dart`、`webdav_service.dart`、`import_export_service.dart`、`json_preservation.dart`、`sync_progress.dart`、`sync_wake_lock.dart`）：`import` 块上方的一个 `/// Purpose:` 块记录文件，不记录声明，因此被 `grep` 计数但得不到行。
 - **没有 `Purpose:` 块的真实声明**（枚举、typedef、顶层 `const`、Riverpod provider、`appRouter`）：无 `grep` 命中，但有一行，因为它们是文件表面的一部分。
@@ -83,18 +83,21 @@
 
 | 源文件 | 页面 | 声明数 | Tier A |
 |---|---|---|---|
-| `lib/features/intimacy/models/intimacy_record.dart` | [features/intimacy/models/intimacy_record.md](features/intimacy/models/intimacy_record.md) | 44 | 44 |
+| `lib/features/intimacy/models/intimacy_record.dart` | [features/intimacy/models/intimacy_record.md](features/intimacy/models/intimacy_record.md) | 45 | 45 |
 | `lib/features/intimacy/services/body_metrics.dart` | [features/intimacy/services/body_metrics.md](features/intimacy/services/body_metrics.md) | 8 | 7 |
 | `lib/features/intimacy/services/cycle_predictor.dart` | [features/intimacy/services/cycle_predictor.md](features/intimacy/services/cycle_predictor.md) | 16 | 7 |
 | `lib/features/intimacy/services/intimacy_insight_facts.dart` | [features/intimacy/services/intimacy_insight_facts.md](features/intimacy/services/intimacy_insight_facts.md) | 16 | 9 |
 | `lib/features/intimacy/services/intimacy_storage.dart` | [features/intimacy/services/intimacy_storage.md](features/intimacy/services/intimacy_storage.md) | 7 | 6 |
+| `lib/features/intimacy/utils/thrust_timeline.dart` | [features/intimacy/utils/thrust_timeline.md](features/intimacy/utils/thrust_timeline.md) | 17 | 8 |
 | `lib/features/intimacy/views/body_page.dart` | [features/intimacy/views/body_page.md](features/intimacy/views/body_page.md) | 4 | 0 |
-| `lib/features/intimacy/views/intimacy_page.dart` | [features/intimacy/views/intimacy_page.md](features/intimacy/views/intimacy_page.md) | 184 | 58 |
+| `lib/features/intimacy/views/intimacy_page.dart` | [features/intimacy/views/intimacy_page.md](features/intimacy/views/intimacy_page.md) | 186 | 60 |
+| `lib/features/intimacy/views/record_detail_page.dart` | [features/intimacy/views/record_detail_page.md](features/intimacy/views/record_detail_page.md) | 19 | 4 |
 | `lib/features/intimacy/widgets/add_record_dialog.dart` | [features/intimacy/widgets/add_record_dialog.md](features/intimacy/widgets/add_record_dialog.md) | 9 | 2 |
 | `lib/features/intimacy/widgets/body_section.dart` | [features/intimacy/widgets/body_section.md](features/intimacy/widgets/body_section.md) | 35 | 18 |
 | `lib/features/intimacy/widgets/cycle_calendar.dart` | [features/intimacy/widgets/cycle_calendar.md](features/intimacy/widgets/cycle_calendar.md) | 9 | 1 |
 | `lib/features/intimacy/widgets/intimacy_trend_chart.dart` | [features/intimacy/widgets/intimacy_trend_chart.md](features/intimacy/widgets/intimacy_trend_chart.md) | 25 | 16 |
-| `lib/features/intimacy/widgets/timer_page.dart` | [features/intimacy/widgets/timer_page.md](features/intimacy/widgets/timer_page.md) | 34 | 23 |
+| `lib/features/intimacy/widgets/thrust_timeline_chart.dart` | [features/intimacy/widgets/thrust_timeline_chart.md](features/intimacy/widgets/thrust_timeline_chart.md) | 6 | 3 |
+| `lib/features/intimacy/widgets/timer_page.dart` | [features/intimacy/widgets/timer_page.md](features/intimacy/widgets/timer_page.md) | 36 | 24 |
 
 ## features/settings/
 
@@ -132,7 +135,7 @@
 
 ## l10n/
 
-`lib/l10n/` 已在 [l10n/INDEX.md](l10n/INDEX.md) 中记录（生成代码，不属于上面 1655 个 `Purpose:` 块和 1722 个表行）。
+`lib/l10n/` 已在 [l10n/INDEX.md](l10n/INDEX.md) 中记录（生成代码，不属于上面 1701 个 `Purpose:` 块和 1771 个表行）。
 
 ## shared/
 
@@ -153,7 +156,7 @@
 | `lib/shared/services/sync_wake_lock.dart` | [shared/services/sync_wake_lock.md](shared/services/sync_wake_lock.md) | 0 | 0 |
 | `lib/shared/services/tray_service.dart` | [shared/services/tray_service.md](shared/services/tray_service.md) | 16 | 13 |
 | `lib/shared/services/webdav_service.dart` | [shared/services/webdav_service.md](shared/services/webdav_service.md) | 12 | 12 |
-| `lib/shared/utils/adaptive_layout.dart` | [shared/utils/adaptive_layout.md](shared/utils/adaptive_layout.md) | 55 | 16 |
+| `lib/shared/utils/adaptive_layout.dart` | [shared/utils/adaptive_layout.md](shared/utils/adaptive_layout.md) | 57 | 17 |
 | `lib/shared/utils/chinese_convert.dart` | [shared/utils/chinese_convert.md](shared/utils/chinese_convert.md) | 5 | 4 |
 | `lib/shared/utils/chinese_convert_data.dart` | [shared/utils/chinese_convert_data.md](shared/utils/chinese_convert_data.md) | 2 | 0 |
 | `lib/shared/utils/id_list_delta.dart` | [shared/utils/id_list_delta.md](shared/utils/id_list_delta.md) | 6 | 6 |
@@ -177,11 +180,11 @@
 | `app/` | 5 | 20 | 15 | 5 |
 | `features/ai/` | 9 | 132 | 68 | 64 |
 | `features/finance/` | 25 | 421 | 205 | 216 |
-| `features/intimacy/` | 12 | 391 | 191 | 200 |
+| `features/intimacy/` | 15 | 438 | 210 | 228 |
 | `features/settings/` | 3 | 33 | 8 | 25 |
 | `features/todo/` | 12 | 234 | 146 | 88 |
 | `features/weight/` | 4 | 99 | 58 | 41 |
-| `shared/` | 30 | 391 | 273 | 118 |
-| **总计** | **101** | **1722** | **965** | **757** |
+| `shared/` | 30 | 393 | 274 | 119 |
+| **总计** | **104** | **1771** | **985** | **786** |
 
-这里的每行都是上面逐文件行的算术和，在 v1.5.0 中重新派生，并按 v1.5.1、v1.5.2 和 v1.5.3 触及的页面调整（v1.5.2 新增了 `id_list_delta.md`；v1.5.3 和 v1.5.4 扩充了体重和亲密的洞察事实页）。文件计数也与 `find lib -name '*.dart' -not -path 'lib/l10n/*'` 完全匹配——101 个源文件、101 个页面，没有无页面的文件，也没有无文件的页面。
+这里的每行都是上面逐文件行的算术和，在 v1.5.0 中重新派生，并按 v1.5.1 至 v1.5.5 触及的页面调整（v1.5.2 新增了 `id_list_delta.md`；v1.5.3 和 v1.5.4 扩充了体重和亲密的洞察事实页；v1.5.5 新增了 `thrust_timeline.md`、`record_detail_page.md` 和 `thrust_timeline_chart.md`，扩充了 `intimacy_record.md`、`intimacy_page.md`、`timer_page.md` 和 `adaptive_layout.md`，并更正了 `adaptive_layout.md` 的对账说明——它曾声称 17 个 `Purpose:` 块和 56 行，而文件实际是 16 和 55）。文件计数也与 `find lib -name '*.dart' -not -path 'lib/l10n/*'` 完全匹配——104 个源文件、104 个页面，没有无页面的文件，也没有无文件的页面。

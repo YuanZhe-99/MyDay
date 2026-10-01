@@ -1,8 +1,9 @@
 # Intimacy
 
 Model source: `lib/features/intimacy/models/intimacy_record.dart`. Services:
-`lib/features/intimacy/services/{body_metrics,cycle_predictor,intimacy_storage}.dart`. Views:
-`views/body_page.dart`, `views/intimacy_page.dart`. See
+`lib/features/intimacy/services/{body_metrics,cycle_predictor,intimacy_storage}.dart`. Utilities:
+`utils/thrust_timeline.dart`. Views: `views/body_page.dart`, `views/intimacy_page.dart`,
+`views/record_detail_page.dart`. See
 [Data Formats](../data-formats.md#intimacy--intimacy_datajson) for the full field list and
 [Body Metrics](../algorithms/body-metrics.md) for the bra-size/PSI/cycle-prediction algorithms.
 
@@ -31,13 +32,17 @@ visibility state (see [Architecture](../architecture.md#navigation)).
   helpers, `modifiedAt`.
 - **`Position`**: name, optional emoji, `modifiedAt`.
 - **`IntimacyRecord`**: solo/partnered type, location, partner id, toy ids, position ids, pleasure
-  level, duration, optional thrust count with an x100/x1 unit, datetime, notes, orgasm/porn/condom
-  flags, `modifiedAt`.
-- **`TimerHistoryEntry`**: timer start, duration, optional x100/x1 thrust count, with legacy `end`
-  migration (older entries stored an `end` timestamp instead of a duration).
+  level, duration, optional thrust count with an x100/x1 unit, optional thrust timeline (v1.5.5),
+  datetime, notes, orgasm/porn/condom flags, `modifiedAt`.
+- **`TimerHistoryEntry`**: timer start, duration, optional x100/x1 thrust count, optional thrust
+  timeline (v1.5.5), with legacy `end` migration (older entries stored an `end` timestamp instead of
+  a duration).
 - **`IntimacyTimerSession`**: a persisted active/paused stopwatch session with the original start
-  time, last resume time, accumulated elapsed time, running flag, optional x100/x1 thrust count, and
-  its own independent `timerSessionModifiedAt` for LWW sync.
+  time, last resume time, accumulated elapsed time, running flag, optional x100/x1 thrust count,
+  optional thrust timeline (v1.5.5), and its own independent `timerSessionModifiedAt` for LWW sync.
+- **`ThrustTimeline`** (v1.5.5, `utils/thrust_timeline.dart`): the timer's thrust-counter presses
+  in order, each an elapsed time in milliseconds and a positive count; its total is the session's
+  repetition count. Not a stored record of its own — it rides inside the three models above.
 - **`IntimacyData`**: partners, toys, positions, records, timer history, the active timer session,
   the user's `userBody` profile with its own `userBodyModifiedAt` LWW timestamp (same pattern as the
   timer session), `cycleRecords` for the user and partners, the timer retention setting, partner/toy
@@ -51,8 +56,9 @@ toy retirement state, toy-management active-cost summaries, an aggregate toy-cos
 all/active/retired toys, active/all daily-cost trend charts, finalized retired-toy costs, single-toy
 total/daily cost summaries, per-toy daily-cost subtitles, exclusion of inactive partners/toys from
 new-record pickers, the consolidated trend chart described below, weekly grouping that follows the
-global week-start-day setting, condom tracking, and a stopwatch timer with a non-negative thrust
-counter whose history and interrupted active/paused session are stored in `intimacy_data.json`.
+global week-start-day setting, condom tracking, a stopwatch timer with a non-negative thrust
+counter whose history and interrupted active/paused session are stored in `intimacy_data.json`,
+and (since v1.5.5) a record detail page with a thrust timeline chart, described below.
 
 Partner and toy detail pages show a summary card with average pleasure, average duration, and
 average thrust rate; toy pages add total and daily cost.
@@ -113,6 +119,32 @@ estimates; non-100-multiple counts are stored as exact `x1` values (`thrustCount
 `100` — any other stored value is coerced to `100` on read). The timer has a remembered local-only
 keep-screen-awake switch backed by `storage_config.json` and `wakelock_plus`; it is **not** synced.
 
+**Thrust timeline (v1.5.5).** Every `+100`/`+50`/`+10` press is stamped with the stopwatch's
+elapsed time and kept, in order, as the session's `thrustTimeline`; the counter shown is the
+timeline's total, so the count and the curve can never disagree. **`-100` is an undo**: it removes
+the latest presses until exactly 100 is gone, and when the last press it reaches is larger than
+what is left to remove, it trims that press instead of removing it (`+50, +10, +50` minus 100
+leaves one `+10` at the first press's time). Below 100 it clears the count, as before; the button
+is disabled at zero and its tooltip explains the undo. The timeline is persisted with the timer
+session on every press, copied into the history entry and into the saved record, and synced with
+them. Sessions and history rows saved before v1.5.5 have only a total, which is restored as one
+press at the restore point — the count is unchanged and no curve is drawn. If a stored timeline's
+total disagrees with the stored count (an older build changed the count), the count wins and the
+timeline is re-seeded the same way.
+
+**Exact durations (v1.5.5).** A timer save, and an edit of any record, now keeps the duration to
+the second. The record dialog shows hours and minutes; as long as neither field is changed, the
+exact prefilled or existing duration is saved. Changing either falls back to whole minutes, as a
+typed duration always was. Before v1.5.5 every save truncated to whole minutes. Likewise the
+dialog keeps the timeline only while the entered count still equals the timeline's total.
+
+**Layout (v1.5.5).** Stacked (phones, a folded phone's outer screen), the stopwatch and the session
+history share one scroll view: the stopwatch keeps its natural height and a long history scrolls
+below it. Previously the history took its full height first and squeezed the stopwatch's
+controls into whatever was left. Below 400 dp of width the digits drop from `displayLarge` to
+`displayMedium`. The two-pane layout is unchanged. See
+[Adaptive layout](../adaptive-layout.md#adoption-status).
+
 Session recovery behavior:
 
 - Stopped-and-saved timer sessions are cleared.
@@ -121,6 +153,35 @@ Session recovery behavior:
   `accumulated + (now - startedAt)` while running, so the elapsed time reflects real wall-clock time
   even after an app restart, not a stale in-memory counter.
 - History rows can be confirmed and restored as running sessions, which removes that history row.
+  The restored session keeps the row's press timeline.
+
+## Thrust timeline chart
+
+A record saved from the timer with at least two presses, whose total still matches its count,
+shows a chart on its [record detail page](#record-detail-page) (`widgets/thrust_timeline_chart.dart`): minutes of
+stopwatch time on the x axis, cumulative repetitions on the y axis.
+
+- **Step line** — the raw cumulative count, faint and solid: flat between presses, a jump at each
+  one, extended to the end of the session.
+- **Fit line** — dashed and curved, a **moving average** of the step line: the count is resampled
+  at 60 evenly spaced times and each sample is averaged with its neighbours over a window of 10% of
+  the session (edge windows are truncated), with the ends pinned to 0 and the total. A moving
+  average of a non-decreasing series never decreases, so the fit line never dips, and overshoot
+  prevention keeps the drawn curve from bulging below it.
+- The legend names both lines; the tooltip reads the raw count only.
+
+Records with fewer than two presses — typed-in counts, a single press, pre-1.5.5 timer sessions —
+show no chart.
+
+## Record detail page
+
+Tapping a record tile on the home page or on a partner/toy detail page opens a read-only detail
+page (v1.5.5, `views/record_detail_page.dart`): the partner (or solo) with the date and pleasure
+stars, the duration as `HH:MM:SS`, the thrust count and rate, the thrust timeline chart when there
+is one, toys, positions, the orgasm/porn/condom flags, and the location and notes. Edit and delete
+are app-bar actions that run the calling page's own edit dialog and delete path; an edit shows in
+place, a delete asks for confirmation and closes the page. Swipe-to-edit and swipe-to-delete on the
+record list are unchanged. The page is width-capped at the reading width and never splits.
 
 ## Deleted-partner handling
 

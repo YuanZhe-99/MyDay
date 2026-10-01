@@ -52,10 +52,10 @@ void main() {
         base,
       );
       expect(result.hasConflicts, isFalse);
-      expect(
-        result.cycleRecordsMerged.map((c) => c.id).toSet(),
-        {'local-1', 'remote-1'},
-      );
+      expect(result.cycleRecordsMerged.map((c) => c.id).toSet(), {
+        'local-1',
+        'remote-1',
+      });
       final remoteMerged = result.cycleRecordsMerged.firstWhere(
         (c) => c.id == 'remote-1',
       );
@@ -303,6 +303,82 @@ void main() {
           (preserved['cycleRecords'] as List).single as Map<String, dynamic>;
       expect(cycle['modifiedAt'], '2026-06-02T00:00:00.000Z');
       expect(cycle['futureCycleField'], 'keep');
+    });
+
+    test('thrustTimeline is a known key on records, history and session', () {
+      final schema = dataFilePreservationSchemas['intimacy_data.json']!;
+      final timeline = [
+        [60000, 100],
+        [120000, 50],
+      ];
+      Map<String, dynamic> record({bool withTimeline = true}) => {
+        'id': 'r1',
+        'type': 'Regular',
+        'isSolo': false,
+        'pleasureLevel': 3,
+        'duration': 180,
+        'thrustCount': 150,
+        'thrustCountUnit': 1,
+        if (withTimeline) 'thrustTimeline': timeline,
+        'datetime': '2026-09-01T22:00:00.000',
+        'hadOrgasm': false,
+        'watchedPorn': false,
+        'usedCondom': false,
+        'modifiedAt': '2026-09-01T00:00:00.000Z',
+      };
+      final existing = {
+        'partners': <Object>[],
+        'toys': <Object>[],
+        'positions': <Object>[],
+        'records': [
+          {...record(), 'futureRecordField': 'keep'},
+        ],
+        'timerHistory': [
+          {
+            'start': '2026-09-01T22:00:00.000',
+            'durationMs': 180000,
+            'thrustTimeline': timeline,
+            'futureHistoryField': 'keep',
+          },
+        ],
+        'timerSession': {
+          'firstStartedAt': '2026-09-01T22:00:00.000',
+          'accumulatedMs': 180000,
+          'running': false,
+          'thrustTimeline': timeline,
+        },
+        'settingsModifiedAt': '2026-01-01T00:00:00.000Z',
+      };
+      final next = {
+        'partners': <Object>[],
+        'toys': <Object>[],
+        'positions': <Object>[],
+        // The newer save dropped every timeline (count edited by hand).
+        'records': [record(withTimeline: false)],
+        'timerHistory': [
+          {'start': '2026-09-01T22:00:00.000', 'durationMs': 180000},
+        ],
+        'timerSession': {
+          'firstStartedAt': '2026-09-01T22:00:00.000',
+          'accumulatedMs': 180000,
+          'running': false,
+        },
+        'settingsModifiedAt': '2026-07-01T00:00:00.000Z',
+      };
+      final preserved = JsonPreservation.preserve(
+        next: next,
+        sources: [existing],
+        schema: schema,
+      );
+      final rec = (preserved['records'] as List).single as Map<String, dynamic>;
+      expect(rec.containsKey('thrustTimeline'), isFalse);
+      expect(rec['futureRecordField'], 'keep');
+      final hist =
+          (preserved['timerHistory'] as List).single as Map<String, dynamic>;
+      expect(hist.containsKey('thrustTimeline'), isFalse);
+      expect(hist['futureHistoryField'], 'keep');
+      final session = preserved['timerSession'] as Map<String, dynamic>;
+      expect(session.containsKey('thrustTimeline'), isFalse);
     });
   });
 

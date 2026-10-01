@@ -1,6 +1,6 @@
 # lib/features/intimacy/views/intimacy_page.dart
 
-The Intimacy feature's main view file — by far the largest source file in the whole app (5987
+The Intimacy feature's main view file — by far the largest source file in the whole app (6064
 lines). It hosts the home `IntimacyPage` (calendar, record list, trend chart, manage
 menu) and every management/detail sub-page reached from it: partner management, toy management,
 position management, the filtered per-partner/per-toy detail page (with its Records/Body tabs),
@@ -37,6 +37,11 @@ For the card's body facts, `_loadData` also reads the user's own bust/waist/hip 
 field, but only while on-device AI is on where a model can exist. See
 [On-device AI](../../../../on-device-ai.md#insight-cards).
 
+Since v1.5.5 tapping a record tile — on the home page or on a partner/toy detail page — opens the
+[record detail page](record_detail_page.md) (a separate file) through `_openRecordDetail`;
+`_RecordTile` gained an `onTap` for it, and both `_editRecord` methods return the saved record so
+the detail page can show an edit in place. Swipe-to-edit and swipe-to-delete are unchanged.
+
 ## Declarations
 
 | Declaration | Kind | Tier | Purpose |
@@ -62,12 +67,13 @@ field, but only while on-device AI is on where a model can exist. See
 | [`_filteredRecords`](#filteredrecords-main) | getter (`_IntimacyPageState`) | A | Apply the selected-date, type, and sort filters to the record list. |
 | [`_addRecord`](#addrecord-main) | method (`_IntimacyPageState`) | A | Open the add-record dialog (active partners/toys only) and persist the result. |
 | [`_deleteRecord`](#deleterecord-main) | method (`_IntimacyPageState`) | A | Remove a record by id and persist. |
-| [`_editRecord`](#editrecord-main) | method (`_IntimacyPageState`) | A | Open the edit-record dialog and persist the updated record. |
+| [`_editRecord`](#editrecord-main) | method (`_IntimacyPageState`) | A | Open the edit-record dialog, persist the updated record, and return it (or null). |
+| [`_openRecordDetail`](#openrecorddetail-main) | method (`_IntimacyPageState`) | A | Push the record detail page, wired to this page's edit and delete paths (v1.5.5). |
 | `_IntimacyPageState.build` | method (widget) | B | Build the home page: calendar, chart section (trend chart and, since v1.5.0, the on-device AI insight card), and record list/summary. |
 | `_showAllRecords` | method (widget helper) | B | Show the full filtered record list in a modal bottom sheet. |
 | `_buildRecordListWidgets` | method (widget helper) | B | Build the weekly-grouped record list widgets (main page). |
 | `_buildWeekHeader` | method (widget helper) | B | Build an ISO-week group header row (main page). |
-| `_buildRecordDismissible` | method (widget helper) | B | Build a swipe-to-delete record row (main page). |
+| `_buildRecordDismissible` | method (widget helper) | B | Build a swipe-to-edit/delete record row whose tap opens the record detail page (main page). |
 | `_buildSortChip` | method (widget helper) | B | Build the sort-mode chip/menu. |
 | `_buildFilterChip` | method (widget helper) | B | Build the filter-mode chip/menu. |
 | `_showManageMenu` | method (widget helper) | B | Show the bottom-sheet manage menu (Body/Partners/Toys/Positions). |
@@ -81,8 +87,8 @@ field, but only while on-device AI is on where a model can exist. See
 | `_CalendarWidget.build` | method (widget) | B | Render the month grid, header, and weekday labels. |
 | `_buildDayGrid` | method (widget helper) | B | Build the calendar's day-number grid. |
 | `_isSameDay` | method (`_CalendarWidget`) | B | Compare two dates ignoring time-of-day. |
-| `_RecordTile.new` | constructor | B | Trivial forwarding constructor. |
-| `_RecordTile.build` | method (widget) | B | Render one record's summary tile (partner/toys/position/flags). |
+| `_RecordTile.new` | constructor | B | Forwarding constructor; optional `onTap` (v1.5.5) opens the record detail page. |
+| `_RecordTile.build` | method (widget) | B | Render one record's summary tile (partner/toys/position/flags) inside a tappable `InkWell`. |
 | `_PartnerManagementPage.new` | constructor | B | Trivial forwarding constructor. |
 | `_PartnerManagementPage.createState` | method (`_PartnerManagementPage`) | B | Create `_PartnerManagementPageState`. |
 | `_PartnerManagementPageState.initState` | method (lifecycle) | B | Copy incoming partners/sort state into local mutable fields. |
@@ -179,13 +185,14 @@ field, but only while on-device AI is on where a model can exist. See
 | [`_dialogToys`](#dialogtoys) | method (`_FilteredRecordsPageState`) | A | Build the toy picker list for the add/edit record dialog. |
 | `_notifyRecordsChanged` | method (`_FilteredRecordsPageState`) | B | Forward a copy of the local record list to the parent callback. |
 | [`_addRecord`](#addrecord-filtered) | method (`_FilteredRecordsPageState`) | A | Open the add-record dialog preselecting the current partner/toy. |
-| [`_editRecord`](#editrecord-filtered) | method (`_FilteredRecordsPageState`) | A | Open the edit-record dialog for one record and update local state. |
+| [`_editRecord`](#editrecord-filtered) | method (`_FilteredRecordsPageState`) | A | Open the edit-record dialog for one record, update local state, and return the result (or null). |
+| [`_openRecordDetail`](#openrecorddetail-filtered) | method (`_FilteredRecordsPageState`) | A | Push the record detail page, wired to this page's edit and delete paths (v1.5.5). |
 | [`_deleteRecord`](#deleterecord-filtered) | method (`_FilteredRecordsPageState`) | A | Remove a record by id from local state and notify the parent. |
 | [`_formatDuration`](#formatduration) | method (`_FilteredRecordsPageState`) | A | Format a duration as `Xh Ym` or `Ym`. |
 | `_formatMoney` (Filtered page) | method (`_FilteredRecordsPageState`) | B | Format a plain dollar amount. |
 | `_buildSummaryCard` (Filtered page) | method (widget helper) | B | Build the top summary card (averages, plus cost metrics for a toy). |
 | `_buildSummaryMetric` | method (widget helper) | B | Build one labeled metric column inside the summary card. |
-| `_buildRecordDismissible` (Filtered page) | method (widget helper) | B | Build a swipe-to-delete record row (filtered page). |
+| `_buildRecordDismissible` (Filtered page) | method (widget helper) | B | Build a swipe-to-edit/delete record row whose tap opens the record detail page (filtered page). |
 | `_buildRecordListWidgets` (Filtered page) | method (widget helper) | B | Build the weekly-grouped record list widgets (filtered page). |
 | `_buildWeekHeader` (Filtered page) | method (widget helper) | B | Build an ISO-week group header row (filtered page). |
 | `_FilteredRecordsPageState.build` | method (widget) | B | Render either the plain layout or the partner Records/Body tab layout. |
@@ -226,8 +233,9 @@ field, but only while on-device AI is on where a model can exist. See
 | `_IntimacyBody({...})` | constructor (`_IntimacyBody`) | B | Create the intimacy body arranger. |
 | [`build`](#intimacybody-build) | method (`_IntimacyBody`) | A | Stack calendar, chart and records, or put the calendar and chart in a pane beside the records. |
 
-**Row count reconciliation:** 184 rows above, matching `grep -c '/// Purpose:'` = 184 exactly (58
-Tier A, 126 Tier B). v1.3.2 removed 27 rows (17 Tier A, 10 Tier B) when the record-metric charts
+**Row count reconciliation:** 186 rows above, matching `grep -c '/// Purpose:'` = 186 exactly (60
+Tier A, 126 Tier B). v1.5.5 added two Tier A rows, one `_openRecordDetail` in each of
+`_IntimacyPageState` and `_FilteredRecordsPageState`. v1.3.2 removed 27 rows (17 Tier A, 10 Tier B) when the record-metric charts
 moved to [`intimacy_trend_chart.dart`](../widgets/intimacy_trend_chart.md), and added one
 (`_saveChartSettings`, Tier A). See the note at the end of this page for how duplicate-named
 declarations
@@ -534,7 +542,7 @@ Tier A; `_applyIntimacyData`, `_currentIntimacyData`, `_showWriteBlocked` as Tie
 
 ### `void _deleteRecord(IntimacyRecord record)` (in `_IntimacyPageState`) <a id="deleterecord-main"></a>
 - **Kind:** method of `_IntimacyPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 572)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 573)
 - **Purpose:** Remove one record by id and persist.
 - **Inputs:** `record` — the record to delete (matched by id).
 - **Returns:** None.
@@ -544,26 +552,35 @@ Tier A; `_applyIntimacyData`, `_currentIntimacyData`, `_showWriteBlocked` as Tie
   ```dart
   onDismissed: (_) => _deleteRecord(record),
   ```
-  (from `_buildRecordDismissible`, after the shared delete-confirmation dialog).
-- **Notes:** No confirmation logic lives here — the `Dismissible` caller is responsible for
-  confirming before this runs.
+  (from `_buildRecordDismissible`, after the shared delete-confirmation dialog; since v1.5.5 also
+  as the record detail page's `onDelete`, wrapped as `(r) async => _deleteRecord(r)`).
+- **Notes:** No confirmation logic lives here — the `Dismissible` caller, or the detail page's
+  `_delete`, is responsible for confirming before this runs.
 
-### `Future<void> _editRecord(IntimacyRecord record)` (in `_IntimacyPageState`) <a id="editrecord-main"></a>
+### `Future<IntimacyRecord?> _editRecord(IntimacyRecord record)` (in `_IntimacyPageState`) <a id="editrecord-main"></a>
 - **Kind:** method of `_IntimacyPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 582)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 584)
 - **Purpose:** Open the edit-record dialog for an existing record and persist the update.
 - **Inputs:** `record` — the record being edited.
-- **Returns:** `Future<void>`.
+- **Returns:** `Future<IntimacyRecord?>` — the saved record, or `null` when the dialog was
+  cancelled (v1.5.5; previously `Future<void>`).
 - **Side effects:** Shows `AddRecordDialog` pre-filled; on a non-null result, replaces the record
   in `_records` via `setState` and calls `_saveData()`.
 - **Algorithm:** Same active-partner/active-toy computation as `_addRecord`, but the dialog is
   given the existing `record` to prefill; on a non-null return while still mounted (guard added in
-  v1.5.2), finds the record by id and overwrites it, then awaits `_saveData()`.
+  v1.5.2), finds the record by id and overwrites it, then awaits `_saveData()`; returns the
+  dialog's result.
 - **Usage:**
   ```dart
-  _editRecord(record);
+  // _buildRecordDismissible, swipe start-to-end (the return value is ignored):
+  if (direction == DismissDirection.startToEnd) {
+    _editRecord(record);
+    return false;
+  }
+
+  // _openRecordDetail — the detail page shows the returned record in place:
+  onEdit: _editRecord,
   ```
-  (from the record tile's tap handler / dismissible menu, in `_buildRecordDismissible`).
 - **Notes:** Because the dialog's partner/toy pickers are built from the *active-only* lists,
   editing a record that references a since-deleted or broken-up partner/toy still displays and
   saves correctly only because the picker construction (in the sibling `_FilteredRecordsPageState`
@@ -572,6 +589,30 @@ Tier A; `_applyIntimacyData`, `_currentIntimacyData`, `_showWriteBlocked` as Tie
   not itself special-case a dangling id, but simply leaves whatever id was already stored — it
   never reassigns or clears it, per the deleted-partner tolerance policy described in
   [Intimacy § Deleted-partner handling](../../../../features/intimacy.md#deleted-partner-handling).
+
+### `Future<void> _openRecordDetail(IntimacyRecord record)` (in `_IntimacyPageState`) <a id="openrecorddetail-main"></a>
+- **Kind:** method of `_IntimacyPageState`
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 612)
+- **Purpose:** Open the read-only [record detail page](record_detail_page.md) for one record.
+- **Inputs:** `record` — the tapped record.
+- **Returns:** `Future<void>` — completes when the detail page is popped.
+- **Side effects:** Pushes a `MaterialPageRoute` with `RecordDetailPage`.
+- **Algorithm:** `Navigator.push(RecordDetailPage(record: record, partners: _partners, toys:
+  _toys, positions: _positions, onEdit: _editRecord, onDelete: (r) async => _deleteRecord(r)))`.
+- **Usage:**
+  ```dart
+  // _buildRecordDismissible:
+  child: _RecordTile(
+    record: record,
+    onTap: () => _openRecordDetail(record),
+    ...
+  ),
+  ```
+- **Notes:** Added in v1.5.5. It passes **all** partners and toys, not just the active ones, so a
+  record that names an ended partner or a retired toy still shows the name; the edit dialog opened
+  from the detail page is still built from the active lists by `_editRecord`. Swipe-to-edit and
+  swipe-to-delete on the list are unchanged; the detail page's own delete asks for confirmation
+  before calling `_deleteRecord`.
 
 ### `int _compareNullableDates(DateTime? a, DateTime? b)` (in `_PartnerManagementPageState`) <a id="comparenullabledates-partner"></a>
 - **Kind:** method of `_PartnerManagementPageState`
@@ -1086,29 +1127,49 @@ Tier A; `_applyIntimacyData`, `_currentIntimacyData`, `_showWriteBlocked` as Tie
   pushes changes up via `onRecordsChanged` rather than calling storage directly — the actual
   persistence happens in the parent `_IntimacyPageState` once notified.
 
-### `Future<void> _editRecord(IntimacyRecord record)` (in `_FilteredRecordsPageState`) <a id="editrecord-filtered"></a>
+### `Future<IntimacyRecord?> _editRecord(IntimacyRecord record)` (in `_FilteredRecordsPageState`) <a id="editrecord-filtered"></a>
 - **Kind:** method of `_FilteredRecordsPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 4655)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 4709)
 - **Purpose:** Open the edit-record dialog for one record from a detail page and update local
   state.
 - **Inputs:** `record`.
-- **Returns:** `Future<void>`.
+- **Returns:** `Future<IntimacyRecord?>` — the saved record, or `null` when cancelled (v1.5.5;
+  previously `Future<void>`).
 - **Side effects:** Shows `AddRecordDialog` prefilled; on success, replaces the record in
   `_records` by id via `setState`; calls `_notifyRecordsChanged()`.
-- **Algorithm:** Show the dialog with `record:` set and scope-inclusive pickers; on a non-null
-  result, find the index by id and overwrite it in place (a no-op if the id somehow isn't found).
+- **Algorithm:** Show the dialog with `record:` set and scope-inclusive pickers; if the result is
+  `null` or the page is no longer mounted, return the result unchanged; otherwise find the index by
+  id, overwrite it in place (a no-op if the id somehow isn't found), notify, and return it.
 - **Usage:**
   ```dart
   _editRecord(record);
   ```
-  (from `_buildRecordDismissible`'s tap/menu handler).
+  (from `_buildRecordDismissible`'s swipe handler; since v1.5.5 also as the record detail page's
+  `onEdit`, via [`_openRecordDetail`](#openrecorddetail-filtered)).
 - **Notes:** If the edit changes the record's partner/toy away from this page's scope, the record
   simply disappears from `_filteredRecords` on the next rebuild — there's no special-case
-  handling, it falls straight out of the filter.
+  handling, it falls straight out of the filter. The detail page still shows the edited record
+  until it is closed.
+
+### `Future<void> _openRecordDetail(IntimacyRecord record)` (in `_FilteredRecordsPageState`) <a id="openrecorddetail-filtered"></a>
+- **Kind:** method of `_FilteredRecordsPageState`
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 4734)
+- **Purpose:** Open the record detail page for one record of this partner/toy list.
+- **Inputs:** `record` — the tapped record.
+- **Returns:** `Future<void>` — completes when the detail page is popped.
+- **Side effects:** Pushes a `MaterialPageRoute` with `RecordDetailPage`.
+- **Algorithm:** `Navigator.push(RecordDetailPage(record: record, partners: widget.partners, toys:
+  widget.toys, positions: widget.positions, onEdit: _editRecord, onDelete: (r) async =>
+  _deleteRecord(r)))`.
+- **Usage:** `onTap: () => _openRecordDetail(record)` on the `_RecordTile` built by this page's
+  `_buildRecordDismissible`.
+- **Notes:** Added in v1.5.5; mirrors the home page's
+  [`_openRecordDetail`](#openrecorddetail-main), so edits and deletes made from the detail page go
+  through this page's local-state-plus-`_notifyRecordsChanged` path.
 
 ### `void _deleteRecord(IntimacyRecord record)` (in `_FilteredRecordsPageState`) <a id="deleterecord-filtered"></a>
 - **Kind:** method of `_FilteredRecordsPageState`
-- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 4678)
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 4754)
 - **Purpose:** Remove a record from local state and notify the parent.
 - **Inputs:** `record`.
 - **Returns:** None.
@@ -1119,8 +1180,8 @@ Tier A; `_applyIntimacyData`, `_currentIntimacyData`, `_showWriteBlocked` as Tie
   ```dart
   onDismissed: (_) => _deleteRecord(record),
   ```
-- **Notes:** As with `_editRecord`/`_deleteRecord` on the home page, the `Dismissible` caller
-  handles delete confirmation before this runs.
+- **Notes:** As with `_editRecord`/`_deleteRecord` on the home page, the `Dismissible` caller (or,
+  since v1.5.5, the record detail page's `_delete`) handles delete confirmation before this runs.
 
 ### `String _formatDuration(Duration duration)` <a id="formatduration"></a>
 - **Kind:** method of `_FilteredRecordsPageState`

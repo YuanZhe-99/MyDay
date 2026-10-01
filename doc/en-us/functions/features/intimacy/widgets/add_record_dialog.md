@@ -11,42 +11,47 @@ dirty-checking pattern for its cancel confirmation, the same pattern used by
 Despite being a dialog widget, its `initState`/`_submit` pair carries real logic: this is where the
 repo's deleted-partner tolerance for intimacy records is actually implemented — see
 [Intimacy](../../../../features/intimacy.md#deleted-partner-handling), which documents that "editing
-a record whose partner was deleted builds and preserves the untouched partner id."
+a record whose partner was deleted builds and preserves the untouched partner id." Since v1.5.5 the
+same pair also carries the timer's [thrust timeline](../utils/thrust_timeline.md) through to the
+record, and keeps an exact duration (seconds included) unless the user edits the duration fields.
 
 ## Declarations
 
 | Declaration | Kind | Tier | Purpose |
 |---|---|---|---|
-| `AddRecordDialog` (constructor) | constructor (`AddRecordDialog`) | B | Create an add/edit record dialog instance from an optional existing record and initial-selection parameters. |
+| `AddRecordDialog` (constructor) | constructor (`AddRecordDialog`) | B | Create an add/edit record dialog instance from an optional existing record and initial-selection parameters, including the timer's `prefillThrustTimeline` (v1.5.5). |
 | `AddRecordDialog.createState` | method (`AddRecordDialog`) | B | Create the mutable `_AddRecordDialogState`. |
 | `_isEditing` | getter (`_AddRecordDialogState`) | B | Return whether `widget.record` is non-null (edit mode vs. add mode). |
-| [`initState`](#initstate) | method (`_AddRecordDialogState`) | A | Seed every field from the record being edited or from initial-selection parameters, applying solo/thrust-unit/duration defaulting rules. |
+| [`initState`](#initstate) | method (`_AddRecordDialogState`) | A | Seed every field from the record being edited or from initial-selection parameters, applying solo/thrust-unit/duration defaulting rules, and capture the timeline and exact duration to carry through. |
 | `dispose` | method (`_AddRecordDialogState`) | B | Dispose all five `TextEditingController`s. |
 | `build` | method (`_AddRecordDialogState`) | B | Render the full add/edit form inside an `UnsavedChangesGuard`-wrapped `Dialog`. |
 | `_hasUnsavedChanges` | method (`_AddRecordDialogState`) | B | Compare the current form signature to the one captured at `initState`. |
 | `_signature` | method (`_AddRecordDialogState`) | B | Build a `formSignature` snapshot of every editable field's current value. |
-| [`_submit`](#submit) | method (`_AddRecordDialogState`) | A | Parse/normalize duration and thrust count, build the resulting `IntimacyRecord`, and pop the dialog with it. |
+| [`_submit`](#submit) | method (`_AddRecordDialogState`) | A | Parse/normalize duration and thrust count, keep the exact duration and the timeline when still valid, build the resulting `IntimacyRecord`, and pop the dialog with it. |
 
 `grep -c 'Purpose:' lib/features/intimacy/widgets/add_record_dialog.dart` reports 9, matching all 9
-real declarations counted above exactly (2 Tier A, 7 Tier B). Every `/// Purpose:` block sits
-directly above the real declaration it documents — no misattached blocks and no undocumented real
-declaration were found. The class fields themselves (all the `final`/`late` fields on both
-`AddRecordDialog` and `_AddRecordDialogState`) are plain data holders, not counted as declarations.
+real declarations counted above exactly (2 Tier A, 7 Tier B); v1.5.5 changed two of them and added
+none. Every `/// Purpose:` block sits directly above the real declaration it documents — no
+misattached blocks and no undocumented real declaration were found. The class fields themselves
+(all the `final`/`late` fields on both `AddRecordDialog` and `_AddRecordDialogState`, including
+v1.5.5's `prefillThrustTimeline`, `_timeline`, `_exactDuration`, `_initialHoursText` and
+`_initialMinutesText`) are plain data holders, not counted as declarations.
 
 ## Documentation
 
 ### `void initState()` <a id="initstate"></a>
 - **Kind:** method of `_AddRecordDialogState` (override of `State.initState`)
-- **Source:** `lib/features/intimacy/widgets/add_record_dialog.dart` (line 78)
+- **Source:** `lib/features/intimacy/widgets/add_record_dialog.dart` (line 89)
 - **Purpose:** Seed every editable field either from the record being edited (`widget.record`) or
   from the dialog's initial-selection constructor parameters, apply the solo/thrust-unit/duration
   defaulting rules, and capture the initial dirty-check signature.
 - **Inputs:** None directly — reads `widget.record`, `widget.initialPartnerId`,
   `widget.initialToyIds`, `widget.initialThrustCount`, `widget.initialThrustCountUnit`,
-  `widget.prefillDuration`, and `widget.partners`.
+  `widget.prefillDuration`, `widget.prefillThrustTimeline`, and `widget.partners`.
 - **Returns:** None.
 - **Side effects:** Constructs all five `TextEditingController`s; sets every other mutable state
-  field; computes and stores `_initialSignature`.
+  field (including the four `late final` carry-through fields `_timeline`, `_exactDuration`,
+  `_initialHoursText`, `_initialMinutesText`); computes and stores `_initialSignature`.
 - **Algorithm:**
   1. `_isSolo = r?.isSolo ?? (widget.initialPartnerId == null && widget.partners.isEmpty)` — when
      adding (no record), defaults to solo only if no partner was pre-selected and there are no
@@ -65,14 +70,19 @@ declaration were found. The class fields themselves (all the `final`/`late` fiel
   7. If `widget.prefillDuration != null && r == null` (a fresh record prefilled from a finished
      timer, never an edit), overwrite `initMinutes` with
      `widget.prefillDuration!.inMinutes.clamp(0, 5999)`.
-  8. Build the hours/minutes controllers from `initMinutes ~/ 60` and `initMinutes % 60`.
-  9. If not solo, no partner is yet selected, and `widget.partners` is non-empty, default
-     `_selectedPartnerId` to `widget.partners.first.id`.
-  10. `_initialSignature = _signature()` — captured last, after every field above has its final
+  8. `_timeline = r != null ? r.thrustTimeline : widget.prefillThrustTimeline` — when editing, the
+     record's own timeline wins over any prefill.
+  9. `_exactDuration` is `r?.duration ?? widget.prefillDuration`, kept only when it is at most 5999
+     minutes (the fields' cap); otherwise `null`.
+  10. `_initialHoursText = (initMinutes ~/ 60).toString()` and `_initialMinutesText = (initMinutes %
+      60).toString()`; build the hours/minutes controllers from them.
+  11. If not solo, no partner is yet selected, and `widget.partners` is non-empty, default
+      `_selectedPartnerId` to `widget.partners.first.id`.
+  12. `_initialSignature = _signature()` — captured last, after every field above has its final
       initial value, so the unsaved-changes guard has an accurate baseline.
 - **Usage:**
   ```dart
-  // Editing an existing record (views/intimacy_page.dart, lines 505-511):
+  // Editing an existing record (views/intimacy_page.dart, lines 587-595):
   final activePartners = _partners.where((p) => p.endDate == null).toList();
   final updated = await showDialog<IntimacyRecord>(
     context: context,
@@ -97,7 +107,7 @@ declaration were found. The class fields themselves (all the `final`/`late` fiel
 
 ### `void _submit(UnsavedChangesController guard)` <a id="submit"></a>
 - **Kind:** method of `_AddRecordDialogState`
-- **Source:** `lib/features/intimacy/widgets/add_record_dialog.dart` (line 512)
+- **Source:** `lib/features/intimacy/widgets/add_record_dialog.dart` (line 529)
 - **Purpose:** Parse the duration and thrust-count text fields, normalize empty/zero/unparsable
   input to absent, build the resulting `IntimacyRecord` — preserving the original id and any
   untouched (possibly dangling) partner id when editing — and pop the dialog with it.
@@ -109,16 +119,22 @@ declaration were found. The class fields themselves (all the `final`/`late` fiel
      failure.
   2. `totalMinutes = (hours * 60 + minutes).clamp(0, 5999)` — the same 5999-minute (~99h59m) cap used
      when seeding from `prefillDuration` in `initState`.
-  3. Parse `thrustCount` from its controller's trimmed text; normalize to `null` unless the parsed
+  3. `durationUntouched` is true when both controllers' trimmed text still equals
+     `_initialHoursText`/`_initialMinutesText`. `duration` is `_exactDuration` when the fields are
+     untouched and `_exactDuration` is non-null, otherwise `Duration(minutes: totalMinutes)`.
+  4. Parse `thrustCount` from its controller's trimmed text; normalize to `null` unless the parsed
      value is `> 0` (so `"0"`, blank, or unparsable text all mean "not recorded").
-  4. Build the `IntimacyRecord`: `id: widget.record?.id` (preserves the id when editing, lets the
+  5. `resolvedCount` is `0` when there is no count, otherwise `count * (unit == 1 ? 1 : 100)`. Keep
+     `_timeline` only when it is non-null and `_timeline.total == resolvedCount`; otherwise the
+     record gets no timeline.
+  6. Build the `IntimacyRecord`: `id: widget.record?.id` (preserves the id when editing, lets the
      model assign one when adding); `type` is `'Solo'` or `'Regular'` from `_isSolo`; `partnerId:
      _isSolo ? null : _selectedPartnerId` — reading the state field set up in `initState`/the
-     dropdown's `onChanged`, not anything re-derived from `widget.partners`; `duration:
-     Duration(minutes: totalMinutes)`; the parsed `thrustCount`/`_thrustCountUnit`; `_datetime`;
+     dropdown's `onChanged`, not anything re-derived from `widget.partners`; `duration` from step 3;
+     the parsed `thrustCount`/`_thrustCountUnit`; `thrustTimeline` from step 5; `_datetime`;
      `toyIds`/`positionIds` from the selected sets; the three boolean flags; and
      `location`/`notes` as the trimmed controller text, or `null` when that trim is empty.
-  5. `guard.pop(record)` — closes the dialog, returning `record` as the `showDialog` result.
+  7. `guard.pop(record)` — closes the dialog, returning `record` as the `showDialog` result.
 - **Usage:**
   ```dart
   FilledButton(
@@ -126,8 +142,17 @@ declaration were found. The class fields themselves (all the `final`/`late` fiel
     child: Text(l10n.commonSave),
   ),
   ```
-  (`build`, lines 464-467.)
-- **Notes:** `partnerId` is written straight from `_selectedPartnerId` with no re-validation against
+  (`build`, lines 477-480.)
+- **Notes:** **Exact duration (v1.5.5).** Before v1.5.5 every save truncated the duration to whole
+  minutes, so a timer session of 12:34 became 12:00 and an edit of an old timer record lost its
+  seconds. Now the prefilled timer duration (adding) or the record's own duration (editing) is
+  kept, seconds included, as long as the hour and minute fields still show what they started with;
+  any change to either falls back to whole minutes. **Timeline consistency (v1.5.5).** A timeline
+  survives only while the entered count still equals its total: changing the count or the unit
+  drops it, so a record's curve can never disagree with its headline count. Editing a typed-in
+  record (no timeline) never gains one.
+
+  `partnerId` is written straight from `_selectedPartnerId` with no re-validation against
   `widget.partners` — if the user never opens the partner dropdown during an edit (so `onChanged`
   never fires), the value set in `initState` from the record's original `partnerId` flows through
   unchanged, even if that partner no longer exists in `widget.partners`. This is the concrete
@@ -146,4 +171,8 @@ declaration were found. The class fields themselves (all the `final`/`late` fiel
   add/edit dialog (`_WeightRecordDialog`) using the identical
   `initState`/`_signature`/`_hasUnsavedChanges`/`_submit` shape.
 - [`timer_page.dart`](timer_page.md) — calls this dialog with `prefillDuration`/
-  `initialThrustCount`/`initialThrustCountUnit` after a finished stopwatch session.
+  `initialThrustCount`/`initialThrustCountUnit`/`prefillThrustTimeline` after a finished stopwatch
+  session.
+- [`thrust_timeline.dart`](../utils/thrust_timeline.md) — the timeline `_submit` keeps or drops.
+- [`record_detail_page.dart`](../views/record_detail_page.md) — its edit action opens this dialog
+  through the caller's `_editRecord`.

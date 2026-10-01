@@ -19,7 +19,7 @@
 ### `dataFilePreservationSchemas` <a id="schemas"></a>
 - **种类：** 常量映射，文件名到 `JsonPreservationSchema`
 - **用途：** 告诉保留引擎每个数据文件合法知道哪些键，使其他一切被当作要向前携带的未知字段。
-- **备注：** MyDay 的合并输出**不**自我保留——不同于把 `extraJson` 烘焙进模型的 MyAnime 和 MyDevice。未知字段在写入时按 基础/本地/远程快照顺序 重新应用。这正是注册表每个结构化模块设 `preUploadTransform` 的原因。给模型加字段意味着在这里给匹配模式加字段，否则它会被当作未知。
+- **备注：** MyDay 的合并输出**不**自我保留——不同于把 `extraJson` 烘焙进模型的 MyAnime 和 MyDevice。未知字段在写入时按 基础/本地/远程快照顺序 重新应用。这正是注册表每个结构化模块设 `preUploadTransform` 的原因。给模型加字段意味着在这里给匹配模式加字段，否则它会被当作未知。例如：v1.5.5 在添加模型字段的同时，把 `thrustTimeline` 加进了亲密记录、计时器历史和计时器会话模式。
 
 ## 引擎文档在哪里
 

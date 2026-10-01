@@ -505,6 +505,36 @@ class AppLocalizationsJa extends AppLocalizations {
   String get intimacyTimerKeepScreenAwakeDesc => 'この端末のタイマー設定として記憶します。';
 
   @override
+  String get intimacyThrustUndoHint => '直近100回を取り消す';
+
+  @override
+  String get intimacyRecordDetail => '記録の詳細';
+
+  @override
+  String get intimacyThrustTimeline => '回数の推移';
+
+  @override
+  String get intimacyThrustTimelineSmoothed => '平滑化';
+
+  @override
+  String get intimacyThrustTimelineMinutes => '分';
+
+  @override
+  String get intimacyNotRecorded => '未記録';
+
+  @override
+  String get intimacyDetailLocation => '場所';
+
+  @override
+  String get intimacyDetailNotes => 'メモ';
+
+  @override
+  String get intimacyOrgasmStatus => 'オーガズム';
+
+  @override
+  String get intimacyWatchedPornStatus => 'ポルノ視聴';
+
+  @override
   String get intimacyManage => '管理';
 
   @override

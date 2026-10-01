@@ -8,6 +8,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../shared/utils/adaptive_layout.dart';
 import '../../todo/services/todo_storage.dart';
 import '../models/intimacy_record.dart';
+import '../utils/thrust_timeline.dart';
 import 'add_record_dialog.dart';
 
 /// Purpose: Describe how timer state changes are persisted outside this page.
@@ -99,7 +100,7 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
   Duration _accumulated = Duration.zero; // elapsed before last pause
   Timer? _ticker;
   bool _running = false;
-  int _thrustCount = 0;
+  ThrustTimeline _timeline = ThrustTimeline.empty();
   bool _keepScreenAwake = false;
   bool _wakelockEnabledByPage = false;
   bool _disposed = false;
@@ -120,6 +121,34 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
       (_running && _startedAt != null
           ? DateTime.now().difference(_startedAt!)
           : Duration.zero);
+
+  /// Purpose: Return the live thrust count in actual repetitions.
+  /// Inputs: None.
+  /// Returns: `int` — the timeline's total.
+  /// Side effects: None.
+  /// Notes: Derived from `_timeline`, so the count and the curve can never
+  /// disagree.
+  int get _thrustCount => _timeline.total;
+
+  /// Purpose: Recover a press timeline from a stored session or history entry.
+  /// Inputs: `timeline` — the stored timeline, if any; `count`/`unit` — the
+  /// stored total; `elapsed` — where to place a seeded event.
+  /// Returns: `ThrustTimeline`.
+  /// Side effects: None.
+  /// Notes: Data saved before v1.5.5 has only a total, which becomes one event
+  /// at `elapsed`. A stored timeline whose total disagrees with the stored
+  /// count is also replaced by a seed, so the count shown never changes on
+  /// restore.
+  ThrustTimeline _restoreTimeline(
+    ThrustTimeline? timeline,
+    int count,
+    int unit,
+    Duration elapsed,
+  ) {
+    final actual = _actualThrustCount(count, unit);
+    if (timeline != null && timeline.total == actual) return timeline;
+    return ThrustTimeline.seed(elapsed.inMilliseconds, actual);
+  }
 
   // ── lifecycle ──────────────────────────────────────────────────────
 
@@ -143,9 +172,11 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
       _startedAt = session.running ? session.startedAt : null;
       _accumulated = session.accumulated;
       _running = session.running;
-      _thrustCount = _actualThrustCount(
+      _timeline = _restoreTimeline(
+        session.thrustTimeline,
         session.thrustCount,
         session.thrustCountUnit,
+        session.elapsedAt(DateTime.now()),
       );
       if (_running) _ensureTicker();
     }
@@ -285,14 +316,19 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
   }
 
   /// Purpose: Adjust the timer's thrust count by actual repetitions.
-  /// Inputs: `delta`.
+  /// Inputs: `delta` — positive to record a press, negative to undo.
   /// Returns: `Future<void>`.
   /// Side effects: Updates UI state and persists the timer session snapshot.
-  /// Notes: The counter is clamped at zero so accidental decrements never go negative.
+  /// Notes: A positive delta is recorded at the current stopwatch time. A
+  /// negative delta undoes the latest presses until exactly that many are
+  /// removed, trimming the last one it reaches if needed, and never goes
+  /// below zero. See `ThrustTimeline.undo`.
   Future<void> _changeThrustCount(int delta) async {
-    final next = (_thrustCount + delta).clamp(0, 999999).toInt();
-    if (next == _thrustCount) return;
-    setState(() => _thrustCount = next);
+    final next = delta < 0
+        ? _timeline.undo(-delta)
+        : _timeline.add(_elapsed.inMilliseconds, delta);
+    if (identical(next, _timeline)) return;
+    setState(() => _timeline = next);
     await _persistState(timerSessionChanged: true);
   }
 
@@ -343,7 +379,7 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
     _firstStartedAt = null;
     _startedAt = null;
     _running = false;
-    _thrustCount = 0;
+    _timeline = ThrustTimeline.empty();
     _ticker?.cancel();
     setState(() {});
     await _persistState(timerSessionChanged: true);
@@ -383,6 +419,7 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
       running: _running,
       thrustCount: _storedThrustCount,
       thrustCountUnit: _storedThrustCountUnit,
+      thrustTimeline: _timeline,
     );
   }
 
@@ -447,6 +484,9 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
     final prefillThrustCount = prefillEntry?.thrustCount ?? _storedThrustCount;
     final prefillThrustCountUnit =
         prefillEntry?.thrustCountUnit ?? _storedThrustCountUnit;
+    final prefillThrustTimeline = prefillEntry != null
+        ? prefillEntry.thrustTimeline
+        : _timeline;
     final sessionStart = prefillEntry != null
         ? prefillEntry.start
         : (_sessionStartTime ?? DateTime.now().subtract(elapsed));
@@ -459,6 +499,7 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
         duration: elapsed,
         thrustCount: _storedThrustCount,
         thrustCountUnit: _storedThrustCountUnit,
+        thrustTimeline: _timeline,
       );
       setState(() {
         _history.insert(0, entry);
@@ -475,6 +516,7 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
         prefillDuration: elapsed,
         initialThrustCount: prefillThrustCount > 0 ? prefillThrustCount : null,
         initialThrustCountUnit: prefillThrustCountUnit,
+        prefillThrustTimeline: prefillThrustTimeline,
         partners: widget.partners,
         toys: widget.toys,
         positions: widget.positions,
@@ -488,7 +530,7 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
         _firstStartedAt = null;
         _startedAt = null;
         _running = false;
-        _thrustCount = 0;
+        _timeline = ThrustTimeline.empty();
         _ticker?.cancel();
         await _persistState(timerSessionChanged: true);
         if (!mounted) return;
@@ -564,9 +606,11 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
       _startedAt = DateTime.now();
       _accumulated = entry.duration;
       _running = true;
-      _thrustCount = _actualThrustCount(
+      _timeline = _restoreTimeline(
+        entry.thrustTimeline,
         entry.thrustCount,
         entry.thrustCountUnit,
+        entry.duration,
       );
       _timerSessionChanged = true;
     });
@@ -594,6 +638,9 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
     // That trade is recorded in doc/en-us/adaptive-layout.md.
     final screen = MediaQuery.sizeOf(context);
     final twoPane = canSplitLayout(screen.width, screen.height);
+    final digitStyle = useCompactTimerDisplay(screen.width)
+        ? theme.textTheme.displayMedium
+        : theme.textTheme.displayLarge;
 
     return PopScope(
       canPop: false,
@@ -605,176 +652,162 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
         appBar: AppBar(title: Text(l10n.intimacyTimer), centerTitle: true),
         body: _TimerBody(
           twoPane: twoPane,
-          timer:
-              // ── main timer area ──
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 24,
-                  ),
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        if (sessionStart != null)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: Text(
-                              '${l10n.intimacyTimerStartedAt} ${_formatDateTime(sessionStart)}',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.outline,
-                              ),
-                            ),
-                          ),
-
-                        Text(
-                          _formatDuration(_elapsed),
-                          style: theme.textTheme.displayLarge?.copyWith(
-                            fontWeight: FontWeight.w300,
-                            fontFeatures: const [FontFeature.tabularFigures()],
-                          ),
-                        ),
-                        if (sessionStart != null || hasElapsed) ...[
-                          const SizedBox(height: 16),
-                          Text(
-                            '${l10n.intimacyThrustCountShort}: $_thrustCountLabel',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontFeatures: const [
-                                FontFeature.tabularFigures(),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            alignment: WrapAlignment.center,
-                            spacing: 12,
-                            runSpacing: 8,
-                            children: [
-                              OutlinedButton.icon(
-                                onPressed: _thrustCount > 0
-                                    ? () => _changeThrustCount(-100)
-                                    : null,
-                                icon: const Icon(Icons.remove),
-                                label: const Text('-100'),
-                              ),
-                              FilledButton.icon(
-                                onPressed: () => _changeThrustCount(100),
-                                icon: const Icon(Icons.add),
-                                label: const Text('+100'),
-                              ),
-                              FilledButton.tonalIcon(
-                                onPressed: () => _changeThrustCount(50),
-                                icon: const Icon(Icons.add),
-                                label: const Text('+50'),
-                              ),
-                              FilledButton.tonalIcon(
-                                onPressed: () => _changeThrustCount(10),
-                                icon: const Icon(Icons.add),
-                                label: const Text('+10'),
-                              ),
-                            ],
-                          ),
-                        ],
-                        const SizedBox(height: 16),
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 420),
-                          child: SwitchListTile(
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                            ),
-                            secondary: const Icon(Icons.lightbulb_outline),
-                            title: Text(l10n.intimacyTimerKeepScreenAwake),
-                            subtitle: Text(
-                              l10n.intimacyTimerKeepScreenAwakeDesc,
-                            ),
-                            value: _keepScreenAwake,
-                            onChanged: (value) {
-                              unawaited(_setKeepScreenAwake(value));
-                            },
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-
-                        Wrap(
-                          alignment: WrapAlignment.center,
-                          spacing: 12,
-                          runSpacing: 12,
-                          children: [
-                            if (!isRunning && !hasElapsed)
-                              FilledButton.icon(
-                                onPressed: () => _start(),
-                                icon: const Icon(Icons.play_arrow),
-                                label: Text(l10n.intimacyStart),
-                                style: FilledButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 32,
-                                    vertical: 16,
-                                  ),
-                                ),
-                              ),
-
-                            if (isRunning) ...[
-                              OutlinedButton.icon(
-                                onPressed: () => _pause(),
-                                icon: const Icon(Icons.pause),
-                                label: Text(l10n.intimacyPause),
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 24,
-                                    vertical: 16,
-                                  ),
-                                ),
-                              ),
-                              FilledButton.icon(
-                                onPressed: () => _saveRecord(),
-                                icon: const Icon(Icons.stop),
-                                label: Text(l10n.intimacyStopSave),
-                                style: FilledButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 24,
-                                    vertical: 16,
-                                  ),
-                                ),
-                              ),
-                            ],
-
-                            if (!isRunning && hasElapsed) ...[
-                              OutlinedButton.icon(
-                                onPressed: () => _start(),
-                                icon: const Icon(Icons.play_arrow),
-                                label: Text(l10n.intimacyResume),
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 24,
-                                    vertical: 16,
-                                  ),
-                                ),
-                              ),
-                              FilledButton.icon(
-                                onPressed: () => _saveRecord(),
-                                icon: const Icon(Icons.save),
-                                label: Text(l10n.commonSave),
-                                style: FilledButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 24,
-                                    vertical: 16,
-                                  ),
-                                ),
-                              ),
-                              TextButton.icon(
-                                onPressed: () => _reset(),
-                                icon: const Icon(Icons.refresh),
-                                label: Text(l10n.intimacyReset),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ],
+          // ── main timer area ── (_TimerBody adds padding and scrolling)
+          timer: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (sessionStart != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    '${l10n.intimacyTimerStartedAt} ${_formatDateTime(sessionStart)}',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.outline,
                     ),
                   ),
                 ),
+
+              Text(
+                _formatDuration(_elapsed),
+                style: digitStyle?.copyWith(
+                  fontWeight: FontWeight.w300,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
               ),
+              if (sessionStart != null || hasElapsed) ...[
+                const SizedBox(height: 16),
+                Text(
+                  '${l10n.intimacyThrustCountShort}: $_thrustCountLabel',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 12,
+                  runSpacing: 8,
+                  children: [
+                    Tooltip(
+                      message: l10n.intimacyThrustUndoHint,
+                      child: OutlinedButton.icon(
+                        onPressed: _thrustCount > 0
+                            ? () => _changeThrustCount(-100)
+                            : null,
+                        icon: const Icon(Icons.remove),
+                        label: const Text('-100'),
+                      ),
+                    ),
+                    FilledButton.icon(
+                      onPressed: () => _changeThrustCount(100),
+                      icon: const Icon(Icons.add),
+                      label: const Text('+100'),
+                    ),
+                    FilledButton.tonalIcon(
+                      onPressed: () => _changeThrustCount(50),
+                      icon: const Icon(Icons.add),
+                      label: const Text('+50'),
+                    ),
+                    FilledButton.tonalIcon(
+                      onPressed: () => _changeThrustCount(10),
+                      icon: const Icon(Icons.add),
+                      label: const Text('+10'),
+                    ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 16),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: SwitchListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                  secondary: const Icon(Icons.lightbulb_outline),
+                  title: Text(l10n.intimacyTimerKeepScreenAwake),
+                  subtitle: Text(l10n.intimacyTimerKeepScreenAwakeDesc),
+                  value: _keepScreenAwake,
+                  onChanged: (value) {
+                    unawaited(_setKeepScreenAwake(value));
+                  },
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  if (!isRunning && !hasElapsed)
+                    FilledButton.icon(
+                      onPressed: () => _start(),
+                      icon: const Icon(Icons.play_arrow),
+                      label: Text(l10n.intimacyStart),
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 32,
+                          vertical: 16,
+                        ),
+                      ),
+                    ),
+
+                  if (isRunning) ...[
+                    OutlinedButton.icon(
+                      onPressed: () => _pause(),
+                      icon: const Icon(Icons.pause),
+                      label: Text(l10n.intimacyPause),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 16,
+                        ),
+                      ),
+                    ),
+                    FilledButton.icon(
+                      onPressed: () => _saveRecord(),
+                      icon: const Icon(Icons.stop),
+                      label: Text(l10n.intimacyStopSave),
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 16,
+                        ),
+                      ),
+                    ),
+                  ],
+
+                  if (!isRunning && hasElapsed) ...[
+                    OutlinedButton.icon(
+                      onPressed: () => _start(),
+                      icon: const Icon(Icons.play_arrow),
+                      label: Text(l10n.intimacyResume),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 16,
+                        ),
+                      ),
+                    ),
+                    FilledButton.icon(
+                      onPressed: () => _saveRecord(),
+                      icon: const Icon(Icons.save),
+                      label: Text(l10n.commonSave),
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 16,
+                        ),
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: () => _reset(),
+                      icon: const Icon(Icons.refresh),
+                      label: Text(l10n.intimacyReset),
+                    ),
+                  ],
+                ],
+              ),
+            ],
+          ),
           history: [
             // ── history section ──
             if (_history.isNotEmpty) ...[
@@ -895,31 +928,51 @@ class _TimerBody extends StatelessWidget {
   /// Returns: A new `_TimerBody` instance.
   /// Side effects: None.
   /// Notes: Internal helper used within this file only. The two content slots
-  /// are built once by the page and arranged two ways here.
+  /// are built once by the page and arranged two ways here. `timer` is the
+  /// bare stopwatch column; this widget adds its padding and scrolling.
   const _TimerBody({
     required this.twoPane,
     required this.timer,
     required this.history,
   });
 
+  static const _timerPadding = EdgeInsets.symmetric(
+    horizontal: 16,
+    vertical: 24,
+  );
+
   /// Purpose: Build the current widget subtree for the active UI state.
   /// Inputs: `context`.
   /// Returns: The widget tree for the current state.
   /// Side effects: Creates UI widgets from the current state.
-  /// Notes: Stacked, a long session history pushes the stopwatch itself up and
-  /// eventually off the top of the screen, which is the one thing this page
-  /// must always show. Side by side, the stopwatch keeps the middle of its own
-  /// pane and the history scrolls beside it. `timer` arrives already wrapped in
-  /// an `Expanded`, so both arrangements put it in a `Flex`.
+  /// Notes: Stacked, the stopwatch and the history share one scroll view, and
+  /// the stopwatch always keeps its natural height: a long history scrolls
+  /// below it instead of squeezing it, which used to leave the controls a
+  /// sliver on a folded phone's outer screen. Side by side, the stopwatch
+  /// scrolls in its own pane and the history scrolls beside it. Both keep the
+  /// stopwatch top-aligned and horizontally centred, as before v1.5.5.
   @override
   Widget build(BuildContext context) {
     if (!twoPane || history.isEmpty) {
-      return Column(children: [timer, ...history]);
+      return CustomScrollView(
+        slivers: [
+          SliverPadding(
+            padding: _timerPadding,
+            sliver: SliverToBoxAdapter(child: Center(child: timer)),
+          ),
+          SliverList(delegate: SliverChildListDelegate(history)),
+        ],
+      );
     }
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Expanded(child: Column(children: [timer])),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: _timerPadding,
+            child: Center(child: timer),
+          ),
+        ),
         const VerticalDivider(width: 1),
         SizedBox(
           width: timerHistoryPaneWidth,

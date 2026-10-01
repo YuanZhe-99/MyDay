@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:my_day/features/intimacy/models/intimacy_record.dart';
+import 'package:my_day/features/intimacy/utils/thrust_timeline.dart';
 
 /// Purpose: Verify intimacy record serialization behavior.
 /// Inputs: None.
@@ -322,6 +323,124 @@ void main() {
       expect(
         IntimacyChartSettings.fromJson(const {}).range,
         IntimacyChartSettings.defaultRange,
+      );
+    });
+  });
+
+  group('thrust timeline', () {
+    final timeline = ThrustTimeline([
+      const ThrustEvent(60000, 100),
+      const ThrustEvent(120000, 50),
+    ]);
+
+    test('round-trips on a record and gates the chart at two presses', () {
+      final record = IntimacyRecord(
+        id: 'r1',
+        type: 'Regular',
+        pleasureLevel: 4,
+        duration: const Duration(minutes: 3, seconds: 10),
+        thrustCount: 150,
+        thrustCountUnit: 1,
+        thrustTimeline: timeline,
+        datetime: DateTime(2026, 9, 1, 22),
+      );
+      final json = record.toJson();
+      expect(json['thrustTimeline'], [
+        [60000, 100],
+        [120000, 50],
+      ]);
+      final restored = IntimacyRecord.fromJson(json);
+      expect(restored.thrustTimeline!.events, timeline.events);
+      expect(restored.duration.inSeconds, 190);
+      expect(restored.hasThrustTimeline, isTrue);
+      final single = IntimacyRecord(
+        type: 'Regular',
+        pleasureLevel: 3,
+        duration: const Duration(minutes: 1),
+        thrustTimeline: ThrustTimeline.seed(1000, 100),
+      );
+      expect(single.hasThrustTimeline, isFalse);
+    });
+
+    test('a timeline whose total disagrees with the count draws no chart', () {
+      // What a pre-1.5.5 build leaves when it edits the count but carries the
+      // unknown timeline key forward.
+      final stale = IntimacyRecord.fromJson({
+        ...IntimacyRecord(
+          type: 'Regular',
+          pleasureLevel: 3,
+          duration: const Duration(minutes: 3),
+          thrustCount: 150,
+          thrustCountUnit: 1,
+          thrustTimeline: timeline,
+        ).toJson(),
+        'thrustCount': 3,
+        'thrustCountUnit': 100,
+      });
+      expect(stale.thrustTimeline, isNotNull);
+      expect(stale.hasThrustTimeline, isFalse);
+    });
+
+    test('omits the key when empty or absent, and reads old JSON', () {
+      final record = IntimacyRecord(
+        type: 'Solo',
+        pleasureLevel: 3,
+        duration: const Duration(minutes: 5),
+        thrustTimeline: ThrustTimeline.empty(),
+      );
+      expect(record.thrustTimeline, isNull);
+      expect(record.toJson().containsKey('thrustTimeline'), isFalse);
+      final legacy = record.toJson()..remove('thrustTimeline');
+      expect(IntimacyRecord.fromJson(legacy).thrustTimeline, isNull);
+    });
+
+    test('a malformed timeline does not make the record unreadable', () {
+      final json = IntimacyRecord(
+        type: 'Solo',
+        pleasureLevel: 3,
+        duration: const Duration(minutes: 5),
+      ).toJson()..['thrustTimeline'] = 'garbage';
+      expect(IntimacyRecord.fromJson(json).thrustTimeline, isNull);
+    });
+
+    test('round-trips on timer history entries and sessions', () {
+      final entry = TimerHistoryEntry(
+        start: DateTime(2026, 9, 1, 22),
+        duration: const Duration(minutes: 3),
+        thrustCount: 150,
+        thrustCountUnit: 1,
+        thrustTimeline: timeline,
+      );
+      expect(
+        TimerHistoryEntry.fromJson(entry.toJson()).thrustTimeline!.events,
+        timeline.events,
+      );
+      final legacyEnd = {
+        'start': '2026-09-01T22:00:00.000',
+        'end': '2026-09-01T22:03:00.000',
+        'thrustTimeline': timeline.toJson(),
+      };
+      expect(TimerHistoryEntry.fromJson(legacyEnd).thrustTimeline!.total, 150);
+
+      final session = IntimacyTimerSession(
+        firstStartedAt: DateTime(2026, 9, 1, 22),
+        accumulated: const Duration(minutes: 3),
+        running: false,
+        thrustCount: 150,
+        thrustCountUnit: 1,
+        thrustTimeline: timeline,
+      );
+      expect(
+        IntimacyTimerSession.fromJson(session.toJson()).thrustTimeline!.events,
+        timeline.events,
+      );
+      expect(
+        IntimacyTimerSession(
+          firstStartedAt: DateTime(2026, 9, 1, 22),
+          accumulated: Duration.zero,
+          running: false,
+        ).toJson().containsKey('thrustTimeline'),
+        isFalse,
       );
     });
   });

@@ -54,6 +54,7 @@ named predicate.
 | `calendarCardMinWidth` | top-level `const double` | B | Smallest width the Todo month calendar may occupy beside the trend (340). |
 | `scoreTrendMinWidth` | top-level `const double` | B | Smallest width the Todo score trend may be given (360). |
 | `timerHistoryPaneWidth` | top-level `const double` | B | Width of the timer page's session-history pane (320). |
+| `timerCompactDisplayWidth` | top-level `const double` | B | Screen width below which the timer's stopwatch digits drop to `displayMedium` (400; v1.5.5). |
 | `dialogMaxContentWidth` | top-level `const double` | B | Widest a dialog's content grows before it centres instead (640). |
 | `dialogMinHorizontalInset` | top-level `const double` | B | Flutter's own default dialog horizontal inset (40). |
 | `pickerCellMinWidth` | top-level `const double` | B | Minimum width one emoji or icon picker cell may occupy (44). |
@@ -73,19 +74,22 @@ named predicate.
 | [`usePieChartSideBySide`](#usepiechartsidebyside) | top-level function | A | Report whether the analysis legend fits beside the pie chart. |
 | [`useTodoCalendarSideBySide`](#usetodocalendarsidebyside) | top-level function | A | Report whether the Todo score trend fits beside the month calendar. |
 | [`todoCalendarPaneWidth`](#todocalendarpanewidth) | top-level function | A | Return the width of the Todo calendar page's month-grid pane. |
+| [`useCompactTimerDisplay`](#usecompacttimerdisplay) | top-level function | A | Report whether the timer page should use its compact stopwatch digits (v1.5.5). |
 | [`dialogHorizontalInset`](#dialoghorizontalinset) | top-level function | A | Return the horizontal inset that caps a dialog's content width. |
 
-**Reconciliation:** `grep -c 'Purpose:' lib/shared/utils/adaptive_layout.dart` reports 17 against 56
-rows. The thirty-nine top-level `const` declarations carry a prose doc comment stating where their
+**Reconciliation:** `grep -c 'Purpose:' lib/shared/utils/adaptive_layout.dart` reports 17 against 57
+rows. The forty top-level `const` declarations carry a prose doc comment stating where their
 value came from rather than a `Purpose:` block, matching how the index treats top-level constants
 elsewhere; they are part of the file's surface and therefore get rows. All seventeen functions are
 Tier A per the blanket rule for top-level functions under `shared/`. The constants are Tier B:
 their whole content is the value and the reason for it, both of which the tables below and
-[../../../adaptive-layout.md](../../../adaptive-layout.md) already carry.
+[../../../adaptive-layout.md](../../../adaptive-layout.md) already carry. (Before v1.5.5 this note
+read "17 against 56" while the file had 16 `Purpose:` blocks, 16 functions and 55 rows; v1.5.5's
+`useCompactTimerDisplay` and `timerCompactDisplayWidth` bring it to the 17 and 57 stated here.)
 
 ## Constants
 
-These thirty-nine numbers are the whole numeric surface of MyDay's layout policy. The first eight are
+These forty numbers are the whole numeric surface of MyDay's layout policy. The first eight are
 shared with the sibling apps and must not be changed without reading
 [../../../adaptive-layout.md](../../../adaptive-layout.md) first — `splitMinAspect` in particular
 is a whole-app behavior change. The rest are MyDay's own per-content minimums, and each one states
@@ -129,6 +133,7 @@ safely change later.
 | `calendarCardMinWidth` | `340.0` | Seven day columns plus the card's own padding; below this the day numbers smear together. |
 | `scoreTrendMinWidth` | `360.0` | The chart reserves about 24 for its left axis and needs roughly 11 per day label across a 31-day month. |
 | `timerHistoryPaneWidth` | `320.0` | A duration, a start timestamp with a thrust count beneath it, and a trailing restore button. Fixed rather than proportional: every pixel beyond this belongs to the stopwatch, which is what the page exists to show. |
+| `timerCompactDisplayWidth` | `400.0` | `HH:MM:SS` at `displayLarge` is about 300 logical pixels wide; on a folded phone's outer screen that leaves almost no margin, and the controls sit below the digits, so every row the digits wrap onto pushes them down. Measured against the **screen**, because the timer page is pushed over the shell. |
 | `dialogMaxContentWidth` | `640.0` | Every form dialog is a scrolling `Column` of full-width fields; a text field 1300 logical pixels wide is harder to read than one at 600, not easier. |
 | `dialogMinHorizontalInset` | `40.0` | Flutter's own `Dialog` default, kept so a phone dialog is byte-for-byte the layout it always was. |
 | `pickerCellMinWidth` | `44.0` | Material's minimum touch-target size. A picker cell is a square tap target with nothing but a glyph in it, so the tap target *is* the minimum. |
@@ -248,7 +253,7 @@ safely change later.
 
 ### `List<List<int>> columnMajorFill(int itemCount, int columns)` <a id="columnmajorfill"></a>
 - **Kind:** top-level function
-- **Source:** `lib/shared/utils/adaptive_layout.dart` (line 133)
+- **Source:** `lib/shared/utils/adaptive_layout.dart` (line 135)
 - **Purpose:** Deal an ordered list of blocks into columns, filling each column before starting the
   next.
 - **Inputs:** `itemCount`, `columns`.
@@ -268,7 +273,7 @@ safely change later.
 
 ### `int listColumnCount({required double screenWidth, required double screenHeight, required double contentWidth, required double minItemWidth, required int preference, int maxColumns = listMaxColumns})` <a id="listcolumncount"></a>
 - **Kind:** top-level function
-- **Source:** `lib/shared/utils/adaptive_layout.dart` (line 136)
+- **Source:** `lib/shared/utils/adaptive_layout.dart` (line 159)
 - **Purpose:** Combine the split gate, the capacity, and a stored user preference into the single
   number of columns a list should render.
 - **Inputs:** `screenWidth`, `screenHeight` — the whole screen, which decides whether splitting is
@@ -301,7 +306,7 @@ safely change later.
 
 ### `double financeLeftPaneWidth(double contentWidth)` <a id="financeleftpanewidth"></a>
 - **Kind:** top-level function
-- **Source:** `lib/shared/utils/adaptive_layout.dart` (line 218)
+- **Source:** `lib/shared/utils/adaptive_layout.dart` (line 244)
 - **Purpose:** Return the width of the finance page's fixed left pane, which holds the month summary
   and the upcoming-renewal strip.
 - **Inputs:** `contentWidth` — the width both panes share, in logical pixels.
@@ -316,7 +321,7 @@ safely change later.
 
 ### `double intimacyLeftPaneWidth(double contentWidth)` <a id="intimacyleftpanewidth"></a>
 - **Kind:** top-level function
-- **Source:** `lib/shared/utils/adaptive_layout.dart` (line 228)
+- **Source:** `lib/shared/utils/adaptive_layout.dart` (line 276)
 - **Purpose:** Return the width of the intimacy page's fixed left pane, which holds the month
   calendar, its cycle strips and, since v1.4.3, the trend chart.
 - **Inputs:** `contentWidth` — the width both panes share, in logical pixels.
@@ -335,7 +340,7 @@ safely change later.
 
 ### `double settingsLeftPaneWidth(double contentWidth)` <a id="settingsleftpanewidth"></a>
 - **Kind:** top-level function
-- **Source:** `lib/shared/utils/adaptive_layout.dart` (line 240)
+- **Source:** `lib/shared/utils/adaptive_layout.dart` (line 288)
 - **Purpose:** Return the width of the settings page's section list when the detail pane is beside
   it.
 - **Inputs:** `contentWidth` — the width both panes share, in logical pixels, taken from the
@@ -357,7 +362,7 @@ safely change later.
 
 ### `bool useWeightChartsSideBySide(double contentWidth)` <a id="useweightchartssidebyside"></a>
 - **Kind:** top-level function
-- **Source:** `lib/shared/utils/adaptive_layout.dart` (line 295)
+- **Source:** `lib/shared/utils/adaptive_layout.dart` (line 308)
 - **Purpose:** Report whether the weight page's two trend charts both have room to sit on one row.
 - **Inputs:** `contentWidth` — the width the weight body gets, in logical pixels.
 - **Returns:** `bool`.
@@ -386,7 +391,7 @@ safely change later.
 
 ### `double cappedContentWidth(double contentWidth, double maxWidth)` <a id="cappedcontentwidth"></a>
 - **Kind:** top-level function
-- **Source:** `lib/shared/utils/adaptive_layout.dart` (line 352)
+- **Source:** `lib/shared/utils/adaptive_layout.dart` (line 390)
 - **Purpose:** Return the width a page should centre its content at, if any.
 - **Inputs:** `contentWidth` — the width the page actually has; `maxWidth` — the widest that
   content should ever grow.
@@ -401,7 +406,7 @@ safely change later.
 
 ### `bool usePieChartSideBySide(double contentWidth)` <a id="usepiechartsidebyside"></a>
 - **Kind:** top-level function
-- **Source:** `lib/shared/utils/adaptive_layout.dart` (line 362)
+- **Source:** `lib/shared/utils/adaptive_layout.dart` (line 400)
 - **Purpose:** Report whether the analysis legend fits beside the pie chart.
 - **Inputs:** `contentWidth` — the width the analysis tab gets, in logical pixels.
 - **Returns:** `bool`.
@@ -414,7 +419,7 @@ safely change later.
 
 ### `bool useTodoCalendarSideBySide(double contentWidth)` <a id="usetodocalendarsidebyside"></a>
 - **Kind:** top-level function
-- **Source:** `lib/shared/utils/adaptive_layout.dart` (line 372)
+- **Source:** `lib/shared/utils/adaptive_layout.dart` (line 410)
 - **Purpose:** Report whether the Todo score trend fits beside the month calendar.
 - **Inputs:** `contentWidth` — the width the calendar page gets, in logical pixels.
 - **Returns:** `bool`.
@@ -427,7 +432,7 @@ safely change later.
 
 ### `double todoCalendarPaneWidth(double contentWidth)` <a id="todocalendarpanewidth"></a>
 - **Kind:** top-level function
-- **Source:** `lib/shared/utils/adaptive_layout.dart` (line 386)
+- **Source:** `lib/shared/utils/adaptive_layout.dart` (line 424)
 - **Purpose:** Return the width of the Todo calendar page's month-grid pane.
 - **Inputs:** `contentWidth` — the width both blocks share, in logical pixels.
 - **Returns:** `double` between `calendarCardMinWidth` and 480.
@@ -441,9 +446,27 @@ safely change later.
   its floor at the boundary and only more comfortably above it, asserted across the range in
   `test/adaptive_layout_test.dart`.
 
+### `bool useCompactTimerDisplay(double screenWidth)` <a id="usecompacttimerdisplay"></a>
+- **Kind:** top-level function
+- **Source:** `lib/shared/utils/adaptive_layout.dart` (line 449)
+- **Purpose:** Decide whether the timer page should draw its stopwatch digits at `displayMedium`
+  instead of `displayLarge`.
+- **Inputs:** `screenWidth` — the page's own width in logical pixels.
+- **Returns:** `bool` — true below `timerCompactDisplayWidth` (400).
+- **Side effects:** None.
+- **Algorithm:** `screenWidth < timerCompactDisplayWidth`.
+- **Usage:** `TimerPage.build` (`lib/features/intimacy/widgets/timer_page.dart`, line 641):
+  `final digitStyle = useCompactTimerDisplay(screen.width) ? theme.textTheme.displayMedium :
+  theme.textTheme.displayLarge;`
+- **Notes:** Added in v1.5.5 for a folded phone's outer screen. Width only and no gate: it changes a
+  font size, not the arrangement. The timer page is pushed over the shell, so the caller passes the
+  full screen width rather than `shellContentWidth`. It pairs with the stacked layout's single
+  scroll view (see [`_TimerBody.build`](../../features/intimacy/widgets/timer_page.md#timerbody-build)),
+  which is what actually keeps the controls visible.
+
 ### `double dialogHorizontalInset(double screenWidth)` <a id="dialoghorizontalinset"></a>
 - **Kind:** top-level function
-- **Source:** `lib/shared/utils/adaptive_layout.dart` (line 417)
+- **Source:** `lib/shared/utils/adaptive_layout.dart` (line 472)
 - **Purpose:** Return the horizontal inset that caps a dialog's content width.
 - **Inputs:** `screenWidth` — the whole screen width in logical pixels.
 - **Returns:** `double`, never below `dialogMinHorizontalInset`.
