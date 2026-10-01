@@ -24,9 +24,9 @@ mounted.
 | `_showReminderSnackbar` | method (`_ShellScaffoldState`) | B | Show a reminder notification as an in-app snackbar. |
 | [`build`](#build) | method (`_ShellScaffoldState`) | A | Build the scaffold body and either navigation surface. |
 | `_ShellDestination` (constructor) | constructor (`_ShellDestination`) | B | Create a shell destination instance. |
+| `_FloatingNavBar` (class and constructor) | widget (private) | B | The bottom bar drawn as a floating pill-shaped island (1.6.0). |
 
-`grep -c 'Purpose:' lib/shared/widgets/shell_scaffold.dart` reports 10, matching all ten real
-declarations in this file. No misattachment or undocumented declarations found. `build` was
+`grep -c 'Purpose:' lib/shared/widgets/shell_scaffold.dart` reports 12: the ten original declarations plus the `_FloatingNavBar` constructor and `build` (1.6.0), which share its single row. No misattachment or undocumented declarations found. `build` was
 promoted to Tier A in v1.4.0, when it stopped being a single `Scaffold` and became the app's one
 navigation-mode decision.
 
@@ -94,11 +94,14 @@ navigation-mode decision.
 - **Side effects:** Creates UI widgets; `select` calls `context.go` when a destination is tapped.
 - **Algorithm:**
   1. Read `l10n`, watch `intimacyVisibilityProvider`, and resolve `routes`, `destinations` and
-     `index` from the single `visible` flag.
+     `index` from the single `visible` flag. Also watch `appSettingsProvider.select((s) => s.uiStyle == AppUiStyle.expressive)` as `floatingNavBar` (1.6.0).
   2. Define `select(i) => context.go(routes[i])`.
   3. If `!useNavigationRail(MediaQuery.sizeOf(context).width)`: return a `Scaffold` whose body is
-     the routed child and whose `bottomNavigationBar` is a `NavigationBar` built from
-     `destinations`.
+     the routed child and whose `bottomNavigationBar` is, when `floatingNavBar` is true (the default Expressive interface style), a
+     `_FloatingNavBar` — the stock `NavigationBar` inside a stadium-shaped `Material` island (keyed
+     `floatingNavBarIsland`) with side and bottom margins, capped at 480 px wide — and otherwise the classic
+     full-width `NavigationBar`, both built from the same `destinations`. The island sits in the
+     `bottomNavigationBar` slot rather than over the body, so page layout and FAB positions do not change.
   4. Otherwise return a `Scaffold` whose body is a `Row` of: a `NavigationRail` built from the same
      `destinations`, a `VerticalDivider(width: 1)`, and `Expanded(child: widget.child)`.
 - **Usage:** Invoked by Flutter; the shell is built by `ShellRoute` in `lib/app/router.dart` (see

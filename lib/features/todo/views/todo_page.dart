@@ -1,6 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../l10n/app_localizations.dart';
@@ -13,6 +14,7 @@ import '../../../shared/widgets/adaptive_tile_grid.dart';
 import '../../ai/services/insight_prompts.dart';
 import '../../ai/services/insight_service.dart';
 import '../../ai/widgets/ai_insight_card.dart';
+import '../../profile/views/profile_avatar.dart';
 import '../models/task.dart';
 import '../services/todo_insight_facts.dart';
 import '../services/todo_storage.dart';
@@ -1382,6 +1384,16 @@ class _TodoPageState extends ConsumerState<TodoPage> {
 
     return Scaffold(
       appBar: AppBar(
+        // The profile avatar sits left of the title (1.6.0) on this page only;
+        // it opens Settings, whose header edits the name and avatar.
+        leading: Padding(
+          padding: const EdgeInsetsDirectional.only(start: 8),
+          child: IconButton(
+            tooltip: l10n.profileOpenSettings,
+            onPressed: () => context.go('/settings'),
+            icon: const ProfileAvatar(radius: 16),
+          ),
+        ),
         title: Text(l10n.navTodo),
         actions: [
           listColumnsButton(

@@ -18,9 +18,11 @@
 | [`buildExchangeRatesModule()`](#exchangerates) | 函数 | A | 汇率 `DataModule`。 |
 | [`buildIntimacyModule()`](#structured) | 函数 | A | 亲密 `DataModule`。 |
 | [`buildWeightModule()`](#structured) | 函数 | A | 体重 `DataModule`。 |
+| [`profileFileName`](#profile) / `profileModuleId` | 常量 | A | `'profile.json'` 与 `'profile'`（1.6.0）。 |
+| [`validateProfileJson`](#profile)、[`profileReferencedImages`](#profile)、[`buildProfileModule()`](#profile) | 函数 | A | 个人资料 `DataModule` 及其校验器与图片引用提取器（1.6.0）。 |
 | [`todoModuleRegistry`](#registry) | 字段 | A | 应用的有序 `ModuleRegistry`。 |
 
-**对账：** 这是**分组**页面——上面 11 行覆盖文件的 16 个 `/// Purpose:` 声明，因为五个数据文件名常量共享一行，私有辅助（`_preserveUnknownJson`、`_imageNamesFromSections`、`_structuredModule`）在 [结构化模块](#structured) 条目内描述而不是各自成行。[INDEX.md](../INDEX.md) 数行而不是底层声明，因此列出 11。
+**对账：** 这是**分组**页面——上面 13 行覆盖文件的 19 个 `/// Purpose:` 声明，因为五个数据文件名常量共享一行，私有辅助（`_preserveUnknownJson`、`_imageNamesFromSections`、`_structuredModule`）在 [结构化模块](#structured) 条目内描述而不是各自成行。[INDEX.md](../INDEX.md) 数行而不是底层声明，因此列出 11。
 
 ## 文档
 
@@ -44,8 +46,12 @@
 ### 汇率 <a id="exchangerates"></a>
 - **备注：** 直接构建而不是经结构化构建器。`mergeExchangeRateJson` 是永远不可能产生记录冲突的整文件并集合并，因此结果总是完整的，没有解决构建器。它是唯一报告索引上传进度的模块。
 
+### 个人资料（1.6.0）<a id="profile"></a>
+- **用途：** 向共享引擎描述 `profile.json`（用户的名称和头像）。
+- **备注：** `profileFileName = 'profile.json'` 与 `profileModuleId = 'profile'` 是系列所有应用共用的、已冻结的兼容性契约。`validateProfileJson` 只检查载荷是 JSON 对象；`profileReferencedImages` 返回头像的基名，使头像文件经由引擎的图片阶段传输；`buildProfileModule` 用 `mergeProfileJson` 合并，它无冲突（按字段后写者胜），因此不使用 `baseJson` 与 `autoResolve`。1.6.0 之前的版本从不请求该文件。见 [../features/profile/services/profile_merge.md](../features/profile/services/profile_merge.md)。
+
 ### `todoModuleRegistry` <a id="registry"></a>
-- **备注：** 顺序是待办、财务、汇率、亲密、体重——与先前的 `_dataFileNames` 列表匹配。顺序对同步顺序、进度报告和备份键顺序在行为上意义重大。
+- **备注：** 顺序是待办、财务、汇率、亲密、体重、个人资料（1.6.0，始终排在最后）——与先前的 `_dataFileNames` 列表匹配。顺序对同步顺序、进度报告和备份键顺序在行为上意义重大。
 
 ## 契约文档的位置
 

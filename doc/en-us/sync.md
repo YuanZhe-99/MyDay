@@ -159,6 +159,37 @@ overlapping triggers (timer/resume/debounce) are silently skipped instead of sur
 "Sync already in progress" failure banner. `notifySaved()` is ignored before `start()` so early
 storage writes cannot schedule a sync before the service observes the app lifecycle.
 
+## The profile file
+
+Since 1.6.0 the registry holds a sixth module, `profile.json` — the user's display name and avatar
+(schema in [`data-formats.md`](data-formats.md#profilejson), feature in
+[`features/profile.md`](features/profile.md)). It goes through the same engine steps, after the other
+five, under the same `.lock`, with its own `.sync_base/profile.json`.
+
+- **The merge never produces a conflict, and needs no base.** Each field merges independently by last
+  writer wins on its own timestamp: the name by `displayNameUpdatedAt`, the avatar by
+  `avatarUpdatedAt`. A strictly later remote timestamp wins, a tie keeps local, and a side that never
+  set the field always loses to one that did. A name changed on one device and an avatar changed on
+  another therefore both survive. Unknown keys are unioned with local winning, and the higher
+  `version` is kept.
+- **Removal is explicit.** Clearing the avatar writes `"avatar": null` with a new timestamp (and
+  clearing the name writes `"displayName": null`), so the removal wins the merge like any other edit
+  instead of being mistaken for a field that was never set.
+- **Avatar names are unique.** The avatar is an ordinary file in `images/` and travels through the
+  additive image phase (the module's `referencedImages` returns its basename). Image sync never
+  overwrites a file that already exists on the other side and never deletes, so every new avatar gets
+  a fresh `images/avatar_<uuid>.jpg` name; re-using one name would leave other devices showing the old
+  picture. The replaced avatar is deleted on the device that changed it only: **old avatars remain on
+  the WebDAV server and on other devices** (a known limitation).
+- **Older builds ignore it.** The engine only requests the file names it has registered and never
+  lists the remote root, so a build older than 1.6.0 never fetches `profile.json`; the avatar file
+  sits harmlessly in `images/`.
+- **Cost.** One extra `GET profile.json` per sync (a 404 for a library that never set a profile); the
+  recorded WebDAV transcripts under `test/golden/goldens/myday/` were re-recorded and gained only
+  that request (later requests are renumbered).
+- Every profile save calls `AutoSyncService.notifySaved`, so the debounced sync runs shortly after an
+  edit; after a sync or restore rewrites local data the profile provider reloads.
+
 ## Related pages
 
 - [Three-Way Merge](algorithms/three-way-merge.md) — the generic merge engine and per-file

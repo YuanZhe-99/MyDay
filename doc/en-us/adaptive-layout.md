@@ -101,6 +101,14 @@ top-aligned destinations would leave the whole lower half of a tall rail empty. 
 `SingleChildScrollView` + `ConstrainedBox(minHeight:)` because a rail can appear at compact heights
 (915 x 412), where it must scroll rather than overflow.
 
+Since 1.6.0 the narrow-window bottom bar has two looks, chosen by the **interface style** setting
+(Settings › General, device-local): the default **Expressive** style draws it as a floating,
+pill-shaped island with side and bottom margins (`_FloatingNavBar`, keyed `floatingNavBarIsland`,
+capped at 480 px wide), and **Material 3** keeps the classic full-width bar. The island sits in the
+Scaffold's `bottomNavigationBar` slot rather than over the body, so pages never draw underneath it and
+the `SizedBox(height: 80)` FAB clearance and every page layout are unchanged. The rail is identical
+in both styles.
+
 Pages inside the shell compute capacities from `shellContentWidth(screenWidth)`, which subtracts
 the rail exactly when the rail is showing. **Pages pushed on top of the shell** — everything
 reached with `Navigator.push` — have no rail to subtract; they measure their own

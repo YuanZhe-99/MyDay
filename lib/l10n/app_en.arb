@@ -855,5 +855,18 @@
   "aiIntimacyPartners": "Partners & toys",
   "aiWeightTrend": "Trend",
   "aiWeightBody": "Body condition",
-  "aiEstimateDisclaimer": "Cycle information is a statistical estimate, not medical advice."
+  "aiEstimateDisclaimer": "Cycle information is a statistical estimate, not medical advice.",
+  "settingsUiStyle": "Interface style",
+  "settingsUiStyleDesc": "Expressive uses rounder shapes, bolder titles and a floating navigation bar. Material 3 is the standard look with a full-width bar.",
+  "settingsUiStyleMaterial3": "Material 3",
+  "settingsUiStyleExpressive": "Expressive",
+  "backupModuleProfile": "Profile",
+  "profileTitle": "Profile",
+  "profileName": "Name",
+  "profileNamePlaceholder": "Set your name",
+  "profileEditHint": "Name and avatar sync across your devices",
+  "profileChangeAvatar": "Choose avatar",
+  "profileRemoveAvatar": "Remove",
+  "profileAvatarError": "This image could not be used",
+  "profileOpenSettings": "Profile and settings"
 }

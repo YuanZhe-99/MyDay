@@ -51,10 +51,7 @@ rule, and for everything else the app does with a tablet's or a foldable's extra
 
 ## Theming
 
-`lib/app/theme.dart` builds both light and dark `ThemeData` via `flex_color_scheme`'s
-`FlexThemeData`, both using `scheme: FlexScheme.indigo`, `useMaterial3Typography: true`, and
-`useMaterial3: true`. This gives a Material 3 visual system with a single indigo seed scheme shared
-across light/dark.
+Since 1.6.0 the visual system is plain Flutter Material 3 — `flex_color_scheme` is gone. `lib/app/theme.dart` builds light and dark `ThemeData` with `ColorScheme.fromSeed` from one brand seed (`AppTheme.seedColor`, indigo `0xFF303F9F`), unless the platform supplies a dynamic (Material You) scheme: `MyDayApp` wraps `MaterialApp.router` in a `DynamicColorBuilder` and uses the dynamic scheme on **Android only**, because desktop plugins return the system accent color, which would replace the app's own seed. The user picks an **interface style** in Settings, `AppUiStyle.material3` or `AppUiStyle.expressive` (the default), stored device-locally as `uiStyle`. Material 3 is Flutter's stock theme plus outlined text fields; Expressive layers a theme-level approximation of Material 3 Expressive on top (larger corner radii, pill buttons that morph to rounded squares when pressed, bolder titles, the 2024 progress and slider designs, fade-forwards page transitions) and also selects the **floating island navigation bar** on narrow windows, while Material 3 keeps the classic full-width bar (the wide-window rail is the same in both; see [adaptive-layout.md](adaptive-layout.md)). Both styles share the same colors. Semantic colors (income green, expense red) come from `StatusColors` ([functions/shared/utils/status_colors.md](functions/shared/utils/status_colors.md)), derived from the active scheme.
 
 ## State management
 
@@ -90,6 +87,13 @@ lib/
       services/output_validation.dart
       widgets/ai_insight_card.dart
       widgets/ai_settings_tiles.dart
+    profile/                  # synced display name and avatar (1.6.0)
+      models/profile_data.dart
+      services/profile_merge.dart
+      services/profile_store.dart
+      providers/profile_provider.dart
+      views/profile_avatar.dart
+      views/profile_header.dart
     todo/
       models/task.dart
       services/todo_insight_facts.dart

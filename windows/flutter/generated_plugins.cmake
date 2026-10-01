@@ -3,6 +3,7 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  dynamic_color
   flutter_timezone
   local_notifier
   screen_retriever_windows

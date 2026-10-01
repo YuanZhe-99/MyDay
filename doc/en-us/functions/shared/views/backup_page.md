@@ -30,7 +30,7 @@ description and [WebDAV Sync](../../../sync.md) for why disabling auto-sync befo
 | `createState` | method (`_RestoreModuleDialog`) | B | Create the mutable state object for this dialog. |
 | `initState` | method (`_RestoreModuleDialogState`) | B | Pre-select every available module. |
 | `build` | method (`_RestoreModuleDialogState`) | B | Build the module-selection checkbox list. |
-| `_localizedModuleName` | method (`_RestoreModuleDialogState`) | B | Map a module id to its localized display name. |
+| `_localizedModuleName` | method (`_RestoreModuleDialogState`) | B | Map a module id to its localized display name. Includes `profile` (1.6.0). |
 
 **Reconciliation:** `grep -c 'Purpose:' lib/shared/views/backup_page.dart` returns 17. All 17 blocks
 document real declarations — no misattached blocks and no undocumented real declarations were found.

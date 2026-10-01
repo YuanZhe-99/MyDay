@@ -55,6 +55,7 @@
 - **自 1.5.0 起 `minSdk` 为 `26`**，而不是 `flutter.minSdkVersion`（24）：ML Kit GenAI（`com.google.mlkit:genai-prompt:1.0.0-beta4`，端侧 AI）要求 API 26。不再支持 Android 7.0 和 7.1。见 [on-device-ai.md](on-device-ai.md)。
 - **端侧 AI（1.5.0）：** `MainActivity` 在 `configureFlutterEngine` 中挂接 `GenAiChannel`（`com.yuanzhe.my_day/genai`），并在 `onDestroy` 中解除；release 构建类型添加了 `proguardFiles("proguard-rules.pro")`，其中的保留规则防止 R8 把 ML Kit 裁剪成看似设备不受支持的失败；清单的 `<queries>` 列出了 `com.google.android.aicore`。两种风味都包含它。
 - 启用 Java 17 source/target 兼容性和核心库脱糖。
+- **动态取色（1.6.0）：** `MyDayApp` 用 `dynamic_color` 的 `DynamicColorBuilder` 包住 `MaterialApp.router`，**仅在 Android 上**使用由壁纸派生的配色（Material You，需 Android 12+；更低版本回退到种子色）。该插件在 Windows 和 macOS 上也存在，但那里返回的是系统强调色，会盖掉应用自己的靛蓝种子色，因此应用刻意在那些平台忽略它。
 - **Kotlin 迁移状态（应用侧已迁移）：** Gradle wrapper `9.3.1`、AGP `9.1.1`；应用不再应用 `kotlin-android`。Kotlin `jvmTarget` 经顶层 `kotlin { compilerOptions { jvmTarget = JvmTarget.JVM_17 } }` 块设置（不用 `jvmToolchain`，它需要真实安装 JDK 17；不用已移除的 `kotlinOptions`）。`android/gradle.properties` 保留 Flutter 迁移器兼容标志 `android.builtInKotlin=false` 和 `android.newDsl=false`，因为多个插件仍应用 KGP——把 `builtInKotlin` 设为 `true` 会破坏每个应用 KGP 的插件（已验证）。`org.jetbrains.kotlin.android` 在 `settings.gradle.kts` 中保持声明（`apply false`），使应用 KGP 的插件能解析它。
 - **`file_picker` 精确固定为 `10.3.7`**：既自己应用 KGP（`builtInKotlin=false` 时需要）*又*能对照 `flutter.compileSdkVersion` 编译（AGP 9 AAR 元数据检查需要）的最后一个版本。`10.3.9`+ 和 `11.x` 依赖 AGP 内置 Kotlin，在兼容模式下无法编译；`10.3.2` 及更早固定 `compileSdk 34`，无法通过元数据检查。不要用 caret 约束。其 Dart API 是 `FilePicker.platform.*`。
 - 签名读取 `android/key.properties`（如存在）并在本地回退调试签名；发布签名秘密在 CI 中注入。

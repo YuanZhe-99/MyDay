@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/utils/status_colors.dart';
 import '../../../shared/services/image_service.dart';
 import '../../../shared/widgets/stored_image.dart';
 import '../../../shared/utils/adaptive_layout.dart';
@@ -1351,7 +1352,7 @@ class _AccountTransactionsPageState extends State<_AccountTransactionsPage> {
                           style: theme.textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: balance >= 0
-                                ? Colors.green
+                                ? StatusColors.income(theme.colorScheme)
                                 : theme.colorScheme.error,
                           ),
                         ),
@@ -1388,7 +1389,7 @@ class _AccountTransactionsPageState extends State<_AccountTransactionsPage> {
                     final sign = isExpense ? '-' : (isTransfer ? '' : '+');
                     final color = isExpense
                         ? theme.colorScheme.error
-                        : Colors.green;
+                        : StatusColors.income(theme.colorScheme);
                     final dateStr = DateFormat('MM-dd HH:mm').format(tx.date);
 
                     final cat = tx.categoryId != null

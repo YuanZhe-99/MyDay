@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/utils/status_colors.dart';
 import '../../../shared/utils/adaptive_layout.dart';
 import '../../../shared/utils/week_grouping.dart';
 import '../../../shared/widgets/app_date_picker.dart';
@@ -514,7 +515,7 @@ class _AnalysisPageState extends State<AnalysisPage>
     final sym = currencySymbol(widget.defaultCurrency);
     final totalColor = _categoryFlowType == TransactionType.expense
         ? theme.colorScheme.error
-        : Colors.green;
+        : StatusColors.income(theme.colorScheme);
 
     // Pushed on top of the shell, so its own width is the whole width. The
     // double gate: the window must have the shape, and the tab must have room
@@ -677,13 +678,13 @@ class _AnalysisPageState extends State<AnalysisPage>
             series: [
               _ChartSeries(
                 label: l10n.financeExpenseTrend,
-                color: Colors.redAccent,
+                color: StatusColors.expense(Theme.of(context).colorScheme),
                 spots: trendData.expenseSpots,
                 fill: true,
               ),
               _ChartSeries(
                 label: l10n.financeIncomeTrend,
-                color: Colors.green,
+                color: StatusColors.income(theme.colorScheme),
                 spots: trendData.incomeSpots,
                 fill: true,
               ),

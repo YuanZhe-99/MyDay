@@ -22,6 +22,11 @@ module registry only, and none of these is registered. A restore therefore never
 generated insights; the cards regenerate from the restored data. See
 [on-device-ai.md](on-device-ai.md).
 
+Since 1.6.0 bundles and ZIP exports also contain `profile.json` (display name and avatar), and the
+avatar file travels in `images/` with the other images. The per-module restore dialog labels it
+*Profile*; restoring an older bundle that lacks it leaves the current profile untouched. See
+[features/profile.md](features/profile.md).
+
 ## Blob garbage collection
 
 - A blob is physically deleted only when **no remaining backup** references it.
@@ -77,10 +82,10 @@ generated insights; the cards regenerate from the restored data. See
 
 ## Import/Export — ZIP-only, no more CSV/JSON
 
-`ImportExportService` handles Settings import/export, and it is **ZIP-only** for all five data JSON
+`ImportExportService` handles Settings import/export, and it is **ZIP-only** for all six data JSON
 files plus images (the older CSV/JSON-file import flows were removed in v1.1.1).
 
-- ZIP import extracts **only allowlisted entries**: the five data JSON files, plus flat files under
+- ZIP import extracts **only allowlisted entries**: the six data JSON files (including `profile.json`, 1.6.0), plus flat files under
   `images/`.
 - The resolved output path is confined to the app directory, so a crafted ZIP cannot escape it to
   overwrite configuration files such as `webdav_config.json` or `storage_config.json` — this is the
@@ -102,4 +107,4 @@ back up and restore with no format change.
   here.
 - [WebDAV Sync](sync.md) — why disabling auto-sync before restore matters, and the force-upload
   offer after a successful restore.
-- [Data Formats](data-formats.md) — the five data JSON files these backup/import flows cover.
+- [Data Formats](data-formats.md) — the six data JSON files these backup/import flows cover.

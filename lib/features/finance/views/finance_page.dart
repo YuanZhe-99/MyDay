@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/utils/status_colors.dart';
 import '../../../shared/services/auto_sync_service.dart';
 import '../../../shared/services/image_service.dart';
 import '../../../shared/widgets/stored_image.dart';
@@ -1333,7 +1334,7 @@ class _SummaryHeader extends StatelessWidget {
                 child: _SummaryCard(
                   label: l10n.financeIncome,
                   value: '$sym${numberFormat.format(monthIncome)}',
-                  color: Colors.green,
+                  color: StatusColors.income(theme.colorScheme),
                   icon: Icons.arrow_upward,
                 ),
               ),
@@ -1355,7 +1356,7 @@ class _SummaryHeader extends StatelessWidget {
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: totalAssets >= 0
-                          ? Colors.green
+                          ? StatusColors.income(theme.colorScheme)
                           : theme.colorScheme.error,
                     ),
                   ),
@@ -1515,7 +1516,7 @@ class _SubscriptionOverview extends StatelessWidget {
       (
         l10n.financeYearlyAvg,
         summary.yearlyAvg,
-        Colors.orange,
+        theme.colorScheme.tertiary,
         Icons.date_range,
       ),
     ];
@@ -1691,7 +1692,9 @@ class _TransactionTile extends StatelessWidget {
     final isTransfer = transaction.type == TransactionType.transfer;
     final dateStr = DateFormat('MM-dd HH:mm').format(transaction.date);
     final sign = isExpense ? '-' : (isTransfer ? '' : '+');
-    final color = isExpense ? theme.colorScheme.error : Colors.green;
+    final color = isExpense
+        ? theme.colorScheme.error
+        : StatusColors.income(theme.colorScheme);
 
     // Resolve category
     final cat = transaction.categoryId != null

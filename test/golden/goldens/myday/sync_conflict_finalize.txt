@@ -24,14 +24,16 @@
   authorization: <basic-auth>
 === [7] GET /dav/files/u/MyDay/weight_data.json -> 200
   authorization: <basic-auth>
-=== [8] GET /dav/files/u/MyDay/.lock -> 200
+=== [8] GET /dav/files/u/MyDay/profile.json -> 404
   authorization: <basic-auth>
-=== [9] DELETE /dav/files/u/MyDay/.lock -> 204
+=== [9] GET /dav/files/u/MyDay/.lock -> 200
+  authorization: <basic-auth>
+=== [10] DELETE /dav/files/u/MyDay/.lock -> 204
   authorization: <basic-auth>
   if-match: "<etag>"
-=== [10] GET /dav/files/u/MyDay/.lock -> 404
+=== [11] GET /dav/files/u/MyDay/.lock -> 404
   authorization: <basic-auth>
-=== [11] PUT /dav/files/u/MyDay/.lock -> 201
+=== [12] PUT /dav/files/u/MyDay/.lock -> 201
   authorization: <basic-auth>
   content-type: application/octet-stream
   if-none-match: *
@@ -43,11 +45,11 @@
       "updatedAt": "<timestamp>",
       "ttlSeconds": 60
     }
-=== [12] GET /dav/files/u/MyDay/weight_data.json -> 200
+=== [13] GET /dav/files/u/MyDay/weight_data.json -> 200
   authorization: <basic-auth>
-=== [13] GET /dav/files/u/MyDay/.lock -> 200
+=== [14] GET /dav/files/u/MyDay/.lock -> 200
   authorization: <basic-auth>
-=== [14] PUT /dav/files/u/MyDay/.lock -> 204
+=== [15] PUT /dav/files/u/MyDay/.lock -> 204
   authorization: <basic-auth>
   content-type: application/octet-stream
   if-match: "<etag>"
@@ -59,7 +61,7 @@
       "updatedAt": "<timestamp>",
       "ttlSeconds": 60
     }
-=== [15] PUT /dav/files/u/MyDay/weight_data.json -> 204
+=== [16] PUT /dav/files/u/MyDay/weight_data.json -> 204
   authorization: <basic-auth>
   content-type: application/octet-stream
   body:
@@ -76,8 +78,8 @@
       "reminderGraceMinutes": 180,
       "settingsModifiedAt": "<timestamp>"
     }
-=== [16] GET /dav/files/u/MyDay/.lock -> 200
+=== [17] GET /dav/files/u/MyDay/.lock -> 200
   authorization: <basic-auth>
-=== [17] DELETE /dav/files/u/MyDay/.lock -> 204
+=== [18] DELETE /dav/files/u/MyDay/.lock -> 204
   authorization: <basic-auth>
   if-match: "<etag>"

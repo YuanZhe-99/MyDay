@@ -18,6 +18,7 @@
 | [`setIntimacyListColumns`](#setintimacylistcolumns) | 方法（`AppSettingsNotifier`） | A | 更新并持久化亲密记录列数偏好。 |
 | [`setOnDeviceAiEnabled`](#setondeviceaienabled) | 方法（`AppSettingsNotifier`） | A | 开启或关闭端侧 AI，持久化并切换 `OnDeviceAiService`。 |
 | [`setOnDeviceAiPreferFast`](#setondeviceaipreferfast) | 方法（`AppSettingsNotifier`） | A | 偏好更快的端侧模型，持久化并让服务重新探测。 |
+| [`setUiStyle`](#setuistyle) | 方法（`AppSettingsNotifier`） | A | 选择界面风格（Material 3 或 Expressive）并持久化（1.6.0）。 |
 | [`AppSettings`（构造函数）](#appsettings-new) | 构造函数（`AppSettings`） | A | 创建应用设置值。 |
 | [`copyWith`](#copywith) | 方法（`AppSettings`） | A | 创建此值的副本并替换所选字段。 |
 | `appSettingsProvider` | 顶层变量（`StateNotifierProvider`） | B | 向组件树暴露 `AppSettingsNotifier`。 |
@@ -118,6 +119,15 @@
   ```
   （`lib/features/settings/views/settings_page.dart`，周起始日单选选择。）
 - **备注：** 仓库中每个日历/周分组调用点都从该提供者状态读取 `weekStartDay`，因此这是全应用周起始的单一真相源。
+
+### `void setUiStyle(AppUiStyle style)` <a id="setuistyle"></a>
+- **种类：** `AppSettingsNotifier` 的方法
+- **来源：** `lib/shared/providers/app_settings.dart`
+- **用途：** 选择界面风格（1.6.0）。
+- **输入：** `style`——`AppUiStyle.material3` 或 `AppUiStyle.expressive`。
+- **返回：** 无。
+- **副作用：** 替换 provider 状态；调用 `TodoStorage.setUiStyle`（Material 3 存 `'material3'`，Expressive 传 null）。应用重建主题，外壳重建底栏。
+- **备注：** 默认 Expressive。Expressive 同时选用悬浮岛式底栏，Material 3 保持经典通栏；宽窗口的侧栏在两种风格下相同。该设置仅限本设备，从不同步。`AppSettings.uiStyle`（默认 `AppUiStyle.expressive`）在 `_loadPersisted` 中由 `TodoStorage.getUiStyle()` 加载。
 
 ### `const AppSettings({this.themeMode = ThemeMode.system, this.locale, this.weekStartDay = DateTime.monday, ..., this.onDeviceAiEnabled = false, this.onDeviceAiPreferFast = false})` <a id="appsettings-new"></a>
 - **种类：** `AppSettings` 的 const 构造函数

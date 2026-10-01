@@ -819,5 +819,18 @@
   "aiIntimacyPartners": "パートナーとトイ",
   "aiWeightTrend": "傾向",
   "aiWeightBody": "体の状態",
-  "aiEstimateDisclaimer": "周期の情報は統計的な推定であり、医学的な助言ではありません。"
+  "aiEstimateDisclaimer": "周期の情報は統計的な推定であり、医学的な助言ではありません。",
+  "settingsUiStyle": "インターフェーススタイル",
+  "settingsUiStyleDesc": "Expressive は丸みのある形、太めの見出し、フローティングナビゲーションバーを使います。Material 3 は全幅バーの標準デザインです。",
+  "settingsUiStyleMaterial3": "Material 3",
+  "settingsUiStyleExpressive": "Expressive",
+  "backupModuleProfile": "プロフィール",
+  "profileTitle": "プロフィール",
+  "profileName": "名前",
+  "profileNamePlaceholder": "名前を設定",
+  "profileEditHint": "名前とアバターはデバイス間で同期されます",
+  "profileChangeAvatar": "アバターを選択",
+  "profileRemoveAvatar": "削除",
+  "profileAvatarError": "この画像は使用できません",
+  "profileOpenSettings": "プロフィールと設定"
 }

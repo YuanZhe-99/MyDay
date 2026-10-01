@@ -66,7 +66,7 @@ Since v1.5.0 the task area also carries today's on-device AI insight card ([`_bu
 | `_buildWeekCalendar` | method (widget helper) | B | Build the inline calendar for the selected date's week; the range label's end date is `addCalendarDays(weekStart, 6)` (v1.5.2). |
 | `_buildWeekDayCell` | method (widget helper) | B | Build one selectable day in the inline week calendar. |
 | `_buildDailyScoreCard` | method (widget helper) | B | Build the score editor shown at the bottom of the todo list. |
-| `build` | method (`_TodoPageState`) | B | Build the Todo page's widget subtree for the current load/error state. |
+| `build` | method (`_TodoPageState`) | B | Build the Todo page's widget subtree for the current load/error state; since 1.6.0 its app bar leads with the profile avatar (taps open Settings), on this page only. |
 | `_TodoDataError({required this.message, required this.onRetry})` | constructor (`_TodoDataError`) | B | Show a blocking todo data read error. |
 | `build` | method (`_TodoDataError`) | B | Build the blocking error view with a retry button. |
 | `_TodoCalendarPage({...})` | constructor (`_TodoCalendarPage`) | B | Create the secondary Todo calendar page. |

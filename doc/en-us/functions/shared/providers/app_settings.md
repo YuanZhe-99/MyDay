@@ -26,6 +26,7 @@ switches into `OnDeviceAiService`. See
 | [`setIntimacyListColumns`](#setintimacylistcolumns) | method (`AppSettingsNotifier`) | A | Update and persist the Intimacy record-column preference. |
 | [`setOnDeviceAiEnabled`](#setondeviceaienabled) | method (`AppSettingsNotifier`) | A | Turn on-device AI on or off, persisting it and switching `OnDeviceAiService`. |
 | [`setOnDeviceAiPreferFast`](#setondeviceaipreferfast) | method (`AppSettingsNotifier`) | A | Prefer the faster on-device model, persisting it and re-probing the service. |
+| [`setUiStyle`](#setuistyle) | method (`AppSettingsNotifier`) | A | Choose the interface style (Material 3 or Expressive) and persist it (1.6.0). |
 | [`AppSettings` (constructor)](#appsettings-new) | constructor (`AppSettings`) | A | Create an app settings value. |
 | [`copyWith`](#copywith) | method (`AppSettings`) | A | Create a copy of this value with selected fields replaced. |
 | `appSettingsProvider` | top-level variable (`StateNotifierProvider`) | B | Expose `AppSettingsNotifier` to the widget tree. |
@@ -166,6 +167,15 @@ field comments without `Purpose:`.
   (`lib/features/settings/views/settings_page.dart`, week-start-day radio selection.)
 - **Notes:** Every calendar/week-grouping call site in the repo reads `weekStartDay` from this
   provider's state, so this is the single source of truth for the app-wide week start.
+
+### `void setUiStyle(AppUiStyle style)` <a id="setuistyle"></a>
+- **Kind:** method of `AppSettingsNotifier`
+- **Source:** `lib/shared/providers/app_settings.dart`
+- **Purpose:** Choose the interface style (1.6.0).
+- **Inputs:** `style` — `AppUiStyle.material3` or `AppUiStyle.expressive`.
+- **Returns:** None.
+- **Side effects:** Replaces provider state; calls `TodoStorage.setUiStyle` (`'material3'` for Material 3, null for Expressive). The app rebuilds its theme and the shell its bottom bar.
+- **Notes:** Expressive is the default. It also selects the floating island bottom bar; Material 3 keeps the classic full-width bar. The wide-window rail is the same in both. The style is device-local and never synced. `AppSettings.uiStyle` (default `AppUiStyle.expressive`) is loaded in `_loadPersisted` from `TodoStorage.getUiStyle()`.
 
 ### `const AppSettings({this.themeMode = ThemeMode.system, this.locale, this.weekStartDay = DateTime.monday, ..., this.onDeviceAiEnabled = false, this.onDeviceAiPreferFast = false})` <a id="appsettings-new"></a>
 - **Kind:** const constructor of `AppSettings`

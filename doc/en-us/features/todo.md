@@ -123,6 +123,12 @@ up. The card is cached in `ai_insights.json` and regenerates only when today's t
 change, at 12:00, 18:00 and midnight, or after a model update. See
 [On-device AI](../on-device-ai.md).
 
+## Profile avatar (1.6.0)
+
+The Todo page's app bar leads with the user's profile avatar, left of the title; tapping it opens
+Settings. It appears on this page only — Finance, Weight and Intimacy have no avatar. See
+[Profile](profile.md).
+
 ## Related pages
 
 - [Data Formats](../data-formats.md) — exact JSON shape of every model above.

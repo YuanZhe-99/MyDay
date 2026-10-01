@@ -240,15 +240,16 @@ platform app documents directory on mobile; desktop users can choose a custom st
 
 | Data | File | Synced | Notes |
 | --- | --- | --- | --- |
-| Core preferences | `storage_config.json` | No | Custom path, intimacy visibility, theme, locale, week start day, tray, backup, local API settings, today's fired desktop reminder keys (`reminderNotifiedKeys`), local-only intimacy timer keep-screen-awake preference (`intimacyTimerKeepScreenAwake`), local-only body weight-sync warning opt-out (`intimacyBodyWeightSyncWarningDisabled`), device-local list column preferences (`todoSectionColumns`, `financeListColumns`, `weightListColumns`, `intimacyListColumns`), on-device AI switches (`onDeviceAiEnabled`, `onDeviceAiPreferFast`) |
+| Core preferences | `storage_config.json` | No | Custom path, intimacy visibility, theme, locale, week start day, tray, backup, local API settings, today's fired desktop reminder keys (`reminderNotifiedKeys`), local-only intimacy timer keep-screen-awake preference (`intimacyTimerKeepScreenAwake`), local-only body weight-sync warning opt-out (`intimacyBodyWeightSyncWarningDisabled`), device-local list column preferences (`todoSectionColumns`, `financeListColumns`, `weightListColumns`, `intimacyListColumns`), on-device AI switches (`onDeviceAiEnabled`, `onDeviceAiPreferFast`), interface style (`uiStyle`, 1.6.0: written only as `"material3"` when Material 3 is chosen; absent means Expressive, the default, which also shows the floating navigation bar) |
 | Todo | `todo_data.json` | Yes | Tasks, daily templates, completion log, daily score log, reminders, task sort/custom order |
 | Finance | `finance_data.json` | Yes | Accounts including optional fee waiver criteria, categories, transactions, subscriptions, finance settings, transaction account picker settings |
 | Exchange rates | `exchange_rates.json` | Yes | Rate snapshots and `lastFetchedAt` |
 | Intimacy | `intimacy_data.json` | Yes | Partners including optional body profiles, toys, positions, records, timer history/session including thrust counts, user body profile (`userBody` + `userBodyModifiedAt`), cycle records, sort settings, trend-chart view settings (`chartSettings`) |
 | Weight | `weight_data.json` | Yes | Height, records including optional bust/waist/hip cm fields, reminders, grace window |
+| Profile (display name and avatar) | `profile.json` | Yes | Since 1.6.0: the user's display name and avatar path, each with its own timestamp; last writer wins per field; conflict-free; created only when first set |
 | WebDAV config | `webdav_config.json` | No | User server config and credentials; moved with custom storage path |
 | Sync base | `.sync_base/*.json` | No | Last-synced snapshots for three-way merge |
-| Images | `images/*` | Yes | Referenced finance/intimacy images sync; backups include images. Files are `<uuid><ext>` in any image format, including `.svg` (bundled bank logos copied on preset pick, v1.4.5); no format change |
+| Images | `images/*` | Yes | Referenced finance/intimacy images and, since 1.6.0, the profile avatar (`images/avatar_<uuid>.jpg`) sync; backups include images. Files are `<uuid><ext>` in any image format, including `.svg` (bundled bank logos copied on preset pick, v1.4.5); no format change |
 | Backups | `backups/backup_*.json` | No | Local recovery bundles; v2 bundles reference deduplicated image blobs |
 | Backup image blobs | `backups/blobs/` | No | Content-addressed (`sha256`), shared across backups, reference-counted GC |
 | On-device AI insights | `ai_insights.json` | No | Per-device cache of generated insight cards (v1.5.0); never synced, backed up or exported; rebuildable, so an unreadable file reads as empty |
@@ -258,6 +259,68 @@ platform app documents directory on mobile; desktop users can choose a custom st
 directories — through `migrateStorageContents` (copy-then-delete; an entry that already exists at
 the destination wins and is left alone). Only `storage_config.json` is skipped: it always stays in
 the default app directory because it holds the custom path itself.
+
+## `profile.json`
+
+`profile.json` (1.6.0) is the sixth registered module, so it also syncs, is backed up, is included in
+ZIP export, and has its own `.sync_base/profile.json`. It holds the user's display name and avatar
+(see [`features/profile.md`](features/profile.md)):
+
+```json
+{
+  "version": 1,
+  "displayName": "Yuan",
+  "displayNameUpdatedAt": "2026-10-01T14:06:42.530801Z",
+  "avatar": "images/avatar_2953ac52-337e-4271-a8e1-bcd97ee416ba.jpg",
+  "avatarUpdatedAt": "2026-10-01T14:08:59.163627Z"
+}
+```
+
+- `displayName` / `displayNameUpdatedAt` — the name and when it last changed (UTC). Trimmed on save;
+  clearing it writes `"displayName": null` with a new timestamp.
+- `avatar` / `avatarUpdatedAt` — the avatar as a path relative to the data directory
+  (`images/avatar_<uuid>.jpg`, a 512 x 512 JPEG) and when it last changed (UTC). A removed avatar is
+  written as an explicit `"avatar": null` with its timestamp, so the removal syncs.
+- A field is written only once it has a timestamp; a field with no timestamp means "never set" and
+  always loses a merge to one that was set. Each field merges by last writer wins, independently of
+  the other — see [`sync.md`](sync.md#the-profile-file). Unknown keys survive. `version` is `1`.
+- The avatar image is an ordinary file in `images/`, so it syncs through the engine's referenced-only
+  additive image phase (the module reports it through `profileReferencedImages`), and is backed up and
+  exported with the other images. Each new avatar gets a fresh file name, because image sync never
+  overwrites an existing file; replaced avatars are deleted locally only, so old ones remain on the
+  WebDAV server and other devices.
+- Builds older than 1.6.0 never request `profile.json`, so it does not affect them.
+
+## `profile.json`
+
+`profile.json` (1.6.0) is the sixth registered module, so it also syncs, is backed up, is included in
+ZIP export, and has its own `.sync_base/profile.json`. It holds the user's display name and avatar
+(see [`features/profile.md`](features/profile.md)):
+
+```json
+{
+  "version": 1,
+  "displayName": "Yuan",
+  "displayNameUpdatedAt": "2026-10-01T14:06:42.530801Z",
+  "avatar": "images/avatar_2953ac52-337e-4271-a8e1-bcd97ee416ba.jpg",
+  "avatarUpdatedAt": "2026-10-01T14:08:59.163627Z"
+}
+```
+
+- `displayName` / `displayNameUpdatedAt` — the name and when it last changed (UTC). Trimmed on save;
+  clearing it writes `"displayName": null` with a new timestamp.
+- `avatar` / `avatarUpdatedAt` — the avatar as a path relative to the data directory
+  (`images/avatar_<uuid>.jpg`, a 512 x 512 JPEG) and when it last changed (UTC). A removed avatar is
+  written as an explicit `"avatar": null` with its timestamp, so the removal syncs.
+- A field is written only once it has a timestamp; a field with no timestamp means "never set" and
+  always loses a merge to one that was set. Each field merges by last writer wins, independently of
+  the other — see [`sync.md`](sync.md#the-profile-file). Unknown keys survive. `version` is `1`.
+- The avatar image is an ordinary file in `images/`, so it syncs through the engine's referenced-only
+  additive image phase (the module reports it through `profileReferencedImages`), and is backed up and
+  exported with the other images. Each new avatar gets a fresh file name, because image sync never
+  overwrites an existing file; replaced avatars are deleted locally only, so old ones remain on the
+  WebDAV server and other devices.
+- Builds older than 1.6.0 never request `profile.json`, so it does not affect them.
 
 ## `ai_insights.json`
 

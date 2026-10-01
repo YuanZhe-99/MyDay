@@ -28,6 +28,8 @@
 | [`setOnDeviceAiEnabled`](#setondeviceaienabled) | 静态方法（`TodoStorage`） | A | 持久化端侧 AI 开关。 |
 | [`getOnDeviceAiPreferFast`](#getondeviceaipreferfast) | 静态方法（`TodoStorage`） | A | 读取是否偏好更快的端侧模型。 |
 | [`setOnDeviceAiPreferFast`](#setondeviceaipreferfast) | 静态方法（`TodoStorage`） | A | 持久化更快模型偏好。 |
+| [`getUiStyle`](#getuistyle) | 静态方法（`TodoStorage`） | A | 读取已存储的界面风格名称（1.6.0）。 |
+| [`setUiStyle`](#setuistyle) | 静态方法（`TodoStorage`） | A | 持久化界面风格（1.6.0）。 |
 | [`getThemeMode`](#getthememode) | 静态方法（`TodoStorage`） | A | 获取持久化主题模式。 |
 | [`setThemeMode`](#setthememode) | 静态方法（`TodoStorage`） | A | 设置并持久化主题模式。 |
 | [`getLocaleTag`](#getlocaletag) | 静态方法（`TodoStorage`） | A | 获取持久化语言区域标签。 |
@@ -352,6 +354,25 @@
 - **算法：** `writeConfig({'onDeviceAiPreferFast': enabled ? true : null})`。
 - **用法：** `TodoStorage.setOnDeviceAiPreferFast(enabled);`（`app_settings.dart`，[`setOnDeviceAiPreferFast`](../../../shared/providers/app_settings.md#setondeviceaipreferfast)，第 184 行）。
 - **备注：** 仅在为 `true` 时存储；`false` 移除该键。
+
+### `static Future<String?> getUiStyle()` <a id="getuistyle"></a>
+- **种类：** `TodoStorage` 的静态方法
+- **来源：** `lib/features/todo/services/todo_storage.dart`
+- **用途：** 返回已存储的界面风格名称（1.6.0）。
+- **输入：** 无。
+- **返回：** `Future<String?>`——`'material3'`，或 null 表示默认的 Expressive 风格。
+- **副作用：** 通过 [`readConfig`](#readconfig) 读取 `storage_config.json`。
+- **备注：** 与所有配置读取器一样宽容。MyAnime 已被取代的 1.7.0 键 `classicNavBar` 从未在 MyDay 发布过，因此只读取 `uiStyle`。
+
+### `static Future<void> setUiStyle(String? name)` <a id="setuistyle"></a>
+- **种类：** `TodoStorage` 的静态方法
+- **来源：** `lib/features/todo/services/todo_storage.dart`
+- **用途：** 持久化界面风格（1.6.0）。
+- **输入：** `name`——`'material3'`，或 null 表示默认的 Expressive 风格。
+- **返回：** `Future<void>`。
+- **副作用：** 通过 [`writeConfig`](#writeconfig) 合并写入 `storage_config.json`。
+- **算法：** `writeConfig({'uiStyle': name == 'material3' ? 'material3' : null})`。
+- **备注：** 只存储非默认的 Material 3 风格，即 `uiStyle: "material3"`；null 会移除该键。
 
 ### `static Future<String?> getThemeMode()` <a id="getthememode"></a>
 - **种类：** `TodoStorage` 的静态方法

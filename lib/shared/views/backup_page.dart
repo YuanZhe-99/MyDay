@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../app/data_modules.dart';
 import '../../l10n/app_localizations.dart';
 import '../services/auto_sync_service.dart';
 import '../services/backup_service.dart';
@@ -587,6 +588,7 @@ class _RestoreModuleDialogState extends State<_RestoreModuleDialog> {
       'exchangeRates' => l10n.backupModuleRates,
       'intimacy' => l10n.backupModuleIntimacy,
       'weight' => l10n.backupModuleWeight,
+      profileModuleId => l10n.backupModuleProfile,
       _ => moduleId,
     };
   }

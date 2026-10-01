@@ -40,6 +40,7 @@ page's WebDAV status tile reacts to.
 | `_buildSection` | method (widget helper) | B | Render one titled settings section. |
 | [`_showStoragePathDialog`](#showstoragepathdialog) | method (`_SettingsPageState`) | A | Edit the custom storage path, including resetting to the default. |
 | `_showThemePicker` | method (`_SettingsPageState`) | B | Show the theme-mode picker bottom sheet. |
+| `_showUiStylePicker` | method (`_SettingsPageState`) | B | Show the interface-style picker bottom sheet (Material 3 / Expressive, 1.6.0). |
 | `_showWeekStartPicker` | method (`_SettingsPageState`) | B | Show the global week-start-day picker bottom sheet. |
 | [`_showLanguagePicker`](#showlanguagepicker) | method (`_SettingsPageState`) | A | Show the app-language picker, parsing the selection into a `Locale`. |
 | `_SettingsDetail` | top-level enum | B | The second-level pages a settings row can lead to. |
@@ -48,8 +49,8 @@ page's WebDAV status tile reacts to.
 | [`_buildDetailPane`](#builddetailpane) | method (`_SettingsPageState`) | A | Build the right-hand pane of the two-pane layout. |
 | [`_buildSettingsList`](#buildsettingslist) | method (`_SettingsPageState`) | A | Build the first-level settings list. |
 
-**Reconciliation:** `grep -c 'Purpose:' lib/features/settings/views/settings_page.dart` returns 27
-against 28 rows; the extra row is the `_SettingsDetail` enum, which carries no `Purpose:` block.
+**Reconciliation:** `grep -c 'Purpose:' lib/features/settings/views/settings_page.dart` returns 28
+against 29 rows; the extra row is the `_SettingsDetail` enum, which carries no `Purpose:` block.
 All 27 blocks document real declarations (26 methods/constructors/a getter, plus the nested local
 function `signature()` declared inside `_showApiSettingsDialog`, which itself has its own `Purpose:`
 block) — no misattached blocks and no undocumented real declarations were found. The instance fields
@@ -263,6 +264,7 @@ consistent with them being state, not functions.
   strings `build` derives before choosing a layout.
 - **Returns:** `Widget` — the scrolling `ListView` of sections.
 - **Side effects:** None beyond building widgets; the tiles' own callbacks have their own.
+- **Profile and style (1.6.0):** `const ProfileHeader()` (avatar and name; see [../../profile/views/profile_header.md](../../profile/views/profile_header.md)) is the first item, before General, and General gains an *Interface style* row after *Theme* (`Icons.auto_awesome_outlined`; subtitle is the current style) that opens `_showUiStylePicker`, a bottom sheet with the explanation and a Material 3 / Expressive radio choice calling `AppSettingsNotifier.setUiStyle`. The picker follows the theme row's tile-plus-sheet pattern rather than a segmented button.
 - **Algorithm:** The list `build` returned before v1.4.1 — General, Privacy, Desktop (desktop
   only), Data, About, and Debug sections — plus, since v1.5.0, an On-device AI section
   (`l10n.aiSectionTitle`) between Privacy and Desktop. That section holds

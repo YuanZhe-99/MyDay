@@ -22,7 +22,7 @@
 | `createState` | 方法（`_RestoreModuleDialog`） | B | 为此对话框创建可变状态对象。 |
 | `initState` | 方法（`_RestoreModuleDialogState`） | B | 预选每个可用模块。 |
 | `build` | 方法（`_RestoreModuleDialogState`） | B | 构建模块选择复选框列表。 |
-| `_localizedModuleName` | 方法（`_RestoreModuleDialogState`） | B | 把模块 id 映射到其本地化显示名。 |
+| `_localizedModuleName` | 方法（`_RestoreModuleDialogState`） | B | 把模块 id 映射到其本地化显示名。包含 `profile`（1.6.0）。 |
 
 **对账：** `grep -c 'Purpose:' lib/shared/views/backup_page.dart` 返回 17。17 个块都文档化真实声明——未发现错附块和未文档化真实声明。`_retentionOptions` 和 `_moduleLabels` 静态 const 字段无 `Purpose:` 块，与它们是数据而非函数一致。
 

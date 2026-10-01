@@ -34,7 +34,7 @@
 
 ## 主题
 
-`lib/app/theme.dart` 经 `flex_color_scheme` 的 `FlexThemeData` 构建浅色和深色 `ThemeData`，两者都用 `scheme: FlexScheme.indigo`、`useMaterial3Typography: true` 和 `useMaterial3: true`。这给出共享同一靛蓝种子方案、跨越浅/深色的 Material 3 视觉体系。
+自 1.6.0 起，视觉体系是纯 Flutter Material 3——`flex_color_scheme` 已移除。`lib/app/theme.dart` 用 `ColorScheme.fromSeed` 从一个品牌种子色（`AppTheme.seedColor`，靛蓝 `0xFF303F9F`）构建浅色和深色 `ThemeData`，除非平台提供动态（Material You）配色：`MyDayApp` 用 `DynamicColorBuilder` 包住 `MaterialApp.router`，且**仅在 Android 上**使用动态配色，因为桌面端插件返回的是系统强调色，会盖掉应用自己的种子色。用户在设置中选择**界面风格**，`AppUiStyle.material3` 或 `AppUiStyle.expressive`（默认），以 `uiStyle` 仅存于本设备。Material 3 是 Flutter 的原版主题加描边文本框；Expressive 在其上叠加主题层面的 Material 3 Expressive 近似（更大的圆角、按下时从胶囊变形为圆角方形的按钮、更粗的标题、2024 版进度条与滑块、淡入前进页面转场），并在窄窗口选用**悬浮岛式导航栏**，而 Material 3 保持经典通栏（宽窗口的侧栏在两种风格下相同；见 [adaptive-layout.md](adaptive-layout.md)）。两种风格共用同一套颜色。语义颜色（收入绿、支出红）来自 `StatusColors`（[functions/shared/utils/status_colors.md](functions/shared/utils/status_colors.md)），由当前配色方案派生。
 
 ## 状态管理
 
@@ -64,6 +64,13 @@ lib/
       services/output_validation.dart
       widgets/ai_insight_card.dart
       widgets/ai_settings_tiles.dart
+    profile/                  # 同步的名称与头像 (1.6.0)
+      models/profile_data.dart
+      services/profile_merge.dart
+      services/profile_store.dart
+      providers/profile_provider.dart
+      views/profile_avatar.dart
+      views/profile_header.dart
     todo/
       models/task.dart
       services/todo_insight_facts.dart

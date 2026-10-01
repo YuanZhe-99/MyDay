@@ -2310,6 +2310,46 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get aiEstimateDisclaimer => '周期信息是统计估算，不是医疗建议。';
+
+  @override
+  String get settingsUiStyle => '界面风格';
+
+  @override
+  String get settingsUiStyleDesc =>
+      'Expressive 使用更圆润的形状、更粗的标题和悬浮导航栏。Material 3 为标准外观，使用通栏导航栏。';
+
+  @override
+  String get settingsUiStyleMaterial3 => 'Material 3';
+
+  @override
+  String get settingsUiStyleExpressive => 'Expressive';
+
+  @override
+  String get backupModuleProfile => '个人资料';
+
+  @override
+  String get profileTitle => '个人资料';
+
+  @override
+  String get profileName => '名称';
+
+  @override
+  String get profileNamePlaceholder => '设置你的名称';
+
+  @override
+  String get profileEditHint => '名称和头像会在你的设备间同步';
+
+  @override
+  String get profileChangeAvatar => '选择头像';
+
+  @override
+  String get profileRemoveAvatar => '移除';
+
+  @override
+  String get profileAvatarError => '无法使用此图片';
+
+  @override
+  String get profileOpenSettings => '个人资料与设置';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -4618,4 +4658,44 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get aiEstimateDisclaimer => '週期資訊是統計估算，不是醫療建議。';
+
+  @override
+  String get settingsUiStyle => '介面風格';
+
+  @override
+  String get settingsUiStyleDesc =>
+      'Expressive 使用更圓潤的形狀、更粗的標題和懸浮導覽列。Material 3 為標準外觀，使用通欄導覽列。';
+
+  @override
+  String get settingsUiStyleMaterial3 => 'Material 3';
+
+  @override
+  String get settingsUiStyleExpressive => 'Expressive';
+
+  @override
+  String get backupModuleProfile => '個人資料';
+
+  @override
+  String get profileTitle => '個人資料';
+
+  @override
+  String get profileName => '名稱';
+
+  @override
+  String get profileNamePlaceholder => '設定你的名稱';
+
+  @override
+  String get profileEditHint => '名稱和頭像會在你的裝置間同步';
+
+  @override
+  String get profileChangeAvatar => '選擇頭像';
+
+  @override
+  String get profileRemoveAvatar => '移除';
+
+  @override
+  String get profileAvatarError => '無法使用此圖片';
+
+  @override
+  String get profileOpenSettings => '個人資料與設定';
 }

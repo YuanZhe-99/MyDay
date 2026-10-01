@@ -22,9 +22,11 @@ sync loop.
 | [`buildExchangeRatesModule()`](#exchangerates) | function | A | The exchange-rates `DataModule`. |
 | [`buildIntimacyModule()`](#structured) | function | A | The intimacy `DataModule`. |
 | [`buildWeightModule()`](#structured) | function | A | The weight `DataModule`. |
+| [`profileFileName`](#profile) / `profileModuleId` | constants | A | `'profile.json'` and `'profile'` (1.6.0). |
+| [`validateProfileJson`](#profile), [`profileReferencedImages`](#profile), [`buildProfileModule()`](#profile) | functions | A | The profile `DataModule` and its validator and image-reference extractor (1.6.0). |
 | [`todoModuleRegistry`](#registry) | field | A | The app's ordered `ModuleRegistry`. |
 
-**Reconciliation:** this is a **grouped** page — 11 rows above cover the file's 16 `/// Purpose:`
+**Reconciliation:** this is a **grouped** page — 13 rows above cover the file's 19 `/// Purpose:`
 declarations, because the five data-file-name constants share one row and the private helpers
 (`_preserveUnknownJson`, `_imageNamesFromSections`, `_structuredModule`) are described inside the
 [Structured modules](#structured) entry rather than getting rows of their own. [INDEX.md](../INDEX.md)
@@ -71,8 +73,17 @@ counts rows, not underlying declarations, so it lists 11.
   whole-file union merge that can never produce a record conflict, so the outcome is always complete
   and there is no resolution builder. It is the one module that reports indexed upload progress.
 
+### Profile (1.6.0) <a id="profile"></a>
+- **Purpose:** Describe `profile.json` (the user's display name and avatar) to the shared engines.
+- **Notes:** `profileFileName = 'profile.json'` and `profileModuleId = 'profile'` are frozen
+  compatibility contracts shared by every app in the series. `validateProfileJson` only checks that the
+  payload is a JSON object; `profileReferencedImages` returns the avatar's basename so the avatar file
+  travels through the engine's image phase; `buildProfileModule` merges with `mergeProfileJson`, which
+  is conflict-free (per-field last writer wins), so `baseJson` and `autoResolve` are unused. Builds
+  older than 1.6.0 never request the file. See [../features/profile/services/profile_merge.md](../features/profile/services/profile_merge.md).
+
 ### `todoModuleRegistry` <a id="registry"></a>
-- **Notes:** Order is todo, finance, exchange rates, intimacy, weight — matching the previous
+- **Notes:** Order is todo, finance, exchange rates, intimacy, weight, profile (1.6.0, always last) — matching the previous
   `_dataFileNames` list. Order is behaviorally significant for sync order, progress reporting, and
   backup key order.
 

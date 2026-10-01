@@ -22,7 +22,9 @@ Both declarations in this file are Tier B (a trivial `const` widget constructor 
 method), so per the template they are index-only rows with no full entry. Notable behavior for
 context: `build()` reads `ref.watch(appSettingsProvider)` and feeds `settings.themeMode` and
 `settings.locale` into `MaterialApp.router`, so a theme or locale change from Settings triggers a
-rebuild of the whole app shell. `theme`/`darkTheme` come from `AppTheme.light`/`AppTheme.dark`
-(see [theme.md](theme.md)), and `routerConfig` comes from `appRouter` (see [router.md](router.md)).
+rebuild of the whole app shell. `theme`/`darkTheme` come from `AppTheme.light(dynamicScheme, settings.uiStyle)`/`AppTheme.dark(...)`
+(see [theme.md](theme.md)); since 1.6.0 `build()` wraps `MaterialApp.router` in a `DynamicColorBuilder` and passes
+the wallpaper-derived dynamic scheme on Android only (desktop plugins return the system accent color, which would
+replace the app's own seed), and the user's interface style selects the theme variant, and `routerConfig` comes from `appRouter` (see [router.md](router.md)).
 `builder: DevicePreview.appBuilder` wraps the app for the `device_preview` package used in debug
 builds.

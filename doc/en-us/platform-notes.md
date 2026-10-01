@@ -118,6 +118,11 @@ the same change (per the project's maintenance rule).
   shrinking ML Kit into a failure that looks like an unsupported device; the manifest's `<queries>`
   lists `com.google.android.aicore`. Both flavors ship it.
 - Java 17 source/target compatibility and core library desugaring are enabled.
+- **Dynamic color (1.6.0):** `MyDayApp` wraps `MaterialApp.router` in `dynamic_color`'s
+  `DynamicColorBuilder` and uses the wallpaper-derived scheme (Material You) on **Android only**
+  (Android 12+; older versions fall back to the seed color). The plugin also exists for Windows and
+  macOS, where it returns the system accent color, which would replace the app's own indigo seed, so
+  the app deliberately ignores it there.
 - **Kotlin migration state (app side migrated):** Gradle wrapper `9.3.1`, AGP `9.1.1`; the app no
   longer applies `kotlin-android`. The Kotlin `jvmTarget` is set via a top-level
   `kotlin { compilerOptions { jvmTarget = JvmTarget.JVM_17 } }` block (not `jvmToolchain`, which

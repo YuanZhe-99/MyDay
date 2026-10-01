@@ -5,7 +5,8 @@ Source: `lib/features/settings/views/settings_page.dart`, `privacy_policy_page.d
 
 `settings_page.dart` provides:
 
-- **General**: language, global week start day for app calendars and weekly grouping, and theme.
+- **Profile** (1.6.0): the first item, above General — the user's avatar and name; tapping it opens the edit dialog (see [Profile](profile.md)).
+- **General**: language, global week start day for app calendars and weekly grouping, theme, and the **interface style** (1.6.0) — Material 3 or Expressive (default); Expressive also floats the bottom navigation bar. Device-local, never synced.
 - **Privacy**: Intimacy module toggle with a hide confirmation (see
   [Intimacy](intimacy.md#hidden-by-default) — hiding never deletes data).
 - **On-device AI** (1.5.0): on Android, iOS and macOS, `AiSettingsTiles` — the *Use on-device AI*

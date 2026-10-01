@@ -436,6 +436,27 @@ class TodoStorage {
   static Future<void> setOnDeviceAiPreferFast(bool enabled) =>
       writeConfig({'onDeviceAiPreferFast': enabled ? true : null});
 
+  /// Purpose: Return the stored interface style name (1.6.0).
+  /// Inputs: None.
+  /// Returns: `Future<String?>` — `'material3'`, or null for the default
+  /// Expressive style.
+  /// Side effects: Reads `storage_config.json`.
+  /// Notes: Lenient like every config reader. The MyAnime 1.7.0 key
+  /// `classicNavBar` was never shipped here, so only `uiStyle` is read.
+  static Future<String?> getUiStyle() async {
+    final config = await readConfig();
+    return config['uiStyle'] == 'material3' ? 'material3' : null;
+  }
+
+  /// Purpose: Persist the interface style (1.6.0).
+  /// Inputs: `name` — `'material3'`, or null for the default Expressive style.
+  /// Returns: `Future<void>`.
+  /// Side effects: Writes `storage_config.json`.
+  /// Notes: Only the non-default Material 3 style is stored, as
+  /// `uiStyle: "material3"`; null removes the key.
+  static Future<void> setUiStyle(String? name) =>
+      writeConfig({'uiStyle': name == 'material3' ? 'material3' : null});
+
   /// Get persisted theme mode.
   /// Purpose: Implement the get theme mode behavior for this file.
   /// Inputs: None.

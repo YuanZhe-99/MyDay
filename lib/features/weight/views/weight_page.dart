@@ -642,9 +642,9 @@ class _WeightPageState extends ConsumerState<WeightPage> {
                           ? Icons.arrow_upward
                           : Icons.remove,
                       color: change < 0
-                          ? Colors.blue
+                          ? theme.colorScheme.primary
                           : change > 0
-                          ? Colors.red
+                          ? theme.colorScheme.error
                           : theme.colorScheme.onSurfaceVariant,
                       size: 20,
                     ),
@@ -657,9 +657,9 @@ class _WeightPageState extends ConsumerState<WeightPage> {
                         style: theme.textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: change < 0
-                              ? Colors.blue
+                              ? theme.colorScheme.primary
                               : change > 0
-                              ? Colors.red
+                              ? theme.colorScheme.error
                               : null,
                         ),
                       ),

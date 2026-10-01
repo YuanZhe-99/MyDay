@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/utils/status_colors.dart';
 import '../../../shared/services/image_service.dart';
 import '../../../shared/widgets/stored_image.dart';
 import '../../../shared/widgets/delete_confirm.dart';
@@ -213,7 +214,7 @@ class _CategoryDetailPageState extends State<CategoryDetailPage> {
         ? theme.colorScheme.error
         : isTransfer
         ? theme.colorScheme.primary
-        : Colors.green;
+        : StatusColors.income(theme.colorScheme);
 
     final filtered = _filtered;
 
@@ -357,7 +358,7 @@ class _TxTile extends StatelessWidget {
         ? theme.colorScheme.error
         : isTransfer
         ? theme.colorScheme.primary
-        : Colors.green;
+        : StatusColors.income(theme.colorScheme);
 
     final account = accounts.isNotEmpty
         ? accounts.where((a) => a.id == transaction.accountId).firstOrNull

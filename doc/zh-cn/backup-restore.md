@@ -10,6 +10,8 @@
 
 **不在捆绑或 ZIP 导出中的内容：** `storage_config.json`、`webdav_config.json`、`.sync_base/` 和 `ai_insights.json`（端侧 AI 洞察缓存，v1.5.0）。捆绑和导出只遍历模块注册表，而这些都没有登记。因此恢复绝不会带回生成的洞察；卡片会根据恢复后的数据重新生成。见 [on-device-ai.md](on-device-ai.md)。
 
+自 1.6.0 起，备份包和 ZIP 导出还包含 `profile.json`（名称和头像），头像文件与其他图像一起放在 `images/` 中。按模块恢复对话框把它标为“个人资料”；恢复缺少它的旧备份包时，当前个人资料保持不变。见 [features/profile.md](features/profile.md)。
+
 ## Blob 垃圾回收
 
 - 一个 blob 只在**没有剩余备份**引用它时被物理删除。
@@ -44,9 +46,9 @@
 
 ## 导入/导出——仅 ZIP，不再有 CSV/JSON
 
-`ImportExportService` 处理设置导入/导出，它对全部五个数据 JSON 文件加图像是**仅 ZIP** 的（旧的 CSV/JSON 文件导入流程在 v1.1.1 移除）。
+`ImportExportService` 处理设置导入/导出，它对全部六个数据 JSON 文件加图像是**仅 ZIP** 的（旧的 CSV/JSON 文件导入流程在 v1.1.1 移除）。
 
-- ZIP 导入只解压**允许列表中的条目**：五个数据 JSON 文件，加 `images/` 下的平铺文件。
+- ZIP 导入只解压**允许列表中的条目**：六个数据 JSON 文件（含 `profile.json`，1.6.0），加 `images/` 下的平铺文件。
 - 解析后的输出路径被限制在应用目录内，因此构造的 ZIP 无法逃出它去覆盖 `webdav_config.json` 或 `storage_config.json` 之类的配置文件——这与上面恢复图像名使用的**路径穿越保护**原理相同。
 - 导入的数据 JSON 文件被严格 UTF-8 解码（使中文和其他非 ASCII 文本正确存活导入）、在替换任何东西前校验（再次经 `DataFileSafety`），并经 tmp-重命名写入。
 
@@ -56,4 +58,4 @@
 
 - [架构](architecture.md) — 这里复用的 `DataFileSafety` 校验和原子写入机制。
 - [WebDAV 同步](sync.md) — 为什么恢复前禁用自动同步重要，以及成功恢复后的强制上传提议。
-- [数据格式](data-formats.md) — 这些备份/导入流程覆盖的五个数据 JSON 文件。
+- [数据格式](data-formats.md) — 这些备份/导入流程覆盖的六个数据 JSON 文件。

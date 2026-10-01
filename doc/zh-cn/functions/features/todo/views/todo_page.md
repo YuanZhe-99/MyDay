@@ -55,7 +55,7 @@
 | `_buildWeekCalendar` | 方法（组件辅助） | B | 构建所选日期周的内联日历；范围标签的结束日期是 `addCalendarDays(weekStart, 6)`（v1.5.2）。 |
 | `_buildWeekDayCell` | 方法（组件辅助） | B | 构建内联周历中的一个可选日。 |
 | `_buildDailyScoreCard` | 方法（组件辅助） | B | 构建 todo 列表底部显示的评分编辑器。 |
-| `build` | 方法（`_TodoPageState`） | B | 为当前加载/错误状态构建 Todo 页组件子树。 |
+| `build` | 方法（`_TodoPageState`） | B | 为当前加载/错误状态构建 Todo 页组件子树。；自 1.6.0 起应用栏最左侧是个人资料头像（点击打开设置），仅此页有。 |
 | `_TodoDataError({required this.message, required this.onRetry})` | 构造函数（`_TodoDataError`） | B | 显示阻塞 todo 数据读取错误。 |
 | `build` | 方法（`_TodoDataError`） | B | 构建带重试按钮的阻塞错误视图。 |
 | `_TodoCalendarPage({...})` | 构造函数（`_TodoCalendarPage`） | B | 创建辅助 Todo 日历页。 |

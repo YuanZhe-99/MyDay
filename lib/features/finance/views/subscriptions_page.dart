@@ -665,7 +665,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                             label: l10n.financeYearlyAvg,
                             value:
                                 '$sym${numberFormat.format(summary.yearlyAvg)}',
-                            color: Colors.orange,
+                            color: theme.colorScheme.tertiary,
                             icon: Icons.date_range,
                           ),
                         ),
@@ -1226,5 +1226,4 @@ class _SubscriptionTile extends StatelessWidget {
       ),
     );
   }
-
 }

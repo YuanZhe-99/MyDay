@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/theme.dart';
 import '../../features/ai/services/on_device_ai_service.dart';
 import '../../features/todo/services/todo_storage.dart';
 import '../services/reminder_service.dart';
@@ -41,6 +42,9 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
     final financeListColumns = await TodoStorage.getFinanceListColumns();
     final weightListColumns = await TodoStorage.getWeightListColumns();
     final intimacyListColumns = await TodoStorage.getIntimacyListColumns();
+    final uiStyle = (await TodoStorage.getUiStyle()) == 'material3'
+        ? AppUiStyle.material3
+        : AppUiStyle.expressive;
     final onDeviceAiEnabled = await TodoStorage.getOnDeviceAiEnabled();
     final onDeviceAiPreferFast = await TodoStorage.getOnDeviceAiPreferFast();
 
@@ -64,6 +68,7 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
       financeListColumns: financeListColumns,
       weightListColumns: weightListColumns,
       intimacyListColumns: intimacyListColumns,
+      uiStyle: uiStyle,
       onDeviceAiEnabled: onDeviceAiEnabled,
       onDeviceAiPreferFast: onDeviceAiPreferFast,
     );
@@ -88,6 +93,19 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
       ThemeMode.system => null,
     };
     TodoStorage.setThemeMode(str);
+  }
+
+  /// Purpose: Choose the interface style (1.6.0).
+  /// Inputs: `style`.
+  /// Returns: None.
+  /// Side effects: Persists the preference; the app rebuilds its theme and
+  /// the shell its bottom bar.
+  /// Notes: Expressive by default. Expressive also selects the floating
+  /// island bottom bar, Material 3 the classic full-width bar; the
+  /// wide-window rail is the same in both.
+  void setUiStyle(AppUiStyle style) {
+    state = state.copyWith(uiStyle: style);
+    TodoStorage.setUiStyle(style == AppUiStyle.material3 ? 'material3' : null);
   }
 
   /// Purpose: Implement the set locale behavior for this file.
@@ -205,6 +223,10 @@ class AppSettings {
   /// Column preference for the Intimacy page's record list.
   final int intimacyListColumns;
 
+  /// The interface style (1.6.0): Expressive (default, with the floating
+  /// island bottom bar) or stock Material 3 (classic bottom bar).
+  final AppUiStyle uiStyle;
+
   /// Whether on-device AI (the module insight cards) is on. Device-local.
   final bool onDeviceAiEnabled;
 
@@ -213,7 +235,7 @@ class AppSettings {
 
   /// Purpose: Create a app settings instance.
   /// Inputs: `themeMode`, `locale`, `weekStartDay`, the four column
-  /// preferences, `onDeviceAiEnabled`, `onDeviceAiPreferFast`.
+  /// preferences, `uiStyle`, `onDeviceAiEnabled`, `onDeviceAiPreferFast`.
   /// Returns: A new `AppSettings` instance.
   /// Side effects: None.
   /// Notes: `weekStartDay` uses Dart's Monday=1 through Sunday=7 numbering.
@@ -225,6 +247,7 @@ class AppSettings {
     this.financeListColumns = listColumnsAuto,
     this.weightListColumns = listColumnsAuto,
     this.intimacyListColumns = listColumnsAuto,
+    this.uiStyle = AppUiStyle.expressive,
     this.onDeviceAiEnabled = false,
     this.onDeviceAiPreferFast = false,
   });
@@ -242,6 +265,7 @@ class AppSettings {
     int? financeListColumns,
     int? weightListColumns,
     int? intimacyListColumns,
+    AppUiStyle? uiStyle,
     bool? onDeviceAiEnabled,
     bool? onDeviceAiPreferFast,
     bool clearLocale = false,
@@ -254,6 +278,7 @@ class AppSettings {
       financeListColumns: financeListColumns ?? this.financeListColumns,
       weightListColumns: weightListColumns ?? this.weightListColumns,
       intimacyListColumns: intimacyListColumns ?? this.intimacyListColumns,
+      uiStyle: uiStyle ?? this.uiStyle,
       onDeviceAiEnabled: onDeviceAiEnabled ?? this.onDeviceAiEnabled,
       onDeviceAiPreferFast: onDeviceAiPreferFast ?? this.onDeviceAiPreferFast,
     );

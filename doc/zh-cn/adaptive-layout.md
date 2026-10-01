@@ -68,6 +68,8 @@ const navRailWidth    = 81.0;  // 80 dp NavigationRail + 1 dp VerticalDivider
 
 `ShellScaffold`（`lib/shared/widgets/shell_scaffold.dart`）从**同一份目的地列表**构建导航栏和底部导航栏，因此一个目的地不可能只出现在其中之一，也不可能在两者之间顺序不同——包括亲密模块的目的地，当该模块被隐藏时它在这唯一的一处被过滤掉。导航栏设置 `groupAlignment: 0`：默认的顶部对齐是给位于前导菜单按钮或 FAB 之下的导航栏用的，而 MyDay 两者都没有，因此顶部对齐会让高导航栏的整个下半部分空着。它被包在 `SingleChildScrollView` + `ConstrainedBox(minHeight:)` 里，因为导航栏可能出现在高度紧凑的窗口上（915 x 412），那里它必须滚动而不是溢出。
 
+自 1.6.0 起，窄窗口的底部导航栏有两种外观，由**界面风格**设置（设置 › 常规，仅本设备）决定：默认的 **Expressive** 风格把它画成带左右与底部边距的悬浮胶囊形“岛”（`_FloatingNavBar`，key 为 `floatingNavBarIsland`，最宽 480 px），**Material 3** 则保持经典通栏。浮岛位于 Scaffold 的 `bottomNavigationBar` 槽位而非页面之上，因此页面不会绘制到它下面，`SizedBox(height: 80)` 的 FAB 空隙和各页面布局都不变。侧栏在两种风格下相同。
+
 外壳内的页面用 `shellContentWidth(screenWidth)` 计算容量，它恰好在导航栏显示时扣除导航栏宽度。**压在外壳之上的页面**——所有用 `Navigator.push` 到达的页面——没有导航栏可扣；它们测量自己的 `LayoutBuilder` 约束，且不得调用 `shellContentWidth`。
 
 刻意没有做：在 1240 dp 以上使用 `NavigationDrawer`。导航栏一直到 extra-large 都是正确的，第三种导航模式不值得它的代价。

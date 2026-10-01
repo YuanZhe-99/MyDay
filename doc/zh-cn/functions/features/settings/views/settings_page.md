@@ -27,6 +27,7 @@
 | `_buildSection` | 方法（组件辅助） | B | 渲染一个带标题的设置小节。 |
 | [`_showStoragePathDialog`](#showstoragepathdialog) | 方法（`_SettingsPageState`） | A | 编辑自定义存储路径，含重置回默认。 |
 | `_showThemePicker` | 方法（`_SettingsPageState`） | B | 显示主题模式选择器底部面板。 |
+| `_showUiStylePicker` | 方法（`_SettingsPageState`） | B | 显示界面风格选择器底部面板（Material 3 / Expressive，1.6.0）。 |
 | `_showWeekStartPicker` | 方法（`_SettingsPageState`） | B | 显示全局周起始日选择器底部面板。 |
 | [`_showLanguagePicker`](#showlanguagepicker) | 方法（`_SettingsPageState`） | A | 显示应用语言选择器，把选择解析为 `Locale`。 |
 | `_SettingsDetail` | 顶层枚举 | B | 设置行可以通向的二级页面。 |
@@ -35,7 +36,7 @@
 | [`_buildDetailPane`](#builddetailpane) | 方法（`_SettingsPageState`） | A | 构建双栏布局的右侧窗格。 |
 | [`_buildSettingsList`](#buildsettingslist) | 方法（`_SettingsPageState`） | A | 构建一级设置列表。 |
 
-**对账：** `grep -c 'Purpose:' lib/features/settings/views/settings_page.dart` 返回 27，对应 28 行；多出的一行是不带 `Purpose:` 块的 `_SettingsDetail` 枚举。27 个块都文档化真实声明（26 个方法/构造函数/getter，加在 `_showApiSettingsDialog` 内声明的嵌套本地函数 `signature()`，它自己有 `Purpose:` 块）——无错附块、未发现未文档化真实声明。`_SettingsPageState` 顶部的实例字段（`_storagePath`、`_apiPort` 等）无 `Purpose:` 块，与它们是状态而非函数一致。
+**对账：** `grep -c 'Purpose:' lib/features/settings/views/settings_page.dart` 返回 28，对应 29 行；多出的一行是不带 `Purpose:` 块的 `_SettingsDetail` 枚举。27 个块都文档化真实声明（26 个方法/构造函数/getter，加在 `_showApiSettingsDialog` 内声明的嵌套本地函数 `signature()`，它自己有 `Purpose:` 块）——无错附块、未发现未文档化真实声明。`_SettingsPageState` 顶部的实例字段（`_storagePath`、`_apiPort` 等）无 `Purpose:` 块，与它们是状态而非函数一致。
 
 ## 文档
 
@@ -183,6 +184,7 @@
 - **输入：** `context`、`l10n`、`visibility`、`settings`；`labels`——`build` 在选择布局之前就已格式化好的四个字符串。
 - **返回：** `Widget`——分区的滚动 `ListView`。
 - **副作用：** 除构建组件外无；磁贴自己的回调各有其副作用。
+- **个人资料与界面风格（1.6.0）：**`const ProfileHeader()`（头像与名称，见 [../../profile/views/profile_header.md](../../profile/views/profile_header.md)）是第一项，位于“通用”之前；“通用”在“主题”之后新增“界面风格”行（`Icons.auto_awesome_outlined`，副标题为当前风格），点击打开 `_showUiStylePicker`——带说明文字、Material 3 / Expressive 单选的底部面板，调用 `AppSettingsNotifier.setUiStyle`。该选择器沿用主题行的“列表项 + 底部面板”模式，而非分段按钮。
 - **算法：** v1.4.1 之前 `build` 返回的列表——常规、隐私、桌面（仅桌面）、数据、关于和调试分区——自 v1.5.0 起在隐私与桌面之间再加一个端侧 AI 分区（`l10n.aiSectionTitle`）。`platformMayHaveOnDeviceModel`（来自 `genai_backend.dart`）为真时该分区放 `const AiSettingsTiles()`，否则放一个带 `auto_awesome_outlined` 图标和 `l10n.aiNotSupportedHere` 的 `ListTile`（Windows、Linux）。
 - **用法：** 由 `build` 调用；它在窄窗口上是整个主体，在宽窗口上是左窗格。
 - **备注：** 抽取而不是复制，因此列表在两种模式下完全相同，变的只是它的 chevron 行落在哪里。自 v1.5.2 起，桌面分区的开关（最小化到托盘、关闭到托盘、开机启动、启用本地 API）在等待的平台或配置调用之后先检查 `mounted` 再调用 `setState`，因此在切换途中离开页面不会再对已销毁的 state 调用 `setState`。

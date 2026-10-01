@@ -88,8 +88,10 @@
   authorization: <basic-auth>
 === [10] GET /dav/files/u/MyDay/weight_data.json -> 200
   authorization: <basic-auth>
-=== [11] GET /dav/files/u/MyDay/.lock -> 200
+=== [11] GET /dav/files/u/MyDay/profile.json -> 404
   authorization: <basic-auth>
-=== [12] DELETE /dav/files/u/MyDay/.lock -> 204
+=== [12] GET /dav/files/u/MyDay/.lock -> 200
+  authorization: <basic-auth>
+=== [13] DELETE /dav/files/u/MyDay/.lock -> 204
   authorization: <basic-auth>
   if-match: "<etag>"

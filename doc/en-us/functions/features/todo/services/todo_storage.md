@@ -44,6 +44,8 @@ atomic-write conventions this file implements. `Task`/`DailyCompletionLog`/`Dail
 | [`setOnDeviceAiEnabled`](#setondeviceaienabled) | static method (`TodoStorage`) | A | Persist the on-device AI switch. |
 | [`getOnDeviceAiPreferFast`](#getondeviceaipreferfast) | static method (`TodoStorage`) | A | Read whether the faster on-device model is preferred. |
 | [`setOnDeviceAiPreferFast`](#setondeviceaipreferfast) | static method (`TodoStorage`) | A | Persist the faster-model preference. |
+| [`getUiStyle`](#getuistyle) | static method (`TodoStorage`) | A | Read the stored interface style name (1.6.0). |
+| [`setUiStyle`](#setuistyle) | static method (`TodoStorage`) | A | Persist the interface style (1.6.0). |
 | [`getThemeMode`](#getthememode) | static method (`TodoStorage`) | A | Get persisted theme mode. |
 | [`setThemeMode`](#setthememode) | static method (`TodoStorage`) | A | Set and persist theme mode. |
 | [`getLocaleTag`](#getlocaletag) | static method (`TodoStorage`) | A | Get persisted locale tag. |
@@ -501,6 +503,25 @@ trivial forwarding.
   [`setOnDeviceAiPreferFast`](../../../shared/providers/app_settings.md#setondeviceaipreferfast),
   line 184).
 - **Notes:** Stored only when `true`; `false` removes the key.
+
+### `static Future<String?> getUiStyle()` <a id="getuistyle"></a>
+- **Kind:** static method of `TodoStorage`
+- **Source:** `lib/features/todo/services/todo_storage.dart`
+- **Purpose:** Return the stored interface style name (1.6.0).
+- **Inputs:** None.
+- **Returns:** `Future<String?>` — `'material3'`, or null for the default Expressive style.
+- **Side effects:** Reads `storage_config.json` via [`readConfig`](#readconfig).
+- **Notes:** Lenient like every config reader. MyAnime's superseded 1.7.0 `classicNavBar` key was never shipped in MyDay, so only `uiStyle` is read.
+
+### `static Future<void> setUiStyle(String? name)` <a id="setuistyle"></a>
+- **Kind:** static method of `TodoStorage`
+- **Source:** `lib/features/todo/services/todo_storage.dart`
+- **Purpose:** Persist the interface style (1.6.0).
+- **Inputs:** `name` — `'material3'`, or null for the default Expressive style.
+- **Returns:** `Future<void>`.
+- **Side effects:** Merge-writes `storage_config.json` via [`writeConfig`](#writeconfig).
+- **Algorithm:** `writeConfig({'uiStyle': name == 'material3' ? 'material3' : null})`.
+- **Notes:** Only the non-default Material 3 style is stored, as `uiStyle: "material3"`; null removes the key.
 
 ### `static Future<String?> getThemeMode()` <a id="getthememode"></a>
 - **Kind:** static method of `TodoStorage`

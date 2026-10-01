@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:launch_at_startup/launch_at_startup.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../../../app/theme.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/providers/app_settings.dart';
 import '../../../shared/providers/intimacy_visibility.dart';
@@ -25,6 +26,7 @@ import '../../../shared/views/webdav_config_page.dart';
 import '../../ai/services/genai_backend.dart';
 import '../../ai/widgets/ai_settings_tiles.dart';
 import '../../finance/services/subscription_processor.dart';
+import '../../profile/views/profile_header.dart';
 import '../../todo/services/todo_storage.dart';
 import 'license_page.dart' as app_license;
 import 'privacy_policy_page.dart';
@@ -576,6 +578,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final syncSubtitle = labels['syncSubtitle']!;
     return ListView(
       children: [
+        // Avatar and name (1.6.0); synced, unlike everything device-local
+        // below. Tapping opens the edit dialog.
+        const ProfileHeader(),
         _buildSection(context, l10n.settingsGeneral, [
           ListTile(
             leading: const Icon(Icons.language),
@@ -597,6 +602,19 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             subtitle: Text(themeModeLabel),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => _showThemePicker(context, settings),
+          ),
+          // Interface style (1.6.0): Expressive (default) also floats the
+          // bottom bar, Material 3 keeps the classic one.
+          ListTile(
+            leading: const Icon(Icons.auto_awesome_outlined),
+            title: Text(l10n.settingsUiStyle),
+            subtitle: Text(
+              settings.uiStyle == AppUiStyle.material3
+                  ? l10n.settingsUiStyleMaterial3
+                  : l10n.settingsUiStyleExpressive,
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _showUiStylePicker(context, settings),
           ),
         ]),
 
@@ -941,6 +959,44 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         );
       }
     }
+  }
+
+  /// Purpose: Show the interface style picker (1.6.0).
+  /// Inputs: `context`, `settings`.
+  /// Returns: None.
+  /// Side effects: Updates app settings and persists the chosen style.
+  /// Notes: Material 3 or Expressive; Expressive (the default) also selects the
+  /// floating navigation bar. The explanation sits above the options.
+  void _showUiStylePicker(BuildContext context, AppSettings settings) {
+    final l10n = AppLocalizations.of(context)!;
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: RadioGroup<AppUiStyle>(
+          groupValue: settings.uiStyle,
+          onChanged: (style) {
+            if (style != null) {
+              ref.read(appSettingsProvider.notifier).setUiStyle(style);
+            }
+            Navigator.pop(context);
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(subtitle: Text(l10n.settingsUiStyleDesc)),
+              ListTile(
+                title: Text(l10n.settingsUiStyleMaterial3),
+                trailing: const Radio<AppUiStyle>(value: AppUiStyle.material3),
+              ),
+              ListTile(
+                title: Text(l10n.settingsUiStyleExpressive),
+                trailing: const Radio<AppUiStyle>(value: AppUiStyle.expressive),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   /// Purpose: Provide the internal show theme picker helper for this file.

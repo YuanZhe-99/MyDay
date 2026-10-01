@@ -8,8 +8,9 @@
 /// Notes: This replaces the five separate hardcoded file lists
 /// the app used to carry (`webdav_service`, `data_file_safety`,
 /// `import_export_service`, `backup_service`, `todo_storage`). Registry order is
-/// the sync/backup/progress order. File names and module IDs are persisted
-/// compatibility contracts (I1/I2) and must never change.
+/// the sync/backup/progress order, and `profile.json` (1.6.0) is last. File
+/// names and module IDs are persisted compatibility contracts (I1/I2) and
+/// must never change.
 library;
 
 import 'dart:async';
@@ -24,6 +25,8 @@ import '../features/finance/services/finance_storage.dart';
 import '../features/finance/services/exchange_rate_storage.dart';
 
 import '../features/intimacy/models/intimacy_record.dart';
+import '../features/profile/models/profile_data.dart';
+import '../features/profile/services/profile_merge.dart';
 
 import '../features/todo/services/todo_storage.dart';
 import '../features/weight/models/weight_record.dart';
@@ -87,6 +90,12 @@ const financeDataFileName = 'finance_data.json';
 const exchangeRatesFileName = 'exchange_rates.json';
 const intimacyDataFileName = 'intimacy_data.json';
 const weightDataFileName = 'weight_data.json';
+
+/// Local and remote name of the profile file (1.6.0; I1/I2).
+const profileFileName = 'profile.json';
+
+/// Backup bundle module key for that file (1.6.0; I2).
+const profileModuleId = 'profile';
 
 /// Purpose: Re-inject unknown JSON fields immediately before a file is written.
 /// Inputs: [fileName] and the engine-supplied [context] snapshots.
@@ -347,9 +356,57 @@ DataModule buildExchangeRatesModule() => DataModule(
       ),
 );
 
+/// Purpose: Validate a `profile.json` payload before it is written.
+/// Inputs: [json] raw module content.
+/// Returns: None; throws when the payload is not a JSON object.
+/// Side effects: None.
+/// Notes: The model is tolerant inside the object.
+void validateProfileJson(String json) {
+  ProfileData.fromJson(jsonDecode(json));
+}
+
+/// Purpose: Extract the avatar image basename referenced by the profile.
+/// Inputs: [json] raw or merged module JSON.
+/// Returns: A set holding the avatar's basename, or empty.
+/// Side effects: None.
+/// Notes: This is what makes the avatar file travel through the engine's
+/// image phase alongside the covers. Malformed input yields an empty set.
+Set<String> profileReferencedImages(String json) {
+  try {
+    final avatar = ProfileData.fromJson(jsonDecode(json)).avatar;
+    return avatar == null ? {} : {p.basename(avatar)};
+  } catch (_) {
+    return {};
+  }
+}
+
+/// Purpose: Describe `profile.json` to the shared engines (1.6.0).
+/// Inputs: None.
+/// Returns: The profile [DataModule].
+/// Side effects: None.
+/// Notes: Conflict-free (each field is last-writer-wins by its own
+/// timestamp), so `baseJson` and `autoResolve` are unused. Builds older than
+/// 1.6.0 never request this file, so adding it leaves them unaffected.
+DataModule buildProfileModule() => DataModule(
+  fileName: profileFileName,
+  moduleId: profileModuleId,
+  validate: validateProfileJson,
+  referencedImages: profileReferencedImages,
+  merge:
+      ({
+        required String localJson,
+        required String remoteJson,
+        required String? baseJson,
+        required bool autoResolve,
+      }) => ModuleMergeOutcome(
+        mergedJson: mergeProfileJson(localJson, remoteJson),
+      ),
+);
+
 /// Purpose: Provide MyDay's ordered module registry.
 /// Inputs: None.
-/// Returns: A registry holding all five data modules.
+/// Returns: A registry holding the five data modules, then the profile module
+/// (1.6.0).
 /// Side effects: None.
 /// Notes: Order matches the previous hardcoded `_dataFileNames` list and is
 /// behaviorally significant for sync order, progress, and backup key order.
@@ -359,4 +416,5 @@ final ModuleRegistry todoModuleRegistry = ModuleRegistry([
   buildExchangeRatesModule(),
   buildIntimacyModule(),
   buildWeightModule(),
+  buildProfileModule(),
 ]);

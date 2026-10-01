@@ -82,6 +82,19 @@ for (final c in recordConflicts) {
 
 自动同步在内存中记录最近的成功、失败或待定冲突状态，并在设置和 WebDAV 页面浮出。失败绝不静默吞掉；冲突绝不在后台被 LWW 自动解决。`_trySync` 持有实例级 `_syncing` 守卫，使重叠触发（计时器/恢复/防抖）被静默跳过，而不是浮出虚假的"同步已在进行中"失败横幅。`notifySaved()` 在 `start()` 之前被忽略，使早期存储写入不可能在服务观察应用生命周期前安排同步。
 
+## 个人资料文件
+
+自 1.6.0 起，注册表包含第六个模块 `profile.json`——用户的名称和头像（schema 见 [`data-formats.md`](data-formats.md#profilejson)，功能见 [`features/profile.md`](features/profile.md)）。
+它在另外五个模块之后走同一套引擎步骤，处在同一个 `.lock` 之下，并有自己的 `.sync_base/profile.json`。
+
+- **合并从不产生冲突，也不需要基线。**每个字段按各自的时间戳独立地后写者胜：名称看 `displayNameUpdatedAt`，头像看 `avatarUpdatedAt`。远程时间戳严格更晚才胜出，相同时保留本地，从未设置该字段的一侧总是输给设置过的一侧。因此一台设备改了名称、另一台设备改了头像，两者都会保留。未知键取并集，本地优先，并保留较高的 `version`。
+- **移除是显式的。**清除头像会写入带新时间戳的 `"avatar": null`（清除名称则写入 `"displayName": null`），因此移除与其他编辑一样赢得合并，而不会被误认为从未设置的字段。
+- **头像文件名唯一。**头像是 `images/` 中的普通文件，经由添加式图像阶段传输（该模块的 `referencedImages` 返回它的基名）。图像同步从不覆盖另一侧已存在的文件，也从不删除，因此每个新头像都使用全新的 `images/avatar_<uuid>.jpg` 名称；复用同一个名称会让其他设备一直显示旧图。被替换的头像只在做出更改的那台设备上删除：**旧头像会留在 WebDAV 服务器和其他设备上**（已知限制）。
+- **旧版本忽略它。**引擎只请求它已注册的文件名，也从不列出远程根目录，因此 1.6.0 之前的构建从不获取 `profile.json`；头像文件无害地躺在 `images/` 中。
+- **开销。**每次同步多一次 `GET profile.json`（从未设置个人资料的数据会得到 404）；`test/golden/goldens/myday/` 下已录制的 WebDAV 记录已重新录制，只多了这一个请求（其后的请求顺延编号）。
+- 每次保存个人资料都会调用 `AutoSyncService.notifySaved`，因此防抖同步会在编辑后不久运行；同步或恢复重写本地数据后，个人资料 provider 会重新加载。
+
+
 ## 相关页面
 
 - [三方合并](algorithms/three-way-merge.md) — 泛型合并引擎和逐文件策略的完整细节。

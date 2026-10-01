@@ -7,8 +7,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 
+import 'package:my_day/app/theme.dart';
 import 'package:my_day/features/todo/services/todo_storage.dart';
 import 'package:my_day/l10n/app_localizations.dart';
+import 'package:my_day/shared/providers/app_settings.dart';
 import 'package:my_day/shared/widgets/shell_scaffold.dart';
 
 /// Purpose: Test that the shell swaps its bottom bar for a navigation rail.
@@ -55,13 +57,18 @@ void main() {
   }
 
   /// Purpose: Pump the shell at a pinned viewport.
-  /// Inputs: `tester`, `size` — the logical-pixel viewport.
+  /// Inputs: `tester`, `size` — the logical-pixel viewport; `uiStyle` — the
+  /// interface style the shell is built with (Expressive by default).
   /// Returns: `Future<void>`.
   /// Side effects: Renders widgets.
   /// Notes: The viewport is always pinned, because the default 800x600 test
   /// surface is already wide enough for a rail and would silently decide the
   /// outcome of every test here.
-  Future<void> pumpShell(WidgetTester tester, Size size) async {
+  Future<void> pumpShell(
+    WidgetTester tester,
+    Size size, {
+    AppUiStyle uiStyle = AppUiStyle.expressive,
+  }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
@@ -91,6 +98,11 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
+        overrides: [
+          appSettingsProvider.overrideWithValue(
+            AppSettingsNotifier.fixed(AppSettings(uiStyle: uiStyle)),
+          ),
+        ],
         child: MaterialApp.router(
           routerConfig: router,
           locale: const Locale('zh'),
@@ -204,6 +216,59 @@ void main() {
       ),
       findsOneWidget,
     );
+  });
+
+  group('bottom bar style', () {
+    const island = ValueKey('floatingNavBarIsland');
+
+    testWidgets('the default Expressive style floats the bar as an island', (
+      tester,
+    ) async {
+      final dir = await seedConfig(tester, intimacyVisible: true);
+      addTearDown(() => dir.delete(recursive: true));
+
+      await pumpShell(tester, const Size(412, 915));
+      expect(find.byKey(island), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(island),
+          matching: find.byType(NavigationBar),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('the Material 3 style keeps the classic bar', (tester) async {
+      final dir = await seedConfig(tester, intimacyVisible: true);
+      addTearDown(() => dir.delete(recursive: true));
+
+      await pumpShell(
+        tester,
+        const Size(412, 915),
+        uiStyle: AppUiStyle.material3,
+      );
+      expect(find.byType(NavigationBar), findsOneWidget);
+      expect(find.byKey(island), findsNothing);
+    });
+
+    testWidgets('the rail ignores the setting', (tester) async {
+      final dir = await seedConfig(tester, intimacyVisible: true);
+      addTearDown(() => dir.delete(recursive: true));
+
+      await pumpShell(tester, const Size(932, 704));
+      expect(find.byType(NavigationRail), findsOneWidget);
+      expect(find.byKey(island), findsNothing);
+    });
+
+    testWidgets('tapping an island destination navigates', (tester) async {
+      final dir = await seedConfig(tester, intimacyVisible: true);
+      addTearDown(() => dir.delete(recursive: true));
+
+      await pumpShell(tester, const Size(412, 915));
+      await tester.tap(find.byIcon(Icons.settings_outlined));
+      await tester.pumpAndSettle();
+      expect(find.text('page /settings'), findsOneWidget);
+    });
   });
 }
 

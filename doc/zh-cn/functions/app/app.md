@@ -13,4 +13,4 @@
 
 ## 文档
 
-本文件两个声明都是 Tier B（平凡的 `const` 组件构造函数和一个 `build()` 方法），因此按模板它们是仅索引行、无完整条目。供上下文参考的值得注意行为：`build()` 读取 `ref.watch(appSettingsProvider)` 并把 `settings.themeMode` 和 `settings.locale` 喂进 `MaterialApp.router`，因此来自设置的更改主题或语言区域会触发整个应用外壳的重建。`theme`/`darkTheme` 来自 `AppTheme.light`/`AppTheme.dark`（见 [theme.md](theme.md)），`routerConfig` 来自 `appRouter`（见 [router.md](router.md)）。`builder: DevicePreview.appBuilder` 为调试构建中使用的 `device_preview` 包包装应用。
+本文件两个声明都是 Tier B（平凡的 `const` 组件构造函数和一个 `build()` 方法），因此按模板它们是仅索引行、无完整条目。供上下文参考的值得注意行为：`build()` 读取 `ref.watch(appSettingsProvider)` 并把 `settings.themeMode` 和 `settings.locale` 喂进 `MaterialApp.router`，因此来自设置的更改主题或语言区域会触发整个应用外壳的重建。`theme`/`darkTheme` 来自 `AppTheme.light(dynamicScheme, settings.uiStyle)`/`AppTheme.dark(...)`（见 [theme.md](theme.md)）；自 1.6.0 起 `build()` 用 `DynamicColorBuilder` 包住 `MaterialApp.router`，仅在 Android 上传入由壁纸派生的动态配色方案（桌面端插件会返回系统强调色，会盖掉应用自己的种子色），并由用户的界面风格选择主题变体，`routerConfig` 来自 `appRouter`（见 [router.md](router.md)）。`builder: DevicePreview.appBuilder` 为调试构建中使用的 `device_preview` 包包装应用。

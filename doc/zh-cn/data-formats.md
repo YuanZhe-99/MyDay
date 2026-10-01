@@ -81,20 +81,44 @@
 
 | 数据 | 文件 | 同步 | 备注 |
 | --- | --- | --- | --- |
-| 核心偏好 | `storage_config.json` | 否 | 自定义路径、亲密可见性、主题、语言区域、周起始日、托盘、备份、本地 API 设置、今天已触发的桌面提醒键（`reminderNotifiedKeys`）、仅本地的亲密计时器保持屏幕唤醒偏好（`intimacyTimerKeepScreenAwake`）、仅本地的体重同步警告退出（`intimacyBodyWeightSyncWarningDisabled`）、设备本地的列表列数偏好（`todoSectionColumns`、`financeListColumns`、`weightListColumns`、`intimacyListColumns`）、端侧 AI 开关（`onDeviceAiEnabled`、`onDeviceAiPreferFast`） |
+| 核心偏好 | `storage_config.json` | 否 | 自定义路径、亲密可见性、主题、语言区域、周起始日、托盘、备份、本地 API 设置、今天已触发的桌面提醒键（`reminderNotifiedKeys`）、仅本地的亲密计时器保持屏幕唤醒偏好（`intimacyTimerKeepScreenAwake`）、仅本地的体重同步警告退出（`intimacyBodyWeightSyncWarningDisabled`）、设备本地的列表列数偏好（`todoSectionColumns`、`financeListColumns`、`weightListColumns`、`intimacyListColumns`）、端侧 AI 开关（`onDeviceAiEnabled`、`onDeviceAiPreferFast`）、界面风格（`uiStyle`，1.6.0：仅在选择 Material 3 时写为 `"material3"`；缺省表示 Expressive，即默认风格，同时显示悬浮导航栏） |
 | 待办 | `todo_data.json` | 是 | 任务、每日模板、完成日志、每日评分日志、提醒、任务排序/自定义顺序 |
 | 财务 | `finance_data.json` | 是 | 账户含可选免手续费标准、分类、交易、订阅、财务设置、交易账户选择器设置 |
 | 汇率 | `exchange_rates.json` | 是 | 汇率快照和 `lastFetchedAt` |
 | 亲密 | `intimacy_data.json` | 是 | 伴侣含可选身体档案、玩具、姿势、记录、含抽插次数的计时器历史/会话、用户身体档案（`userBody` + `userBodyModifiedAt`）、周期记录、排序设置、趋势图视图设置（`chartSettings`） |
 | 体重 | `weight_data.json` | 是 | 身高、含可选胸/腰/臀 cm 字段的记录、提醒、宽限窗口 |
+| 个人资料（名称和头像） | `profile.json` | 是 | 自 1.6.0 起：用户的名称和头像路径，各带自己的时间戳；按字段后写者胜；无冲突；仅在首次设置时创建 |
 | WebDAV 配置 | `webdav_config.json` | 否 | 用户服务器配置和凭据；随自定义存储路径移动 |
 | 同步基线 | `.sync_base/*.json` | 否 | 三方合并的上次同步快照 |
-| 图像 | `images/*` | 是 | 引用的财务/亲密图像同步；备份含图像。文件为任意图像格式的 `<uuid><ext>`，包括 `.svg`（选择预设时复制的内置银行标志，v1.4.5）；格式不变 |
+| 图像 | `images/*` | 是 | 引用的财务/亲密图像以及（自 1.6.0 起）个人资料头像（`images/avatar_<uuid>.jpg`）同步；备份含图像。文件为任意图像格式的 `<uuid><ext>`，包括 `.svg`（选择预设时复制的内置银行标志，v1.4.5）；格式不变 |
 | 备份 | `backups/backup_*.json` | 否 | 本地恢复捆绑；v2 捆绑引用去重后的图像 blob |
 | 备份图像 blob | `backups/blobs/` | 否 | 内容寻址（`sha256`）、跨备份共享、引用计数 GC |
 | 端侧 AI 洞察 | `ai_insights.json` | 否 | 生成的洞察卡片的逐设备缓存（v1.5.0）；从不同步、备份或导出；可重建，因此不可读的文件读作空 |
 
 `TodoStorage.setStoragePath()` 通过 `migrateStorageContents` 移动旧数据文件夹中的**一切**——数据文件、`webdav_config.json`、`ai_insights.json`，以及 `images/`、`backups/` 和 `.sync_base/` 目录（先复制后删除；目标位置已存在的条目胜出并保持不动）。只跳过 `storage_config.json`：它总是留在默认应用目录，因为它保存的正是自定义路径本身。
+
+## `profile.json`
+
+
+`profile.json`（1.6.0）是第六个已注册的模块，因此它同样会同步、会备份、包含在 ZIP 导出中，并有自己的
+`.sync_base/profile.json`。它保存用户的名称和头像（见 [`features/profile.md`](features/profile.md)）：
+
+```json
+{
+  "version": 1,
+  "displayName": "Yuan",
+  "displayNameUpdatedAt": "2026-10-01T14:06:42.530801Z",
+  "avatar": "images/avatar_2953ac52-337e-4271-a8e1-bcd97ee416ba.jpg",
+  "avatarUpdatedAt": "2026-10-01T14:08:59.163627Z"
+}
+```
+
+- `displayName` / `displayNameUpdatedAt`——名称及其最近一次更改的时间（UTC）。保存时会去除首尾空白；清除它会写入 `"displayName": null` 和新的时间戳。
+- `avatar` / `avatarUpdatedAt`——头像相对于数据目录的路径（`images/avatar_<uuid>.jpg`，512 x 512 的 JPEG）及其最近一次更改的时间（UTC）。已移除的头像写成带时间戳的显式 `"avatar": null`，使移除操作得以同步。
+- 字段只有在有时间戳后才会写出；没有时间戳的字段表示“从未设置”，在合并中总是输给已设置的一方。每个字段按后写者胜独立合并，互不影响——见 [`sync.md`](sync.md#个人资料文件)。未知键会保留。`version` 为 `1`。
+- 头像图片是 `images/` 中的普通文件，因此它通过引擎的仅引用添加式图像阶段同步（该模块通过 `profileReferencedImages` 报告它），并与其他图片一起备份和导出。每个新头像都使用全新的文件名，因为图像同步从不覆盖已存在的文件；被替换的头像只在本地删除，所以旧头像会留在 WebDAV 服务器和其他设备上。
+- 1.6.0 之前的构建从不请求 `profile.json`，因此它不会影响它们。
+
 
 ## `ai_insights.json`
 
