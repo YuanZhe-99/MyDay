@@ -1,5 +1,9 @@
 # lib/features/settings/views/settings_page.dart
 
+Group rendering delegates to MyAppsSettingsSection with the original heading
+spacing. Dialog pickers, labels and callbacks remain app-owned. Common ARB values
+are validated by shared_l10n_test; see [../../../../shared-ui.md](../../../../shared-ui.md).
+
 The main Settings screen: General (language/week-start/theme), Privacy (Intimacy module hide/show),
 On-device AI (v1.5.0; the [`AiSettingsTiles`](../../ai/widgets/ai_settings_tiles.md) rows where a
 model can exist, otherwise a single "not supported here" note), Desktop (tray, launch-at-startup, local API server, custom storage location), Data (WebDAV sync,

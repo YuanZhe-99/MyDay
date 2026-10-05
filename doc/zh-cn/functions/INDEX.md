@@ -1,5 +1,7 @@
 # MyDay `lib/` 函数索引
 
+设置分组委托 myapps_ui 显示，见 [shared-ui.md](../shared-ui.md)。
+
 资料条目现在描述公共导出和应用适配，实现归属见 [shared-ui.md](../shared-ui.md)。
 
 这是 MyDay 仓库中 `lib/` 手写函数解释层文档的顶层索引。每行链接到 `doc/en-us/functions/` 下镜像 `lib/` 树的逐源文件页面（`.dart` 换成 `.md`）。

@@ -1,5 +1,9 @@
 # lib/features/settings/views/settings_page.dart
 
+分组显示委托 MyAppsSettingsSection，保留原标题间距。弹窗选择器、文案和回调
+由应用负责。shared_l10n_test 验证公共 ARB 值，见
+[../../../../shared-ui.md](../../../../shared-ui.md)。
+
 主设置屏：通用（语言/周起始/主题）、隐私（亲密模块隐藏/显示）、端侧 AI（v1.5.0；可能存在模型的平台上是 [`AiSettingsTiles`](../../ai/widgets/ai_settings_tiles.md) 各行，否则是一条"此处不支持"说明）、桌面（托盘、启动时启动、本地 API 服务器、自定义存储位置）、数据（WebDAV 同步、ZIP 导入/导出、备份）、关于（版本、许可证、隐私政策）和仅调试的订阅日期覆盖小节。`SettingsPage`/`_SettingsPageState` 直接拥有其中大多数设置的读写管道（经 `TodoStorage.readConfig`/`writeConfig`、`TrayService`、`launchAtStartup` 和 `LocalApiServer`），而 WebDAV 同步和备份委托给 [`webdav_config_page.dart`](../../../shared/views/webdav_config_page.md) 和 [`backup_page.dart`](../../../shared/views/backup_page.md)，关于小节链接到 [`license_page.dart`](license_page.md) 和 [`privacy_policy_page.dart`](privacy_policy_page.md)。逐小节完整功能描述见 [设置](../../../../features/settings.md)，本页暴露开关的仅桌面托盘/启动/本地 API 机制见 [平台说明](../../../../platform-notes.md)，本页 WebDAV 状态块响应的自动同步触发器见 [WebDAV 同步](../../../../sync.md)。
 
 ## 声明

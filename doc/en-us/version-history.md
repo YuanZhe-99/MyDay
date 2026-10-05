@@ -1,5 +1,10 @@
 # Version history
 
+## 1.7.3 — Shared settings and catalogs
+
+- Adopt MyApps-UI v0.1.4 sections, retaining spacing and dialog pickers.
+- Check common ARB values; complete extraction and remove the library roadmap.
+
 ## 1.7.2 — P3 shared profile and avatar
 
 - Adopt MyApps-UI v0.1.2 through app storage, sync and localization adapters.

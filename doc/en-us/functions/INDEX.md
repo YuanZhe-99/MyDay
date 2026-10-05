@@ -1,5 +1,7 @@
 # MyDay `lib/` Function Index
 
+Settings groups delegate rendering to myapps_ui; see [shared-ui.md](../shared-ui.md).
+
 Profile rows now document shared exports and app adapters; implementation ownership is in [shared-ui.md](../shared-ui.md).
 
 This is the top-level index of the hand-written Function Explanation Layer documentation for

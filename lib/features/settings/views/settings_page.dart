@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:myapps_ui/myapps_ui.dart' show MyAppsSettingsSection;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:launch_at_startup/launch_at_startup.dart';
@@ -896,23 +897,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     BuildContext context,
     String title,
     List<Widget> children,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-          child: Text(
-            title,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              color: Theme.of(context).colorScheme.primary,
-            ),
-          ),
-        ),
-        ...children,
-      ],
-    );
-  }
+  ) => MyAppsSettingsSection(
+    title: title,
+    headingPadding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+    children: children,
+  );
 
   /// Purpose: Provide the internal show storage path dialog helper for this file.
   /// Inputs: `context`.
