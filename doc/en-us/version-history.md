@@ -1,5 +1,11 @@
 # Version history
 
+## 1.7.7 — Shared insight orchestration and presentation
+
+MyApps-AI v0.4.1 owns insight cache scheduling, request coalescing, stale-result
+rejection, cards and prompt settings. Apps supply facts, prompts, parsing, storage,
+labels and interactions. Clearing generated insights invalidates running answers.
+
 ## 1.7.6 — Shared insight entries and fallback
 
 Use MyApps-AI v0.3.0 cache entries and bounded fallback generation. Preserve
@@ -48,7 +54,7 @@ Local verification: analysis and all 511 Flutter tests passed.
 - `v0.3.0`: Weight chart improvements, intimacy dual-axis trend chart, installer versioning fix, BOM cleanup.
 - `v0.3.1`: Weight reminders, intimacy page scroll layout, short-range chart label fixes.
 - `v0.3.2`: L10n audit fixes, transfer categories, Finance AppBar restructuring, left-aligned module titles.
-- `v0.4.0`: Local HTTP API server, launch at startup, desktop settings expansion, public config API, macOS network server entitlement.
+- `v0.4.1`: Local HTTP API server, launch at startup, desktop settings expansion, public config API, macOS network server entitlement.
 - `v0.5.0`: Referenced-only image sync, sync warnings, intimacy duration trend chart, calculator keyboard for transaction amounts.
 - `v0.5.1`: ARM64 installer filename fix, trend chart date overlap fix, raw + EWMA intimacy trend lines.
 - `v0.6.0`: Todo recurrence for one-time tasks and frequency chart spike fix using a 7-day rolling window.

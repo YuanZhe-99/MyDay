@@ -1,5 +1,7 @@
 # lib/features/settings/views/license_page.dart
 
+MyApps-AI 授权声明包含 myapps_ai_ui。
+
 声明列出 MyApps-UI、使用的三个包、源码和 GPL v3 链接。
 
 显示 MyDay 的 GPLv3 许可证声明为可选中文本的单个静态页。它没有状态、没有服务，除本地化外没有外部协作者——它纯粹存在，使 [设置](../../../../features/settings.md) 的关于小节有一个专用 GPL 许可证屏，区别于自动生成的开源许可证页（`showLicensePage`，从 `settings_page.dart` 接线）和 [`privacy_policy_page.dart`](privacy_policy_page.md)。 自 1.5.0 起，文本末尾附有「Third-party components」声明，说明端侧 AI 卡片使用的中文转换表（`lib/shared/utils/chinese_convert_data.dart`，Apache-2.0）源自 OpenCC。

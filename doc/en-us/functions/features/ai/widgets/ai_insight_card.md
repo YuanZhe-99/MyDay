@@ -1,5 +1,7 @@
 # lib/features/ai/widgets/ai_insight_card.dart
 
+Shared implementation now lives in MyApps-AI v0.4.1; this page describes the app adapter.
+
 `AiInsightCard`, the on-device AI insight card placed on the
 [Todo](../../todo/views/todo_page.md), [Finance](../../finance/views/finance_page.md),
 [Weight](../../weight/views/weight_page.md) and [Intimacy](../../intimacy/views/intimacy_page.md)

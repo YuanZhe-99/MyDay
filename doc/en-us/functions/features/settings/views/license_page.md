@@ -1,5 +1,7 @@
 # lib/features/settings/views/license_page.dart
 
+The MyApps-AI notice includes myapps_ai_ui.
+
 The notice includes MyApps-UI, all three consumed packages, source and GPL v3 URLs.
 
 A single static page showing MyDay's GPLv3 license notice as selectable text. It has no state, no
