@@ -2,12 +2,17 @@ name: my_day
 description: "MyDay!!!!! — Your daily life companion"
 publish_to: 'none'
 
-version: 1.6.2+76
+version: 1.7.0+77
 
 environment:
   sdk: ^3.11.3
 
 dependencies:
+  # Shared theme and adaptive foundation, pinned by the MyApps-UI submodule.
+  myapps_ui:
+    path: packages/myapps_ui/packages/myapps_ui
+  myapps_adaptive:
+    path: packages/myapps_ui/packages/myapps_adaptive
   flutter:
     sdk: flutter
   flutter_localizations:
@@ -131,7 +136,7 @@ msix_config:
   display_name: MyDay!!!!!
   publisher_display_name: yuanzhe
   identity_name: com.yuanzhe.myday
-  msix_version: 1.6.2.0
+  msix_version: 1.7.0.0
   logo_path: assets/icon/app_icon.png
   capabilities: internetClient
   install_certificate: false

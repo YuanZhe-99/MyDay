@@ -5,6 +5,9 @@ changing it — several entries record deliberate safety fixes that look like qu
 
 ## Releases
 
+- `v1.7.0` — 2026-10-04. Adopt MyApps-UI `v0.1.0` for shared Material 3 / Expressive theme construction and common adaptive rules. Keep the indigo brand, public facades, navigation behavior, local settings and data formats. Shared library was published to both remotes before app adoption. Local verification: full Flutter tests passed (511), theme/layout/navigation regressions passed (64), and analysis passed. App version `1.7.0+77`; MSIX `1.7.0.0`; installer `1.7.0`.
+
+
 - `v0.1.0`: Initial public release after squash; Todo, Finance, Intimacy, Weight, WebDAV sync, backup, ZIP/CSV import/export, four-language localization, GPLv3, privacy policy, CI/CD, macOS support.
 - `v0.1.4`: Partner/toy dates, custom Todo emoji input, associated l10n.
 - `v0.1.5`: Toy purchase link/price, GPL license page, settings polish.

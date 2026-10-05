@@ -1,5 +1,7 @@
 # Adaptive Layout
 
+Shared implementation ownership and fresh-clone instructions: [shared-ui.md](shared-ui.md).
+
 How MyDay!!!!! decides what to do with the extra room a tablet, a desktop window, or an unfolded
 foldable gives it — and, just as importantly, when it decides to do nothing.
 

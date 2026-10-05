@@ -1,5 +1,10 @@
 # lib/shared/utils/adaptive_layout.dart
 
+Common thresholds and `canSplitLayout`, `useNavigationRail`, `columnCapacity`,
+`listRowCount` below are now re-exports from `myapps_adaptive`, not locally
+implemented declarations. Business constraints and Flutter padding remain here.
+See [../../../shared-ui.md](../../../shared-ui.md).
+
 The app-wide layout policy module: every threshold, every clamp, and every rule that decides what
 MyDay does with the room a tablet, a desktop window, or an unfolded foldable gives it. **Every decision
 is a pure function** testable without pumping a widget tree (the module imports only
@@ -493,4 +498,3 @@ safely change later.
 - **Algorithm:** `padding.copyWith(bottom: padding.bottom + MediaQuery.paddingOf(context).bottom)`.
 - **Usage:** `ListView(padding: navBarAwarePadding(context, const EdgeInsets.all(16)), ...)`. Used by the Settings detail pages (`webdav_config_page.dart`, `license_page.dart`, `privacy_policy_page.dart`) and the four modules' data-error views.
 - **Notes:** The one function here that needs Flutter (`package:flutter/widgets.dart`, for `BuildContext`, `EdgeInsets` and `MediaQuery`); every other declaration stays pure. With the Expressive bottom bar the shell uses `extendBody`, so pages draw behind the bar and the enclosing `Scaffold` reports the bar's height as `MediaQuery.padding.bottom`. A `ListView`/`GridView` with **no** explicit `padding` applies that inset itself; one with an explicit padding, and a non-scrolling bottom-anchored layout, must route its padding through this function. `SingleChildScrollView`, `CustomScrollView` and `ReorderableListView` never apply it themselves, even with a null padding, so they pass through here (or, for a `CustomScrollView`, end with a `SliverToBoxAdapter(child: SizedBox(height: MediaQuery.paddingOf(context).bottom))`). Pages opened with `Navigator.push` (non-root) live inside the same shell navigator (go_router `ShellRoute`), so they sit under the bar too and need this as well; only routes pushed with `rootNavigator: true`, dialogs, and bottom sheets opened with `useRootNavigator: true` are above it. Elsewhere (classic bar, rail) the inset is only the system's, so using it is harmless.
-

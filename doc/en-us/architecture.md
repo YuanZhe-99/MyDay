@@ -1,5 +1,8 @@
 # Architecture
 
+Shared theme and adaptive foundations now come from MyApps-UI; see
+[shared-ui.md](shared-ui.md) for ownership, integration and update order.
+
 This page covers the app shell (startup, navigation, theming), state management, localization, the
 repository layout, and the core storage/concurrency rules that every feature module follows.
 

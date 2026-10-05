@@ -1,5 +1,7 @@
 # 自适应布局
 
+公共实现归属及全新克隆的接入说明见 [shared-ui.md](shared-ui.md)。
+
 MyDay!!!!! 如何决定平板、桌面窗口或展开的折叠屏设备多出来的空间该拿来做什么——以及同样重要的，何时决定什么都不做。
 
 本页的每一个数字在代码中只存在于一处：`lib/shared/utils/adaptive_layout.dart`。该模块不从 Flutter 引入任何东西，因此每条规则都是纯函数，可以在毫秒级内于五十个视口上验证（`test/adaptive_layout_test.dart`）。**如果某个 widget 文件里出现了数值宽度比较，那就是 bug**——数字属于这个模块，页面调用具名谓词。

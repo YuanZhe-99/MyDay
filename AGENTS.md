@@ -146,6 +146,10 @@ MyDay-specific behavior that deliberately stayed app-side, and must not be "unif
 
 ## Working with the shared package
 
+For MyApps-UI, read `doc/en-us/shared-ui.md`. Do not reintroduce shared theme
+or adaptive-rule implementations in app facades. Publish and tag the library
+on both remotes before committing an app pointer update.
+
 The submodule uses the **relative** URL `../MyApps-DATA.git`, so it resolves against whichever remote
 this clone tracks. Never write a host name into `.gitmodules`.
 

@@ -1,5 +1,10 @@
 # lib/shared/utils/adaptive_layout.dart
 
+下文的公共阈值和 `canSplitLayout`、`useNavigationRail`、`columnCapacity`、
+`listRowCount` 现在重新导出自 `myapps_adaptive`，不再是本地实现的声明。
+业务约束和 Flutter 避让仍保留在此文件。
+见 [../../../shared-ui.md](../../../shared-ui.md)。
+
 全应用的布局策略模块：所有阈值、所有钳制、以及决定 MyDay 如何使用平板、桌面窗口或展开的折叠屏设备所给出的空间的每一条规则。**每个决策都是无需 pump 组件树即可测试的纯函数**（本模块只引入 `package:flutter/widgets.dart`，供 1.6.1 新增的那个与组件上下文有关的辅助函数 `navBarAwarePadding` 使用，没有任何阈值函数读取它），并且同一台设备在应用各处得到同样的答案。
 
 每个数字的散文推导位于 [../../../adaptive-layout.md](../../../adaptive-layout.md)；本页是逐声明的参考。消费方是 [../widgets/shell_scaffold.md](../widgets/shell_scaffold.md)（导航栏）和 [../widgets/adaptive_tile_grid.md](../widgets/adaptive_tile_grid.md)（多列列表行和列数控件）。
