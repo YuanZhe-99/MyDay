@@ -1,5 +1,8 @@
 # lib/features/settings/views/settings_page.dart
 
+P5 内容委托 MyAppsPaneBody 做设计分区，实际分栏模式更新路由缓存。
+宽度策略仍由应用负责。
+
 分组显示委托 MyAppsSettingsSection，保留原标题间距。弹窗选择器、文案和回调
 由应用负责。shared_l10n_test 验证公共 ARB 值，见
 [../../../../shared-ui.md](../../../../shared-ui.md)。

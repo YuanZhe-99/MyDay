@@ -1,5 +1,7 @@
 # lib/features/settings/views/license_page.dart
 
+The notice includes MyApps-UI, all three consumed packages, source and GPL v3 URLs.
+
 A single static page showing MyDay's GPLv3 license notice as selectable text. It has no state, no
 services, and no external collaborators beyond localization — it exists purely so the About section
 in [Settings](../../../../features/settings.md) has a dedicated GPL license screen, distinct from the

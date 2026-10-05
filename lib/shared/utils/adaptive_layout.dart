@@ -70,14 +70,13 @@ int listColumnCount({
   required int preference,
   int maxColumns = listMaxColumns,
 }) {
-  if (!canSplitLayout(screenWidth, screenHeight)) return 1;
-  final capacity = columnCapacity(
-    contentWidth,
+  return resolveLayoutColumns(
+    allowSplit: canSplitLayout(screenWidth, screenHeight),
+    contentWidth: contentWidth,
     minItemWidth: minItemWidth,
     maxColumns: maxColumns,
+    preference: preference,
   );
-  if (preference == listColumnsAuto) return capacity;
-  return preference.clamp(1, capacity);
 }
 
 /// Minimum width, in logical pixels, one Todo task section may occupy.

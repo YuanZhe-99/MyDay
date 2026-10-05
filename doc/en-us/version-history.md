@@ -1,5 +1,10 @@
 # Version history
 
+## 1.7.4 — P5 regions and shared-license attribution
+
+Shared automatic/selected column decisions and feature-aware designed settings
+panes use MyApps-UI v0.1.5. Add explicit MyApps-UI source and GPL v3 attribution.
+
 ## 1.7.3 — Shared settings and catalogs
 
 - Adopt MyApps-UI v0.1.4 sections, retaining spacing and dialog pickers.
