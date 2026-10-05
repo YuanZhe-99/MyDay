@@ -1,4 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:myapps_data/myapps_data.dart'
+    show
+        MyAppsWebDavSettings,
+        MyAppsWebDavAutoSync,
+        MyAppsWebDavConnectionActions,
+        MyAppsWebDavSyncActions,
+        MyAppsWebDavDisconnect;
 
 import '../../l10n/app_localizations.dart';
 import '../services/auto_sync_service.dart';
@@ -490,82 +497,36 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
                   const SizedBox(height: 16),
 
                   // Server URL
-                  TextField(
-                    controller: _urlController,
-                    decoration: InputDecoration(
-                      labelText: AppLocalizations.of(
-                        context,
-                      )!.settingsWebDAVServerURL,
-                      hintText: 'https://example.com/remote.php/dav/files/user',
-                    ),
-                    keyboardType: TextInputType.url,
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Username
-                  TextField(
-                    controller: _userController,
-                    decoration: InputDecoration(
-                      labelText: AppLocalizations.of(
-                        context,
-                      )!.settingsWebDAVUsername,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Password
-                  TextField(
-                    controller: _passController,
-                    decoration: InputDecoration(
-                      labelText: AppLocalizations.of(
-                        context,
-                      )!.settingsWebDAVPassword,
-                    ),
-                    obscureText: true,
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Remote path
-                  TextField(
-                    controller: _pathController,
-                    decoration: InputDecoration(
-                      labelText: AppLocalizations.of(
-                        context,
-                      )!.settingsWebDAVRemotePath,
-                      hintText: '/MyDay',
-                    ),
+                  MyAppsWebDavSettings(
+                    urlController: _urlController,
+                    usernameController: _userController,
+                    passwordController: _passController,
+                    pathController: _pathController,
+                    urlLabel: AppLocalizations.of(
+                      context,
+                    )!.settingsWebDAVServerURL,
+                    usernameLabel: AppLocalizations.of(
+                      context,
+                    )!.settingsWebDAVUsername,
+                    passwordLabel: AppLocalizations.of(
+                      context,
+                    )!.settingsWebDAVPassword,
+                    pathLabel: AppLocalizations.of(
+                      context,
+                    )!.settingsWebDAVRemotePath,
+                    pathHint: '/MyDay',
                   ),
                   const SizedBox(height: 24),
 
                   // Actions
-                  Row(
-                    children: [
-                      Expanded(
-                        child: FilledButton(
-                          onPressed: _saveConfig,
-                          child: Text(AppLocalizations.of(context)!.commonSave),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: _testing ? null : _testConnection,
-                          child: _testing
-                              ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : Text(
-                                  AppLocalizations.of(
-                                    context,
-                                  )!.settingsWebDAVTestConnection,
-                                ),
-                        ),
-                      ),
-                    ],
+                  MyAppsWebDavConnectionActions(
+                    saveLabel: AppLocalizations.of(context)!.commonSave,
+                    testLabel: AppLocalizations.of(
+                      context,
+                    )!.settingsWebDAVTestConnection,
+                    onSave: _saveConfig,
+                    onTest: _testConnection,
+                    testing: _testing,
                   ),
                   const SizedBox(height: 12),
 
@@ -612,64 +573,32 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
                         );
                       },
                     ),
-                    FilledButton.icon(
-                      onPressed: _syncing ? null : _syncNow,
-                      icon: _syncing
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.sync),
-                      label: Text(
-                        _syncing
-                            ? AppLocalizations.of(
-                                context,
-                              )!.settingsWebDAVSyncing
-                            : AppLocalizations.of(
-                                context,
-                              )!.settingsWebDAVSyncNow,
-                      ),
+                    MyAppsWebDavSyncActions(
+                      syncing: _syncing,
+                      syncLabel: AppLocalizations.of(
+                        context,
+                      )!.settingsWebDAVSyncNow,
+                      syncingLabel: AppLocalizations.of(
+                        context,
+                      )!.settingsWebDAVSyncing,
+                      uploadLabel: AppLocalizations.of(
+                        context,
+                      )!.settingsWebDAVForceUpload,
+                      downloadLabel: AppLocalizations.of(
+                        context,
+                      )!.settingsWebDAVForceDownload,
+                      onSync: _syncNow,
+                      onUpload: _forceUpload,
+                      onDownload: _forceDownload,
                     ),
                     const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _syncing ? null : _forceUpload,
-                            icon: const Icon(Icons.upload, size: 18),
-                            label: Text(
-                              AppLocalizations.of(
-                                context,
-                              )!.settingsWebDAVForceUpload,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _syncing ? null : _forceDownload,
-                            icon: const Icon(Icons.download, size: 18),
-                            label: Text(
-                              AppLocalizations.of(
-                                context,
-                              )!.settingsWebDAVForceDownload,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(
-                        AppLocalizations.of(context)!.settingsWebDAVAutoSync,
-                      ),
-                      subtitle: Text(
-                        AppLocalizations.of(
-                          context,
-                        )!.settingsWebDAVAutoSyncDesc,
-                      ),
+                    MyAppsWebDavAutoSync(
+                      title: AppLocalizations.of(
+                        context,
+                      )!.settingsWebDAVAutoSync,
+                      description: AppLocalizations.of(
+                        context,
+                      )!.settingsWebDAVAutoSyncDesc,
                       value: _autoSync,
                       onChanged: (v) async {
                         setState(() => _autoSync = v);
@@ -681,15 +610,11 @@ class _WebDAVConfigPageState extends State<WebDAVConfigPage> {
                       },
                     ),
                     const SizedBox(height: 12),
-                    OutlinedButton.icon(
+                    MyAppsWebDavDisconnect(
                       onPressed: _disconnect,
-                      icon: const Icon(Icons.link_off),
-                      label: Text(
-                        AppLocalizations.of(context)!.settingsWebDAVDisconnect,
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: theme.colorScheme.error,
-                      ),
+                      label: AppLocalizations.of(
+                        context,
+                      )!.settingsWebDAVDisconnect,
                     ),
                   ],
                 ],

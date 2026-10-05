@@ -1,5 +1,8 @@
 # MyDay `lib/` Function Index
 
+WebDAVConfigPage.build delegates generic settings controls to myapps_data.
+Its declarations are unchanged; application operation callbacks remain here.
+
 Settings groups delegate rendering to myapps_ui; see [shared-ui.md](../shared-ui.md).
 
 Profile rows now document shared exports and app adapters; implementation ownership is in [shared-ui.md](../shared-ui.md).

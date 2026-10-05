@@ -1,5 +1,8 @@
 # Shared UI foundations
 
+DATA v1.0.5 owns WebDAV connection and operation controls; AI v0.4.3 owns common
+preference widgets. Application callbacks retain persistence and domain policy.
+
 Appearance settings use MyApps-UI v0.1.6 full-width inline segment rows for theme,
 interface style, navigation placement and rail side. Labels and persistence stay
 here. MyApps-DATA v1.0.4 owns common data action tiles and backup preferences;
