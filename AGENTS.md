@@ -226,3 +226,9 @@ module (Todo, Finance, Intimacy, Weight), generated app data, or local-only mach
 For each completed P milestone, increment the application patch version by 0.0.1.
 Publish the shared dependency first. Add accurate co-author trailers for materially
 participating agents; do not invent participation or an agent identity.
+
+## Shared profile ownership
+
+Profile model, merge, image processing, repository and avatar rendering/editor belong
+to myapps_profile. Preserve app facades, storage/image adapters, module order and
+provider reload subscriptions. Do not reintroduce shared implementation in shims.

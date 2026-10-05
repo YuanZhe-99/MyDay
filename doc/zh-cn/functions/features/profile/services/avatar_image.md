@@ -1,5 +1,9 @@
 # lib/features/profile/services/avatar_image.dart
 
+P3：下文公共声明位于 `myapps_profile`；应用文件为重新导出或适配，
+保留公开导入路径和构造器形式。
+见 [../../../../shared-ui.md](../../../../shared-ui.md)。
+
 头像编辑器背后的纯图像操作（1.6.1）。每个函数都是同步且只做内存分配的，因此调用方在另一个 isolate（`Isolate.run`）中运行它，以保持界面流畅。编辑器（[`../views/avatar_editor.md`](../views/avatar_editor.md)）调用 `prepareAvatarSource` 和 `cropAvatarJpeg`；[`profile_store.md`](profile_store.md) 存储得到的 JPEG。见 [`../../../../features/profile.md`](../../../../features/profile.md#avatar-processing)。
 
 ## 声明

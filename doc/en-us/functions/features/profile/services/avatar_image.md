@@ -1,5 +1,9 @@
 # lib/features/profile/services/avatar_image.dart
 
+P3: shared declarations described below live in `myapps_profile`; this app
+file is a re-export or adapter preserving its public import and constructor shape.
+See [../../../../shared-ui.md](../../../../shared-ui.md).
+
 The pure image operations behind the avatar editor (1.6.1). Every function is synchronous and
 allocation-only, so callers run it in another isolate (`Isolate.run`) to keep the UI responsive.
 The editor ([`../views/avatar_editor.md`](../views/avatar_editor.md)) calls `prepareAvatarSource`

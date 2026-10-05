@@ -1,5 +1,7 @@
 # Data Formats
 
+P3 shared profile ownership and adapters: [shared-ui.md](shared-ui.md). Existing formats and module order are retained.
+
 This page documents the field-level shape of every persisted model, `storage_config.json`, and the
 full Persisted Data Inventory. Field lists are read directly from the model source files listed
 under each section. See [Architecture](architecture.md) for the storage/write-queue/UTC-timestamp

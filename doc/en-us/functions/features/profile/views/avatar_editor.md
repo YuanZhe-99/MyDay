@@ -1,5 +1,9 @@
 # lib/features/profile/views/avatar_editor.dart
 
+P3: shared declarations described below live in `myapps_profile`; this app
+file is a re-export or adapter preserving its public import and constructor shape.
+See [../../../../shared-ui.md](../../../../shared-ui.md).
+
 The full-screen avatar editor (1.6.1): the picked image (or the current avatar) is framed inside a
 circle — drag to move, pinch or scroll to zoom, rotate in quarter turns, reset, save. The framed
 square is what is stored, so the avatar always matches what was shown. Opened by

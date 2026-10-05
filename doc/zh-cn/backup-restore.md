@@ -1,5 +1,7 @@
 # 备份、恢复和导入/导出
 
+P3 公共资料实现与适配见 [shared-ui.md](shared-ui.md)，格式和模块顺序保持不变。
+
 主要来源：`AGENTS.md` 的"备份、导入、导出和图像"一节，对照 `lib/shared/services/backup_service.dart`（为 blob GC 机制略读）交叉核对。
 
 ## 备份格式 v2

@@ -1,5 +1,7 @@
 # WebDAV Sync
 
+P3 shared profile ownership and adapters: [shared-ui.md](shared-ui.md). Existing formats and module order are retained.
+
 WebDAV sync is per-record three-way merge, not whole-file replacement. The engine behind the merge
 step is documented separately in [Three-Way Merge](algorithms/three-way-merge.md); this page covers
 the end-to-end flow, retry/heartbeat/wake-lock behavior, per-file error handling, and auto-sync

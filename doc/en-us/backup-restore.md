@@ -1,5 +1,7 @@
 # Backup, Restore, and Import/Export
 
+P3 shared profile ownership and adapters: [shared-ui.md](shared-ui.md). Existing formats and module order are retained.
+
 Primary source: the "Backup, Import, Export, and Images" section of `AGENTS.md`, cross-checked
 against `lib/shared/services/backup_service.dart` (skimmed for the blob GC mechanism).
 

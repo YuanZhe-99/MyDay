@@ -1,5 +1,7 @@
 # 数据格式
 
+P3 公共资料实现与适配见 [shared-ui.md](shared-ui.md)，格式和模块顺序保持不变。
+
 本页记录每个持久化模型的字段级形态、`storage_config.json` 和完整持久化数据清单。字段列表直接读取自每个小节下列出的模型源文件。适用于所有这些文件的存储/写队列/UTC 时间戳规则见 [架构](architecture.md)，它们如何跨设备合并见 [WebDAV 同步](sync.md) / [三方合并](algorithms/three-way-merge.md)。
 
 ## 待办 — `todo_data.json`

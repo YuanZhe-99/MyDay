@@ -1,5 +1,7 @@
 # WebDAV 同步
 
+P3 公共资料实现与适配见 [shared-ui.md](shared-ui.md)，格式和模块顺序保持不变。
+
 WebDAV 同步是逐记录三方合并，不是整文件替换。合并步骤背后的引擎单独文档化于 [三方合并](algorithms/three-way-merge.md)；本页覆盖端到端流程、重试/心跳/唤醒锁行为、逐文件错误处理和自动同步触发。主要来源：`AGENTS.md` 的"WebDAV 同步"一节，对照 `lib/shared/services/webdav_service.dart` 和 `lib/shared/services/sync_merge.dart` 交叉核对。
 
 ## 十步同步流程

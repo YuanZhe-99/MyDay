@@ -1,5 +1,9 @@
 # lib/features/profile/views/avatar_editor.dart
 
+P3：下文公共声明位于 `myapps_profile`；应用文件为重新导出或适配，
+保留公开导入路径和构造器形式。
+见 [../../../../shared-ui.md](../../../../shared-ui.md)。
+
 全屏头像编辑器（1.6.1）：所选图像（或当前头像）在圆形取景框内取景——拖动移动，双指或滚轮缩放，按 90 度旋转，重置，保存。取景的正方形就是被存储的内容，因此头像始终与所见一致。由 [`profile_header.md`](profile_header.md) 打开；图像处理在 [`../services/avatar_image.md`](../services/avatar_image.md)。见 [`../../../../features/profile.md`](../../../../features/profile.md#editing)。
 
 ## 声明
