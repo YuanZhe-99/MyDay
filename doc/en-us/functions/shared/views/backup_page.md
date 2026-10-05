@@ -1,5 +1,8 @@
 # lib/shared/views/backup_page.dart
 
+MyAppsBackupSettings from DATA owns daily-backup and retention presentation.
+The page retains preference persistence, backup operations and restore safeguards.
+
 The Backup screen: auto-backup toggle/retention settings, a manual "back up now" action, and a
 history list supporting per-backup delete and module-selective restore. Almost all of the actual
 backup/retention/blob-GC mechanics live in

@@ -1,10 +1,14 @@
 # lib/features/settings/views/settings_page.dart
 
+Theme, style, placement and rail-side choices use MyAppsSettingsSegmentRow inline;
+the four former bottom-sheet picker helpers are removed. DATA owns common action
+tiles and backup preferences. Application callbacks retain persistence and routes.
+
 P5 body delegates designed partitioning to MyAppsPaneBody; actual split mode
 updates the routing cache. Width policy remains app-owned.
 
 Group rendering delegates to MyAppsSettingsSection with the original heading
-spacing. Dialog pickers, labels and callbacks remain app-owned. Common ARB values
+spacing. Language/week-start pickers, labels and callbacks remain app-owned. Common ARB values
 are validated by shared_l10n_test; see [../../../../shared-ui.md](../../../../shared-ui.md).
 
 The main Settings screen: General (language/week-start/theme), Privacy (Intimacy module hide/show),
@@ -46,11 +50,7 @@ page's WebDAV status tile reacts to.
 | `build` | method (`_SettingsPageState`) | B | Build the Settings page's section list for the current state. |
 | `_buildSection` | method (widget helper) | B | Render one titled settings section. |
 | [`_showStoragePathDialog`](#showstoragepathdialog) | method (`_SettingsPageState`) | A | Edit the custom storage path, including resetting to the default. |
-| `_showThemePicker` | method (`_SettingsPageState`) | B | Show the theme-mode picker bottom sheet. |
-| `_showUiStylePicker` | method (`_SettingsPageState`) | B | Show the interface-style picker bottom sheet (Material 3 / Expressive, 1.6.0). |
 | `_navPlacementLabel` | method (`_SettingsPageState`) | B | Return the display name of a navigation placement (1.6.1). |
-| `_showNavPlacementPicker` | method (`_SettingsPageState`) | B | Show the navigation-placement picker bottom sheet (Bottom / Side on wide / Side, 1.6.1). |
-| `_showRailSidePicker` | method (`_SettingsPageState`) | B | Show the navigation-rail side picker bottom sheet (Left / Right, 1.6.1). |
 | `_showWeekStartPicker` | method (`_SettingsPageState`) | B | Show the global week-start-day picker bottom sheet. |
 | [`_showLanguagePicker`](#showlanguagepicker) | method (`_SettingsPageState`) | A | Show the app-language picker, parsing the selection into a `Locale`. |
 | `_SettingsDetail` | top-level enum | B | The second-level pages a settings row can lead to. |
@@ -274,8 +274,8 @@ consistent with them being state, not functions.
   strings `build` derives before choosing a layout.
 - **Returns:** `Widget` — the scrolling `ListView` of sections.
 - **Side effects:** None beyond building widgets; the tiles' own callbacks have their own.
-- **Profile and style (1.6.0):** `const ProfileHeader()` (avatar and name; see [../../profile/views/profile_header.md](../../profile/views/profile_header.md)) is the first item, before General, and General gains an *Interface style* row after *Theme* (`Icons.auto_awesome_outlined`; subtitle is the current style) that opens `_showUiStylePicker`, a bottom sheet with the explanation and a Material 3 / Expressive radio choice calling `AppSettingsNotifier.setUiStyle`. The picker follows the theme row's tile-plus-sheet pattern rather than a segmented button.
-- **Navigation position (1.6.1):** below *Interface style*, a *Navigation position* tile (`Icons.view_sidebar_outlined`; subtitle is the current option) opens `_showNavPlacementPicker`, a bottom sheet with the description above three radio rows — *Bottom* (default, bottom bar on every window), *Side on wide* (rail when `useNavigationRail`) and *Side* (rail everywhere, not recommended on phones) — calling `AppSettingsNotifier.setNavPlacement`. A *Side navigation position* tile (`Icons.align_horizontal_left`; subtitle Left or Right) shows whenever the placement is not *Bottom* and opens `_showRailSidePicker`, a bottom sheet with a Left / Right `RadioListTile<bool>` choice calling `setNavRailOnRight`. Both follow the tile-plus-sheet pattern of the other pickers, and are device-local (`navPlacement`, `navRailRight` in `storage_config.json`), never synced.
+- **Profile and style:** `const ProfileHeader()` appears before General. Theme and interface style use shared inline choices and their original notifier callbacks.
+- **Navigation position:** shared inline choices select Bottom, Side on wide or Side. The left/right choice appears when placement is not Bottom. Values remain device-local (`navPlacement`, `navRailRight` in `storage_config.json`), never synced.
 - **Algorithm:** The list `build` returned before v1.4.1 — General, Privacy, Desktop (desktop
   only), Data, About, and Debug sections — plus, since v1.5.0, an On-device AI section
   (`l10n.aiSectionTitle`) between Privacy and Desktop. That section holds

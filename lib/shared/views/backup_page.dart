@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:myapps_data/myapps_data.dart' show MyAppsBackupSettings;
 import 'package:intl/intl.dart';
 
 import '../../app/data_modules.dart';
@@ -342,29 +343,18 @@ class _BackupPageState extends State<BackupPage> {
 
                   // Settings section
                   _buildSection(context, l10n.backupSettings, [
-                    SwitchListTile(
-                      secondary: const Icon(Icons.schedule),
-                      title: Text(l10n.backupAutoDaily),
-                      subtitle: Text(l10n.backupAutoDailyDesc),
-                      value: _autoBackup,
-                      onChanged: _toggleAutoBackup,
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.auto_delete),
-                      title: Text(l10n.backupRetention),
-                      trailing: DropdownButton<int>(
-                        value: _retentionDays,
-                        underline: const SizedBox.shrink(),
-                        items: _retentionOptions.map((d) {
-                          final label = d == 0
-                              ? l10n.backupRetentionForever
-                              : l10n.backupRetentionDays(d);
-                          return DropdownMenuItem(value: d, child: Text(label));
-                        }).toList(),
-                        onChanged: (v) {
-                          if (v != null) _setRetention(v);
-                        },
-                      ),
+                    MyAppsBackupSettings(
+                      autoBackupTitle: l10n.backupAutoDaily,
+                      autoBackupDescription: l10n.backupAutoDailyDesc,
+                      autoBackup: _autoBackup,
+                      onAutoBackupChanged: _toggleAutoBackup,
+                      retentionTitle: l10n.backupRetention,
+                      retentionDays: _retentionDays,
+                      retentionOptions: _retentionOptions,
+                      retentionLabel: (d) => d == 0
+                          ? l10n.backupRetentionForever
+                          : l10n.backupRetentionDays(d),
+                      onRetentionChanged: _setRetention,
                     ),
                   ]),
 

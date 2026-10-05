@@ -1,5 +1,10 @@
 # Shared UI foundations
 
+Appearance settings use MyApps-UI v0.1.6 full-width inline segment rows for theme,
+interface style, navigation placement and rail side. Labels and persistence stay
+here. MyApps-DATA v1.0.4 owns common data action tiles and backup preferences;
+MyApps-AI v0.4.2 owns common AI presentation. Business settings stay app-owned.
+
 ## P5 region policies and attribution
 
 MyApps-UI v0.1.5 provides automatic/selected column resolution and designed panes.

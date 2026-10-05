@@ -1,5 +1,8 @@
 # lib/shared/views/backup_page.dart
 
+DATA 的 MyAppsBackupSettings 管理每日备份和保留期呈现。页面保留偏好持久化、
+备份操作和恢复守卫。
+
 备份屏：自动备份切换/保留设置、手动"立即备份"操作和支持逐备份删除和模块选择恢复的历史列表。实际备份/保留/blob-GC 机制几乎全部住在 [`BackupService`](../services/backup_service.md#createbackup)——本文件大部分是围绕它的薄 UI 接线，除 `_restoreBackup` 和 `_handlePostRestoreSync` 直接在视图中实现恢复前禁用自动同步安全规则和恢复后强制上传提议（它们拥有包围 `BackupService.restoreBackup` 的 `WebDAVService` 调用，不只是恢复调用本身）。完整安全规则描述见 [备份与恢复](../../../backup-restore.md)，恢复前为何禁用自动同步见 [WebDAV 同步](../../../sync.md)。
 
 ## 声明

@@ -3,8 +3,10 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:myapps_data/myapps_data.dart'
+    show MyAppsDataSettingsTile, DataSettingsAction;
 import 'package:myapps_ui/myapps_ui.dart'
-    show MyAppsSettingsSection, MyAppsPaneBody;
+    show MyAppsSettingsSection, MyAppsSettingsSegmentRow, MyAppsPaneBody;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:launch_at_startup/launch_at_startup.dart';
@@ -570,7 +572,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     AppSettings settings,
     Map<String, String> labels,
   ) {
-    final themeModeLabel = labels['themeModeLabel']!;
     final localeLabel = labels['localeLabel']!;
     final weekStartLabel = labels['weekStartLabel']!;
     final syncSubtitle = labels['syncSubtitle']!;
@@ -594,47 +595,89 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             trailing: const Icon(Icons.chevron_right),
             onTap: () => _showWeekStartPicker(context, settings),
           ),
-          ListTile(
-            leading: const Icon(Icons.dark_mode),
-            title: Text(l10n.settingsTheme),
-            subtitle: Text(themeModeLabel),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => _showThemePicker(context, settings),
+          MyAppsSettingsSegmentRow<ThemeMode>(
+            leading: const Icon(Icons.palette_outlined),
+            title: l10n.settingsTheme,
+            segments: [
+              ButtonSegment(
+                value: ThemeMode.system,
+                icon: const Icon(Icons.brightness_auto, size: 18),
+                label: Text(l10n.settingsThemeSystem),
+              ),
+              ButtonSegment(
+                value: ThemeMode.light,
+                icon: const Icon(Icons.light_mode, size: 18),
+                label: Text(l10n.settingsThemeLight),
+              ),
+              ButtonSegment(
+                value: ThemeMode.dark,
+                icon: const Icon(Icons.dark_mode, size: 18),
+                label: Text(l10n.settingsThemeDark),
+              ),
+            ],
+            selected: {settings.themeMode},
+            onSelectionChanged: (s) =>
+                ref.read(appSettingsProvider.notifier).setThemeMode(s.first),
           ),
           // Interface style (1.6.0): Expressive (default) also floats the
           // bottom bar, Material 3 keeps the classic one.
-          ListTile(
+          MyAppsSettingsSegmentRow<AppUiStyle>(
             leading: const Icon(Icons.auto_awesome_outlined),
-            title: Text(l10n.settingsUiStyle),
-            subtitle: Text(
-              settings.uiStyle == AppUiStyle.material3
-                  ? l10n.settingsUiStyleMaterial3
-                  : l10n.settingsUiStyleExpressive,
-            ),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => _showUiStylePicker(context, settings),
+            title: l10n.settingsUiStyle,
+            description: l10n.settingsUiStyleDesc,
+            segments: [
+              ButtonSegment(
+                value: AppUiStyle.material3,
+                label: Text(l10n.settingsUiStyleMaterial3),
+              ),
+              ButtonSegment(
+                value: AppUiStyle.expressive,
+                label: Text(l10n.settingsUiStyleExpressive),
+              ),
+            ],
+            selected: {settings.uiStyle},
+            onSelectionChanged: (s) =>
+                ref.read(appSettingsProvider.notifier).setUiStyle(s.first),
           ),
           // Navigation placement (1.6.1), for both styles: bottom everywhere
           // (default), side on wide windows, or side everywhere.
-          ListTile(
+          MyAppsSettingsSegmentRow<NavPlacement>(
             leading: const Icon(Icons.view_sidebar_outlined),
-            title: Text(l10n.settingsNavPlacement),
-            subtitle: Text(_navPlacementLabel(l10n, settings.navPlacement)),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => _showNavPlacementPicker(context, settings),
+            title: l10n.settingsNavPlacement,
+            description: l10n.settingsNavPlacementDesc,
+            segments: [
+              for (final placement in NavPlacement.values)
+                ButtonSegment(
+                  value: placement,
+                  label: Text(_navPlacementLabel(l10n, placement)),
+                ),
+            ],
+            selected: {settings.navPlacement},
+            onSelectionChanged: (s) =>
+                ref.read(appSettingsProvider.notifier).setNavPlacement(s.first),
           ),
           // The rail's side matters whenever a rail can show.
           if (settings.navPlacement != NavPlacement.bottom)
-            ListTile(
-              leading: const Icon(Icons.align_horizontal_left),
-              title: Text(l10n.settingsRailSide),
-              subtitle: Text(
-                settings.navRailOnRight
-                    ? l10n.settingsRailSideRight
-                    : l10n.settingsRailSideLeft,
-              ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => _showRailSidePicker(context, settings),
+            MyAppsSettingsSegmentRow<bool>(
+              leading: const Icon(Icons.swap_horiz),
+              title: l10n.settingsRailSide,
+              description: l10n.settingsRailSideDesc,
+              segments: [
+                ButtonSegment(
+                  value: false,
+                  icon: const Icon(Icons.align_horizontal_left, size: 18),
+                  label: Text(l10n.settingsRailSideLeft),
+                ),
+                ButtonSegment(
+                  value: true,
+                  icon: const Icon(Icons.align_horizontal_right, size: 18),
+                  label: Text(l10n.settingsRailSideRight),
+                ),
+              ],
+              selected: {settings.navRailOnRight},
+              onSelectionChanged: (s) => ref
+                  .read(appSettingsProvider.notifier)
+                  .setNavRailOnRight(s.first),
             ),
         ]),
 
@@ -761,8 +804,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               onTap: _apiEnabled ? _showApiSettingsDialog : null,
             ),
             const Divider(height: 1, indent: 16, endIndent: 16),
-            ListTile(
-              leading: const Icon(Icons.folder_outlined),
+            MyAppsDataSettingsTile(
+              action: DataSettingsAction.storage,
               title: Text(l10n.settingsStorageLocation),
               subtitle: Text(
                 _storagePath,
@@ -770,7 +813,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
-              trailing: const Icon(Icons.chevron_right),
               onTap: () => _showStoragePathDialog(context),
             ),
             ListTile(
@@ -782,31 +824,29 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ]),
 
         _buildSection(context, l10n.settingsData, [
-          ListTile(
-            leading: const Icon(Icons.sync),
+          MyAppsDataSettingsTile(
+            action: DataSettingsAction.sync,
             title: Text(l10n.settingsWebDAVSync),
             subtitle: Text(syncSubtitle),
-            trailing: const Icon(Icons.chevron_right),
             onTap: () async {
               await _open(_SettingsDetail.webdav);
               _loadWebDAVStatus();
             },
           ),
-          ListTile(
-            leading: const Icon(Icons.archive_outlined),
+          MyAppsDataSettingsTile(
+            action: DataSettingsAction.export,
             title: Text(l10n.settingsExportJSON),
             onTap: _exportData,
           ),
-          ListTile(
-            leading: const Icon(Icons.upload_file),
+          MyAppsDataSettingsTile(
+            action: DataSettingsAction.import,
             title: Text(l10n.settingsImportData),
             onTap: _importData,
           ),
-          ListTile(
-            leading: const Icon(Icons.backup),
+          MyAppsDataSettingsTile(
+            action: DataSettingsAction.backup,
             title: Text(l10n.backupTitle),
             subtitle: Text(l10n.backupSubtitle),
-            trailing: const Icon(Icons.chevron_right),
             onTap: () => _open(_SettingsDetail.backup),
           ),
         ]),
@@ -969,47 +1009,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     }
   }
 
-  /// Purpose: Show the interface style picker (1.6.0).
-  /// Inputs: `context`, `settings`.
-  /// Returns: None.
-  /// Side effects: Updates app settings and persists the chosen style.
-  /// Notes: Material 3 or Expressive; Expressive (the default) also selects the
-  /// floating navigation bar. The explanation sits above the options.
-  void _showUiStylePicker(BuildContext context, AppSettings settings) {
-    final l10n = AppLocalizations.of(context)!;
-    showModalBottomSheet(
-      context: context,
-      useRootNavigator: true,
-      builder: (context) => SafeArea(
-        child: RadioGroup<AppUiStyle>(
-          groupValue: settings.uiStyle,
-          onChanged: (style) {
-            if (style != null) {
-              ref.read(appSettingsProvider.notifier).setUiStyle(style);
-            }
-            Navigator.pop(context);
-          },
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(subtitle: Text(l10n.settingsUiStyleDesc)),
-              RadioListTile<AppUiStyle>(
-                title: Text(l10n.settingsUiStyleMaterial3),
-                value: AppUiStyle.material3,
-                controlAffinity: ListTileControlAffinity.trailing,
-              ),
-              RadioListTile<AppUiStyle>(
-                title: Text(l10n.settingsUiStyleExpressive),
-                value: AppUiStyle.expressive,
-                controlAffinity: ListTileControlAffinity.trailing,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   /// Purpose: Return the display name of a navigation placement (1.6.1).
   /// Inputs: `l10n`, `placement`.
   /// Returns: `String`.
@@ -1021,128 +1020,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         NavPlacement.sideOnWide => l10n.settingsNavPlacementSideOnWide,
         NavPlacement.side => l10n.settingsNavPlacementSide,
       };
-
-  /// Purpose: Show the navigation-placement picker (1.6.1).
-  /// Inputs: `context`, `settings`.
-  /// Returns: None.
-  /// Side effects: Updates app settings and persists the chosen placement.
-  /// Notes: Three radio rows (bottom, side on wide windows, side everywhere)
-  /// under the description; each row is tappable as a whole.
-  void _showNavPlacementPicker(BuildContext context, AppSettings settings) {
-    final l10n = AppLocalizations.of(context)!;
-    showModalBottomSheet(
-      context: context,
-      useRootNavigator: true,
-      builder: (context) => SafeArea(
-        child: RadioGroup<NavPlacement>(
-          groupValue: settings.navPlacement,
-          onChanged: (placement) {
-            if (placement != null) {
-              ref.read(appSettingsProvider.notifier).setNavPlacement(placement);
-            }
-            Navigator.pop(context);
-          },
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(subtitle: Text(l10n.settingsNavPlacementDesc)),
-              for (final placement in NavPlacement.values)
-                RadioListTile<NavPlacement>(
-                  title: Text(_navPlacementLabel(l10n, placement)),
-                  value: placement,
-                  controlAffinity: ListTileControlAffinity.trailing,
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Purpose: Show the navigation-rail side picker (1.6.1).
-  /// Inputs: `context`, `settings`.
-  /// Returns: None.
-  /// Side effects: Updates app settings and persists the chosen side.
-  /// Notes: Left or Right; applies to both interface styles whenever the rail
-  /// shows. The description sits above the options, and each row is tappable
-  /// as a whole like the other pickers.
-  void _showRailSidePicker(BuildContext context, AppSettings settings) {
-    final l10n = AppLocalizations.of(context)!;
-    showModalBottomSheet(
-      context: context,
-      useRootNavigator: true,
-      builder: (context) => SafeArea(
-        child: RadioGroup<bool>(
-          groupValue: settings.navRailOnRight,
-          onChanged: (right) {
-            if (right != null) {
-              ref.read(appSettingsProvider.notifier).setNavRailOnRight(right);
-            }
-            Navigator.pop(context);
-          },
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(subtitle: Text(l10n.settingsRailSideDesc)),
-              RadioListTile<bool>(
-                title: Text(l10n.settingsRailSideLeft),
-                value: false,
-                controlAffinity: ListTileControlAffinity.trailing,
-              ),
-              RadioListTile<bool>(
-                title: Text(l10n.settingsRailSideRight),
-                value: true,
-                controlAffinity: ListTileControlAffinity.trailing,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Purpose: Provide the internal show theme picker helper for this file.
-  /// Inputs: `context`, `settings`.
-  /// Returns: None.
-  /// Side effects: May update UI state or trigger user-facing flows.
-  /// Notes: Internal helper used within this file only.
-  void _showThemePicker(BuildContext context, AppSettings settings) {
-    final l10n = AppLocalizations.of(context)!;
-    showModalBottomSheet(
-      context: context,
-      useRootNavigator: true,
-      builder: (context) => SafeArea(
-        child: RadioGroup<ThemeMode>(
-          groupValue: settings.themeMode,
-          onChanged: (mode) {
-            if (mode != null) {
-              ref.read(appSettingsProvider.notifier).setThemeMode(mode);
-            }
-            Navigator.pop(context);
-          },
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (final entry in {
-                ThemeMode.system: (
-                  l10n.settingsThemeSystem,
-                  Icons.brightness_auto,
-                ),
-                ThemeMode.light: (l10n.settingsThemeLight, Icons.light_mode),
-                ThemeMode.dark: (l10n.settingsThemeDark, Icons.dark_mode),
-              }.entries)
-                RadioListTile<ThemeMode>(
-                  secondary: Icon(entry.value.$2),
-                  title: Text(entry.value.$1),
-                  value: entry.key,
-                  controlAffinity: ListTileControlAffinity.trailing,
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
   /// Purpose: Show the global week-start picker.
   /// Inputs: `context`, `settings`.

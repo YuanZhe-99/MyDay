@@ -73,7 +73,7 @@ void main() {
     // scrolls the row's own ancestor scrollable, rather than whichever one
     // happens to come first in the tree.
     final backupRow = find.ancestor(
-      of: find.byIcon(Icons.backup),
+      of: find.byIcon(Icons.backup_outlined),
       matching: find.byType(ListTile),
     );
     await tester.scrollUntilVisible(
@@ -111,7 +111,7 @@ void main() {
 
     await pumpAdaptivePage(tester, const SettingsPage(), const Size(1440, 900));
     final backupRow = find.ancestor(
-      of: find.byIcon(Icons.backup),
+      of: find.byIcon(Icons.backup_outlined),
       matching: find.byType(ListTile),
     );
     await tester.scrollUntilVisible(
