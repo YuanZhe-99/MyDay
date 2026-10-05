@@ -53,7 +53,7 @@
 - `android/app/build.gradle.kts` 使用 `import java.util.Properties`。
 - 命名空间/应用 id：`com.yuanzhe.my_day`。
 - **自 1.5.0 起 `minSdk` 为 `26`**，而不是 `flutter.minSdkVersion`（24）：ML Kit GenAI（`com.google.mlkit:genai-prompt:1.0.0-beta4`，端侧 AI）要求 API 26。不再支持 Android 7.0 和 7.1。见 [on-device-ai.md](on-device-ai.md)。
-- **端侧 AI（1.5.0）：** `MainActivity` 在 `configureFlutterEngine` 中挂接 `GenAiChannel`（`com.yuanzhe.my_day/genai`），并在 `onDestroy` 中解除；release 构建类型添加了 `proguardFiles("proguard-rules.pro")`，其中的保留规则防止 R8 把 ML Kit 裁剪成看似设备不受支持的失败；清单的 `<queries>` 列出了 `com.google.android.aicore`。两种风味都包含它。
+- **端侧 AI（1.5.0）：** `MainActivity` 在 `configureFlutterEngine` 中挂接 `GenAiChannel`（`com.yuanzhe.myapps_ai/genai`），并在 `onDestroy` 中解除；release 构建类型添加了 `proguardFiles("proguard-rules.pro")`，其中的保留规则防止 R8 把 ML Kit 裁剪成看似设备不受支持的失败；清单的 `<queries>` 列出了 `com.google.android.aicore`。两种风味都包含它。
 - 启用 Java 17 source/target 兼容性和核心库脱糖。
 - **动态取色（1.6.0）：** `MyDayApp` 用 `dynamic_color` 的 `DynamicColorBuilder` 包住 `MaterialApp.router`，**仅在 Android 上**使用由壁纸派生的配色（Material You，需 Android 12+；更低版本回退到种子色）。该插件在 Windows 和 macOS 上也存在，但那里返回的是系统强调色，会盖掉应用自己的靛蓝种子色，因此应用刻意在那些平台忽略它。
 - **Kotlin 迁移状态（应用侧已迁移）：** Gradle wrapper `9.3.1`、AGP `9.1.1`；应用不再应用 `kotlin-android`。Kotlin `jvmTarget` 经顶层 `kotlin { compilerOptions { jvmTarget = JvmTarget.JVM_17 } }` 块设置（不用 `jvmToolchain`，它需要真实安装 JDK 17；不用已移除的 `kotlinOptions`）。`android/gradle.properties` 保留 Flutter 迁移器兼容标志 `android.builtInKotlin=false` 和 `android.newDsl=false`，因为多个插件仍应用 KGP——把 `builtInKotlin` 设为 `true` 会破坏每个应用 KGP 的插件（已验证）。`org.jetbrains.kotlin.android` 在 `settings.gradle.kts` 中保持声明（`apply false`），使应用 KGP 的插件能解析它。
@@ -70,7 +70,7 @@
 - iPhone 支持竖屏和横屏左/右；iPad 还支持倒置竖屏。
 - 启动器图标从 `assets/icon/app_icon_ios.png`、`assets/icon/app_icon_ios_dark.png` 和 `assets/icon/app_icon_ios_tinted.png` 生成；默认是不透明白背景来源，深色/着色来源保持透明背景，iOS 从这些来源回退，无需原生 Icon Composer / Liquid Glass Clear 资源。
 - CI 构建不带签名的侧载 IPA；App Store IPA 需要当前工作流之外的签名/预置描述文件。
-- **端侧 AI（1.5.0）** 来自本地插件 `packages/on_device_ai_apple`（Apple Foundation Models，iOS 26+）。部署目标保持 13.0：FoundationModels 是弱链接的，否则 CI 的 `tool/check_weak_link.sh` 步骤会让构建失败。不需要任何 entitlement 或 `Info.plist` 键。见 [on-device-ai.md](on-device-ai.md)。
+- **端侧 AI（1.5.0）** 来自本地插件 `packages/myapps_ai/packages/myapps_ai_platform`（Apple Foundation Models，iOS 26+）。部署目标保持 13.0：FoundationModels 是弱链接的，否则 CI 的 `tool/check_weak_link.sh` 步骤会让构建失败。不需要任何 entitlement 或 `Info.plist` 键。见 [on-device-ai.md](on-device-ai.md)。
 
 ## macOS
 
@@ -79,7 +79,7 @@
 - 部署目标是 `13.0`，LaunchAtLogin-Modern 需要。
 - `DebugProfile.entitlements` 包括应用沙盒、allow-jit、network client 和 network server。`Release.entitlements` 包括应用沙盒、network client 和 network server。WebDAV 和汇率 API 需要 network client；本地 API 服务器需要 network server。
 - `MainFlutterWindow.swift` 包含启动插件的 LaunchAtLogin 集成。
-- **端侧 AI（1.5.0）** 使用同一个 `packages/on_device_ai_apple` 插件（macOS 26+），注册在 `macos/Flutter/GeneratedPluginRegistrant.swift` 中，并与 iOS 一样弱链接。沙盒不需要新的 entitlement。
+- **端侧 AI（1.5.0）** 使用同一个 `packages/myapps_ai/packages/myapps_ai_platform` 插件（macOS 26+），注册在 `macos/Flutter/GeneratedPluginRegistrant.swift` 中，并与 iOS 一样弱链接。沙盒不需要新的 entitlement。
 
 ## Windows
 

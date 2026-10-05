@@ -91,10 +91,8 @@ dependencies {
     // Nano v4 device instead of throwing). Which model a device serves is
     // decided at run time by GenAiChannel.probePrompt, never here. See
     // doc/en-us/on-device-ai.md.
-    implementation("com.google.mlkit:genai-prompt:1.0.0-beta4")
     // The Prompt API suspends and returns a Flow; the coroutine runtime is
     // not pulled in by the Flutter Android embedding, so it is declared here.
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
 }
 
 // Built-in Kotlin migration: align the Kotlin jvmTarget with the Java 17

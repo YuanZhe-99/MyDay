@@ -113,7 +113,7 @@ the same change (per the project's maintenance rule).
   (`com.google.mlkit:genai-prompt:1.0.0-beta4`, on-device AI) requires API 26. Android 7.0 and 7.1
   are no longer supported. See [on-device-ai.md](on-device-ai.md).
 - **On-device AI (1.5.0):** `MainActivity` attaches `GenAiChannel`
-  (`com.yuanzhe.my_day/genai`) in `configureFlutterEngine` and detaches it in `onDestroy`; the
+  (`com.yuanzhe.myapps_ai/genai`) in `configureFlutterEngine` and detaches it in `onDestroy`; the
   release build type adds `proguardFiles("proguard-rules.pro")`, whose keep rules stop R8 from
   shrinking ML Kit into a failure that looks like an unsupported device; the manifest's `<queries>`
   lists `com.google.android.aicore`. Both flavors ship it.
@@ -169,7 +169,7 @@ the same change (per the project's maintenance rule).
   back from these sources without native Icon Composer / Liquid Glass Clear assets.
 - CI builds a sideload IPA without codesign; an App Store IPA requires signing/provisioning outside
   the current workflow.
-- **On-device AI (1.5.0)** comes from the local plugin `packages/on_device_ai_apple` (Apple
+- **On-device AI (1.5.0)** comes from the local plugin `packages/myapps_ai/packages/myapps_ai_platform` (Apple
   Foundation Models, iOS 26+). The deployment target stays 13.0: FoundationModels is weakly linked,
   and CI's `tool/check_weak_link.sh` step fails the build otherwise. No entitlement or `Info.plist`
   key is needed. See [on-device-ai.md](on-device-ai.md).
@@ -184,7 +184,7 @@ the same change (per the project's maintenance rule).
   required for WebDAV and the exchange-rate API; network server is required for the local API
   server.
 - `MainFlutterWindow.swift` includes LaunchAtLogin integration for the startup plugin.
-- **On-device AI (1.5.0)** uses the same `packages/on_device_ai_apple` plugin (macOS 26+),
+- **On-device AI (1.5.0)** uses the same `packages/myapps_ai/packages/myapps_ai_platform` plugin (macOS 26+),
   registered in `macos/Flutter/GeneratedPluginRegistrant.swift` and weakly linked as on iOS. The
   sandbox needs no new entitlement.
 

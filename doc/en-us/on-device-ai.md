@@ -1,5 +1,8 @@
 # On-device AI
 
+Shared runtime and native ownership: [shared-ai.md](shared-ai.md). Current native
+implementation is in MyApps-AI v0.2.0, registered on com.yuanzhe.myapps_ai/genai.
+
 Since 1.5.0, MyDay!!!!! can use the device's own language model — Gemini Nano through Android
 AICore, or Apple Intelligence's model through the Foundation Models framework — to write a short
 **insight card** on each module page: today's plan, progress or review on Todo; the income and
@@ -64,15 +67,15 @@ single "not available on this platform" line.
 | `lib/features/weight/services/weight_insight_facts.dart` | Weight facts |
 | `lib/features/intimacy/services/intimacy_insight_facts.dart` | Intimacy facts and body condition |
 | `lib/shared/utils/chinese_convert.dart` | Simplified ↔ Traditional conversion, copied from MyAnime |
-| `android/app/src/main/kotlin/com/yuanzhe/my_day/GenAiChannel.kt` | The Android bridge to ML Kit GenAI |
-| `packages/on_device_ai_apple/` | A local Flutter plugin with one shared Darwin source for iOS and macOS |
+| `packages/myapps_ai/packages/myapps_ai_platform/android/src/main/kotlin/com/yuanzhe/myapps_ai/GenAiChannel.kt` | The Android bridge to ML Kit GenAI |
+| `packages/myapps_ai/packages/myapps_ai_platform/` | A local Flutter plugin with one shared Darwin source for iOS and macOS |
 
 The Settings section *On-device AI* sits between *Privacy* and *Desktop*. The switches are stored
 as `onDeviceAiEnabled` and `onDeviceAiPreferFast` in `storage_config.json` (see
 [`data-formats.md`](data-formats.md)); `AppSettingsNotifier` pushes both into
 `OnDeviceAiService` at startup, and `main()` starts the service's lifecycle listener.
 
-The channel is `com.yuanzhe.my_day/genai` on all three platforms. Its methods are `status`
+The channel is `com.yuanzhe.myapps_ai/genai` on all three platforms. Its methods are `status`
 (`force`, `preferFast`), `info` (`locale`), `download` (Android only), `generate` (`instructions`,
 `prompt`, `maxOutputTokens`, `temperature`, `topK`), `choose` (Apple only; unused by MyDay but kept
 so the plugin matches MyAnime's), `prewarm` and `cancel`. `platformMayHaveOnDeviceModel` is true on
