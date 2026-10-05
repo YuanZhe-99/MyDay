@@ -1,19 +1,24 @@
 import 'package:flutter/widgets.dart';
+import 'package:myapps_ui/myapps_ui.dart' show MyAppsShellLayout;
 import 'package:myapps_adaptive/myapps_adaptive.dart';
 
 export 'package:myapps_adaptive/myapps_adaptive.dart';
 
 /// Purpose: Return the width a shell page's content actually receives.
-/// Inputs: `screenWidth` — the whole screen width in logical pixels.
+/// Inputs: `screenWidth` — full window width; `context` — actual page context.
 /// Returns: `double`, never negative.
 /// Side effects: None.
-/// Notes: Subtracts the navigation rail when the shell is showing one. Pass the
+/// Notes: Context reads measured shell width; outside a shell uses full width.
+/// The context-free form retains the legacy width rule for compatibility. Pass the
 /// result wherever a capacity is being computed; keep passing the untouched
 /// screen size to [canSplitLayout], which asks about the window's shape rather
 /// than about the room left over inside it. Pages pushed on top of the shell —
 /// everything reached with `Navigator.push` — have no rail to subtract and must
 /// measure their own constraints instead of calling this.
-double shellContentWidth(double screenWidth) {
+double shellContentWidth(double screenWidth, {BuildContext? context}) {
+  if (context != null) {
+    return MyAppsShellLayout.maybeOf(context)?.contentWidth ?? screenWidth;
+  }
   final width = useNavigationRail(screenWidth)
       ? screenWidth - navRailWidth
       : screenWidth;

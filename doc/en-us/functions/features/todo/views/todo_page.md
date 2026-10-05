@@ -1,5 +1,8 @@
 # lib/features/todo/views/todo_page.dart
 
+P2: layout helpers now receive this page context and use actual shell constraints;
+full-window routes do not subtract navigation they do not contain.
+
 The main Todo screen and its secondary full-month calendar page. `TodoPage`/`_TodoPageState`
 render the daily/routine/work task sections, the inline week calendar, the bottom-of-list daily
 score editor, and own all task/score mutation and persistence (via `TodoStorage`). Nested inside

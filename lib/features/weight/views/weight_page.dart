@@ -314,7 +314,7 @@ class _WeightPageState extends ConsumerState<WeightPage> {
     // body actually gets, which is the screen less the navigation rail and less
     // the page's own 16 dp horizontal padding on each side.
     final screen = MediaQuery.sizeOf(context);
-    final contentWidth = shellContentWidth(screen.width) - 32;
+    final contentWidth = shellContentWidth(screen.width, context: context) - 32;
     final recordCapacity = canSplitLayout(screen.width, screen.height)
         ? columnCapacity(
             contentWidth,
@@ -508,11 +508,7 @@ class _WeightPageState extends ConsumerState<WeightPage> {
         // ── Chart section ──
         KeyedSubtree(
           key: weightChartKey,
-          child: _buildChartSection(
-            theme,
-            l10n,
-            sideBySide: chartsSideBySide,
-          ),
+          child: _buildChartSection(theme, l10n, sideBySide: chartsSideBySide),
         ),
         const SizedBox(height: 16),
 
@@ -707,11 +703,7 @@ class _WeightPageState extends ConsumerState<WeightPage> {
               )
             : Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  figureBlock,
-                  const Divider(height: 24),
-                  statsWrap,
-                ],
+                children: [figureBlock, const Divider(height: 24), statsWrap],
               ),
       ),
     );
@@ -969,11 +961,7 @@ class _WeightPageState extends ConsumerState<WeightPage> {
             const SizedBox(height: 8),
             weightLegend,
             const SizedBox(height: 8),
-            SizedBox(
-              key: weightTrendChartKey,
-              height: 220,
-              child: weightChart,
-            ),
+            SizedBox(key: weightTrendChartKey, height: 220, child: weightChart),
             const SizedBox(height: 16),
             measurementHeading,
             const SizedBox(height: 8),

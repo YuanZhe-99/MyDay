@@ -158,19 +158,17 @@ void main() {
   testWidgets('the width gate flips one logical pixel wide of its floor', (
     tester,
   ) async {
-    // n - 1 and n at the rendered page rather than in the rule: 784 gives the
-    // body 671 and 785 gives it 672. Both pass `canSplitLayout`, so only the
-    // width gate moves. The page subtracts a navigation rail these tests do
-    // not render, so the columns here are wider than the 330 floor itself —
-    // this pins where the gate flips, not the floor's own comfort.
+    // P2 measures actual space: no rail is rendered by this harness, so
+    // 703 gives the body 671 and 704 gives it 672 after page padding.
+    // Both pass the shape gate; this pins the actual chart capacity boundary.
     final dir = await seedAppDir(tester, weightData(4));
     addTearDown(() => deleteQuietly(dir));
 
-    await pumpAdaptivePage(tester, const WeightPage(), const Size(784, 704));
+    await pumpAdaptivePage(tester, const WeightPage(), const Size(703, 704));
     expect(chartsSideBySide(tester), isFalse);
     expect(tester.takeException(), isNull);
 
-    tester.view.physicalSize = const Size(785, 704);
+    tester.view.physicalSize = const Size(704, 704);
     await settleAdaptivePage(tester);
     expect(chartsSideBySide(tester), isTrue);
     expect(tester.takeException(), isNull);

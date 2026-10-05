@@ -1,5 +1,9 @@
 # lib/shared/widgets/shell_scaffold.dart
 
+P2：本文件将导航绘制交给 `MyAppsNavigationShell`。
+下文的悬浮底栏和条目实现在 MyApps-UI 中，应用只保留路由、过滤和回调。
+见 [../../../shared-ui.md](../../../shared-ui.md)。
+
 每个路由页面都在其中渲染的 `ShellRoute` 包装（`ShellScaffold`）——见 [架构 — 导航](../../../architecture.md#navigation)。它拥有外壳的导航，把同一份目的地列表渲染成底栏（Expressive 的悬浮胶囊，Material 3 下为经典 `NavigationBar`）或侧边 `NavigationRail`（位于左侧，或按设置位于右侧），取决于 `useNavigationRail`、界面风格和 1.6.1 的宽屏设置（见 [../utils/adaptive_layout.md#usenavigationrail](../utils/adaptive_layout.md#usenavigationrail)）；基于 `intimacyVisibilityProvider` 过滤亲密目的地（见 [intimacy_visibility.dart](../providers/intimacy_visibility.md)）；并在外壳挂载期间把 `ReminderService` 的 snackbar 回调接到当前 `BuildContext`。
 
 ## 声明
@@ -16,8 +20,6 @@
 | `_showReminderSnackbar` | 方法（`_ShellScaffoldState`） | B | 把提醒通知显示为应用内 snackbar。 |
 | [`build`](#build) | 方法（`_ShellScaffoldState`） | A | 构建脚手架主体和两种导航界面之一。 |
 | `_ShellDestination`（构造函数） | 构造函数（`_ShellDestination`） | B | 创建外壳目的地实例。 |
-| `_ExpressiveNavBar`（类、构造函数与 `build`） | 组件（私有） | B | Expressive 底栏：随内容收紧的悬浮胶囊（1.6.1；取代 1.6.0 的通宽 `_FloatingNavBar` 岛）。 |
-| `_ExpressiveNavItem`（类、构造函数与 `build`） | 组件（私有） | B | 胶囊的一个目的地：图标，选中时加上标签（1.6.1）。 |
 
 `grep -c 'Purpose:' lib/shared/widgets/shell_scaffold.dart` 报告 14：十个原有声明，加上 `_ExpressiveNavBar` 与 `_ExpressiveNavItem` 各自的构造函数与 `build`（1.6.1，每个类共用一行）。未发现错挂或未文档化的声明。`build` 在 v1.4.0 被提升为 Tier A，此时它不再是单一的 `Scaffold`，而成为应用唯一的导航模式决策点。
 

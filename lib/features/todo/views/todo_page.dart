@@ -1366,7 +1366,7 @@ class _TodoPageState extends ConsumerState<TodoPage> {
     // sections actually get, which is the screen less the navigation rail when
     // the shell is showing one. See doc/en-us/adaptive-layout.md.
     final screen = MediaQuery.sizeOf(context);
-    final contentWidth = shellContentWidth(screen.width);
+    final contentWidth = shellContentWidth(screen.width, context: context);
     final sectionCapacity = canSplitLayout(screen.width, screen.height)
         ? columnCapacity(
             contentWidth,

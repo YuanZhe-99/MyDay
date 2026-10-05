@@ -1,5 +1,9 @@
 # lib/shared/widgets/shell_scaffold.dart
 
+P2: this file delegates all navigation rendering to `MyAppsNavigationShell`.
+Floating bar/item implementations described below now live only in MyApps-UI.
+App routes, filters and callbacks remain here. See [../../../shared-ui.md](../../../shared-ui.md).
+
 The `ShellRoute` wrapper (`ShellScaffold`) that every routed page renders inside — see
 [../../../architecture.md#navigation](../../../architecture.md#navigation). It owns the shell's
 navigation, rendering one destination list as a bottom bar (the Expressive floating pill, or the classic `NavigationBar` under Material 3) or as a side
@@ -24,8 +28,6 @@ mounted.
 | `_showReminderSnackbar` | method (`_ShellScaffoldState`) | B | Show a reminder notification as an in-app snackbar. |
 | [`build`](#build) | method (`_ShellScaffoldState`) | A | Build the scaffold body and either navigation surface. |
 | `_ShellDestination` (constructor) | constructor (`_ShellDestination`) | B | Create a shell destination instance. |
-| `_ExpressiveNavBar` (class, constructor and `build`) | widget (private) | B | The Expressive bottom bar: a compact floating pill that hugs its items (1.6.1; replaces 1.6.0's full-width `_FloatingNavBar` island). |
-| `_ExpressiveNavItem` (class, constructor and `build`) | widget (private) | B | One destination of the pill: icon, plus the label while selected (1.6.1). |
 
 `grep -c 'Purpose:' lib/shared/widgets/shell_scaffold.dart` reports 14: the ten original declarations plus the constructor and `build` of `_ExpressiveNavBar` and of `_ExpressiveNavItem` (1.6.1), which share one row each. No misattachment or undocumented declarations found. `build` was
 promoted to Tier A in v1.4.0, when it stopped being a single `Scaffold` and became the app's one

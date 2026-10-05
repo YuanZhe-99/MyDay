@@ -1,7 +1,13 @@
 # Version history
 
+## 1.7.1 — P2 navigation
+
+P2 adopts MyApps-UI `v0.1.1`, published to both remotes before app pointer updates. Shared navigation preserves app routes, optional destinations, badges and callbacks. Pages read actual shell content constraints; full-window routes subtract no rail. A stable content slot retains page state during resize, style and left/right rail changes. Split thresholds and data formats remain unchanged. Version `1.7.1+78`.
+
 Release-by-release summary of MyDay!!!!!. Useful for understanding *why* a behavior exists before
 changing it — several entries record deliberate safety fixes that look like quirks otherwise.
+
+Local verification: analysis and all 511 Flutter tests passed.
 
 ## Releases
 

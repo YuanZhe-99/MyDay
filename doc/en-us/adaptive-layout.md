@@ -1,5 +1,7 @@
 # Adaptive Layout
 
+P2 uses shared navigation and measured content constraints; see [shared-ui.md](shared-ui.md).
+
 Shared implementation ownership and fresh-clone instructions: [shared-ui.md](shared-ui.md).
 
 How MyDay!!!!! decides what to do with the extra room a tablet, a desktop window, or an unfolded
@@ -327,3 +329,7 @@ lost mid-fold. See [platform-notes.md](platform-notes.md).
      an explicit viewport, or it will silently start exercising a two-pane path.
 4. **Live resize on desktop** across each threshold, plus a soft-keyboard check on any pane that is
    supposed not to scroll.
+
+P2 rendered chart capacity without a shell now changes at window width 704
+(672 after 32 page padding), rather than 785 with an imaginary 81-pixel rail.
+The rendered boundary test uses 703/704; split thresholds are unchanged.

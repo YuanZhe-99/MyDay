@@ -561,7 +561,7 @@ class _FinancePageState extends ConsumerState<FinancePage> {
     final settings = ref.watch(appSettingsProvider);
     final screen = MediaQuery.sizeOf(context);
     final twoPane = canSplitLayout(screen.width, screen.height);
-    final contentWidth = shellContentWidth(screen.width);
+    final contentWidth = shellContentWidth(screen.width, context: context);
     final leftPaneWidth = financeLeftPaneWidth(contentWidth);
     final listWidth = twoPane ? contentWidth - leftPaneWidth - 1 : contentWidth;
     final listCapacity = twoPane

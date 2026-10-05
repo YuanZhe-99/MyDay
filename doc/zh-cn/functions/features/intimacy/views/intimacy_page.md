@@ -1,5 +1,8 @@
 # lib/features/intimacy/views/intimacy_page.dart
 
+P2：布局函数传入页面上下文并使用实际导航内容约束；
+全窗口路由不扣除不存在的导航。
+
 亲密功能的主视图文件——整个应用迄今为止最大的源文件（6064 行）。它托管主页 `IntimacyPage`（日历、记录列表、趋势图、管理菜单）以及从它到达的每个管理/详情子页：伴侣管理、玩具管理、姿势管理、过滤的逐伴侣/逐玩具详情页（带记录/身体标签）、聚合玩具成本总览，以及跨它们使用的小型共享组件（`_CalendarWidget`、`_RecordTile`、`_DatePickerTile`）。模型来自 `../models/intimacy_record.dart`；存储是 `../services/intimacy_storage.dart`；周期数学是 `../services/cycle_predictor.dart`。完整功能描述见 [亲密](../../../../features/intimacy.md)，磁盘 JSON 形态见 [数据格式](../../../../data-formats.md#intimacy--intimacy_datajson)，这里经 `_buildCycleOverlays` 消费的周期预测细节见 [身体指标](../../../../algorithms/body-metrics.md)。
 
 结构上文件是一个主页（`IntimacyPage` / `_IntimacyPageState`）加十个支撑类，按源码顺序：`_IntimacyDataError`、`_CalendarWidget`、`_RecordTile`、`_PartnerManagementPage`（+ 状态）、`_ToyManagementPage`（+ 状态）、`_PositionManagementPage`（+ 状态）、`_FilteredRecordsPage`（+ 状态）、`_ToyCostOverviewPage`（+ 状态）、`_ToyCostTrendData` 和 `_DatePickerTile`。伴侣和玩具管理状态是近乎镜像的实现（自定义排序/重排、激活/非激活或激活/退役分组）。

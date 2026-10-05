@@ -1,5 +1,8 @@
 # lib/features/finance/views/finance_page.dart
 
+P2: layout helpers now receive this page context and use actual shell constraints;
+full-window routes do not subtract navigation they do not contain.
+
 The Finance tab's home page: a month-selectable summary (expense/income/total assets, with a
 currency-conversion-fallback warning), an upcoming-renewals strip, and the grouped list of the
 selected month's transactions, with swipe-to-edit/delete and a floating add button. Since v1.4.3

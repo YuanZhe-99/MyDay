@@ -1,5 +1,8 @@
 # lib/features/todo/views/todo_page.dart
 
+P2：布局函数传入页面上下文并使用实际导航内容约束；
+全窗口路由不扣除不存在的导航。
+
 主 Todo 屏和其辅助的全月日历页。`TodoPage`/`_TodoPageState` 渲染每日/日常/工作任务小节、内联周历、列表底部每日评分编辑器，并拥有所有任务/评分修改和持久化（经 `TodoStorage`）。嵌套在同一文件中，`_TodoCalendarPage`/`_TodoCalendarPageState` 是被压入路由、显示带年/月跳转控件的全月网格、月度评分趋势图（经 `fl_chart`）和从评分日志派生的愉悦/煎熬日列表的页面；它把选中的日期返回给父页面，自己没有任何数据。模型/存储概念（`Task`、`DailyCompletionLog`、`DailyScoreLog`、排序模式/自定义顺序）见 [Todo](../../../../features/todo.md)，底层日志如何跨设备合并见 [三方合并](../../../../algorithms/three-way-merge.md)。自 v1.5.0 起，任务区还带有今天的端侧 AI 洞察卡片（[`_buildAiCard`](#buildaicard)）；见[端侧 AI](../../../../on-device-ai.md#insight-cards)。
 
 ## 声明

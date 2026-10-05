@@ -1,5 +1,8 @@
 # lib/features/finance/views/finance_page.dart
 
+P2：布局函数传入页面上下文并使用实际导航内容约束；
+全窗口路由不扣除不存在的导航。
+
 财务标签的主页：可选月摘要（支出/收入/总资产，带币种转换回退警告）、即将续费条，以及所选月份交易的分组列表，带滑动编辑/删除和浮动添加按钮。自 v1.4.3 起，双栏排布还会用一个订阅概览——三项订阅统计和进行中列表，取自 [`subscription_summary.dart`](../services/subscription_summary.md)——填满摘要窗格。自 v1.5.0 起，摘要在两种排布中还都带有端侧 AI 洞察卡片（[`AiInsightCard`](../../ai/widgets/ai_insight_card.md)，见[端侧 AI](../../../../on-device-ai.md#insight-cards)）。应用栏的溢出操作是进入其他每个财务子页（账户、分析、订阅、分类、汇率、默认币种）的入口。本页如何融入那里描述的可选月主页摘要和分组月度交易见 [财务](../../../../features/finance.md#views-and-analysis-page)。
 
 ## 声明

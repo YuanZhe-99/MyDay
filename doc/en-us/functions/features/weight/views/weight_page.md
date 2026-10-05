@@ -1,5 +1,8 @@
 # lib/features/weight/views/weight_page.dart
 
+P2: layout helpers now receive this page context and use actual shell constraints;
+full-window routes do not subtract navigation they do not contain.
+
 The Weight feature's single view file: `WeightPage` (the page shell), its `_WeightPageState` (data
 loading/saving, summary card, both trend charts, grouped history, reminder settings), the
 `_WeightRecordDialog`/`_WeightRecordDialogState` add/edit form, and the `_WeightDataError` blocking

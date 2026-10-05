@@ -1,5 +1,8 @@
 # lib/features/intimacy/views/intimacy_page.dart
 
+P2: layout helpers now receive this page context and use actual shell constraints;
+full-window routes do not subtract navigation they do not contain.
+
 The Intimacy feature's main view file — by far the largest source file in the whole app (6064
 lines). It hosts the home `IntimacyPage` (calendar, record list, trend chart, manage
 menu) and every management/detail sub-page reached from it: partner management, toy management,

@@ -1,5 +1,8 @@
 # lib/features/weight/views/weight_page.dart
 
+P2：布局函数传入页面上下文并使用实际导航内容约束；
+全窗口路由不扣除不存在的导航。
+
 体重功能的单一视图文件：`WeightPage`（页面壳）、其 `_WeightPageState`（数据加载/保存、摘要卡片、两个趋势图、分组历史、提醒设置）、`_WeightRecordDialog`/`_WeightRecordDialogState` 增/改表单，以及 `weight_data.json` 解析失败时显示的 `_WeightDataError` 阻塞错误视图。模型逻辑（`calculateBMI`/`calculateWaistHipRatio`/`effectiveMeasurementsUpTo`/`effectiveMeasurementTimeline`）住在 [`WeightRecord`/`WeightData`](../models/weight_record.md) 中，只从这里调用，不重新实现。持久化经 [`WeightStorage`](../services/weight_storage.md)。提醒调度/宽限期逻辑住在 [`ReminderService`](../../../shared/services/reminder_service.md)；本文件只编辑那个服务读取的设置。历史列表的周分组来自 [`groupByWeek`/`formatMonthDayRange`](../../../shared/utils/week_grouping.md)。增/改对话框的脏检查使用共享 [`UnsavedChangesGuard`/`formSignature`](../../../shared/widgets/unsaved_changes_guard.md) 模式。测量继承、提醒宽限期和 BMI/腰臀比的概念级解释见 [体重](../../../../features/weight.md)。自 v1.5.0 起，`_buildContent` 还在摘要卡片与图表小节之间放置端侧 AI 洞察卡片（[`AiInsightCard`](../../ai/widgets/ai_insight_card.md#aiinsightcard-new)，`module: InsightModule.weight`，外边距 `EdgeInsets.fromLTRB(16, 0, 16, 16)`）。其请求来自以 `now`、`_height` 和 `_records` 调用的 [`buildWeightInsightFacts`](../services/weight_insight_facts.md#buildweightinsightfacts)。自 v1.5.3 起它带两个小节：`aiWeightTrend` 涵盖 `trend`/`advice`，`aiWeightBody` 涵盖 `body`。自 v1.5.4 起请求还把 `buildWeightFallbackInsightFacts` 作为 `fallbackFacts` 携带，因此被拒绝时会先用 v1.5.2 的提示词重试。端侧 AI 关闭时卡片什么都不渲染，因此摘要下方的间距那时不变。见[端侧 AI](../../../../on-device-ai.md#insight-cards)。
 
 尽管是视图文件，其声明的很大一部分被归为 Tier A：摘要统计（BMI、体重变化、跟踪天数、近期范围）、两个 EWMA 平滑函数、图表轴/间隔数学和增/改对话框的验证/签名逻辑都包含超出组件组合的真实分支或计算，按分层规则。

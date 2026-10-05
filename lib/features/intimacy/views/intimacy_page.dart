@@ -644,7 +644,7 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
     // and less the calendar pane when both panes are showing.
     final screen = MediaQuery.sizeOf(context);
     final twoPane = canSplitLayout(screen.width, screen.height);
-    final contentWidth = shellContentWidth(screen.width);
+    final contentWidth = shellContentWidth(screen.width, context: context);
     final listWidth = twoPane
         ? contentWidth - intimacyLeftPaneWidth(contentWidth) - 1
         : contentWidth;
