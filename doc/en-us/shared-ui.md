@@ -1,5 +1,8 @@
 # Shared UI foundations
 
+MyApps-UI v0.1.7 keeps navigation choices horizontal in compact settings panes
+using centered two-line labels before vertical fallback. Selection checks default off.
+
 DATA v1.0.5 owns WebDAV connection and operation controls; AI v0.4.3 owns common
 preference widgets. Application callbacks retain persistence and domain policy.
 
