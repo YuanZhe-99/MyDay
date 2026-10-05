@@ -1,5 +1,10 @@
 # Version history
 
+## 1.7.6 — Shared insight entries and fallback
+
+Use MyApps-AI v0.3.0 cache entries and bounded fallback generation. Preserve
+existing cache JSON, module keys, storage and the identical-facts skip policy.
+
 ## 1.7.5 — Shared system AI
 
 Use MyApps-AI v0.2.0 for request execution, output utilities and Android/Apple
