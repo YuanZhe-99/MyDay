@@ -150,7 +150,7 @@ msix_config:
   display_name: MyDay!!!!!
   publisher_display_name: yuanzhe
   identity_name: com.yuanzhe.myday
-  msix_version: 1.7.12.0
+  msix_version: 1.7.13.0
   logo_path: assets/icon/app_icon.png
   capabilities: internetClient
   install_certificate: false
