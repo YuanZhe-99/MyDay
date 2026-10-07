@@ -1,5 +1,6 @@
 # MyDay `lib/` 函数索引
 
+
 WebDAVConfigPage.build 将通用设置控件委托给 myapps_data。声明数量不变，
 应用操作回调留在此处。
 
@@ -30,6 +31,9 @@ WebDAVConfigPage.build 将通用设置控件委托给 myapps_data。声明数量
 
 | 源文件 | 页面 | 声明数 | Tier A |
 |---|---|---|---|
+| `lib/features/ai/services/ai_source_backend.dart` | [features/ai/services/ai_source_backend.md](features/ai/services/ai_source_backend.md) | 21 | 0 |
+| `lib/features/ai/widgets/ai_source_controls.dart` | [features/ai/widgets/ai_source_controls.md](features/ai/widgets/ai_source_controls.md) | 4 | 0 |
+| `lib/shared/services/webdav_privacy.dart` | [shared/services/webdav_privacy.md](shared/services/webdav_privacy.md) | 3 | 0 |
 | `lib/main.dart` | [main.md](main.md) | 1 | 1 |
 
 ## app/
@@ -199,16 +203,17 @@ WebDAVConfigPage.build 将通用设置控件委托给 myapps_data。声明数量
 |---|---|---|---|---|
 | 根（`lib/`） | 1 | 1 | 1 | 0 |
 | `app/` | 5 | 30 | 25 | 5 |
-| `features/ai/` | 9 | 132 | 68 | 64 |
+| `features/ai/` | 11 | 93 | 22 | 71 |
 | `features/finance/` | 25 | 421 | 205 | 216 |
 | `features/intimacy/` | 15 | 438 | 210 | 228 |
 | `features/profile/` | 8 | 65 | 30 | 35 |
 | `features/settings/` | 3 | 37 | 8 | 29 |
 | `features/todo/` | 12 | 240 | 152 | 88 |
 | `features/weight/` | 4 | 99 | 58 | 41 |
-| `shared/` | 31 | 402 | 280 | 122 |
+| `shared/` | 32 | 403 | 280 | 123 |
 | **总计** | **113** | **1865** | **1037** | **828** |
 
 这里的每行都是上面逐文件行的算术和，在 v1.5.0 中重新派生，并按 v1.5.1 至 v1.5.5 触及的页面调整（v1.5.2 新增了 `id_list_delta.md`；v1.5.3 和 v1.5.4 扩充了体重和亲密的洞察事实页；v1.5.5 新增了 `thrust_timeline.md`、`record_detail_page.md` 和 `thrust_timeline_chart.md`，扩充了 `intimacy_record.md`、`intimacy_page.md`、`timer_page.md` 和 `adaptive_layout.md`，并更正了 `adaptive_layout.md` 的对账说明——它曾声称 17 个 `Purpose:` 块和 56 行，而文件实际是 16 和 55）。文件计数也与 `find lib -name '*.dart' -not -path 'lib/l10n/*'` 完全匹配——113 个源文件、113 个页面，没有无页面的文件，也没有无文件的页面。1.6.0 又新增了六个 `features/profile/` 页面和 `status_colors.md`，并扩充了 `theme.md`、`data_modules.md`、`shell_scaffold.md`、`app_settings.md`、`todo_storage.md` 和 `settings_page.md`。
 
 1.6.1 又新增了 `avatar_image.md` 和 `avatar_editor.md`，并扩充了 `shell_scaffold.md`、`adaptive_layout.md`、`app_settings.md`、`todo_storage.md`、`settings_page.md`、`profile_store.md`、`profile_provider.md` 和 `profile_header.md`：`grep` 计数现为 1795，对应 113 页中的 1865 个表行，每个源文件一页。
+当前逐文件表合计：116 个文件、1819 个声明（Tier A 987，Tier B 832）。

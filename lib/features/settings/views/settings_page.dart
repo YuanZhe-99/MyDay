@@ -27,7 +27,6 @@ import '../../../shared/widgets/app_date_picker.dart';
 import '../../../shared/widgets/unsaved_changes_guard.dart';
 import '../../../shared/views/backup_page.dart';
 import '../../../shared/views/webdav_config_page.dart';
-import '../../ai/services/genai_backend.dart';
 import '../../ai/widgets/ai_settings_tiles.dart';
 import '../../finance/services/subscription_processor.dart';
 import '../../profile/views/profile_header.dart';
@@ -720,13 +719,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         // On-device AI (v1.5.0): the full rows where a model can exist,
         // otherwise (Windows, Linux) a single note.
         _buildSection(context, l10n.aiSectionTitle, [
-          if (platformMayHaveOnDeviceModel)
-            const AiSettingsTiles()
-          else
-            ListTile(
-              leading: const Icon(Icons.auto_awesome_outlined),
-              title: Text(l10n.aiNotSupportedHere),
-            ),
+          const AiSettingsTiles(),
         ]),
 
         // Desktop-only section: tray settings + storage location + API

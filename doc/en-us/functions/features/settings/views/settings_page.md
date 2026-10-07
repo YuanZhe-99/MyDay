@@ -289,3 +289,6 @@ consistent with them being state, not functions.
   to tray, launch at startup, local API enabled) check `mounted` after their awaited platform or
   config call before calling `setState`, so leaving the page mid-toggle no longer calls `setState`
   on a disposed state.
+
+
+Current integration uses MyApps-AI v0.5.2, explicit platform injection, app-owned source routing and the unified settings skeleton. WebDAV entry points require device-local notice acknowledgement before any network request; see [sync.md](../../../sync.md).

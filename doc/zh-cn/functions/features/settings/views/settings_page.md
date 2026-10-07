@@ -198,3 +198,6 @@ P5 内容委托 MyAppsPaneBody 做设计分区，实际分栏模式更新路由�
 - **算法：** v1.4.1 之前 `build` 返回的列表——常规、隐私、桌面（仅桌面）、数据、关于和调试分区——自 v1.5.0 起在隐私与桌面之间再加一个端侧 AI 分区（`l10n.aiSectionTitle`）。`platformMayHaveOnDeviceModel`（来自 `genai_backend.dart`）为真时该分区放 `const AiSettingsTiles()`，否则放一个带 `auto_awesome_outlined` 图标和 `l10n.aiNotSupportedHere` 的 `ListTile`（Windows、Linux）。
 - **用法：** 由 `build` 调用；它在窄窗口上是整个主体，在宽窗口上是左窗格。
 - **备注：** 抽取而不是复制，因此列表在两种模式下完全相同，变的只是它的 chevron 行落在哪里。自 v1.5.2 起，桌面分区的开关（最小化到托盘、关闭到托盘、开机启动、启用本地 API）在等待的平台或配置调用之后先检查 `mounted` 再调用 `setState`，因此在切换途中离开页面不会再对已销毁的 state 调用 `setState`。
+
+
+当前接入 MyApps-AI v0.5.2，显式注入平台后端，使用应用所属来源路由与统一设置骨架。WebDAV 入口在任何网络请求前要求设备本地提醒确认；具体见同步概念文档。

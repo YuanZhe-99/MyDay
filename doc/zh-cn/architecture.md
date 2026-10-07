@@ -178,3 +178,5 @@ WebDAV 同步引擎、备份引擎、ZIP 传输引擎、原子写入器和自动
 - [数据格式](data-formats.md) 了解每个数据文件背后的精确字段。
 - [WebDAV 同步](sync.md) 了解写队列/原子写入/UTC 时间戳规则如何喂入合并和上传流程。
 - [备份与恢复](backup-restore.md) 了解 `DataFileSafety` 校验如何在恢复时复用。
+
+AI 来源路由与 WebDAV 设备确认：见 [shared-ai.md](shared-ai.md) 与 [sync.md](sync.md)。

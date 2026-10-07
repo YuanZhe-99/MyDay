@@ -335,3 +335,7 @@ lost mid-fold. See [platform-notes.md](platform-notes.md).
 P2 rendered chart capacity without a shell now changes at window width 704
 (672 after 32 page padding), rather than 785 with an imaginary 81-pixel rail.
 The rendered boundary test uses 703/704; split thresholds are unchanged.
+
+## Model management
+
+Local model management is a pushed, scrollable route without a split breakpoint. Shared model tiles use the available content width; the parent settings pane retains its existing geometry. Online source management in MyAnime uses the shared scrollable editor.

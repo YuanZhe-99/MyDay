@@ -1,5 +1,9 @@
 # Version history
 
+## 1.7.12 — AI sources and WebDAV consent (2026-10-07)
+
+Complete P0/P1 (+0.0.2): explicit platform backend dependency, unified settings, local CPU models (Qwen3.5 0.8B/2B, Gemma 4 E2B, 4-bit), explicit downloads and device-local source persistence. D1 requires privacy acknowledgement before all WebDAV requests and visibly pauses existing configurations. Pin AI v0.5.2, UI v0.1.8, DATA v1.1.0.
+
 ## 1.7.10 — Compact horizontal settings choices
 
 Pin MyApps-UI v0.1.7: centered labels wrap to two lines before vertical fallback;
@@ -72,7 +76,7 @@ Local verification: analysis and all 511 Flutter tests passed.
 - `v0.3.2`: L10n audit fixes, transfer categories, Finance AppBar restructuring, left-aligned module titles.
 - `v0.4.1`: Local HTTP API server, launch at startup, desktop settings expansion, public config API, macOS network server entitlement.
 - `v0.5.0`: Referenced-only image sync, sync warnings, intimacy duration trend chart, calculator keyboard for transaction amounts.
-- `v0.5.1`: ARM64 installer filename fix, trend chart date overlap fix, raw + EWMA intimacy trend lines.
+- `v0.5.2`: ARM64 installer filename fix, trend chart date overlap fix, raw + EWMA intimacy trend lines.
 - `v0.6.0`: Todo recurrence for one-time tasks and frequency chart spike fix using a 7-day rolling window.
 - `v0.6.1`: Optional Todo notes in model/UI/API.
 - `v0.6.2`: Todo, finance account, and intimacy active/history custom sorting.

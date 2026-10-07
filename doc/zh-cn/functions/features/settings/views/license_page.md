@@ -26,3 +26,5 @@ MyApps-AI 授权声明包含 myapps_ai_ui。
 ## 导航栏内边距（1.6.1）
 
 Expressive 底栏悬浮在页面之上（见 [adaptive-layout.md](../../../../adaptive-layout.md)），`SingleChildScrollView` 把它显式的内边距经过 `navBarAwarePadding(context, ...)`，使最后的内容能滚动到栏的上方。
+
+包含 llama.cpp MIT 署名及用户主动下载的 Qwen3.5/Gemma 4 模型 Apache-2.0 来源说明。

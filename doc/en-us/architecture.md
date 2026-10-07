@@ -277,3 +277,5 @@ committed. Fresh clones need `git clone --recurse-submodules` or `git submodule 
 - [WebDAV Sync](sync.md) for how the write-queue/atomic-write/UTC-timestamp rules feed the merge
   and upload flow.
 - [Backup & Restore](backup-restore.md) for how `DataFileSafety` validation is reused on restore.
+
+AI source routing and WebDAV device consent: see [shared-ai.md](shared-ai.md) and [sync.md](sync.md).
