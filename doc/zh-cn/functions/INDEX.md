@@ -31,8 +31,8 @@ WebDAVConfigPage.build 将通用设置控件委托给 myapps_data。声明数量
 
 | 源文件 | 页面 | 声明数 | Tier A |
 |---|---|---|---|
-| `lib/features/ai/services/ai_source_backend.dart` | [features/ai/services/ai_source_backend.md](features/ai/services/ai_source_backend.md) | 21 | 0 |
-| `lib/features/ai/widgets/ai_source_controls.dart` | [features/ai/widgets/ai_source_controls.md](features/ai/widgets/ai_source_controls.md) | 4 | 0 |
+| `lib/features/ai/services/ai_source_backend.dart` | [features/ai/services/ai_source_backend.md](features/ai/services/ai_source_backend.md) | 1 | 0 |
+| `lib/features/ai/widgets/ai_source_controls.dart` | [features/ai/widgets/ai_source_controls.md](features/ai/widgets/ai_source_controls.md) | 8 | 0 |
 | `lib/shared/services/webdav_privacy.dart` | [shared/services/webdav_privacy.md](shared/services/webdav_privacy.md) | 3 | 0 |
 | `lib/main.dart` | [main.md](main.md) | 1 | 1 |
 
@@ -203,7 +203,7 @@ WebDAVConfigPage.build 将通用设置控件委托给 myapps_data。声明数量
 |---|---|---|---|---|
 | 根（`lib/`） | 1 | 1 | 1 | 0 |
 | `app/` | 5 | 30 | 25 | 5 |
-| `features/ai/` | 11 | 93 | 22 | 71 |
+| `features/ai/` | 11 | 77 | 22 | 55 |
 | `features/finance/` | 25 | 421 | 205 | 216 |
 | `features/intimacy/` | 15 | 438 | 210 | 228 |
 | `features/profile/` | 8 | 65 | 30 | 35 |

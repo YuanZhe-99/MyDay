@@ -46,8 +46,8 @@ drifted from the per-file rows.)
 
 | Source file | Page | Declarations | Tier A |
 |---|---|---|---|
-| `lib/features/ai/services/ai_source_backend.dart` | [features/ai/services/ai_source_backend.md](features/ai/services/ai_source_backend.md) | 21 | 0 |
-| `lib/features/ai/widgets/ai_source_controls.dart` | [features/ai/widgets/ai_source_controls.md](features/ai/widgets/ai_source_controls.md) | 4 | 0 |
+| `lib/features/ai/services/ai_source_backend.dart` | [features/ai/services/ai_source_backend.md](features/ai/services/ai_source_backend.md) | 1 | 0 |
+| `lib/features/ai/widgets/ai_source_controls.dart` | [features/ai/widgets/ai_source_controls.md](features/ai/widgets/ai_source_controls.md) | 8 | 0 |
 | `lib/shared/services/webdav_privacy.dart` | [shared/services/webdav_privacy.md](shared/services/webdav_privacy.md) | 3 | 0 |
 | `lib/main.dart` | [main.md](main.md) | 1 | 1 |
 
@@ -219,7 +219,7 @@ the 1761 `Purpose:` blocks and 1833 table rows above).
 |---|---|---|---|---|
 | Root (`lib/`) | 1 | 1 | 1 | 0 |
 | `app/` | 5 | 30 | 25 | 5 |
-| `features/ai/` | 11 | 93 | 22 | 71 |
+| `features/ai/` | 11 | 77 | 22 | 55 |
 | `features/finance/` | 25 | 421 | 205 | 216 |
 | `features/intimacy/` | 15 | 438 | 210 | 228 |
 | `features/profile/` | 8 | 65 | 30 | 35 |
@@ -227,7 +227,7 @@ the 1761 `Purpose:` blocks and 1833 table rows above).
 | `features/todo/` | 12 | 240 | 152 | 88 |
 | `features/weight/` | 4 | 99 | 58 | 41 |
 | `shared/` | 32 | 403 | 280 | 123 |
-| **Total** | **116** | **1819** | **987** | **832** |
+| **Total** | **116** | **1803** | **987** | **816** |
 
 Every row here is the arithmetic sum of the per-file rows above, re-derived in v1.5.0 and
 adjusted for the pages v1.5.1 through v1.5.5 touched (v1.5.2 added `id_list_delta.md`; v1.5.3 and
@@ -239,4 +239,4 @@ reconciliation note, which had claimed 17 `Purpose:` blocks and 56 rows against 
 source files, 113 pages, no file without a page and no page without a file. Version 1.6.0 then added the six `features/profile/` pages and `status_colors.md` and grew `theme.md`, `data_modules.md`, `shell_scaffold.md`, `app_settings.md`, `todo_storage.md` and `settings_page.md`; 
 
 Version 1.6.1 then added `avatar_image.md` and `avatar_editor.md` and grew `shell_scaffold.md`, `adaptive_layout.md`, `app_settings.md`, `todo_storage.md`, `settings_page.md`, `profile_store.md`, `profile_provider.md` and `profile_header.md`: the `grep` count is now 1795 against 1865 table rows across 113 pages, one per source file.
-Current per-file table sum: 116 files, 1819 declarations (987 Tier A, 832 Tier B).
+Current per-file table sum: 116 files, 1803 declarations (987 Tier A, 816 Tier B).

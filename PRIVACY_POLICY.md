@@ -39,6 +39,8 @@ The Todo, Finance, Weight and Intimacy pages can optionally show short summaries
 
 - Generated results stay on your device: they are neither synced, backed up nor exported, and you can clear them in Settings. No cloud model is used, including Apple's Private Cloud Compute.
 
+- Optionally, you can download local models (Qwen3.5 0.8B/2B or Gemma 4 E2B, 4-bit) from Hugging Face, or, after a warning, a GGUF model you choose from a Hugging Face repository. Listing a repository, reading the start of a file and downloading reveal your IP address to Hugging Face, but send no app records. Files are checked against a SHA-256 pinned to a repository commit, stay on this device and are excluded from sync, backups and ZIP exports. Inference runs on your device's processor, on its GPU only if you turn that on, and sends no prompts to a server. Models are never downloaded automatically.
+
 ## Data Backup
 
 The app provides a local backup feature. Backup files are stored on your device and include all your data and images. The storage and management of backup files is entirely under your control.

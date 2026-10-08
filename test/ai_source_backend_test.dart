@@ -22,43 +22,70 @@ class _Storage implements StorageAdapter {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  test('installed local model generates through the app runtime on Linux', () async {
-    final model = Platform.environment['LLAMA_TEST_MODEL']!;
-    final dir = await Directory.systemTemp.createTemp('source_live');
-    addTearDown(() => dir.delete(recursive: true));
-    final storage = _Storage(dir);
-    final backend = AiSourceBackend(storage: storage);
-    final manifest = backend.catalog.first;
-    final artifactDir = await backend.manager.artifactDir(manifest.artifactId);
-    await artifactDir.create(recursive: true);
-    await Link('${artifactDir.path}/${manifest.files.first.path}').create(model);
-    await File('${artifactDir.path}/manifest.json').writeAsString(jsonEncode(manifest.toJson()));
-    await backend.select(manifest.modelId);
-    final service = OnDeviceAiService(backend: backend);
-    await service.setEnabled(true);
-    expect(service.canGenerate, isTrue);
-    expect(await service.generate(instructions: 'Answer briefly.', prompt: 'What is the capital of France?'), contains('Paris'));
-    await service.setEnabled(false);
-    await backend.select('system');
-    service.dispose();
-  }, skip: Platform.environment['LLAMA_TEST_MODEL'] == null);
+  test(
+    'installed local model generates through the app runtime on Linux',
+    () async {
+      final model = Platform.environment['LLAMA_TEST_MODEL']!;
+      final dir = await Directory.systemTemp.createTemp('source_live');
+      addTearDown(() => dir.delete(recursive: true));
+      final storage = _Storage(dir);
+      final backend = createAiSourceRouter(storage: storage);
+      final manifest = backend.catalog.first;
+      final artifactDir = await backend.manager.artifactDir(
+        manifest.artifactId,
+      );
+      await artifactDir.create(recursive: true);
+      await Link(
+        '${artifactDir.path}/${manifest.files.first.path}',
+      ).create(model);
+      await File(
+        '${artifactDir.path}/manifest.json',
+      ).writeAsString(jsonEncode(manifest.toJson()));
+      await backend.select(manifest.modelId);
+      final service = OnDeviceAiService(backend: backend);
+      await service.setEnabled(true);
+      expect(service.canGenerate, isTrue);
+      expect(
+        await service.generate(
+          instructions: 'Answer briefly.',
+          prompt: 'What is the capital of France?',
+        ),
+        contains('Paris'),
+      );
+      await service.setEnabled(false);
+      await backend.select('system');
+      service.dispose();
+    },
+    skip: Platform.environment['LLAMA_TEST_MODEL'] == null,
+  );
   test(
     'missing selected model is unavailable without downloading or overwriting config',
     () async {
       final dir = await Directory.systemTemp.createTemp('source_test');
       addTearDown(() => dir.delete(recursive: true));
       final storage = _Storage(dir);
-      final backend = AiSourceBackend(storage: storage);
+      final backend = createAiSourceRouter(storage: storage);
       await backend.initialize();
       expect(await Directory('${dir.path}/ai_models').exists(), isFalse);
       await backend.select('local:qwen3.5-0.8b');
       expect((await backend.statusReport()).status, GenAiStatus.unavailable);
       expect(storage.config['unrelated'], 'keep');
       expect(await Directory('${dir.path}/ai_models').exists(), isFalse);
-      final restored = AiSourceBackend(storage: storage);
+      final restored = createAiSourceRouter(storage: storage);
       await restored.initialize();
       expect(restored.selection.global, 'local:qwen3.5-0.8b');
       expect(restored.catalog.length, 3);
+      expect(
+        restored.sourceName('local:qwen3.5-0.8b'),
+        'Qwen: Qwen3.5 0.8B (Q4_K_M)',
+      );
+      final report = await restored.diagnostics();
+      expect(report.sections.map((s) => s.id), contains('llama.cpp'));
+      expect(
+        report.sections.last.rows,
+        isEmpty,
+        reason: 'MyDay includes no online sources',
+      );
     },
   );
 }

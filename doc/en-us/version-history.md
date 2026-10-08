@@ -1,5 +1,15 @@
 # Version history
 
+## 1.8.0 — Friendly model names, GPU option, custom models (2026-10-08)
+
+Pin MyApps-AI v0.6.0: local models show friendly names (`Qwen: Qwen3.5 0.8B (Q4_K_M)`) that can be
+renamed; a GPU switch for local models appears where GPU support is verified, with a CPU fallback
+that is remembered; Technical details are now a complete, copyable report of every included
+backend; and custom GGUF models can be added from a Hugging Face repository after a mandatory
+warning. The app's own source routing is replaced by the shared router (`createAiSourceRouter`).
+New device-local keys `aiComputePreference`, `aiGpuFailures`, `aiCustomModels` and `aiModelAliases`
+are never synced or backed up. The local-model privacy text is updated accordingly.
+
 ## 1.7.13 — Local models on Android (2026-10-07)
 
 Pin MyApps-AI v0.5.3: local models were never found on Android because the app keeps its native

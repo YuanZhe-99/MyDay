@@ -2,7 +2,7 @@
 
 ## AI 来源与 WebDAV 隐私
 
-MyApps-AI v0.5.3 显式拆分运行时、平台、模型、本地 UI 和 llama.cpp 包。设置使用统一分区骨架。全局来源选择保存在设备本地（`aiSourceSelection`），默认系统 AI，不会自动回退到在线来源。Qwen3.5 0.8B/2B Q4_K_M 与 Gemma 4 E2B Q4_0 在 CPU 上运行。下载仅由明确操作触发，使用固定地址与 SHA-256，保存在 `ai_models/`，不进入数据模块、同步、备份或 ZIP。模型租约避免使用中移除文件。切换来源取消旧任务并释放模型资源。MyNihongo 的系统校对保持独立。
+MyApps-AI v0.6.0 显式拆分运行时、平台、模型、本地 UI、来源和 llama.cpp 包。设置使用统一分区骨架。全局来源选择保存在设备本地（`aiSourceSelection`），默认系统 AI，不会自动回退到在线来源（MyDay 没有在线来源）。共享的 `AiSourceRouter` 还会保存设备本地键 `aiComputePreference`、`aiGpuFailures`、`aiCustomModels` 与 `aiModelAliases`，它们从不同步，也不进入备份。Qwen3.5 0.8B/2B Q4_K_M 与 Gemma 4 E2B Q4_0 在 CPU 上运行，仅在已验证且用户开启时使用 GPU；警告后可从 Hugging Face 仓库添加自定义 GGUF 模型。下载仅由明确操作触发，使用固定地址与 SHA-256，保存在 `ai_models/`，不进入数据模块、同步、备份或 ZIP。模型租约避免使用中移除文件。切换来源取消旧任务并释放模型资源。技术详情是来自路由的完整、可复制的报告。MyNihongo 的系统校对保持独立。
 
 WebDAV 第 1 版提醒必须在每个设备上确认后，才能测试连接、手动/强制同步或后台同步。记录保存在设备本地 storage_config.json。已有配置保持不变，同步暂停时 WebDAV 页面显示查看提醒横幅。拒绝不保存配置、不发出请求。JSON/图片没有应用层加密；HTTPS 加密传输，HTTP 不加密。线格式、锁和冲突策略保持不变。
 
@@ -10,7 +10,11 @@ WebDAV 第 1 版提醒必须在每个设备上确认后，才能测试连接、�
 
 | Declaration | Purpose |
 |---|---|
-| `const AiSourceControls({` | Bind source controls. Inputs: backend and switch callback. |
-| `Widget build(BuildContext context) {` | Render registered sources and local model management. |
-| `Future<void> _openModels(BuildContext context, String? initial) async {` | Open shared model management. Inputs: context/highlight. |
-| `String modelDisplayName(String id) => switch (id) {` | Name catalog models. Inputs: stable id. Returns: Name. |
+| `const AiSourceControls({super.key, required this.backend, required this.onSelected})` | Bind the router and the selection callback that pauses the AI service. |
+| `Widget build(BuildContext context) {` | Render the shared `MyAppsAiSourceSection` with app labels (no online entry, GPU switch). |
+| `Future<void> openAiLocalModels(BuildContext context, AiSourceRouter backend, String? initial) {` | Open the local models page with rename menu and the "Add a custom model" entry. |
+| `MyAppsLocalModelLabels _modelLabels(AppLocalizations l, AiSourceRouter backend) =>` | Build list labels; names come from the router (friendly name or alias). |
+| `const _ModelMenu({required this.backend, required this.modelId})` | Bind a model to its menu. |
+| `Widget build(BuildContext context) {` | Menu with Rename and, for custom models, Remove from list. |
+| `const _AliasDialog({required this.modelId})` | Bind a model to the rename dialog. |
+| `Widget build(BuildContext context) {` | Build the rename dialog; pops the typed alias on save.

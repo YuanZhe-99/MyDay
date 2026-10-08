@@ -85,7 +85,7 @@ P3 公共资料实现与适配见 [shared-ui.md](shared-ui.md)，格式和模块
 
 | 数据 | 文件 | 同步 | 备注 |
 | --- | --- | --- | --- |
-| 核心偏好 | `storage_config.json` | 否 | 自定义路径、亲密可见性、主题、语言区域、周起始日、托盘、备份、本地 API 设置、今天已触发的桌面提醒键（`reminderNotifiedKeys`）、仅本地的亲密计时器保持屏幕唤醒偏好（`intimacyTimerKeepScreenAwake`）、仅本地的体重同步警告退出（`intimacyBodyWeightSyncWarningDisabled`）、设备本地的列表列数偏好（`todoSectionColumns`、`financeListColumns`、`weightListColumns`、`intimacyListColumns`）、端侧 AI 开关（`onDeviceAiEnabled`、`onDeviceAiPreferFast`）、界面风格（`uiStyle`，1.6.0：仅在选择 Material 3 时写为 `"material3"`；缺省表示 Expressive，即默认风格，同时显示悬浮导航栏）、导航位置（`navPlacement`：`"sideOnWide"` 或 `"side"`，以及 `navRailRight: true`，1.6.1；缺省表示默认：任何窗口都用底栏，显示侧边导航栏时位于左侧） |
+| 核心偏好 | `storage_config.json` | 否 | 自定义路径、亲密可见性、主题、语言区域、周起始日、托盘、备份、本地 API 设置、今天已触发的桌面提醒键（`reminderNotifiedKeys`）、仅本地的亲密计时器保持屏幕唤醒偏好（`intimacyTimerKeepScreenAwake`）、仅本地的体重同步警告退出（`intimacyBodyWeightSyncWarningDisabled`）、设备本地的列表列数偏好（`todoSectionColumns`、`financeListColumns`、`weightListColumns`、`intimacyListColumns`）、端侧 AI 开关（`onDeviceAiEnabled`、`onDeviceAiPreferFast`）、共享路由写入的设备本地 AI 来源键（`aiSourceSelection`、`aiComputePreference`、`aiGpuFailures`、`aiCustomModels`、`aiModelAliases`）、界面风格（`uiStyle`，1.6.0：仅在选择 Material 3 时写为 `"material3"`；缺省表示 Expressive，即默认风格，同时显示悬浮导航栏）、导航位置（`navPlacement`：`"sideOnWide"` 或 `"side"`，以及 `navRailRight: true`，1.6.1；缺省表示默认：任何窗口都用底栏，显示侧边导航栏时位于左侧） |
 | 待办 | `todo_data.json` | 是 | 任务、每日模板、完成日志、每日评分日志、提醒、任务排序/自定义顺序 |
 | 财务 | `finance_data.json` | 是 | 账户含可选免手续费标准、分类、交易、订阅、财务设置、交易账户选择器设置 |
 | 汇率 | `exchange_rates.json` | 是 | 汇率快照和 `lastFetchedAt` |
@@ -160,6 +160,6 @@ P3 公共资料实现与适配见 [shared-ui.md](shared-ui.md)，格式和模块
 
 ## AI 来源与 WebDAV 隐私
 
-MyApps-AI v0.5.3 显式拆分运行时、平台、模型、本地 UI 和 llama.cpp 包。设置使用统一分区骨架。全局来源选择保存在设备本地（`aiSourceSelection`），默认系统 AI，不会自动回退到在线来源。Qwen3.5 0.8B/2B Q4_K_M 与 Gemma 4 E2B Q4_0 在 CPU 上运行。下载仅由明确操作触发，使用固定地址与 SHA-256，保存在 `ai_models/`，不进入数据模块、同步、备份或 ZIP。模型租约避免使用中移除文件。切换来源取消旧任务并释放模型资源。MyNihongo 的系统校对保持独立。
+MyApps-AI v0.6.0 显式拆分运行时、平台、模型、本地 UI、来源和 llama.cpp 包。设置使用统一分区骨架。全局来源选择保存在设备本地（`aiSourceSelection`），默认系统 AI，不会自动回退到在线来源（MyDay 没有在线来源）。共享的 `AiSourceRouter` 还会保存设备本地键 `aiComputePreference`、`aiGpuFailures`、`aiCustomModels` 与 `aiModelAliases`，它们从不同步，也不进入备份。Qwen3.5 0.8B/2B Q4_K_M 与 Gemma 4 E2B Q4_0 在 CPU 上运行，仅在已验证且用户开启时使用 GPU；警告后可从 Hugging Face 仓库添加自定义 GGUF 模型。下载仅由明确操作触发，使用固定地址与 SHA-256，保存在 `ai_models/`，不进入数据模块、同步、备份或 ZIP。模型租约避免使用中移除文件。切换来源取消旧任务并释放模型资源。技术详情是来自路由的完整、可复制的报告。MyNihongo 的系统校对保持独立。
 
 WebDAV 第 1 版提醒必须在每个设备上确认后，才能测试连接、手动/强制同步或后台同步。记录保存在设备本地 storage_config.json。已有配置保持不变，同步暂停时 WebDAV 页面显示查看提醒横幅。拒绝不保存配置、不发出请求。JSON/图片没有应用层加密；HTTPS 加密传输，HTTP 不加密。线格式、锁和冲突策略保持不变。

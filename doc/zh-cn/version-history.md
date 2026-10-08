@@ -1,5 +1,13 @@
 # 版本历史
 
+## 1.8.0 — 友好模型名称、GPU 选项、自定义模型（2026-10-08）
+
+固定 MyApps-AI v0.6.0：本地模型显示友好名称（`Qwen: Qwen3.5 0.8B (Q4_K_M)`）且可重命名；在已验证支持 GPU 的设备上
+提供本地模型 GPU 开关，失败时回退到 CPU 并记住；技术详情改为包含所有后端、可复制的完整报告；
+可在强制警告后从 Hugging Face 仓库添加自定义 GGUF 模型。应用自有的来源路由改为共享路由（`createAiSourceRouter`）。
+新增设备本地键 `aiComputePreference`、`aiGpuFailures`、`aiCustomModels`、`aiModelAliases`，从不同步或备份。
+本地模型隐私文本已同步更新。
+
 ## 1.7.13 — Android 本地模型可用（2026-10-07）
 
 固定 MyApps-AI v0.5.3：应用把原生库保留在 APK 内，此前 Android 上始终找不到本地模型；现在可以加载，

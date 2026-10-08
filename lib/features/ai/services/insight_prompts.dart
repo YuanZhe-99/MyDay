@@ -234,9 +234,8 @@ Map<int, String> parseInsightReply(
 /// Returns: `String` — lower-case, without punctuation or spaces.
 /// Side effects: None.
 /// Notes: Internal helper used within this file only.
-String _normalize(String s) => s
-    .toLowerCase()
-    .replaceAll(RegExp(r'[\s\p{P}]+', unicode: true), '');
+String _normalize(String s) =>
+    s.toLowerCase().replaceAll(RegExp(r'[\s\p{P}]+', unicode: true), '');
 
 /// Purpose: Shorten a user-typed title for a fact line.
 /// Inputs: `title`, `maxRunes`.
