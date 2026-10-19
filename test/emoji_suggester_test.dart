@@ -76,9 +76,7 @@ void main() {
     });
 
     test('a custom table can be injected', () {
-      const table = [
-        EmojiKeywordEntry('🧪', en: ['widget']),
-      ];
+      const table = [EmojiKeywordEntry('🧪', en: ['widget'])];
       expect(suggestEmojis('widget test', table: table), ['🧪']);
       expect(suggestEmojis('mail', table: table), isEmpty);
     });

@@ -13,7 +13,10 @@ final appRouter = GoRouter(
     ShellRoute(
       builder: (context, state, child) => ShellScaffold(child: child),
       routes: [
-        GoRoute(path: '/todo', builder: (context, state) => const TodoPage()),
+        GoRoute(
+          path: '/todo',
+          builder: (context, state) => const TodoPage(),
+        ),
         GoRoute(
           path: '/finance',
           builder: (context, state) => const FinancePage(),

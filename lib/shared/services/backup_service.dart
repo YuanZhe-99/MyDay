@@ -109,8 +109,7 @@ class BackupService {
   /// Notes: No-op when [autoBackupEnabled] is false; re-entrancy guarded, and
   /// "already backed up today" is decided by scanning bundle file names.
   /// Called from `ReminderService`'s 30-second loop.
-  static Future<void> runAutoBackupIfNeeded() =>
-      _engine.runAutoBackupIfNeeded();
+  static Future<void> runAutoBackupIfNeeded() => _engine.runAutoBackupIfNeeded();
 
   /// Purpose: List backups, newest first.
   /// Inputs: None.

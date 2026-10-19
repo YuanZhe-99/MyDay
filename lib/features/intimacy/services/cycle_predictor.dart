@@ -184,8 +184,7 @@ CyclePrediction predictCycle({
     // from, so only the assumed menstrual days are classified. A gap
     // longer than a valid cycle is treated the same way instead of
     // painting months of misleading phases.
-    if (segNext != null &&
-        _daysBetween(segStart, segNext) > maxValidCycleDays) {
+    if (segNext != null && _daysBetween(segStart, segNext) > maxValidCycleDays) {
       segNext = null;
     }
     final segLength = segNext != null ? _daysBetween(segStart, segNext) : null;
@@ -244,7 +243,9 @@ CyclePrediction predictCycle({
   return CyclePrediction(
     cycleLengthDays: cycleLength,
     predictedStarts: predictedStarts
-        .where((d) => !d.isBefore(windowStartDay) && !d.isAfter(windowEndDay))
+        .where(
+          (d) => !d.isBefore(windowStartDay) && !d.isAfter(windowEndDay),
+        )
         .toList(),
     days: days,
   );

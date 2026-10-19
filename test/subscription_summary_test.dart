@@ -77,21 +77,18 @@ void main() {
       expect(summary.yearlyAvg, closeTo(624, 1e-9));
     });
 
-    test(
-      'converts at the current rates and ignores inactive subscriptions',
-      () {
-        final summary = summarizeSubscriptions(
-          subscriptions: [
-            sub(id: 'a', amount: 10, currency: 'USD'), // 70 CNY
-            sub(id: 'b', amount: 99, isActive: false),
-          ],
-          transactions: const [],
-          rateData: rates,
-          defaultCurrency: 'CNY',
-        );
-        expect(summary.monthlyDue, closeTo(70, 1e-9));
-      },
-    );
+    test('converts at the current rates and ignores inactive subscriptions', () {
+      final summary = summarizeSubscriptions(
+        subscriptions: [
+          sub(id: 'a', amount: 10, currency: 'USD'), // 70 CNY
+          sub(id: 'b', amount: 99, isActive: false),
+        ],
+        transactions: const [],
+        rateData: rates,
+        defaultCurrency: 'CNY',
+      );
+      expect(summary.monthlyDue, closeTo(70, 1e-9));
+    });
 
     test('monthly average falls back to the projection below two months', () {
       final now = DateTime(2026, 9, 1);

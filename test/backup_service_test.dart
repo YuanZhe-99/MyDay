@@ -60,10 +60,7 @@ void main() {
 
   group('backup format v2', () {
     test('identical images across backups share one blob', () async {
-      await writeData(
-        'todo_data.json',
-        '{"dailyTemplates": [], "oneTimeTasks": []}',
-      );
+      await writeData('todo_data.json', '{"dailyTemplates": [], "oneTimeTasks": []}');
       await writeImage('logo1.png', [1, 2, 3, 4]);
 
       final b1 = await BackupService.createBackup();
@@ -85,10 +82,7 @@ void main() {
     });
 
     test('blob is deleted only when no backup references it', () async {
-      await writeData(
-        'todo_data.json',
-        '{"dailyTemplates": [], "oneTimeTasks": []}',
-      );
+      await writeData('todo_data.json', '{"dailyTemplates": [], "oneTimeTasks": []}');
       await writeImage('logo1.png', [1, 2, 3, 4]);
       final b1 = await BackupService.createBackup();
       await nextSecond();
@@ -103,10 +97,7 @@ void main() {
     });
 
     test('restore copies blob-referenced images back', () async {
-      await writeData(
-        'todo_data.json',
-        '{"dailyTemplates": [], "oneTimeTasks": []}',
-      );
+      await writeData('todo_data.json', '{"dailyTemplates": [], "oneTimeTasks": []}');
       await writeImage('logo1.png', [1, 2, 3, 4]);
       final b1 = await BackupService.createBackup();
 
@@ -122,70 +113,61 @@ void main() {
       );
     });
 
-    test(
-      'restore reports missing blobs instead of dropping them silently',
-      () async {
-        await writeData(
-          'todo_data.json',
-          '{"dailyTemplates": [], "oneTimeTasks": []}',
-        );
-        await writeImage('logo1.png', [1, 2, 3, 4]);
-        final b1 = await BackupService.createBackup();
+    test('restore reports missing blobs instead of dropping them silently',
+        () async {
+      await writeData(
+          'todo_data.json', '{"dailyTemplates": [], "oneTimeTasks": []}');
+      await writeImage('logo1.png', [1, 2, 3, 4]);
+      final b1 = await BackupService.createBackup();
 
-        // Simulate an incomplete blob store, e.g. a bundle copied to another
-        // machine without backups/blobs/.
-        for (final blob in await listBlobs()) {
-          await blob.delete();
-        }
-        await File(p.join(tempDir.path, 'images', 'logo1.png')).delete();
+      // Simulate an incomplete blob store, e.g. a bundle copied to another
+      // machine without backups/blobs/.
+      for (final blob in await listBlobs()) {
+        await blob.delete();
+      }
+      await File(p.join(tempDir.path, 'images', 'logo1.png')).delete();
 
-        final result = await BackupService.restoreBackup(b1!);
-        expect(result.ok, isTrue);
-        expect(result.missingImages, 1);
-        expect(
-          await File(p.join(tempDir.path, 'images', 'logo1.png')).exists(),
-          isFalse,
-        );
-      },
-    );
+      final result = await BackupService.restoreBackup(b1!);
+      expect(result.ok, isTrue);
+      expect(result.missingImages, 1);
+      expect(
+        await File(p.join(tempDir.path, 'images', 'logo1.png')).exists(),
+        isFalse,
+      );
+    });
   });
 
   group('legacy v1 bundles', () {
-    test(
-      'inline base64 images restore and traversal keys are rejected',
-      () async {
-        final legacy = {
-          'todo_data.json': '{"dailyTemplates": [], "oneTimeTasks": []}',
-          '_images': {
-            'images/legacy.png': base64Encode([7, 7, 7]),
-            'images/../escape.txt': base64Encode([1]),
-          },
-        };
-        final backupDirPath = Directory(p.join(tempDir.path, 'backups'));
-        await backupDirPath.create(recursive: true);
-        final file = File(
-          p.join(backupDirPath.path, 'backup_20240101_120000.json'),
-        );
-        await file.writeAsString(jsonEncode(legacy));
+    test('inline base64 images restore and traversal keys are rejected',
+        () async {
+      final legacy = {
+        'todo_data.json': '{"dailyTemplates": [], "oneTimeTasks": []}',
+        '_images': {
+          'images/legacy.png': base64Encode([7, 7, 7]),
+          'images/../escape.txt': base64Encode([1]),
+        },
+      };
+      final backupDirPath = Directory(p.join(tempDir.path, 'backups'));
+      await backupDirPath.create(recursive: true);
+      final file = File(
+        p.join(backupDirPath.path, 'backup_20240101_120000.json'),
+      );
+      await file.writeAsString(jsonEncode(legacy));
 
-        final result = await BackupService.restoreBackup(file);
-        expect(result.ok, isTrue);
-        expect(
-          await File(p.join(tempDir.path, 'images', 'legacy.png')).exists(),
-          isTrue,
-        );
-        expect(
-          await File(p.join(tempDir.path, 'escape.txt')).exists(),
-          isFalse,
-        );
-      },
-    );
+      final result = await BackupService.restoreBackup(file);
+      expect(result.ok, isTrue);
+      expect(
+        await File(p.join(tempDir.path, 'images', 'legacy.png')).exists(),
+        isTrue,
+      );
+      expect(
+        await File(p.join(tempDir.path, 'escape.txt')).exists(),
+        isFalse,
+      );
+    });
 
     test('invalid module JSON aborts restore without writing', () async {
-      await writeData(
-        'todo_data.json',
-        '{"dailyTemplates": [], "oneTimeTasks": []}',
-      );
+      await writeData('todo_data.json', '{"dailyTemplates": [], "oneTimeTasks": []}');
       final backupDirPath = Directory(p.join(tempDir.path, 'backups'));
       await backupDirPath.create(recursive: true);
       final file = File(
@@ -207,10 +189,7 @@ void main() {
 
   group('listBackups', () {
     test('marks unparseable bundles as corrupt', () async {
-      await writeData(
-        'todo_data.json',
-        '{"dailyTemplates": [], "oneTimeTasks": []}',
-      );
+      await writeData('todo_data.json', '{"dailyTemplates": [], "oneTimeTasks": []}');
       await BackupService.createBackup();
       final corrupt = File(
         p.join(tempDir.path, 'backups', 'backup_20200101_000000.json'),

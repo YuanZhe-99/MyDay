@@ -34,13 +34,13 @@ class BankPreset {
   /// Side effects: None.
   /// Notes: Use this path when reading the persisted or transferred data format for this type.
   factory BankPreset.fromJson(Map<String, dynamic> json) => BankPreset(
-    id: json['id'] as String,
-    country: json['country'] as String,
-    localTitle: json['localTitle'] as String? ?? json['engTitle'] as String,
-    engTitle: json['engTitle'] as String,
-    color: json['color'] as String? ?? '#888888',
-    domain: json['domain'] as String? ?? '',
-  );
+        id: json['id'] as String,
+        country: json['country'] as String,
+        localTitle: json['localTitle'] as String? ?? json['engTitle'] as String,
+        engTitle: json['engTitle'] as String,
+        color: json['color'] as String? ?? '#888888',
+        domain: json['domain'] as String? ?? '',
+      );
 
   /// Purpose: Return the unique preset key used by the bundled-logo manifest.
   /// Inputs: None.
@@ -91,37 +91,14 @@ class BankPreset {
 
   /// Map country code to default currency.
   static const countryCurrency = <String, String>{
-    'cn': 'CNY',
-    'us': 'USD',
-    'gb': 'GBP',
-    'jp': 'JPY',
-    'tw': 'TWD',
-    'au': 'AUD',
-    'ca': 'CAD',
-    'de': 'EUR',
-    'fr': 'EUR',
-    'nl': 'EUR',
-    'be': 'EUR',
-    'ie': 'EUR',
-    'fi': 'EUR',
-    'pt': 'EUR',
-    'cy': 'EUR',
-    'nz': 'NZD',
-    'in': 'INR',
-    'ru': 'RUB',
-    'tr': 'TRY',
-    'ir': 'IRR',
-    'pl': 'PLN',
-    'dk': 'DKK',
-    'cz': 'CZK',
-    'za': 'ZAR',
-    'ar': 'ARS',
-    'uy': 'UYU',
-    'rs': 'RSD',
-    'ua': 'UAH',
-    'by': 'BYN',
-    'kz': 'KZT',
-    'kg': 'KGS',
+    'cn': 'CNY', 'us': 'USD', 'gb': 'GBP', 'jp': 'JPY',
+    'tw': 'TWD', 'au': 'AUD', 'ca': 'CAD', 'de': 'EUR',
+    'fr': 'EUR', 'nl': 'EUR', 'be': 'EUR', 'ie': 'EUR',
+    'fi': 'EUR', 'pt': 'EUR', 'cy': 'EUR', 'nz': 'NZD',
+    'in': 'INR', 'ru': 'RUB', 'tr': 'TRY', 'ir': 'IRR',
+    'pl': 'PLN', 'dk': 'DKK', 'cz': 'CZK', 'za': 'ZAR',
+    'ar': 'ARS', 'uy': 'UYU', 'rs': 'RSD', 'ua': 'UAH',
+    'by': 'BYN', 'kz': 'KZT', 'kg': 'KGS',
   };
 
   /// Returns the default currency for this bank's country, or null.
@@ -187,11 +164,9 @@ class BankPresetService {
     final q = query.toLowerCase();
     final all = await getAll();
     return all
-        .where(
-          (b) =>
-              b.localTitle.toLowerCase().contains(q) ||
-              b.engTitle.toLowerCase().contains(q),
-        )
+        .where((b) =>
+            b.localTitle.toLowerCase().contains(q) ||
+            b.engTitle.toLowerCase().contains(q))
         .toList();
   }
 }

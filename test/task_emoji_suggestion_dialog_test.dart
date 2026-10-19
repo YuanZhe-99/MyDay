@@ -32,8 +32,8 @@ Future<void> _openDialog(WidgetTester tester, Widget dialog) async {
 /// Side effects: None.
 /// Notes: The chip row renders the same glyph, so chips are excluded explicitly.
 Finder _boxEmoji(String emoji) => find.byWidgetPredicate(
-  (w) => w is Text && w.data == emoji && w.style?.fontSize == 22,
-);
+      (w) => w is Text && w.data == emoji && w.style?.fontSize == 22,
+    );
 
 /// Purpose: Find the chip for `emoji` inside the suggestion row.
 /// Inputs: `emoji`.
@@ -41,9 +41,9 @@ Finder _boxEmoji(String emoji) => find.byWidgetPredicate(
 /// Side effects: None.
 /// Notes: None.
 Finder _chip(String emoji) => find.descendant(
-  of: find.byKey(EmojiSuggestionRow.wrapKey),
-  matching: find.widgetWithText(ChoiceChip, emoji),
-);
+      of: find.byKey(EmojiSuggestionRow.wrapKey),
+      matching: find.widgetWithText(ChoiceChip, emoji),
+    );
 
 /// Purpose: Run the task dialog emoji suggestion widget tests.
 /// Inputs: None.
@@ -51,9 +51,7 @@ Finder _chip(String emoji) => find.descendant(
 /// Side effects: None.
 /// Notes: Covers chip display, auto-fill, the manual-pick stop rule and clearing.
 void main() {
-  testWidgets('typing a title shows chips and auto-fills the icon', (
-    tester,
-  ) async {
+  testWidgets('typing a title shows chips and auto-fills the icon', (tester) async {
     await _openDialog(tester, const AddTaskDialog());
     expect(find.byKey(EmojiSuggestionRow.wrapKey), findsNothing);
 
@@ -91,14 +89,8 @@ void main() {
     expect(_chip('📦'), findsOneWidget);
   });
 
-  testWidgets('editing a task that has an emoji never auto-fills', (
-    tester,
-  ) async {
-    final task = Task(
-      title: 'Old title',
-      emoji: '🎯',
-      type: TaskType.routineOnce,
-    );
+  testWidgets('editing a task that has an emoji never auto-fills', (tester) async {
+    final task = Task(title: 'Old title', emoji: '🎯', type: TaskType.routineOnce);
     await _openDialog(tester, EditTaskDialog(task: task));
 
     await tester.enterText(find.byType(TextField).first, 'buy milk');
@@ -108,9 +100,7 @@ void main() {
     expect(_boxEmoji('🥛'), findsNothing);
   });
 
-  testWidgets('opening an untouched task never auto-fills or dirties it', (
-    tester,
-  ) async {
+  testWidgets('opening an untouched task never auto-fills or dirties it', (tester) async {
     // The title field is autofocused; gaining focus places the cursor, which notifies the
     // controller's listeners without changing the text.
     final task = Task(title: 'buy milk', type: TaskType.routineOnce);
@@ -133,11 +123,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
 
-    await tester.scrollUntilVisible(
-      find.text('❗'),
-      200,
-      scrollable: find.byType(Scrollable).last,
-    );
+    await tester.scrollUntilVisible(find.text('❗'), 200,
+        scrollable: find.byType(Scrollable).last);
     await tester.tap(find.text('❗'));
     await tester.pumpAndSettle();
     expect(_boxEmoji('❗'), findsOneWidget);

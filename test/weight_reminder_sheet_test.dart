@@ -95,49 +95,59 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
   }
 
-  testWidgets('twice-daily reminder sheet renders without overflowing', (
-    tester,
-  ) async {
-    final tempDir = await seedWeightData(tester, 'twice');
-    addTearDown(() => tempDir.delete(recursive: true));
-    await openReminderSheet(tester);
+  testWidgets(
+    'twice-daily reminder sheet renders without overflowing',
+    (tester) async {
+      final tempDir = await seedWeightData(tester, 'twice');
+      addTearDown(() => tempDir.delete(recursive: true));
+      await openReminderSheet(tester);
 
-    // A RenderFlex overflow inside the sheet would already have failed the
-    // pump above; assert the sheet actually opened so this stays meaningful.
-    expect(find.text('Skip if already logged'), findsOneWidget);
-  }, timeout: const Timeout(Duration(seconds: 60)));
+      // A RenderFlex overflow inside the sheet would already have failed the
+      // pump above; assert the sheet actually opened so this stays meaningful.
+      expect(find.text('Skip if already logged'), findsOneWidget);
+    },
+    timeout: const Timeout(Duration(seconds: 60)),
+  );
 
-  testWidgets('grace-window tile is on screen and tappable', (tester) async {
-    final tempDir = await seedWeightData(tester, 'twice');
-    addTearDown(() => tempDir.delete(recursive: true));
-    await openReminderSheet(tester);
+  testWidgets(
+    'grace-window tile is on screen and tappable',
+    (tester) async {
+      final tempDir = await seedWeightData(tester, 'twice');
+      addTearDown(() => tempDir.delete(recursive: true));
+      await openReminderSheet(tester);
 
-    final tile = find.text('Skip if already logged');
-    final tileRect = tester.getRect(tile);
-    final screenHeight =
-        tester.view.physicalSize.height / tester.view.devicePixelRatio;
+      final tile = find.text('Skip if already logged');
+      final tileRect = tester.getRect(tile);
+      final screenHeight =
+          tester.view.physicalSize.height / tester.view.devicePixelRatio;
 
-    expect(
-      tileRect.bottom,
-      lessThanOrEqualTo(screenHeight),
-      reason: 'the grace-window tile must not sit below the viewport',
-    );
-    expect(tileRect.top, greaterThanOrEqualTo(0.0));
+      expect(
+        tileRect.bottom,
+        lessThanOrEqualTo(screenHeight),
+        reason: 'the grace-window tile must not sit below the viewport',
+      );
+      expect(tileRect.top, greaterThanOrEqualTo(0.0));
 
-    // Opens the hours dialog only if the tile is genuinely hit-testable.
-    await tester.tap(tile);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 500));
-    expect(find.text('Hours before reminder'), findsOneWidget);
-  }, timeout: const Timeout(Duration(seconds: 60)));
+      // Opens the hours dialog only if the tile is genuinely hit-testable.
+      await tester.tap(tile);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.text('Hours before reminder'), findsOneWidget);
+    },
+    timeout: const Timeout(Duration(seconds: 60)),
+  );
 
-  testWidgets('grace-window tile shows the configured window', (tester) async {
-    final tempDir = await seedWeightData(tester, 'once');
-    addTearDown(() => tempDir.delete(recursive: true));
-    await openReminderSheet(tester);
+  testWidgets(
+    'grace-window tile shows the configured window',
+    (tester) async {
+      final tempDir = await seedWeightData(tester, 'once');
+      addTearDown(() => tempDir.delete(recursive: true));
+      await openReminderSheet(tester);
 
-    expect(find.text('3 h before reminder'), findsOneWidget);
-  }, timeout: const Timeout(Duration(seconds: 60)));
+      expect(find.text('3 h before reminder'), findsOneWidget);
+    },
+    timeout: const Timeout(Duration(seconds: 60)),
+  );
 }
 
 class _FakePathProvider extends PathProviderPlatform {

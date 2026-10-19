@@ -48,11 +48,8 @@ class PersonCycleOverlay {
 /// Notes: Menstrual days render solid, the fertile window semi-opaque,
 /// follicular/luteal faint; ovulation is a centered dot; actual starts show
 /// a filled leading dot and predicted starts a hollow one.
-Widget buildCycleDayIndicator(
-  Color color,
-  CycleDayInfo? info, {
-  double height = 4,
-}) {
+Widget buildCycleDayIndicator(Color color, CycleDayInfo? info,
+    {double height = 4}) {
   if (info == null) return SizedBox(height: height);
   final double opacity;
   switch (info.phase) {
@@ -115,7 +112,11 @@ class CycleLegend extends StatelessWidget {
   /// Returns: A new `CycleLegend` instance.
   /// Side effects: None.
   /// Notes: Also carries the mandatory estimation disclaimer.
-  const CycleLegend({super.key, required this.people, this.showPeople = true});
+  const CycleLegend({
+    super.key,
+    required this.people,
+    this.showPeople = true,
+  });
 
   /// Purpose: Build the current widget subtree for the active UI state.
   /// Inputs: `context`.

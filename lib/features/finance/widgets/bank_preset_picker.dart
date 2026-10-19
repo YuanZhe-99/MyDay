@@ -41,37 +41,10 @@ const _countryLabels = {
 
 /// Priority order for tabs — most relevant countries first.
 const _countryOrder = [
-  'cn',
-  'jp',
-  'tw',
-  'us',
-  'gb',
-  'au',
-  'ca',
-  'de',
-  'fr',
-  'ru',
-  'in',
-  'tr',
-  'ir',
-  'by',
-  'ua',
-  'nl',
-  'nz',
-  'pl',
-  'pt',
-  'za',
-  'ar',
-  'be',
-  'cz',
-  'dk',
-  'fi',
-  'ie',
-  'kg',
-  'kz',
-  'rs',
-  'uy',
-  'cy',
+  'cn', 'jp', 'tw', 'us', 'gb', 'au', 'ca', 'de', 'fr',
+  'ru', 'in', 'tr', 'ir', 'by', 'ua', 'nl', 'nz', 'pl',
+  'pt', 'za', 'ar', 'be', 'cz', 'dk', 'fi', 'ie', 'kg',
+  'kz', 'rs', 'uy', 'cy',
 ];
 
 /// Shows a bottom sheet for picking a bank / fintech preset.
@@ -133,11 +106,7 @@ class _BankPickerSheetState extends State<_BankPickerSheet> {
   /// Notes: Internal helper used within this file only.
   Future<void> _load() async {
     final grouped = await BankPresetService.instance.groupedByCountry();
-    if (mounted)
-      setState(() {
-        _grouped = grouped;
-        _loading = false;
-      });
+    if (mounted) setState(() { _grouped = grouped; _loading = false; });
   }
 
   /// Purpose: Provide the internal on search helper for this file.
@@ -181,9 +150,8 @@ class _BankPickerSheetState extends State<_BankPickerSheet> {
     final l10n = AppLocalizations.of(context)!;
 
     // Determine which country tabs to show (only those with data).
-    final availableCountries = _countryOrder
-        .where((c) => _grouped.containsKey(c))
-        .toList();
+    final availableCountries =
+        _countryOrder.where((c) => _grouped.containsKey(c)).toList();
 
     return DraggableScrollableSheet(
       expand: false,
@@ -196,12 +164,9 @@ class _BankPickerSheetState extends State<_BankPickerSheet> {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Container(
-              width: 40,
-              height: 4,
+              width: 40, height: 4,
               decoration: BoxDecoration(
-                color: theme.colorScheme.onSurfaceVariant.withValues(
-                  alpha: 0.4,
-                ),
+                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -209,10 +174,8 @@ class _BankPickerSheetState extends State<_BankPickerSheet> {
           // Title
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              l10n.financeBankPresets,
-              style: theme.textTheme.titleMedium,
-            ),
+            child: Text(l10n.financeBankPresets,
+                style: theme.textTheme.titleMedium),
           ),
           const SizedBox(height: 8),
           // Search bar
@@ -225,12 +188,9 @@ class _BankPickerSheetState extends State<_BankPickerSheet> {
                 prefixIcon: const Icon(Icons.search, size: 20),
                 isDense: true,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
+                    borderRadius: BorderRadius.circular(12)),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               ),
               onChanged: _onSearch,
             ),
@@ -246,7 +206,8 @@ class _BankPickerSheetState extends State<_BankPickerSheet> {
                   : ListView.builder(
                       controller: scrollController,
                       itemCount: _searchResults.length,
-                      itemBuilder: (_, i) => _BankTile(bank: _searchResults[i]),
+                      itemBuilder: (_, i) =>
+                          _BankTile(bank: _searchResults[i]),
                     ),
             )
           else
@@ -258,10 +219,8 @@ class _BankPickerSheetState extends State<_BankPickerSheet> {
                     TabBar(
                       isScrollable: true,
                       tabs: availableCountries
-                          .map(
-                            (c) =>
-                                Tab(text: _countryLabels[c] ?? c.toUpperCase()),
-                          )
+                          .map((c) => Tab(
+                              text: _countryLabels[c] ?? c.toUpperCase()))
                           .toList(),
                     ),
                     Expanded(
@@ -271,7 +230,8 @@ class _BankPickerSheetState extends State<_BankPickerSheet> {
                           return ListView.builder(
                             controller: scrollController,
                             itemCount: banks.length,
-                            itemBuilder: (_, i) => _BankTile(bank: banks[i]),
+                            itemBuilder: (_, i) =>
+                                _BankTile(bank: banks[i]),
                           );
                         }).toList(),
                       ),
@@ -288,7 +248,6 @@ class _BankPickerSheetState extends State<_BankPickerSheet> {
 
 class _BankTile extends StatelessWidget {
   final BankPreset bank;
-
   /// Purpose: Create a bank tile instance.
   /// Inputs: `bank`.
   /// Returns: A new `_BankTile` instance.

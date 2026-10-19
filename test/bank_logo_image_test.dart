@@ -29,14 +29,10 @@ BankPreset _preset(String key, {String domain = ''}) {
 /// Side effects: Pumps widgets; loads from the test asset bundle.
 /// Notes: The asset read is real I/O, so it runs inside `runAsync`.
 Future<void> _pump(WidgetTester tester, BankPreset bank) async {
-  await tester.pumpWidget(
-    MaterialApp(
-      home: BankLogoImage(bank: bank, fallback: const Text('fallback')),
-    ),
-  );
-  await tester.runAsync(
-    () => Future<void>.delayed(const Duration(milliseconds: 200)),
-  );
+  await tester.pumpWidget(MaterialApp(
+    home: BankLogoImage(bank: bank, fallback: const Text('fallback')),
+  ));
+  await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
   await tester.pump();
 }
 
@@ -47,26 +43,20 @@ Future<void> _pump(WidgetTester tester, BankPreset bank) async {
 /// Notes: `flutter test` is a Full build, so bundled logos are enabled.
 void main() {
   testWidgets('a bundled SVG logo renders without the network', (tester) async {
-    final key = bankLogoAssets.entries
-        .firstWhere((e) => e.value.endsWith('.svg'))
-        .key;
+    final key = bankLogoAssets.entries.firstWhere((e) => e.value.endsWith('.svg')).key;
     await _pump(tester, _preset(key, domain: 'example.com'));
     expect(find.byType(SvgPicture), findsOneWidget);
     expect(find.text('fallback'), findsNothing);
   });
 
   testWidgets('a bundled PNG logo renders as an image', (tester) async {
-    final key = bankLogoAssets.entries
-        .firstWhere((e) => e.value.endsWith('.png'))
-        .key;
+    final key = bankLogoAssets.entries.firstWhere((e) => e.value.endsWith('.png')).key;
     await _pump(tester, _preset(key));
     expect(find.byType(Image), findsOneWidget);
     expect(find.byType(SvgPicture), findsNothing);
   });
 
-  testWidgets('no bundled logo and no domain shows the fallback', (
-    tester,
-  ) async {
+  testWidgets('no bundled logo and no domain shows the fallback', (tester) async {
     await _pump(tester, _preset('zz/no-such-bank'));
     expect(find.text('fallback'), findsOneWidget);
   });

@@ -59,7 +59,19 @@ class BraSizeEstimate {
 
 const _euCups = ['AA', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 const _ukCups = ['A', 'B', 'C', 'D', 'DD', 'E', 'F', 'FF', 'G', 'GG', 'H'];
-const _usCups = ['A', 'B', 'C', 'D', 'DD/E', 'DDD/F', 'G', 'H', 'I', 'J', 'K'];
+const _usCups = [
+  'A',
+  'B',
+  'C',
+  'D',
+  'DD/E',
+  'DDD/F',
+  'G',
+  'H',
+  'I',
+  'J',
+  'K',
+];
 const _jpCups = ['AAA', 'AA', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 
 /// Purpose: Round an underbust measurement to the nearest 5 cm band value.

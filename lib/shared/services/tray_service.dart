@@ -31,7 +31,6 @@ class TrayService with TrayListener, WindowListener {
   /// Side effects: None.
   /// Notes: None.
   bool get minimizeToTray => _minimizeToTray;
-
   /// Purpose: Return close to tray.
   /// Inputs: None.
   /// Returns: `bool`.
@@ -68,9 +67,8 @@ class TrayService with TrayListener, WindowListener {
   /// Side effects: May read or mutate application state, storage, or service resources.
   /// Notes: Internal helper used within this file only.
   Future<void> _setupTray() async {
-    final iconPath = Platform.isWindows
-        ? 'assets/app_icon.ico'
-        : 'assets/icon/app_icon.png';
+    final iconPath =
+        Platform.isWindows ? 'assets/app_icon.ico' : 'assets/icon/app_icon.png';
     await trayManager.setIcon(iconPath);
     await trayManager.setToolTip('MyDay!!!!!');
     await _rebuildMenu();
@@ -83,13 +81,11 @@ class TrayService with TrayListener, WindowListener {
   /// Notes: Internal helper used within this file only.
   Future<void> _rebuildMenu() async {
     final l10n = lookupAppLocalizations(_locale);
-    final menu = Menu(
-      items: [
-        MenuItem(key: 'show', label: l10n.trayShow),
-        MenuItem.separator(),
-        MenuItem(key: 'quit', label: l10n.trayQuit),
-      ],
-    );
+    final menu = Menu(items: [
+      MenuItem(key: 'show', label: l10n.trayShow),
+      MenuItem.separator(),
+      MenuItem(key: 'quit', label: l10n.trayQuit),
+    ]);
     await trayManager.setContextMenu(menu);
   }
 

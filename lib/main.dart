@@ -66,7 +66,9 @@ void main() async {
   runApp(
     DevicePreview(
       enabled: kDebugMode,
-      builder: (_) => const ProviderScope(child: MyDayApp()),
+      builder: (_) => const ProviderScope(
+        child: MyDayApp(),
+      ),
     ),
   );
 }

@@ -21,18 +21,15 @@ flutter:
     - assets/bank_logos/
     - assets/template_finance.csv
 ''');
-  final logos = Directory(p.join(root.path, bankLogoAssetDir))
-    ..createSync(recursive: true);
+  final logos = Directory(p.join(root.path, bankLogoAssetDir))..createSync(recursive: true);
   File(p.join(logos.path, 'us_chase.svg')).writeAsStringSync('<svg/>');
   File(p.join(logos.path, 'cn_icbc.png')).writeAsBytesSync(List.filled(100, 1));
   File(p.join(root.path, bankLogoManifestPath))
     ..createSync(recursive: true)
-    ..writeAsStringSync(
-      renderBankLogoManifest({
-        'us/chase': 'assets/bank_logos/us_chase.svg',
-        'cn/icbc': 'assets/bank_logos/cn_icbc.png',
-      }),
-    );
+    ..writeAsStringSync(renderBankLogoManifest({
+      'us/chase': 'assets/bank_logos/us_chase.svg',
+      'cn/icbc': 'assets/bank_logos/cn_icbc.png',
+    }));
   return root;
 }
 
@@ -54,17 +51,12 @@ void main() {
     expect(r.pubspecLineRemoved, isTrue);
     expect(r.manifestEmptied, isTrue);
 
-    expect(
-      Directory(p.join(root.path, bankLogoAssetDir)).existsSync(),
-      isFalse,
-    );
+    expect(Directory(p.join(root.path, bankLogoAssetDir)).existsSync(), isFalse);
     final pubspec = File(p.join(root.path, 'pubspec.yaml')).readAsStringSync();
     expect(pubspec, isNot(contains('bank_logos')));
     expect(pubspec, contains('assets/banks.json'));
     expect(pubspec, contains('assets/template_finance.csv'));
-    final manifest = File(
-      p.join(root.path, bankLogoManifestPath),
-    ).readAsStringSync();
+    final manifest = File(p.join(root.path, bankLogoManifestPath)).readAsStringSync();
     expect(manifest, contains('bankLogoAssets = <String, String>{};'));
     expect(bankLogoLeftovers(root), isEmpty);
   });
@@ -85,12 +77,7 @@ void main() {
 
   test('the empty manifest renders as valid, stable Dart', () {
     final source = renderBankLogoManifest(const {}, stripped: true);
-    expect(
-      source,
-      contains(
-        'const Map<String, String> bankLogoAssets = <String, String>{};',
-      ),
-    );
+    expect(source, contains('const Map<String, String> bankLogoAssets = <String, String>{};'));
     expect(renderBankLogoManifest(const {}, stripped: true), source);
   });
 }

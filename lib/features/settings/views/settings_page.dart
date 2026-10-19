@@ -718,7 +718,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
         // On-device AI (v1.5.0): the full rows where a model can exist,
         // otherwise (Windows, Linux) a single note.
-        _buildSection(context, l10n.aiSectionTitle, [const AiSettingsTiles()]),
+        _buildSection(context, l10n.aiSectionTitle, [
+          const AiSettingsTiles(),
+        ]),
 
         // Desktop-only section: tray settings + storage location + API
         if (_isDesktop)

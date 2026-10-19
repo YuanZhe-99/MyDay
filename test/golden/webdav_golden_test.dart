@@ -23,7 +23,8 @@ import '../../packages/myapps_data/test/golden/fake_webdav_server.dart';
 import '../../packages/myapps_data/test/golden/request_recorder.dart';
 
 /// Whether to rewrite goldens instead of verifying them.
-const bool _record = bool.fromEnvironment('GOLDEN_RECORD', defaultValue: false);
+const bool _record =
+    bool.fromEnvironment('GOLDEN_RECORD', defaultValue: false);
 
 /// Fake application-documents provider (pattern from existing app tests).
 class _FakePathProvider extends PathProviderPlatform {
@@ -35,11 +36,11 @@ class _FakePathProvider extends PathProviderPlatform {
 
 /// Fixed WebDAV config pointing at the fake server.
 WebDAVConfig _config() => const WebDAVConfig(
-  serverUrl: 'https://golden.test/dav/files/u',
-  username: 'u',
-  password: 'p',
-  remotePath: '/MyDay',
-);
+      serverUrl: 'https://golden.test/dav/files/u',
+      username: 'u',
+      password: 'p',
+      remotePath: '/MyDay',
+    );
 
 /// A full set of valid per-module data payloads. [overrides] replaces a module.
 Map<String, String> _dataSet({Map<String, String>? overrides}) {
@@ -54,7 +55,7 @@ Map<String, String> _dataSet({Map<String, String>? overrides}) {
           'type': 'routineOnce',
           'createdDate': '2026-01-01T00:00:00.000Z',
           'modifiedAt': ts,
-        },
+        }
       ],
       'settingsModifiedAt': ts,
     }),
@@ -67,7 +68,7 @@ Map<String, String> _dataSet({Map<String, String>? overrides}) {
           'name': 'Checking',
           'currency': 'CNY',
           'modifiedAt': ts,
-        },
+        }
       ],
       'categories': [],
       'transactions': [],
@@ -75,12 +76,14 @@ Map<String, String> _dataSet({Map<String, String>? overrides}) {
       'defaultCurrency': 'CNY',
       'settingsModifiedAt': ts,
     }),
-    'exchange_rates.json': const JsonEncoder.withIndent(
-      '  ',
-    ).convert({'currentSnapshotId': '', 'snapshots': {}, 'lastFetchedAt': ts}),
+    'exchange_rates.json': const JsonEncoder.withIndent('  ').convert({
+      'currentSnapshotId': '',
+      'snapshots': {},
+      'lastFetchedAt': ts,
+    }),
     'intimacy_data.json': const JsonEncoder.withIndent('  ').convert({
       'partners': [
-        {'id': 'partner-1', 'name': 'Partner', 'modifiedAt': ts},
+        {'id': 'partner-1', 'name': 'Partner', 'modifiedAt': ts}
       ],
       'toys': [],
       'positions': [],
@@ -95,7 +98,7 @@ Map<String, String> _dataSet({Map<String, String>? overrides}) {
           'weight': 70.5,
           'datetime': '2026-01-01T08:00:00.000Z',
           'modifiedAt': ts,
-        },
+        }
       ],
       'reminderMode': 'none',
       'settingsModifiedAt': ts,
@@ -162,10 +165,8 @@ void main() {
 
   Future<void> expectGolden(_Sandbox sb, String name) async {
     final file = File(p.join(goldensDir.path, '$name.txt'));
-    final mismatch = await GoldenMatcher(
-      file,
-      record: _record,
-    ).check(sb.transcript());
+    final mismatch =
+        await GoldenMatcher(file, record: _record).check(sb.transcript());
     expect(mismatch, isNull, reason: 'golden "$name" mismatch:\n$mismatch');
   }
 
@@ -179,155 +180,132 @@ void main() {
       final result = await zone(sb, () => WebDAVService.sync(_config()));
       expect(result.success, isTrue, reason: result.error);
       await expectGolden(sb, 'sync_first');
-      expect(
-        sb.server.readText(sb.remote('todo_data.json')),
-        contains('Task One'),
-      );
+      expect(sb.server.readText(sb.remote('todo_data.json')),
+          contains('Task One'));
       await sb.dir.delete(recursive: true);
     });
 
     test('local-only change (upload merged)', () async {
       final sb = await newSandbox();
       final base = _dataSet();
-      final local = _dataSet(
-        overrides: {
-          'weight_data.json': const JsonEncoder.withIndent('  ').convert({
-            'records': [
-              {
-                'id': 'w-1',
-                'weight': 71.0,
-                'datetime': '2026-01-01T08:00:00.000Z',
-                'modifiedAt': '2026-01-03T00:00:00.000Z',
-              },
-              {
-                'id': 'w-2',
-                'weight': 72.0,
-                'datetime': '2026-01-02T08:00:00.000Z',
-                'modifiedAt': '2026-01-03T00:00:00.000Z',
-              },
-            ],
-            'reminderMode': 'none',
-            'settingsModifiedAt': '2026-01-02T00:00:00.000Z',
-          }),
-        },
-      );
+      final local = _dataSet(overrides: {
+        'weight_data.json': const JsonEncoder.withIndent('  ').convert({
+          'records': [
+            {
+              'id': 'w-1',
+              'weight': 71.0,
+              'datetime': '2026-01-01T08:00:00.000Z',
+              'modifiedAt': '2026-01-03T00:00:00.000Z',
+            },
+            {
+              'id': 'w-2',
+              'weight': 72.0,
+              'datetime': '2026-01-02T08:00:00.000Z',
+              'modifiedAt': '2026-01-03T00:00:00.000Z',
+            },
+          ],
+          'reminderMode': 'none',
+          'settingsModifiedAt': '2026-01-02T00:00:00.000Z',
+        }),
+      });
       await sb.writeLocalData(local);
       sb.seedRemote(base);
       await sb.writeBase(base);
       final result = await zone(sb, () => WebDAVService.sync(_config()));
       expect(result.success, isTrue, reason: result.error);
       await expectGolden(sb, 'sync_local_change');
-      expect(
-        sb.server.readText(sb.remote('weight_data.json')),
-        contains('w-2'),
-      );
+      expect(sb.server.readText(sb.remote('weight_data.json')),
+          contains('w-2'));
       await sb.dir.delete(recursive: true);
     });
 
     test('remote-only change (download)', () async {
       final sb = await newSandbox();
       final base = _dataSet();
-      final remote = _dataSet(
-        overrides: {
-          'todo_data.json': const JsonEncoder.withIndent('  ').convert({
-            'dailyTemplates': [],
-            'oneTimeTasks': [
-              {
-                'id': 'task-1',
-                'title': 'Task One',
-                'type': 'routineOnce',
-                'createdDate': '2026-01-01T00:00:00.000Z',
-                'modifiedAt': '2026-01-02T00:00:00.000Z',
-              },
-              {
-                'id': 'task-remote',
-                'title': 'Remote Task',
-                'type': 'routineOnce',
-                'createdDate': '2026-01-01T00:00:00.000Z',
-                'modifiedAt': '2026-01-03T00:00:00.000Z',
-              },
-            ],
-            'settingsModifiedAt': '2026-01-02T00:00:00.000Z',
-          }),
-        },
-      );
+      final remote = _dataSet(overrides: {
+        'todo_data.json': const JsonEncoder.withIndent('  ').convert({
+          'dailyTemplates': [],
+          'oneTimeTasks': [
+            {
+              'id': 'task-1',
+              'title': 'Task One',
+              'type': 'routineOnce',
+              'createdDate': '2026-01-01T00:00:00.000Z',
+              'modifiedAt': '2026-01-02T00:00:00.000Z',
+            },
+            {
+              'id': 'task-remote',
+              'title': 'Remote Task',
+              'type': 'routineOnce',
+              'createdDate': '2026-01-01T00:00:00.000Z',
+              'modifiedAt': '2026-01-03T00:00:00.000Z',
+            },
+          ],
+          'settingsModifiedAt': '2026-01-02T00:00:00.000Z',
+        }),
+      });
       await sb.writeLocalData(base);
       sb.seedRemote(remote);
       await sb.writeBase(base);
       final result = await zone(sb, () => WebDAVService.sync(_config()));
       expect(result.success, isTrue, reason: result.error);
       await expectGolden(sb, 'sync_remote_change');
-      expect(
-        (await sb.dataFile('todo_data.json')).readAsStringSync(),
-        contains('Remote Task'),
-      );
+      expect((await sb.dataFile('todo_data.json')).readAsStringSync(),
+          contains('Remote Task'));
       await sb.dir.delete(recursive: true);
     });
 
     test('true conflict then finalize', () async {
       final sb = await newSandbox();
       final base = _dataSet();
-      final local = _dataSet(
-        overrides: {
-          'weight_data.json': const JsonEncoder.withIndent('  ').convert({
-            'records': [
-              {
-                'id': 'w-1',
-                'weight': 71.0,
-                'datetime': '2026-01-01T08:00:00.000Z',
-                'modifiedAt': '2026-01-05T00:00:00.000Z',
-              },
-            ],
-            'reminderMode': 'none',
-            'settingsModifiedAt': '2026-01-02T00:00:00.000Z',
-          }),
-        },
-      );
-      final remote = _dataSet(
-        overrides: {
-          'weight_data.json': const JsonEncoder.withIndent('  ').convert({
-            'records': [
-              {
-                'id': 'w-1',
-                'weight': 72.0,
-                'datetime': '2026-01-01T08:00:00.000Z',
-                'modifiedAt': '2026-01-06T00:00:00.000Z',
-              },
-            ],
-            'reminderMode': 'none',
-            'settingsModifiedAt': '2026-01-02T00:00:00.000Z',
-          }),
-        },
-      );
+      final local = _dataSet(overrides: {
+        'weight_data.json': const JsonEncoder.withIndent('  ').convert({
+          'records': [
+            {
+              'id': 'w-1',
+              'weight': 71.0,
+              'datetime': '2026-01-01T08:00:00.000Z',
+              'modifiedAt': '2026-01-05T00:00:00.000Z',
+            }
+          ],
+          'reminderMode': 'none',
+          'settingsModifiedAt': '2026-01-02T00:00:00.000Z',
+        }),
+      });
+      final remote = _dataSet(overrides: {
+        'weight_data.json': const JsonEncoder.withIndent('  ').convert({
+          'records': [
+            {
+              'id': 'w-1',
+              'weight': 72.0,
+              'datetime': '2026-01-01T08:00:00.000Z',
+              'modifiedAt': '2026-01-06T00:00:00.000Z',
+            }
+          ],
+          'reminderMode': 'none',
+          'settingsModifiedAt': '2026-01-02T00:00:00.000Z',
+        }),
+      });
       await sb.writeLocalData(local);
       sb.seedRemote(remote);
       await sb.writeBase(base);
 
       final syncResult = await zone(sb, () => WebDAVService.sync(_config()));
-      expect(
-        syncResult.pending,
-        isNotNull,
-        reason: 'both-changed-different must conflict',
-      );
+      expect(syncResult.pending, isNotNull,
+          reason: 'both-changed-different must conflict');
 
       // Resolve: choose the remote record for each conflict id.
       final resolutions = <String, dynamic>{
         for (final c in syncResult.pending!.allConflicts) c.id: c.remoteRecord,
       };
       final fin = await zone(
-        sb,
-        () => WebDAVService.finalizePendingSync(
-          _config(),
-          syncResult.pending!,
-          resolutions,
-        ),
-      );
+          sb,
+          () => WebDAVService.finalizePendingSync(
+              _config(), syncResult.pending!, resolutions));
       expect(fin, isTrue);
       await expectGolden(sb, 'sync_conflict_finalize');
-      expect(
-        sb.server.readText(sb.remote('weight_data.json')),
-        contains('72.0'),
-      );
+      expect(sb.server.readText(sb.remote('weight_data.json')),
+          contains('72.0'));
       await sb.dir.delete(recursive: true);
     });
 
@@ -335,20 +313,14 @@ void main() {
       final sb = await newSandbox();
       await sb.writeLocalData(_dataSet());
       // Remote holds stale content that force upload must overwrite.
-      sb.seedRemote(
-        _dataSet(
-          overrides: {
-            'weight_data.json': '{"records":[],"reminderMode":"none"}',
-          },
-        ),
-      );
+      sb.seedRemote(_dataSet(overrides: {
+        'weight_data.json': '{"records":[],"reminderMode":"none"}',
+      }));
       final result = await zone(sb, () => WebDAVService.forceUpload(_config()));
       expect(result.success, isTrue, reason: result.error);
       await expectGolden(sb, 'force_upload');
       expect(
-        sb.server.readText(sb.remote('weight_data.json')),
-        contains('w-1'),
-      );
+          sb.server.readText(sb.remote('weight_data.json')), contains('w-1'));
       await sb.dir.delete(recursive: true);
     });
 
@@ -356,53 +328,47 @@ void main() {
       final sb = await newSandbox();
       // Local finance account references cover_local.jpg; remote intimacy
       // partner references cover_remote.jpg.
-      final local = _dataSet(
-        overrides: {
-          'finance_data.json': const JsonEncoder.withIndent('  ').convert({
-            'accounts': [
-              {
-                'id': 'acct-1',
-                'type': 'fund',
-                'bankOrApp': 'Bank',
-                'name': 'Checking',
-                'currency': 'CNY',
-                'imagePath': 'cover_local.jpg',
-                'modifiedAt': '2026-01-02T00:00:00.000Z',
-              },
-            ],
-            'categories': [],
-            'transactions': [],
-            'subscriptions': [],
-            'defaultCurrency': 'CNY',
-            'settingsModifiedAt': '2026-01-02T00:00:00.000Z',
-          }),
-        },
-      );
-      final remote = _dataSet(
-        overrides: {
-          'intimacy_data.json': const JsonEncoder.withIndent('  ').convert({
-            'partners': [
-              {
-                'id': 'partner-1',
-                'name': 'Partner',
-                'imagePath': 'cover_remote.jpg',
-                'modifiedAt': '2026-01-02T00:00:00.000Z',
-              },
-            ],
-            'toys': [],
-            'positions': [],
-            'records': [],
-            'timerHistory': [],
-            'settingsModifiedAt': '2026-01-02T00:00:00.000Z',
-          }),
-        },
-      );
+      final local = _dataSet(overrides: {
+        'finance_data.json': const JsonEncoder.withIndent('  ').convert({
+          'accounts': [
+            {
+              'id': 'acct-1',
+              'type': 'fund',
+              'bankOrApp': 'Bank',
+              'name': 'Checking',
+              'currency': 'CNY',
+              'imagePath': 'cover_local.jpg',
+              'modifiedAt': '2026-01-02T00:00:00.000Z',
+            }
+          ],
+          'categories': [],
+          'transactions': [],
+          'subscriptions': [],
+          'defaultCurrency': 'CNY',
+          'settingsModifiedAt': '2026-01-02T00:00:00.000Z',
+        }),
+      });
+      final remote = _dataSet(overrides: {
+        'intimacy_data.json': const JsonEncoder.withIndent('  ').convert({
+          'partners': [
+            {
+              'id': 'partner-1',
+              'name': 'Partner',
+              'imagePath': 'cover_remote.jpg',
+              'modifiedAt': '2026-01-02T00:00:00.000Z',
+            }
+          ],
+          'toys': [],
+          'positions': [],
+          'records': [],
+          'timerHistory': [],
+          'settingsModifiedAt': '2026-01-02T00:00:00.000Z',
+        }),
+      });
       await sb.writeLocalData(local);
       final imgDir = Directory(p.join(sb.appDir, 'images'));
       await imgDir.create(recursive: true);
-      await File(
-        p.join(imgDir.path, 'cover_local.jpg'),
-      ).writeAsBytes([1, 2, 3]);
+      await File(p.join(imgDir.path, 'cover_local.jpg')).writeAsBytes([1, 2, 3]);
       sb.seedRemote(remote);
       sb.server.seed(sb.remote('images/cover_remote.jpg'), [9, 9, 9]);
       await sb.writeBase(local);
@@ -410,10 +376,8 @@ void main() {
       expect(result.success, isTrue, reason: result.error);
       await expectGolden(sb, 'sync_image_add_both_sides');
       expect(sb.server.exists(sb.remote('images/cover_local.jpg')), isTrue);
-      expect(
-        await File(p.join(imgDir.path, 'cover_remote.jpg')).exists(),
-        isTrue,
-      );
+      expect(await File(p.join(imgDir.path, 'cover_remote.jpg')).exists(),
+          isTrue);
       await sb.dir.delete(recursive: true);
     });
   });
