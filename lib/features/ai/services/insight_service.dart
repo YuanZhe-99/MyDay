@@ -32,6 +32,13 @@ class AiInsightRequest {
   /// prompt (v1.5.4). Not part of the fingerprint.
   final InsightFacts? fallbackFacts;
 
+  /// The same facts with anonymous labels instead of names, or null: tried
+  /// once, only after the model refuses [facts] on safety grounds
+  /// (`guardrail`), before [fallbackFacts]. Intimacy passes it since 1.8.1.
+  /// Its `labelNames` turn the labels the answer kept back into names. Not
+  /// part of the fingerprint.
+  final InsightFacts? guardrailFacts;
+
   /// Purpose: Create a request.
   /// Inputs: see fields.
   /// Returns: A new `AiInsightRequest`.
@@ -44,6 +51,7 @@ class AiInsightRequest {
     required this.language,
     required this.now,
     this.fallbackFacts,
+    this.guardrailFacts,
   });
 }
 
@@ -55,6 +63,30 @@ class AiInsightRequest {
 String modelIdentityOf(GenAiStatusReport report) {
   final parts = [?report.variant, ?report.baseModelName];
   return parts.isEmpty ? 'apple' : parts.join(' · ');
+}
+
+/// Purpose: Write anonymous labels in a generated line back as the names
+/// they stand for.
+/// Inputs: `line`; `labelNames` — label (e.g. `partner A`) → name.
+/// Returns: `String` — the line with every label it kept verbatim
+/// (case-insensitive, optionally quoted) replaced by its name.
+/// Side effects: None.
+/// Notes: Longer labels are replaced first so `toy 1` never eats `toy 10`.
+/// A label the model translated (`伴侣A`) is left as it is; the Intimacy
+/// card explains any label still shown in its footnote.
+String restoreLabelNames(String line, Map<String, String> labelNames) {
+  if (labelNames.isEmpty) return line;
+  final labels = labelNames.keys.toList()
+    ..sort((a, b) => b.length.compareTo(a.length));
+  var out = line;
+  for (final label in labels) {
+    final words = label.split(' ').map(RegExp.escape).join(r'\s*');
+    out = out.replaceAllMapped(
+      RegExp('["“「『]?\\b$words\\b(?!\\d)["”」』]?', caseSensitive: false),
+      (_) => labelNames[label]!,
+    );
+  }
+  return out;
 }
 
 /// Purpose: Fingerprint one card request.
@@ -134,7 +166,11 @@ class AiInsightStore extends ChangeNotifier {
           return AiInsightEntry(
             fingerprint: fingerprint,
             lines: [
-              for (final n in numbers) request.language.finish(parsed[n]!),
+              for (final n in numbers)
+                restoreLabelNames(
+                  request.language.finish(parsed[n]!),
+                  facts.labelNames,
+                ),
             ],
             slots: [for (final n in numbers) facts.slots[n - 1].id],
             status: AiInsightStatus.ok,
@@ -198,32 +234,51 @@ class AiInsightStore extends ChangeNotifier {
     );
   }
 
-  /// Purpose: Answer a request, trying its fallback facts once if needed.
+  /// Purpose: Answer a request, trying its guardrail and fallback facts
+  /// when needed.
   /// Inputs: `request`, `force`.
   /// Returns: `Future<(InsightFacts, Map<int, String>)>` — the facts that
   /// were actually answered and the parsed reply, which may be empty.
-  /// Side effects: Runs the model once or twice.
-  /// Notes: Internal helper used within this file only. The fallback runs
-  /// when the first reply is refused (guardrail) or parses to nothing, and
-  /// only when the request carries one that differs from the primary
-  /// facts; retrying identical facts would only repeat the refusal. A
-  /// guardrail on the fallback itself propagates, so it is cached as skipped
-  /// like any other refusal.
+  /// Side effects: Runs the model one to three times.
+  /// Notes: Internal helper used within this file only. A safety refusal
+  /// (`guardrail`) of the primary facts moves to `guardrailFacts` (labels
+  /// instead of names) when the request has them; that variant, or the
+  /// primary when there is none, then falls back to `fallbackFacts` on a
+  /// refusal or a reply that parses to nothing — the one-step rule of
+  /// `generateWithFallback`. An unusable primary reply skips the labelled
+  /// variant: labels would not fix a reply in the wrong shape. A variant whose
+  /// canonical form equals the facts already tried is skipped, since it
+  /// would only repeat the refusal.
   Future<(InsightFacts, Map<int, String>)> _answer(
     AiInsightRequest request,
     bool force,
   ) async {
     final primary = request.facts;
-    final given = request.fallbackFacts;
-    final fallback = given != null && given.canonical() != primary.canonical()
-        ? given
+    InsightFacts? distinct(InsightFacts? f, List<InsightFacts> tried) =>
+        f != null && tried.every((t) => t.canonical() != f.canonical())
+        ? f
         : null;
-    return generateWithFallback(
-      primary: primary,
-      fallback: fallback,
+    final labelled = distinct(request.guardrailFacts, [primary]);
+    Future<(InsightFacts, Map<int, String>)> withFallback(
+      InsightFacts first,
+      List<InsightFacts> tried,
+    ) => generateWithFallback(
+      primary: first,
+      fallback: distinct(request.fallbackFacts, [...tried, first]),
       generate: (facts) => _generateParsed(facts, request.language, force),
       usable: (parsed) => parsed.isNotEmpty,
     );
+    if (labelled == null) return withFallback(primary, const []);
+    try {
+      final parsed = await _generateParsed(primary, request.language, force);
+      if (parsed.isNotEmpty) return (primary, parsed);
+      final plain = distinct(request.fallbackFacts, [primary]);
+      if (plain == null) return (primary, parsed);
+      return (plain, await _generateParsed(plain, request.language, force));
+    } on GenAiException catch (error) {
+      if (error.failure != GenAiFailure.guardrail) rethrow;
+      return withFallback(labelled, [primary]);
+    }
   }
 
   /// Purpose: Clear cache. Inputs: None. Returns: completion. Side effects: Deletes local cache. Notes: Shared invalidation.

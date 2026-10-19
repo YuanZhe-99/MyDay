@@ -6,6 +6,8 @@ _answer 将有限备用执行委托 MyApps-AI v0.3.0 generateWithFallback，保�
 
 `AiInsightStore`，洞察卡片的所有者：它计算每个请求的指纹，指纹匹配时显示已缓存的条目，否则经 [`OnDeviceAiService`](on_device_ai_service.md) 运行端侧模型，解析回复并存入 [`ai_insights.json`](ai_insights_cache.md)，并告诉卡片（[`ai_insight_card.md`](../widgets/ai_insight_card.md)）显示什么。每个模块至多一个生成在运行或等待：期间到达的请求替换待处理的请求，指纹已不再是最新的结果会被丢弃。请求可携带更朴素的 `fallbackFacts`（v1.5.1），当模型拒绝主事实或对其返回无法解析的内容时，存储会把它发送一次。提示与解析来自 [`insight_prompts.md`](insight_prompts.md)；失败代码与状态报告来自 [`genai_backend.md`](genai_backend.md)。见 [端侧 AI — 缓存与指纹](../../../../on-device-ai.md#cache-and-fingerprint)。
 
+自 1.8.1 起，`AiInsightRequest` 带有 `guardrailFacts`：使用匿名标签的同样事实，只在主事实被 `guardrail` 拒绝后、`fallbackFacts` 之前尝试一次（主回复不可用时跳过它）。`_answer` 执行这条链，`answer` 回调在缓存前用所回答事实的 `labelNames` 把每一行交给 `restoreLabelNames`。洞察回复在 `parseInsightReply` 中先经过 MyApps-AI 的 `stripThinking`。
+
 ## 声明
 
 | 声明 | 种类 | Tier | 用途 |
@@ -28,6 +30,7 @@ _answer 将有限备用执行委托 MyApps-AI v0.3.0 generateWithFallback，保�
 | [`clearAll`](#clearall) | 方法（`AiInsightStore`） | A | 忘记所有已生成的洞察。 |
 | `_set` | 私有方法（`AiInsightStore`） | B | 更新一张卡片的状态并通知监听者。 |
 | `aiInsightStoreProvider` | 顶层变量（`Provider`） | B | 基于 `AiInsightStore.instance` 的普通 `Provider`，可在测试中覆盖。 |
+| `restoreLabelNames` | 顶层函数 | A | 把生成句子中原样保留的匿名标签写回为对应名称（1.8.1；先替换较长标签，可带引号，不区分大小写）。 |
 
 `grep -c 'Purpose:' lib/features/ai/services/insight_service.dart` 报告 16，与上面除 `AiInsightPhase` 和 `aiInsightStoreProvider` 之外的十六行匹配。
 

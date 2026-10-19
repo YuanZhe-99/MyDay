@@ -54,7 +54,7 @@ WebDAVConfigPage.build 将通用设置控件委托给 myapps_data。声明数量
 | `lib/features/ai/services/genai_backend.dart` | [features/ai/services/genai_backend.md](features/ai/services/genai_backend.md) | 3 | 0 |
 | `lib/features/ai/services/insight_language.dart` | [features/ai/services/insight_language.md](features/ai/services/insight_language.md) | 3 | 3 |
 | `lib/features/ai/services/insight_prompts.dart` | [features/ai/services/insight_prompts.md](features/ai/services/insight_prompts.md) | 21 | 12 |
-| `lib/features/ai/services/insight_service.dart` | [features/ai/services/insight_service.md](features/ai/services/insight_service.md) | 12 | 0 |
+| `lib/features/ai/services/insight_service.dart` | [features/ai/services/insight_service.md](features/ai/services/insight_service.md) | 13 | 1 |
 | `lib/features/ai/services/on_device_ai_service.dart` | [features/ai/services/on_device_ai_service.md](features/ai/services/on_device_ai_service.md) | 4 | 0 |
 | `lib/features/ai/services/output_validation.dart` | [features/ai/services/output_validation.md](features/ai/services/output_validation.md) | 0 | 0 |
 | `lib/features/ai/widgets/ai_insight_card.dart` | [features/ai/widgets/ai_insight_card.md](features/ai/widgets/ai_insight_card.md) | 11 | 0 |
@@ -71,12 +71,13 @@ WebDAVConfigPage.build 将通用设置控件委托给 myapps_data。声明数量
 | `lib/features/finance/services/bank_preset_service.dart` | [features/finance/services/bank_preset_service.md](features/finance/services/bank_preset_service.md) | 12 | 7 |
 | `lib/features/finance/services/exchange_rate_api.dart` | [features/finance/services/exchange_rate_api.md](features/finance/services/exchange_rate_api.md) | 3 | 3 |
 | `lib/features/finance/services/exchange_rate_storage.dart` | [features/finance/services/exchange_rate_storage.md](features/finance/services/exchange_rate_storage.md) | 18 | 18 |
-| `lib/features/finance/services/finance_insight_facts.dart` | [features/finance/services/finance_insight_facts.md](features/finance/services/finance_insight_facts.md) | 3 | 1 |
+| `lib/features/finance/services/finance_analysis_insight_facts.dart` | [features/finance/services/finance_analysis_insight_facts.md](features/finance/services/finance_analysis_insight_facts.md) | 5 | 1 |
+| `lib/features/finance/services/finance_insight_facts.dart` | [features/finance/services/finance_insight_facts.md](features/finance/services/finance_insight_facts.md) | 5 | 1 |
 | `lib/features/finance/services/finance_storage.dart` | [features/finance/services/finance_storage.md](features/finance/services/finance_storage.md) | 12 | 11 |
 | `lib/features/finance/services/subscription_processor.dart` | [features/finance/services/subscription_processor.md](features/finance/services/subscription_processor.md) | 7 | 5 |
 | `lib/features/finance/services/subscription_summary.dart` | [features/finance/services/subscription_summary.md](features/finance/services/subscription_summary.md) | 7 | 3 |
 | `lib/features/finance/views/accounts_page.dart` | [features/finance/views/accounts_page.md](features/finance/views/accounts_page.md) | 64 | 23 |
-| `lib/features/finance/views/analysis_page.dart` | [features/finance/views/analysis_page.md](features/finance/views/analysis_page.md) | 34 | 18 |
+| `lib/features/finance/views/analysis_page.dart` | [features/finance/views/analysis_page.md](features/finance/views/analysis_page.md) | 35 | 18 |
 | `lib/features/finance/views/categories_page.dart` | [features/finance/views/categories_page.md](features/finance/views/categories_page.md) | 22 | 5 |
 | `lib/features/finance/views/category_detail_page.dart` | [features/finance/views/category_detail_page.md](features/finance/views/category_detail_page.md) | 14 | 4 |
 | `lib/features/finance/views/exchange_rates_page.dart` | [features/finance/views/exchange_rates_page.md](features/finance/views/exchange_rates_page.md) | 19 | 9 |
@@ -97,11 +98,11 @@ WebDAVConfigPage.build 将通用设置控件委托给 myapps_data。声明数量
 | `lib/features/intimacy/models/intimacy_record.dart` | [features/intimacy/models/intimacy_record.md](features/intimacy/models/intimacy_record.md) | 45 | 45 |
 | `lib/features/intimacy/services/body_metrics.dart` | [features/intimacy/services/body_metrics.md](features/intimacy/services/body_metrics.md) | 8 | 7 |
 | `lib/features/intimacy/services/cycle_predictor.dart` | [features/intimacy/services/cycle_predictor.md](features/intimacy/services/cycle_predictor.md) | 16 | 7 |
-| `lib/features/intimacy/services/intimacy_insight_facts.dart` | [features/intimacy/services/intimacy_insight_facts.md](features/intimacy/services/intimacy_insight_facts.md) | 16 | 9 |
+| `lib/features/intimacy/services/intimacy_insight_facts.dart` | [features/intimacy/services/intimacy_insight_facts.md](features/intimacy/services/intimacy_insight_facts.md) | 21 | 10 |
 | `lib/features/intimacy/services/intimacy_storage.dart` | [features/intimacy/services/intimacy_storage.md](features/intimacy/services/intimacy_storage.md) | 7 | 6 |
 | `lib/features/intimacy/utils/thrust_timeline.dart` | [features/intimacy/utils/thrust_timeline.md](features/intimacy/utils/thrust_timeline.md) | 17 | 8 |
 | `lib/features/intimacy/views/body_page.dart` | [features/intimacy/views/body_page.md](features/intimacy/views/body_page.md) | 4 | 0 |
-| `lib/features/intimacy/views/intimacy_page.dart` | [features/intimacy/views/intimacy_page.md](features/intimacy/views/intimacy_page.md) | 186 | 60 |
+| `lib/features/intimacy/views/intimacy_page.dart` | [features/intimacy/views/intimacy_page.md](features/intimacy/views/intimacy_page.md) | 188 | 60 |
 | `lib/features/intimacy/views/record_detail_page.dart` | [features/intimacy/views/record_detail_page.md](features/intimacy/views/record_detail_page.md) | 19 | 4 |
 | `lib/features/intimacy/widgets/add_record_dialog.dart` | [features/intimacy/widgets/add_record_dialog.md](features/intimacy/widgets/add_record_dialog.md) | 9 | 2 |
 | `lib/features/intimacy/widgets/body_section.dart` | [features/intimacy/widgets/body_section.md](features/intimacy/widgets/body_section.md) | 35 | 18 |
@@ -138,7 +139,7 @@ WebDAVConfigPage.build 将通用设置控件委托给 myapps_data。声明数量
 | `lib/features/todo/constants/emoji_keywords.dart` | [features/todo/constants/emoji_keywords.md](features/todo/constants/emoji_keywords.md) | 3 | 2 |
 | `lib/features/todo/constants/task_emojis.dart` | [features/todo/constants/task_emojis.md](features/todo/constants/task_emojis.md) | 1 | 1 |
 | `lib/features/todo/models/task.dart` | [features/todo/models/task.md](features/todo/models/task.md) | 38 | 37 |
-| `lib/features/todo/services/todo_insight_facts.dart` | [features/todo/services/todo_insight_facts.md](features/todo/services/todo_insight_facts.md) | 7 | 4 |
+| `lib/features/todo/services/todo_insight_facts.dart` | [features/todo/services/todo_insight_facts.md](features/todo/services/todo_insight_facts.md) | 8 | 5 |
 | `lib/features/todo/services/todo_storage.dart` | [features/todo/services/todo_storage.md](features/todo/services/todo_storage.md) | 57 | 56 |
 | `lib/features/todo/utils/emoji_suggester.dart` | [features/todo/utils/emoji_suggester.md](features/todo/utils/emoji_suggester.md) | 9 | 5 |
 | `lib/features/todo/views/todo_page.dart` | [features/todo/views/todo_page.md](features/todo/views/todo_page.md) | 74 | 34 |
@@ -153,7 +154,7 @@ WebDAVConfigPage.build 将通用设置控件委托给 myapps_data。声明数量
 | 源文件 | 页面 | 声明数 | Tier A |
 |---|---|---|---|
 | `lib/features/weight/models/weight_record.dart` | [features/weight/models/weight_record.md](features/weight/models/weight_record.md) | 13 | 13 |
-| `lib/features/weight/services/weight_insight_facts.dart` | [features/weight/services/weight_insight_facts.md](features/weight/services/weight_insight_facts.md) | 7 | 7 |
+| `lib/features/weight/services/weight_insight_facts.dart` | [features/weight/services/weight_insight_facts.md](features/weight/services/weight_insight_facts.md) | 8 | 8 |
 | `lib/features/weight/services/weight_storage.dart` | [features/weight/services/weight_storage.md](features/weight/services/weight_storage.md) | 6 | 5 |
 | `lib/features/weight/views/weight_page.dart` | [features/weight/views/weight_page.md](features/weight/views/weight_page.md) | 73 | 33 |
 
@@ -203,17 +204,17 @@ WebDAVConfigPage.build 将通用设置控件委托给 myapps_data。声明数量
 |---|---|---|---|---|
 | 根（`lib/`） | 1 | 1 | 1 | 0 |
 | `app/` | 5 | 30 | 25 | 5 |
-| `features/ai/` | 11 | 77 | 22 | 55 |
-| `features/finance/` | 25 | 421 | 205 | 216 |
-| `features/intimacy/` | 15 | 438 | 210 | 228 |
+| `features/ai/` | 11 | 78 | 23 | 55 |
+| `features/finance/` | 26 | 429 | 206 | 223 |
+| `features/intimacy/` | 15 | 445 | 211 | 234 |
 | `features/profile/` | 8 | 65 | 30 | 35 |
 | `features/settings/` | 3 | 37 | 8 | 29 |
-| `features/todo/` | 12 | 240 | 152 | 88 |
-| `features/weight/` | 4 | 99 | 58 | 41 |
+| `features/todo/` | 12 | 241 | 153 | 88 |
+| `features/weight/` | 4 | 100 | 59 | 41 |
 | `shared/` | 32 | 403 | 280 | 123 |
-| **总计** | **113** | **1865** | **1037** | **828** |
+| **总计** | **117** | **1821** | **992** | **829** |
 
 这里的每行都是上面逐文件行的算术和，在 v1.5.0 中重新派生，并按 v1.5.1 至 v1.5.5 触及的页面调整（v1.5.2 新增了 `id_list_delta.md`；v1.5.3 和 v1.5.4 扩充了体重和亲密的洞察事实页；v1.5.5 新增了 `thrust_timeline.md`、`record_detail_page.md` 和 `thrust_timeline_chart.md`，扩充了 `intimacy_record.md`、`intimacy_page.md`、`timer_page.md` 和 `adaptive_layout.md`，并更正了 `adaptive_layout.md` 的对账说明——它曾声称 17 个 `Purpose:` 块和 56 行，而文件实际是 16 和 55）。文件计数也与 `find lib -name '*.dart' -not -path 'lib/l10n/*'` 完全匹配——113 个源文件、113 个页面，没有无页面的文件，也没有无文件的页面。1.6.0 又新增了六个 `features/profile/` 页面和 `status_colors.md`，并扩充了 `theme.md`、`data_modules.md`、`shell_scaffold.md`、`app_settings.md`、`todo_storage.md` 和 `settings_page.md`。
 
 1.6.1 又新增了 `avatar_image.md` 和 `avatar_editor.md`，并扩充了 `shell_scaffold.md`、`adaptive_layout.md`、`app_settings.md`、`todo_storage.md`、`settings_page.md`、`profile_store.md`、`profile_provider.md` 和 `profile_header.md`：`grep` 计数现为 1795，对应 113 页中的 1865 个表行，每个源文件一页。
-当前逐文件表合计：116 个文件、1819 个声明（Tier A 987，Tier B 832）。
+当前逐文件表合计：117 个文件、1821 个声明（Tier A 992，Tier B 829）。

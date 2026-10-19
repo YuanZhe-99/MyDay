@@ -179,7 +179,8 @@ Not copied to the other repos — no other app has these.
 | quoted term | 引用词 | user-typed words ignored by the reply script check |
 | fallback facts | 回退事实 | the plainer facts a card sends once when the model declines the titled ones |
 | regenerate | 重新生成 | the card's refresh button |
-| anonymous label | 匿名标签 | Intimacy card: `partner A`, `toy 1`, `position 1` sent instead of a name, ranked by use (v1.5.3) |
+| anonymous label | 匿名标签 | Intimacy card: `partner A`, `toy 1`, `position 1`, ranked by use; sent instead of names until 1.8.0, since 1.8.1 only after a guardrail refusal of the named facts |
+| label legend | 代号对照 | Intimacy card footnote `Partner A = …` explaining a label still shown (1.8.1) |
 | position (Intimacy) | 姿势 | a recorded sex position; the Chinese docs use 姿势, not 体位 |
 | weak linking | 弱链接 | FoundationModels is linked with `LC_LOAD_WEAK_DYLIB` |
 | merge-by-id (sub-page save) | 按 id 合并（子页面保存） | Finance/Intimacy: a sub-page's list edits replayed onto a fresh read of the file (`IdListDelta`, v1.5.2) |

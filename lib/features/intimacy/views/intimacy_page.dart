@@ -624,6 +624,54 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
     );
   }
 
+  /// Purpose: Build the Intimacy card's facts with anonymous labels.
+  /// Inputs: `now` — local time.
+  /// Returns: `InsightFacts?` — the labelled variant, carrying the
+  /// label-to-name map.
+  /// Side effects: None.
+  /// Notes: Sent only after the model refuses the named facts on safety
+  /// grounds; also read by [_intimacyFootnote] to explain a label the model
+  /// translated (1.8.1).
+  InsightFacts? _labelledInsightFacts(DateTime now) =>
+      buildIntimacyInsightFacts(
+        now: now,
+        records: _records,
+        userBody: _userBody,
+        cycleRecords: _cycleRecords,
+        weightRecords: _weightRecordsForInsight,
+        partners: _partners,
+        toys: _toys,
+        positions: _positions,
+        chartSettings: _chartSettings,
+        useNames: false,
+      );
+
+  /// Purpose: Build the Intimacy card's footnote.
+  /// Inputs: `l10n`.
+  /// Returns: `String?` — the cycle disclaimer when cycle tracking is on,
+  /// and a `Partner A = …` legend for any label still in the shown answer.
+  /// Side effects: Reads the insight store's state.
+  /// Notes: Labels kept verbatim are already written back as names; the
+  /// legend covers translated ones, so the card never shows an unexplained
+  /// label.
+  String? _intimacyFootnote(AppLocalizations l10n) {
+    final entry = ref
+        .read(aiInsightStoreProvider)
+        .stateOf(InsightModule.intimacy)
+        .entry;
+    final labelled = entry == null || entry.lines.isEmpty
+        ? null
+        : _labelledInsightFacts(DateTime.now());
+    final legend = labelled == null
+        ? null
+        : intimacyLabelLegend(entry!.lines, labelled.labelNames);
+    final parts = [
+      if (_userBody?.cycleEnabled == true) l10n.aiEstimateDisclaimer,
+      ?legend,
+    ];
+    return parts.isEmpty ? null : parts.join('\n');
+  }
+
   /// Purpose: Build the current widget subtree for the active UI state.
   /// Inputs: `context`.
   /// Returns: The widget tree for the current state.
@@ -780,57 +828,61 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
                 // where a model can exist, so the chart pane's divider and
                 // spacing are unchanged otherwise.
                 if (platformMayHaveOnDeviceModel && settings.onDeviceAiEnabled)
-                  AiInsightCard(
-                    module: InsightModule.intimacy,
-                    footnote: _userBody?.cycleEnabled == true
-                        ? l10n.aiEstimateDisclaimer
-                        : null,
-                    sections: [
-                      AiInsightSection(l10n.aiIntimacyTrend, const {
-                        'trend',
-                        'chart',
-                        'advice',
-                      }),
-                      AiInsightSection(l10n.aiIntimacyPartners, const {
-                        'partners',
-                      }),
-                      AiInsightSection(l10n.aiIntimacyBody, const {'body'}),
-                    ],
-                    buildRequest: (language, now) {
-                      // The page is unreachable while the module is hidden;
-                      // this is belt and braces.
-                      if (!ref.read(intimacyVisibilityProvider).visible) {
-                        return null;
-                      }
-                      final facts = buildIntimacyInsightFacts(
-                        now: now,
-                        records: _records,
-                        userBody: _userBody,
-                        cycleRecords: _cycleRecords,
-                        weightRecords: _weightRecordsForInsight,
-                        partners: _partners,
-                        toys: _toys,
-                        positions: _positions,
-                        chartSettings: _chartSettings,
-                      );
-                      // A refusal or an empty answer retries once with the
-                      // v1.5.2 prompt before the card says declined (v1.5.4).
-                      final plain = buildIntimacyFallbackInsightFacts(
-                        now: now,
-                        records: _records,
-                        userBody: _userBody,
-                        cycleRecords: _cycleRecords,
-                        weightRecords: _weightRecordsForInsight,
-                      );
-                      return facts == null
-                          ? null
-                          : AiInsightRequest(
-                              facts: facts,
-                              language: language,
-                              now: now,
-                              fallbackFacts: plain,
-                            );
-                    },
+                  ListenableBuilder(
+                    listenable: ref.read(aiInsightStoreProvider),
+                    builder: (context, _) => AiInsightCard(
+                      module: InsightModule.intimacy,
+                      footnote: _intimacyFootnote(l10n),
+                      sections: [
+                        AiInsightSection(l10n.aiIntimacyTrend, const {
+                          'trend',
+                          'chart',
+                          'advice',
+                        }),
+                        AiInsightSection(l10n.aiIntimacyPartners, const {
+                          'partners',
+                        }),
+                        AiInsightSection(l10n.aiIntimacyBody, const {'body'}),
+                      ],
+                      buildRequest: (language, now) {
+                        // The page is unreachable while the module is hidden;
+                        // this is belt and braces.
+                        if (!ref.read(intimacyVisibilityProvider).visible) {
+                          return null;
+                        }
+                        final facts = buildIntimacyInsightFacts(
+                          now: now,
+                          records: _records,
+                          userBody: _userBody,
+                          cycleRecords: _cycleRecords,
+                          weightRecords: _weightRecordsForInsight,
+                          partners: _partners,
+                          toys: _toys,
+                          positions: _positions,
+                          chartSettings: _chartSettings,
+                        );
+                        // A refusal or an empty answer retries once with the
+                        // v1.5.2 prompt before the card says declined (v1.5.4).
+                        final plain = buildIntimacyFallbackInsightFacts(
+                          now: now,
+                          records: _records,
+                          userBody: _userBody,
+                          cycleRecords: _cycleRecords,
+                          weightRecords: _weightRecordsForInsight,
+                        );
+                        return facts == null
+                            ? null
+                            : AiInsightRequest(
+                                facts: facts,
+                                language: language,
+                                now: now,
+                                fallbackFacts: plain,
+                                // Names refused on safety grounds: retry with
+                                // labels, written back as names (1.8.1).
+                                guardrailFacts: _labelledInsightFacts(now),
+                              );
+                      },
+                    ),
                   ),
               ],
               recordBlocks: [

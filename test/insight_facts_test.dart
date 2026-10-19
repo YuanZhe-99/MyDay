@@ -443,7 +443,9 @@ void main() {
       expect(plain.slots.map((s) => s.id), ['trend', 'advice']);
       expect(
         plain.slots.last.ask,
-        'One gentle, practical suggestion based on the trend.',
+        'Give one specific, non-medical habit or weigh-in consistency '
+        'suggestion tailored to the current trend and recent weigh-in '
+        'frequency.',
       );
       final full = buildWeightInsightFacts(
         now: now,
@@ -522,7 +524,9 @@ void main() {
       List<Toy>? ts,
       List<Position>? pos,
       IntimacyChartSettings chart = const IntimacyChartSettings(),
+      bool useNames = true,
     }) => buildIntimacyInsightFacts(
+      useNames: useNames,
       now: now,
       records: rs ?? records,
       userBody: userBody,
@@ -534,17 +538,69 @@ void main() {
       chartSettings: chart,
     );
 
+    test('names partners, toys and positions, nothing else identifying', () {
+      final facts = build()!;
+      final prompt = insightPrompt(facts);
+      for (final secret in ['SECRET', '99', '777', '🦊', 'partner A']) {
+        expect(prompt, isNot(contains(secret)), reason: secret);
+      }
+      final text = facts.lines.join('\n');
+      expect(text, contains('Alice-NAME 1 entries, average rating 4'));
+      expect(text, contains('Wand-NAME 1 times, average rating'));
+      expect(text, contains('Pos-NAME 1 times, average rating'));
+      expect(
+        facts.quotedTerms,
+        containsAll(['Alice-NAME', 'Wand-NAME', 'Pos-NAME']),
+      );
+      expect(facts.labelNames, isEmpty);
+    });
+
+    test('equal names are told apart', () {
+      final twins = [
+        Partner(id: 'p1', name: 'Sam'),
+        Partner(id: 'p2', name: 'Sam'),
+      ];
+      final facts = build(
+        ps: twins,
+        rs: [
+          for (final (i, id) in ['p1', 'p2'].indexed)
+            IntimacyRecord(
+              type: 'Regular',
+              partnerId: id,
+              pleasureLevel: 3,
+              duration: Duration.zero,
+              datetime: DateTime(2026, 9, 20 + i),
+            ),
+        ],
+      )!;
+      final line = facts.lines.singleWhere(
+        (l) => l.startsWith('- Partners in the last 90 days'),
+      );
+      expect(line, contains('Sam 1 entries'));
+      expect(line, contains('Sam 2 1 entries'));
+    });
+
     test('statistics with anonymous labels, nothing identifying', () {
       final facts = build(
         cycles: [CycleRecord(date: '2026-09-10')],
         weights: [
           WeightRecord(weight: 55, bustCm: 85, datetime: DateTime(2026, 9, 1)),
         ],
+        useNames: false,
       )!;
       final prompt = insightPrompt(facts);
       for (final secret in ['SECRET', 'NAME', '99', '777', '🦊']) {
         expect(prompt, isNot(contains(secret)), reason: secret);
       }
+      expect(facts.labelNames, {
+        'partner A': 'Alice-NAME',
+        'toy 1': 'Wand-NAME',
+        'position 1': 'Pos-NAME',
+      });
+      expect(
+        facts.slots.singleWhere((s) => s.id == 'partners').ask,
+        contains('refer to each only by its label'),
+      );
       final text = facts.lines.join('\n');
       expect(text, contains('Last 30 days: 1 entries (1 with a partner'));
       expect(text, contains('average length 20 min'));

@@ -2,14 +2,16 @@
 
 洞察卡片的词汇与措辞：哪张卡片（`InsightModule`）、Todo 的时段、纯事实构建器产出的 `InsightFacts`、带版本的系统指令与提示、把模型的 `<number>: <sentence>` 回复转为已校验行的解析器，以及事实构建器使用的小型格式化函数（使指纹不随浮点噪声变化）。事实构建器为 [`todo_insight_facts.md`](../../todo/services/todo_insight_facts.md)、[`finance_insight_facts.md`](../../finance/services/finance_insight_facts.md)、[`weight_insight_facts.md`](../../weight/services/weight_insight_facts.md) 和 [`intimacy_insight_facts.md`](../../intimacy/services/intimacy_insight_facts.md)；消费方为 [`insight_service.md`](insight_service.md)；行校验来自 [`output_validation.md`](output_validation.md)。见 [端侧 AI — 每张卡片获得什么](../../../../on-device-ai.md#what-each-card-is-given) 和 [缓存与指纹](../../../../on-device-ai.md#cache-and-fingerprint)。
 
+自 1.8.1（提示词版本 4）起，`insightInstructions` 把模型设定为分析型助手，绝不复述屏幕上已有的次数或合计，而是提炼关键变化、瓶颈或关联并配上具体的下一步；`InsightFacts` 新增 `labelNames`（亲密带标签变体的标签→名称映射，不进入规范形式）；`parseInsightReply` 先用 MyApps-AI 的 `stripThinking` 去掉推理块。
+
 ## 声明
 
 | 声明 | 种类 | Tier | 用途 |
 |---|---|---|---|
-| `insightPromptVersion` | 顶层常量（`int`） | B | 提示版本 `3`（v1.5.3；自 v1.5.1 起为 `2`），属于每个指纹；措辞或构建器输出改变时递增。 |
+| `insightPromptVersion` | 顶层常量（`int`） | B | 提示版本 `4`（1.8.1；自 v1.5.3 起为 `3`，自 v1.5.1 起为 `2`），属于每个指纹；措辞或构建器输出改变时递增。 |
 | `insightLineMaxLength` | 顶层常量（`int`） | B | `200`：保留行的最大长度（字符）；更长的行被丢弃（v1.5.1 之前为 `160`）。 |
 | `insightMaxOutputTokens` | 顶层常量（`int`） | B | `520`：一张卡片的输出预算，按亲密卡片的五个槽位确定（v1.5.3 之前为 `400`，v1.5.1 之前为 `320`）。 |
-| `InsightModule`（枚举） | 枚举 | B | `todo` / `finance` / `weight` / `intimacy`；名称即 `ai_insights.json` 中的键。 |
+| `InsightModule`（枚举） | 枚举 | B | `todo` / `finance` / `weight` / `intimacy` / `financeAnalysis`（1.8.1）；名称即 `ai_insights.json` 中的键。 |
 | `InsightTimeBucket`（枚举） | 枚举 | B | `none` / `morning` / `afternoon` / `evening`；只有 Todo 使用 `none` 以外的值。 |
 | [`todoBucketFor`](#todobucketfor) | 顶层函数 | A | 为本地时间选择 Todo 卡片的时段。 |
 | [`InsightSlot`（构造函数）](#insightslot-new) | const 构造函数（`InsightSlot`） | A | 创建一个编号请求。 |

@@ -45,6 +45,8 @@ Since v1.5.5 tapping a record tile — on the home page or on a partner/toy deta
 `_RecordTile` gained an `onTap` for it, and both `_editRecord` methods return the saved record so
 the detail page can show an edit in place. Swipe-to-edit and swipe-to-delete are unchanged.
 
+Since 1.8.1 the insight card sits in a `ListenableBuilder` on the insight store so its footnote (`_intimacyFootnote`) follows the shown answer, and the request carries `guardrailFacts` from `_labelledInsightFacts`.
+
 ## Declarations
 
 | Declaration | Kind | Tier | Purpose |
@@ -235,6 +237,8 @@ the detail page can show an edit in place. Swipe-to-edit and swipe-to-delete are
 | `_DatePickerTile.build` | method (widget) | B | Render a labeled tappable date field. |
 | `_IntimacyBody({...})` | constructor (`_IntimacyBody`) | B | Create the intimacy body arranger. |
 | [`build`](#intimacybody-build) | method (`_IntimacyBody`) | A | Stack calendar, chart and records, or put the calendar and chart in a pane beside the records. |
+| `_labelledInsightFacts` | method (`_IntimacyPageState`) | B | Build the labelled variant of the Intimacy facts (`useNames: false`) for `guardrailFacts` and the footnote legend (1.8.1). |
+| `_intimacyFootnote` | method (`_IntimacyPageState`) | B | The card footnote: the cycle disclaimer and a `Partner A = …` legend for labels still shown (1.8.1). |
 
 **Row count reconciliation:** 186 rows above, matching `grep -c '/// Purpose:'` = 186 exactly (60
 Tier A, 126 Tier B). v1.5.5 added two Tier A rows, one `_openRecordDetail` in each of

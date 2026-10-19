@@ -71,6 +71,83 @@ String _bmiBand(double bmi) {
   );
 }
 
+/// Purpose: Name how the last week's weight movement relates to the longer
+/// trend.
+/// Inputs: `sorted` — records oldest first, none after `now`; `now`.
+/// Returns: `String?` — e.g. `accelerating loss (7 days -1.2 kg, about
+/// -1.2 kg per week; 30 days -2 kg, about -0.5 kg per week)`, or null
+/// without two weigh-ins in the last 7 days.
+/// Side effects: None.
+/// Notes: Worked out in Dart (1.8.1) because a small model cannot compare
+/// rates reliably. Windows start at local midnight so the line does not
+/// change during the day. Rates are per week over the time actually spanned
+/// by the weigh-ins in the window. Under 0.3 kg in 7 days is a plateau when
+/// the 30-day (else 90-day) change is at least 1 kg, a fluctuation when the
+/// last 7 days' weigh-ins span 1 kg or more, and stable otherwise. A larger
+/// move against a longer change of 0.5 kg or more is a reversal; in its
+/// direction it is accelerating above 1.5 times the longer weekly rate,
+/// slowing below half of it, and steady in between; with no clear longer
+/// change it is a new movement.
+String? weightTrendPattern(List<WeightRecord> sorted, DateTime now) {
+  final today = DateTime(now.year, now.month, now.day);
+  ({double delta, double perWeek})? window(int days) {
+    final from = DateTime(today.year, today.month, today.day - days);
+    final points = sorted
+        .where((r) => !r.datetime.isBefore(from) && !r.datetime.isAfter(now))
+        .toList();
+    if (points.length < 2) return null;
+    final delta = points.last.weight - points.first.weight;
+    final span =
+        points.last.datetime.difference(points.first.datetime).inHours / 24;
+    return (delta: delta, perWeek: delta / (span < 1 ? 1 : span) * 7);
+  }
+
+  final week = window(7);
+  if (week == null) return null;
+  final long = window(30) ?? window(90);
+  final longDays = window(30) != null ? 30 : 90;
+  String describe(String label, ({double delta, double perWeek}) w) =>
+      '$label ${_signed(w.delta)} kg, about ${_signed(w.perWeek)} kg per week';
+  final detail = [
+    describe('7 days', week),
+    if (long != null) describe('$longDays days', long),
+  ].join('; ');
+  final String kind;
+  if (week.delta.abs() < 0.3) {
+    final from = DateTime(today.year, today.month, today.day - 7);
+    final ws = sorted
+        .where((r) => !r.datetime.isBefore(from) && !r.datetime.isAfter(now))
+        .map((r) => r.weight);
+    final spread =
+        ws.reduce((a, b) => a > b ? a : b) - ws.reduce((a, b) => a < b ? a : b);
+    if (long != null && long.delta.abs() >= 1) {
+      kind =
+          'plateau after a $longDays-day ${long.delta < 0 ? 'loss' : 'gain'}';
+    } else if (spread >= 1) {
+      kind = 'short-term fluctuation';
+    } else {
+      kind = 'stable';
+    }
+  } else {
+    final direction = week.delta < 0 ? 'loss' : 'gain';
+    if (long == null || long.delta.abs() < 0.5) {
+      kind = 'new short-term $direction';
+    } else if ((long.delta < 0) != (week.delta < 0)) {
+      kind =
+          'reversal against the $longDays-day '
+          '${long.delta < 0 ? 'loss' : 'gain'}';
+    } else {
+      final ratio = week.perWeek.abs() / long.perWeek.abs();
+      kind = ratio > 1.5
+          ? 'accelerating $direction'
+          : ratio < 0.5
+          ? 'slowing $direction'
+          : 'steady $direction';
+    }
+  }
+  return '$kind ($detail)';
+}
+
 /// Purpose: Build the Weight card's facts.
 /// Inputs: `now` — local time; `heightCm`; `records`.
 /// Returns: `InsightFacts?` — null without records. Slots `trend`, `body`
@@ -140,6 +217,8 @@ InsightFacts? _weightFacts(
     final change = _change(sorted, now, days);
     if (change != null) lines.add('- Change: $change');
   }
+  final pattern = weightTrendPattern(sorted, now);
+  if (pattern != null) lines.add('- Trend pattern: $pattern');
   final recent = sorted.length > 7 ? sorted.sublist(sorted.length - 7) : sorted;
   if (recent.length >= 2) {
     final ws = recent.map((r) => r.weight);
@@ -213,24 +292,25 @@ InsightFacts? _weightFacts(
     bucket: InsightTimeBucket.none,
     lines: lines,
     slots: [
-      const InsightSlot('trend', 'Describe the weight trend.'),
+      const InsightSlot(
+        'trend',
+        'Interpret whether the 7-day weight movement is a steady trend, a '
+            'plateau, or short-term fluctuation compared with the 30- and '
+            '90-day changes.',
+      ),
       if (detailed && hasBody)
         const InsightSlot(
           'body',
-          'Sum up the body condition neutrally: BMI, body fat and '
-              'measurements, and how they have moved.',
+          'Contrast how body fat and waist/hip measurements moved relative '
+              'to weight (e.g. body recomposition vs pure weight shift) '
+              'without just listing numbers.',
         ),
-      if (detailed)
-        const InsightSlot(
-          'advice',
-          'One gentle, practical suggestion based on the trend and the body '
-              'facts.',
-        )
-      else
-        const InsightSlot(
-          'advice',
-          'One gentle, practical suggestion based on the trend.',
-        ),
+      const InsightSlot(
+        'advice',
+        'Give one specific, non-medical habit or weigh-in consistency '
+            'suggestion tailored to the current trend and recent weigh-in '
+            'frequency.',
+      ),
     ],
   );
 }

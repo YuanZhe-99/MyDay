@@ -18,6 +18,8 @@ parseable for them. Prompts and parsing come from
 [`genai_backend.md`](genai_backend.md). See
 [On-device AI — Cache and fingerprint](../../../../on-device-ai.md#cache-and-fingerprint).
 
+Since 1.8.1 `AiInsightRequest` carries `guardrailFacts`: the same facts with anonymous labels, tried once only after a `guardrail` refusal of the primary facts and before `fallbackFacts` (an unusable primary reply skips it). `_answer` runs that chain, and the `answer` callback passes every line through `restoreLabelNames` with the answered facts' `labelNames` before caching. Insight replies are first passed through MyApps-AI's `stripThinking` in `parseInsightReply`.
+
 ## Declarations
 
 | Declaration | Kind | Tier | Purpose |
@@ -40,6 +42,7 @@ parseable for them. Prompts and parsing come from
 | [`clearAll`](#clearall) | method (`AiInsightStore`) | A | Forget every generated insight. |
 | `_set` | private method (`AiInsightStore`) | B | Update one card's state and notify listeners. |
 | `aiInsightStoreProvider` | top-level variable (`Provider`) | B | A plain `Provider` over `AiInsightStore.instance`, overridable in tests. |
+| `restoreLabelNames` | top-level function | A | Write anonymous labels kept verbatim in a generated line back as the names they stand for (1.8.1; longest label first, optional quotes, case-insensitive). |
 
 `grep -c 'Purpose:' lib/features/ai/services/insight_service.dart` reports 16, matching the
 sixteen rows above other than `AiInsightPhase` and `aiInsightStoreProvider`.

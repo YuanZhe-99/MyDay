@@ -22,6 +22,8 @@ trend-scale/trend-data construction (including the total-assets-trend reconstruc
 `_TrendScale` bucketing helpers. Pure widget-composition methods (`build`, the `_build*` methods that
 mainly assemble already-computed values into a widget tree) remain Tier B.
 
+Since 1.8.1 a compact on-device AI card (`InsightModule.financeAnalysis`, built by [`buildFinanceAnalysisInsightFacts`](../services/finance_analysis_insight_facts.md) from `_periodBounds`) sits between the date navigator and the tab view; it renders nothing while on-device AI is off.
+
 ## Declarations
 
 | Declaration | Kind | Tier | Purpose |
@@ -60,6 +62,7 @@ mainly assemble already-computed values into a widget tree) remain Tier B.
 | `_offset` | method (`_TrendScale`) | B | Compute the instant `steps` buckets after `start` (whole calendar days for a one-day step, v1.5.2). |
 | `_TrendData` (constructor) | constructor (`_TrendData`) | B | Bundle computed expense/income/assets spot lists and y-axis bounds. |
 | `_ChartSeries` (constructor) | constructor (`_ChartSeries`) | B | Bundle one chart line's label, color, spots, and fill flag. |
+| `_periodBounds` | getter (`_AnalysisPageState`) | B | The selected period as day bounds (first day, day after the last), matching the transaction filter; null for an unpicked custom range (1.8.1). |
 
 `grep -c 'Purpose:' lib/features/finance/views/analysis_page.dart` reports 33, but the table above
 has 34 rows. The discrepancy is one **undocumented real declaration**: `_chartBounds`

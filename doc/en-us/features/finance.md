@@ -209,6 +209,16 @@ home summary uses (each transaction at its rate snapshot, balances at current ra
 names and subscription names are sent; **card numbers, expiry dates, security codes, bank and
 account names, and notes never are**. See [On-device AI](../on-device-ai.md).
 
+Since 1.8.1 the card's questions ask for the change behind the numbers rather than the numbers
+(this month's daily pace against last month's, the category driving it, the subscriptions' share of
+spending, the costliest subscription to review), and the facts carry those comparisons worked out
+in Dart. The Analysis page has its own compact card (`InsightModule.financeAnalysis`) between the
+date navigator and the tabs: `buildFinanceAnalysisInsightFacts`
+(`services/finance_analysis_insight_facts.dart`) describes the selected year, month, day or custom
+range — totals, the top three categories with shares, the peak day and week, and the change and
+largest category shift against the previous period of the same length — and the card explains the
+concentration and suggests one budget adjustment.
+
 ## Related pages
 
 - [Data Formats](../data-formats.md) — exact JSON shape of every model above.

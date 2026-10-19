@@ -2,6 +2,8 @@
 
 财务页端侧 AI 洞察卡片背后的纯事实构建器。`buildFinanceInsightFacts` 把 [财务页](../views/finance_page.md)已加载的账户、分类、交易、订阅和汇率数据转成 [`InsightFacts`](../../ai/services/insight_prompts.md)：本月及之前三个月的每月收入和支出、支出最多的分类、各账户合计，以及带最贵名称和即将续费的订阅摘要。一切都按财务页的方式（[`balance_util.dart`](balance_util.md)、[`subscription_summary.dart`](subscription_summary.md)）换算为默认货币并取整到整数单位。只发送聚合值、分类名称和订阅名称。卡片本身是 [`AiInsightCard`](../../ai/widgets/ai_insight_card.md)，事实由 [`AiInsightStore`](../../ai/services/insight_service.md) 计算指纹。见 [端侧 AI — 每张卡片得到什么](../../../../on-device-ai.md#what-each-card-is-given)。
 
+自 1.8.1 起，构建器新增 `- Daily spending pace vs last month:`（本月按已过天数计的日均支出对比上月日均）、`- Top category vs the same days last month:`（本月最大分类对比上月同期同一分类）和 `- Subscriptions share of monthly spending:`（预计的每月订阅费用对比本月之前三个完整月的平均支出），四个问题改为询问节奏、推动支出的分类、订阅负担以及值得复查的最贵订阅。
+
 ## 声明
 
 | 声明 | 种类 | Tier | 用途 |
@@ -9,6 +11,8 @@
 | `financeInsightPastMonths` | 顶层 `const int` | B | 趋势在当月之外覆盖的过去月数（3）。 |
 | `_money` | 顶层函数（私有） | B | 把金额格式化为 `<整数单位> <货币>`。 |
 | [`buildFinanceInsightFacts`](#buildfinanceinsightfacts) | 顶层函数 | A | 构建财务卡片的事实。 |
+| `_signedPercent` | 私有顶层函数 | B | 把比率变化格式化为带符号的整数百分比（1.8.1）。 |
+| `_topExpenseCategory` | 私有顶层函数 | B | 某时间段内合计最高的支出分类及其合计（1.8.1）。 |
 
 `grep -c 'Purpose:' lib/features/finance/services/finance_insight_facts.dart` 报告 2，与 `_money` 和 `buildFinanceInsightFacts` 匹配。
 

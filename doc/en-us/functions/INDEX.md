@@ -69,7 +69,7 @@ drifted from the per-file rows.)
 | `lib/features/ai/services/genai_backend.dart` | [features/ai/services/genai_backend.md](features/ai/services/genai_backend.md) | 3 | 0 |
 | `lib/features/ai/services/insight_language.dart` | [features/ai/services/insight_language.md](features/ai/services/insight_language.md) | 3 | 3 |
 | `lib/features/ai/services/insight_prompts.dart` | [features/ai/services/insight_prompts.md](features/ai/services/insight_prompts.md) | 21 | 12 |
-| `lib/features/ai/services/insight_service.dart` | [features/ai/services/insight_service.md](features/ai/services/insight_service.md) | 12 | 0 |
+| `lib/features/ai/services/insight_service.dart` | [features/ai/services/insight_service.md](features/ai/services/insight_service.md) | 13 | 1 |
 | `lib/features/ai/services/on_device_ai_service.dart` | [features/ai/services/on_device_ai_service.md](features/ai/services/on_device_ai_service.md) | 4 | 0 |
 | `lib/features/ai/services/output_validation.dart` | [features/ai/services/output_validation.md](features/ai/services/output_validation.md) | 0 | 0 |
 | `lib/features/ai/widgets/ai_insight_card.dart` | [features/ai/widgets/ai_insight_card.md](features/ai/widgets/ai_insight_card.md) | 11 | 0 |
@@ -86,12 +86,13 @@ drifted from the per-file rows.)
 | `lib/features/finance/services/bank_preset_service.dart` | [features/finance/services/bank_preset_service.md](features/finance/services/bank_preset_service.md) | 12 | 7 |
 | `lib/features/finance/services/exchange_rate_api.dart` | [features/finance/services/exchange_rate_api.md](features/finance/services/exchange_rate_api.md) | 3 | 3 |
 | `lib/features/finance/services/exchange_rate_storage.dart` | [features/finance/services/exchange_rate_storage.md](features/finance/services/exchange_rate_storage.md) | 18 | 18 |
-| `lib/features/finance/services/finance_insight_facts.dart` | [features/finance/services/finance_insight_facts.md](features/finance/services/finance_insight_facts.md) | 3 | 1 |
+| `lib/features/finance/services/finance_analysis_insight_facts.dart` | [features/finance/services/finance_analysis_insight_facts.md](features/finance/services/finance_analysis_insight_facts.md) | 5 | 1 |
+| `lib/features/finance/services/finance_insight_facts.dart` | [features/finance/services/finance_insight_facts.md](features/finance/services/finance_insight_facts.md) | 5 | 1 |
 | `lib/features/finance/services/finance_storage.dart` | [features/finance/services/finance_storage.md](features/finance/services/finance_storage.md) | 12 | 11 |
 | `lib/features/finance/services/subscription_processor.dart` | [features/finance/services/subscription_processor.md](features/finance/services/subscription_processor.md) | 7 | 5 |
 | `lib/features/finance/services/subscription_summary.dart` | [features/finance/services/subscription_summary.md](features/finance/services/subscription_summary.md) | 7 | 3 |
 | `lib/features/finance/views/accounts_page.dart` | [features/finance/views/accounts_page.md](features/finance/views/accounts_page.md) | 64 | 23 |
-| `lib/features/finance/views/analysis_page.dart` | [features/finance/views/analysis_page.md](features/finance/views/analysis_page.md) | 34 | 18 |
+| `lib/features/finance/views/analysis_page.dart` | [features/finance/views/analysis_page.md](features/finance/views/analysis_page.md) | 35 | 18 |
 | `lib/features/finance/views/categories_page.dart` | [features/finance/views/categories_page.md](features/finance/views/categories_page.md) | 22 | 5 |
 | `lib/features/finance/views/category_detail_page.dart` | [features/finance/views/category_detail_page.md](features/finance/views/category_detail_page.md) | 14 | 4 |
 | `lib/features/finance/views/exchange_rates_page.dart` | [features/finance/views/exchange_rates_page.md](features/finance/views/exchange_rates_page.md) | 19 | 9 |
@@ -112,11 +113,11 @@ drifted from the per-file rows.)
 | `lib/features/intimacy/models/intimacy_record.dart` | [features/intimacy/models/intimacy_record.md](features/intimacy/models/intimacy_record.md) | 45 | 45 |
 | `lib/features/intimacy/services/body_metrics.dart` | [features/intimacy/services/body_metrics.md](features/intimacy/services/body_metrics.md) | 8 | 7 |
 | `lib/features/intimacy/services/cycle_predictor.dart` | [features/intimacy/services/cycle_predictor.md](features/intimacy/services/cycle_predictor.md) | 16 | 7 |
-| `lib/features/intimacy/services/intimacy_insight_facts.dart` | [features/intimacy/services/intimacy_insight_facts.md](features/intimacy/services/intimacy_insight_facts.md) | 16 | 9 |
+| `lib/features/intimacy/services/intimacy_insight_facts.dart` | [features/intimacy/services/intimacy_insight_facts.md](features/intimacy/services/intimacy_insight_facts.md) | 21 | 10 |
 | `lib/features/intimacy/services/intimacy_storage.dart` | [features/intimacy/services/intimacy_storage.md](features/intimacy/services/intimacy_storage.md) | 7 | 6 |
 | `lib/features/intimacy/utils/thrust_timeline.dart` | [features/intimacy/utils/thrust_timeline.md](features/intimacy/utils/thrust_timeline.md) | 17 | 8 |
 | `lib/features/intimacy/views/body_page.dart` | [features/intimacy/views/body_page.md](features/intimacy/views/body_page.md) | 4 | 0 |
-| `lib/features/intimacy/views/intimacy_page.dart` | [features/intimacy/views/intimacy_page.md](features/intimacy/views/intimacy_page.md) | 186 | 60 |
+| `lib/features/intimacy/views/intimacy_page.dart` | [features/intimacy/views/intimacy_page.md](features/intimacy/views/intimacy_page.md) | 188 | 60 |
 | `lib/features/intimacy/views/record_detail_page.dart` | [features/intimacy/views/record_detail_page.md](features/intimacy/views/record_detail_page.md) | 19 | 4 |
 | `lib/features/intimacy/widgets/add_record_dialog.dart` | [features/intimacy/widgets/add_record_dialog.md](features/intimacy/widgets/add_record_dialog.md) | 9 | 2 |
 | `lib/features/intimacy/widgets/body_section.dart` | [features/intimacy/widgets/body_section.md](features/intimacy/widgets/body_section.md) | 35 | 18 |
@@ -153,7 +154,7 @@ drifted from the per-file rows.)
 | `lib/features/todo/constants/emoji_keywords.dart` | [features/todo/constants/emoji_keywords.md](features/todo/constants/emoji_keywords.md) | 3 | 2 |
 | `lib/features/todo/constants/task_emojis.dart` | [features/todo/constants/task_emojis.md](features/todo/constants/task_emojis.md) | 1 | 1 |
 | `lib/features/todo/models/task.dart` | [features/todo/models/task.md](features/todo/models/task.md) | 38 | 37 |
-| `lib/features/todo/services/todo_insight_facts.dart` | [features/todo/services/todo_insight_facts.md](features/todo/services/todo_insight_facts.md) | 7 | 4 |
+| `lib/features/todo/services/todo_insight_facts.dart` | [features/todo/services/todo_insight_facts.md](features/todo/services/todo_insight_facts.md) | 8 | 5 |
 | `lib/features/todo/services/todo_storage.dart` | [features/todo/services/todo_storage.md](features/todo/services/todo_storage.md) | 57 | 56 |
 | `lib/features/todo/utils/emoji_suggester.dart` | [features/todo/utils/emoji_suggester.md](features/todo/utils/emoji_suggester.md) | 9 | 5 |
 | `lib/features/todo/views/todo_page.dart` | [features/todo/views/todo_page.md](features/todo/views/todo_page.md) | 74 | 34 |
@@ -168,7 +169,7 @@ drifted from the per-file rows.)
 | Source file | Page | Declarations | Tier A |
 |---|---|---|---|
 | `lib/features/weight/models/weight_record.dart` | [features/weight/models/weight_record.md](features/weight/models/weight_record.md) | 13 | 13 |
-| `lib/features/weight/services/weight_insight_facts.dart` | [features/weight/services/weight_insight_facts.md](features/weight/services/weight_insight_facts.md) | 7 | 7 |
+| `lib/features/weight/services/weight_insight_facts.dart` | [features/weight/services/weight_insight_facts.md](features/weight/services/weight_insight_facts.md) | 8 | 8 |
 | `lib/features/weight/services/weight_storage.dart` | [features/weight/services/weight_storage.md](features/weight/services/weight_storage.md) | 6 | 5 |
 | `lib/features/weight/views/weight_page.dart` | [features/weight/views/weight_page.md](features/weight/views/weight_page.md) | 73 | 33 |
 
@@ -219,15 +220,15 @@ the 1761 `Purpose:` blocks and 1833 table rows above).
 |---|---|---|---|---|
 | Root (`lib/`) | 1 | 1 | 1 | 0 |
 | `app/` | 5 | 30 | 25 | 5 |
-| `features/ai/` | 11 | 77 | 22 | 55 |
-| `features/finance/` | 25 | 421 | 205 | 216 |
-| `features/intimacy/` | 15 | 438 | 210 | 228 |
+| `features/ai/` | 11 | 78 | 23 | 55 |
+| `features/finance/` | 26 | 429 | 206 | 223 |
+| `features/intimacy/` | 15 | 445 | 211 | 234 |
 | `features/profile/` | 8 | 65 | 30 | 35 |
 | `features/settings/` | 3 | 37 | 8 | 29 |
-| `features/todo/` | 12 | 240 | 152 | 88 |
-| `features/weight/` | 4 | 99 | 58 | 41 |
+| `features/todo/` | 12 | 241 | 153 | 88 |
+| `features/weight/` | 4 | 100 | 59 | 41 |
 | `shared/` | 32 | 403 | 280 | 123 |
-| **Total** | **116** | **1803** | **987** | **816** |
+| **Total** | **117** | **1821** | **992** | **829** |
 
 Every row here is the arithmetic sum of the per-file rows above, re-derived in v1.5.0 and
 adjusted for the pages v1.5.1 through v1.5.5 touched (v1.5.2 added `id_list_delta.md`; v1.5.3 and
@@ -239,4 +240,4 @@ reconciliation note, which had claimed 17 `Purpose:` blocks and 56 rows against 
 source files, 113 pages, no file without a page and no page without a file. Version 1.6.0 then added the six `features/profile/` pages and `status_colors.md` and grew `theme.md`, `data_modules.md`, `shell_scaffold.md`, `app_settings.md`, `todo_storage.md` and `settings_page.md`; 
 
 Version 1.6.1 then added `avatar_image.md` and `avatar_editor.md` and grew `shell_scaffold.md`, `adaptive_layout.md`, `app_settings.md`, `todo_storage.md`, `settings_page.md`, `profile_store.md`, `profile_provider.md` and `profile_header.md`: the `grep` count is now 1795 against 1865 table rows across 113 pages, one per source file.
-Current per-file table sum: 116 files, 1803 declarations (987 Tier A, 816 Tier B).
+Current per-file table sum: 117 files, 1821 declarations (992 Tier A, 829 Tier B).

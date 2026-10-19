@@ -71,6 +71,33 @@ int _overdue(List<Task> tasks, DateTime today) => tasks
     .where((t) => t.dueDate != null && _day(t.dueDate!).isBefore(today))
     .length;
 
+/// Purpose: Work out the daily-habit completion rate over the seven days
+/// before `today`.
+/// Inputs: `templates` — every daily template; `log`; `today` — local
+/// midnight.
+/// Returns: `int?` — the whole percent of habits shown on those days that
+/// were ticked off, or null when none were shown.
+/// Side effects: None.
+/// Notes: Today is left out because it is still in progress. Each day counts
+/// the templates `dailyTemplatesOn` shows that day, so a habit added or
+/// removed mid-week only counts where it was visible.
+int? recentHabitCompletion(
+  List<Task> templates,
+  DailyCompletionLog log,
+  DateTime today,
+) {
+  var shown = 0;
+  var done = 0;
+  for (var i = 1; i <= 7; i++) {
+    final day = DateTime(today.year, today.month, today.day - i);
+    final habits = dailyTemplatesOn(templates, day);
+    final ids = log.completedIds(day);
+    shown += habits.length;
+    done += habits.where((t) => ids.contains(t.id)).length;
+  }
+  return shown == 0 ? null : (done * 100 / shown).round();
+}
+
 /// Purpose: Build the Todo card's facts for the current time of day.
 /// Inputs: `now` — local time; the page's `dailyTemplates`, `oneTimeTasks`,
 /// `dailyLog`, `dailyScores`; `maxTasks` per line; `maxTitleRunes` per
@@ -86,7 +113,11 @@ int _overdue(List<Task> tasks, DateTime today) => tasks
 /// plan. Afternoon (12:00–18:00): progress and what is left. Evening (from
 /// 18:00): a review of today and a suggestion for tomorrow. Kept deliberately
 /// plain since v1.5.1: the on-device model answered the other modules but not
-/// the longer, more decorated Todo prompt of v1.5.0.
+/// the longer, more decorated Todo prompt of v1.5.0. Since 1.8.1 both
+/// variants also carry the 7-day habit completion rate
+/// ([recentHabitCompletion]) and the overdue share of open one-off tasks, and
+/// an ask names a fact (yesterday's rating, the habit trend, reminders) only
+/// when that fact's line is present.
 InsightFacts? buildTodoInsightFacts({
   required DateTime now,
   required List<Task> dailyTemplates,
@@ -166,9 +197,20 @@ InsightFacts? buildTodoInsightFacts({
         }.toList()
       : const <String>[];
 
-  final lines = <String>[
-    '- Today: ${factDate(today)} (${factWeekday(today)})',
-  ];
+  final lines = <String>['- Today: ${factDate(today)} (${factWeekday(today)})'];
+  // Context the model cannot work out itself (1.8.1): the habit trend over
+  // the seven days before today, and how much of what is open is overdue.
+  final habitRate = recentHabitCompletion(dailyTemplates, dailyLog, today);
+  if (habitRate != null) {
+    lines.add('- Last 7 days habit completion: $habitRate%');
+  }
+  if (oneOpen.isNotEmpty) {
+    final overdue = _overdue(oneOpen, today);
+    lines.add(
+      '- Overdue share of open one-off tasks: $overdue of ${oneOpen.length} '
+      '(${(overdue * 100 / oneOpen.length).round()}%)',
+    );
+  }
   final List<InsightSlot> slots;
   switch (bucket) {
     case InsightTimeBucket.morning:
@@ -192,10 +234,23 @@ InsightFacts? buildTodoInsightFacts({
       if (score != 0) {
         lines.add("- Yesterday's self-rating: $score on a -5 to 5 scale");
       }
-      slots = const [
-        InsightSlot('plan', "Today's plan, in one sentence."),
-        InsightSlot('first', 'Which task to start with, and why.'),
-        InsightSlot('tip', 'One practical tip for today.'),
+      slots = [
+        const InsightSlot(
+          'plan',
+          "Synthesize today's workload balance between daily habits and "
+              'one-off tasks without listing every title.',
+        ),
+        const InsightSlot(
+          'first',
+          'Name the single best task to tackle first (prioritizing overdue '
+              'or early-reminder items) and state why.',
+        ),
+        InsightSlot(
+          'tip',
+          'Give one concrete pacing or batching tactic tailored to '
+              "today's tasks"
+              "${score != 0 ? " and yesterday's self-rating" : ''}.",
+        ),
       ];
     case InsightTimeBucket.afternoon:
       final ahead = [
@@ -222,10 +277,23 @@ InsightFacts? buildTodoInsightFacts({
       if (ahead.isNotEmpty) {
         lines.add('- Reminders still ahead today: ${_list(ahead, maxTasks)}');
       }
-      slots = const [
-        InsightSlot('progress', 'How today is going so far.'),
-        InsightSlot('remaining', 'What to focus on for the rest of the day.'),
-        InsightSlot('tip', 'One practical tip for the afternoon.'),
+      slots = [
+        InsightSlot(
+          'progress',
+          'Evaluate afternoon momentum by comparing completed tasks against '
+              'what remains${ahead.isNotEmpty ? ' and upcoming reminders' : ''}.',
+        ),
+        const InsightSlot(
+          'remaining',
+          'Name the highest-priority remaining task to clear next before '
+              'evening and why.',
+        ),
+        const InsightSlot(
+          'tip',
+          'Suggest one concrete adjustment (e.g. clearing a quick habit '
+              'first to build momentum or blocking time for an overdue task) '
+              'for the afternoon.',
+        ),
       ];
     case InsightTimeBucket.evening:
       lines.add(
@@ -236,11 +304,15 @@ InsightFacts? buildTodoInsightFacts({
         lines
           ..add(
             '- Completed: '
-            '${_list([for (final t in [...dailyDone, ...oneDone]) title(t)], maxTasks)}',
+            '${_list([
+              for (final t in [...dailyDone, ...oneDone]) title(t),
+            ], maxTasks)}',
           )
           ..add(
             '- Left undone: '
-            '${_list([for (final t in [...dailyOpen, ...oneOpen]) title(t)], maxTasks)}',
+            '${_list([
+              for (final t in [...dailyOpen, ...oneOpen]) title(t),
+            ], maxTasks)}',
           );
       } else {
         lines.add('- Left undone: ${openCounts(dailyOpen, oneOpen)}');
@@ -260,13 +332,27 @@ InsightFacts? buildTodoInsightFacts({
           '- One-off tasks scheduled for tomorrow: ${tomorrowOne.length}',
         );
       }
-      slots = const [
-        InsightSlot('summary', 'How today went.'),
+      final compared = [
+        "today's completion rate",
+        if (score != 0) 'self-rating',
+      ].join(' and ');
+      slots = [
         InsightSlot(
-          'tomorrow',
-          'What to do first tomorrow, counting anything left undone.',
+          'summary',
+          'Reflect on $compared'
+              '${habitRate != null ? ' compared with the 7-day habit trend' : ''}'
+              ', without repeating raw counts.',
         ),
-        InsightSlot('encouragement', 'One short, sincere encouragement.'),
+        const InsightSlot(
+          'tomorrow',
+          'Name the single most important unfinished or scheduled item to '
+              'anchor tomorrow morning.',
+        ),
+        const InsightSlot(
+          'encouragement',
+          'Give one grounded, specific encouragement tied to what was '
+              'actually completed today.',
+        ),
       ];
   }
   return InsightFacts(

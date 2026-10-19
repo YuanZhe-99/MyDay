@@ -241,9 +241,13 @@ user's measurements (bust/waist/hip from Weight, underbust, estimated bra size) 
 tracks their own cycle, today's estimated phase and the days to the next estimated start, followed
 by the "statistical estimate, not medical advice" disclaimer. The facts are built by
 `buildIntimacyInsightFacts` (`services/intimacy_insight_facts.dart`) and are statistics only.
-Since 1.5.3 thrust count and rate and the porn-watched share are included. **Partners, toys and
-positions are never named: they appear only as `partner A`, `toy 1`, `position 1`, ranked by
-use. Notes, locations, names, emoji, images, prices, links, genital measurements and partners'
+Since 1.5.3 thrust count and rate and the porn-watched share are included. Since 1.8.1 partners,
+toys and positions are sent by name (clipped to 24 characters, ranked by use, with the average
+rating of the entries that used each toy and position); the model runs on the device and MyDay has
+no online AI source. If the model refuses the names on safety grounds, the card retries with the
+labels `partner A`, `toy 1`, `position 1`, writes labels it kept back as names, and explains any
+label still shown with a `Partner A = …` legend in its footnote — it never shows an unexplained
+label. **Notes, locations, emoji, images, prices, links, genital measurements and partners'
 cycles are never sent.** Because the chart selection is part of the facts, changing a chart chip
 regenerates the card. Since 1.5.4, if the model declines these facts or answers nothing usable, the card retries once with the v1.5.2 prompt, which carries no chart, partner, toy, position, thrust or porn facts, before it says *declined*. To read the Weight measurements the page loads `weight_data.json` while AI is on; an
 unreadable weight file only leaves those facts out. See [On-device AI](../on-device-ai.md).

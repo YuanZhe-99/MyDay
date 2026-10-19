@@ -13,6 +13,8 @@ float noise. Record notes are never sent. The card itself is
 [`AiInsightStore`](../../ai/services/insight_service.md). See
 [On-device AI — What each card is given](../../../../on-device-ai.md#what-each-card-is-given).
 
+Since 1.8.1 both variants add `- Trend pattern:` from `weightTrendPattern` (midnight-aligned windows, rates per week over the span actually weighed), and the questions ask to interpret the trend, to contrast body fat and waist/hip with weight, and for one non-medical habit or weigh-in consistency suggestion (the same `advice` question in both variants).
+
 ## Declarations
 
 | Declaration | Kind | Tier | Purpose |
@@ -24,6 +26,7 @@ float noise. Record notes are never sent. The card itself is
 | [`buildWeightInsightFacts`](#buildweightinsightfacts) | top-level function | A | Build the Weight card's facts. |
 | [`buildWeightFallbackInsightFacts`](#buildweightfallbackinsightfacts) | top-level function | A | Build the Weight card's fallback facts: the v1.5.2 prompt. |
 | [`_weightFacts`](#_weightfacts) | top-level function (private) | A | Build either version of the Weight card's facts. |
+| `weightTrendPattern` | top-level function | A | Classify the last week's weight movement against the 30-day (else 90-day) change — stable, steady, accelerating, slowing, plateau, fluctuation, reversal or new — with both weekly rates (1.8.1). |
 
 `grep -c 'Purpose:' lib/features/weight/services/weight_insight_facts.dart` reports 7, matching the
 seven declarations above exactly; there are no undocumented declarations.

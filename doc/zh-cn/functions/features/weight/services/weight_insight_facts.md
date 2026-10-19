@@ -2,6 +2,8 @@
 
 体重页端侧 AI 洞察卡片背后的纯事实构建器。`buildWeightInsightFacts` 把 [体重页](../views/weight_page.md)已加载的 [`WeightRecord`](../models/weight_record.md) 和身高转成 [`InsightFacts`](../../ai/services/insight_prompts.md)：最新体重、身高、BMI 及其区间，7、30 和 90 天的变化，近期范围，称重次数，开始记录的日期，体脂及其 90 天变化，向前沿用的胸围/腰围/臀围及其 90 天变化，以及腰臀比。自 v1.5.3 起，卡片还会就这些身体事实请求一个 `body` 回答，建议也会参考它们。数字经 `factNumber` 处理，使指纹不随浮点噪声变化。绝不发送记录备注。卡片本身是 [`AiInsightCard`](../../ai/widgets/ai_insight_card.md)，事实由 [`AiInsightStore`](../../ai/services/insight_service.md) 计算指纹。见 [端侧 AI — 每张卡片得到什么](../../../../on-device-ai.md#what-each-card-is-given)。
 
+自 1.8.1 起，两种变体都新增来自 `weightTrendPattern` 的 `- Trend pattern:`（窗口按零点对齐，速率按实际称重跨度折算为每周），问题改为解读趋势、对比体脂与腰臀围相对体重的变化，以及给出一条非医疗的习惯或称重规律建议（两种变体使用同一个 `advice` 问题）。
+
 ## 声明
 
 | 声明 | 种类 | Tier | 用途 |
@@ -13,6 +15,7 @@
 | [`buildWeightInsightFacts`](#buildweightinsightfacts) | 顶层函数 | A | 构建体重卡片的事实。 |
 | [`buildWeightFallbackInsightFacts`](#buildweightfallbackinsightfacts) | 顶层函数 | A | 构建体重卡片的后备事实：v1.5.2 的提示词。 |
 | [`_weightFacts`](#_weightfacts) | 顶层函数（私有） | A | 构建两种版本之一的体重卡片事实。 |
+| `weightTrendPattern` | 顶层函数 | A | 把最近一周的体重变化与 30 天（否则 90 天）的变化对比分类——稳定、持续、加速、放缓、平台期、波动、反弹或新的变化——并给出两个周速率（1.8.1）。 |
 
 `grep -c 'Purpose:' lib/features/weight/services/weight_insight_facts.dart` 报告 7，与上面七个声明精确匹配；不存在未文档化声明。
 

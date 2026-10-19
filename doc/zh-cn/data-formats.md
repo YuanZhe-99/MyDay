@@ -146,7 +146,7 @@ P3 公共资料实现与适配见 [shared-ui.md](shared-ui.md)，格式和模块
 }
 ```
 
-- `insights` 下的键是 `todo`、`finance`、`weight`、`intimacy`。未知键和格式错误的条目在读取时丢弃。
+- `insights` 下的键是 `todo`、`finance`、`weight`、`intimacy` 以及（自 1.8.1 起）`financeAnalysis`。未知键和格式错误的条目在读取时丢弃。
 - `fingerprint` 是 [on-device-ai.md](on-device-ai.md#cache-and-fingerprint) 中描述的十六进制 SHA-256；卡片只在它变化时重新生成。
 - `lines` 按槽位顺序保存经过校验的句子，`slots` 保存每句对应的槽位 id，因此即使前面的某个槽位被丢弃，卡片也能把各行归到对应的分区标题下。
 - `status` 为 `ok`，或在模型拒绝（`guardrail`）或无法使用该语言写作时为 `skipped`；跳过的条目没有行，在指纹变化之前不会重试。
@@ -160,6 +160,6 @@ P3 公共资料实现与适配见 [shared-ui.md](shared-ui.md)，格式和模块
 
 ## AI 来源与 WebDAV 隐私
 
-MyApps-AI v0.6.0 显式拆分运行时、平台、模型、本地 UI、来源和 llama.cpp 包。设置使用统一分区骨架。全局来源选择保存在设备本地（`aiSourceSelection`），默认系统 AI，不会自动回退到在线来源（MyDay 没有在线来源）。共享的 `AiSourceRouter` 还会保存设备本地键 `aiComputePreference`、`aiGpuFailures`、`aiCustomModels` 与 `aiModelAliases`，它们从不同步，也不进入备份。Qwen3.5 0.8B/2B Q4_K_M 与 Gemma 4 E2B Q4_0 在 CPU 上运行，仅在已验证且用户开启时使用 GPU；警告后可从 Hugging Face 仓库添加自定义 GGUF 模型。下载仅由明确操作触发，使用固定地址与 SHA-256，保存在 `ai_models/`，不进入数据模块、同步、备份或 ZIP。模型租约避免使用中移除文件。切换来源取消旧任务并释放模型资源。技术详情是来自路由的完整、可复制的报告。MyNihongo 的系统校对保持独立。
+MyApps-AI v0.6.2 显式拆分运行时、平台、模型、本地 UI、来源和 llama.cpp 包。设置使用统一分区骨架。全局来源选择保存在设备本地（`aiSourceSelection`），默认系统 AI，不会自动回退到在线来源（MyDay 没有在线来源）。共享的 `AiSourceRouter` 还会保存设备本地键 `aiComputePreference`、`aiGpuFailures`、`aiCustomModels` 与 `aiModelAliases`，它们从不同步，也不进入备份。Qwen3.5 0.8B/2B Q4_K_M 与 Gemma 4 E2B Q4_0 在 CPU 上运行，仅在已验证且用户开启时使用 GPU；警告后可从 Hugging Face 仓库添加自定义 GGUF 模型。下载仅由明确操作触发，使用固定地址与 SHA-256，保存在 `ai_models/`，不进入数据模块、同步、备份或 ZIP。模型租约避免使用中移除文件。切换来源取消旧任务并释放模型资源。技术详情是来自路由的完整、可复制的报告。MyNihongo 的系统校对保持独立。
 
 WebDAV 第 1 版提醒必须在每个设备上确认后，才能测试连接、手动/强制同步或后台同步。记录保存在设备本地 storage_config.json。已有配置保持不变，同步暂停时 WebDAV 页面显示查看提醒横幅。拒绝不保存配置、不发出请求。JSON/图片没有应用层加密；HTTPS 加密传输，HTTP 不加密。线格式、锁和冲突策略保持不变。

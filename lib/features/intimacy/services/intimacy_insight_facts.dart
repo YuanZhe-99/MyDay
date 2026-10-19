@@ -231,28 +231,77 @@ List<String> _ranked(Map<String, int> counts, Map<String, DateTime> firstSeen) {
   });
 }
 
-/// Purpose: Describe how often labelled items were used.
+/// How the Intimacy facts refer to partners, toys and positions.
+class _Naming {
+  /// True: real names (clipped); false: anonymous labels.
+  final bool names;
+
+  /// Label → real name, filled while labelling.
+  final Map<String, String> labelNames = {};
+
+  /// Real names sent, for the script check.
+  final Set<String> quoted = {};
+
+  /// Display names already used, to tell equal names apart.
+  final Set<String> _used = {};
+
+  /// Purpose: Create a naming policy.
+  /// Inputs: `names`.
+  /// Returns: A new `_Naming`.
+  /// Side effects: None.
+  /// Notes: One instance per facts build.
+  _Naming(this.names);
+
+  /// Purpose: Refer to one item.
+  /// Inputs: `label` — e.g. `partner A`, `toy 1`; `name` — what the user
+  /// typed.
+  /// Returns: `String` — the clipped name (with ` 2`, ` 3`, … when an equal
+  /// name was already used) or the label.
+  /// Side effects: Records the label's name, or the name as a quoted term.
+  /// Notes: Names are clipped to 24 characters, as task titles are.
+  String refer(String label, String name) {
+    final clipped = clipTitle(name, 24);
+    if (!names) {
+      labelNames[label] = clipped;
+      return label;
+    }
+    var shown = clipped;
+    for (var n = 2; !_used.add(shown); n++) {
+      shown = '$clipped $n';
+    }
+    quoted.add(clipped);
+    return shown;
+  }
+}
+
+/// Purpose: Describe how often toys or positions were used.
 /// Inputs: `recent` — records, oldest first; `noun` — `toy` or `position`;
-/// `ids` — reader for a record's item ids; `validIds` — ids that exist.
+/// `ids` — reader for a record's item ids; `nameOf` — item id to name, for
+/// the items that exist; `naming`.
 /// Returns: `String?` — null when none was used.
-/// Side effects: None.
-/// Notes: Internal helper used within this file only. Items are labelled
-/// `<noun> 1`, `<noun> 2`, … by use, at most five.
+/// Side effects: Through `naming`, records labels or quoted names.
+/// Notes: Internal helper used within this file only. Items are ranked by
+/// use, at most five, each with its use count and (since 1.8.1) the average
+/// rating of the entries that used it, so the model can relate items to
+/// ratings. They are named, or labelled `<noun> 1`, `<noun> 2`, … by rank.
 String? _usage(
   List<IntimacyRecord> recent,
   String noun,
   List<String> Function(IntimacyRecord r) ids,
-  Set<String> validIds,
+  Map<String, String> nameOf,
+  _Naming naming,
 ) {
   final counts = <String, int>{};
+  final ratings = <String, double>{};
   final firstSeen = <String, DateTime>{};
   var withAny = 0;
   for (final r in recent) {
-    final used = ids(r).where(validIds.contains).toSet();
+    final used = ids(r).where(nameOf.containsKey).toSet();
     if (used.isEmpty) continue;
     withAny++;
     for (final id in used) {
       counts[id] = (counts[id] ?? 0) + 1;
+      ratings[id] = (ratings[id] ?? 0) + r.pleasureLevel;
       firstSeen.putIfAbsent(id, () => r.datetime);
     }
   }
@@ -260,24 +309,27 @@ String? _usage(
   final order = _ranked(counts, firstSeen).take(_maxListed).toList();
   final items = [
     for (var i = 0; i < order.length; i++)
-      '$noun ${i + 1} ${counts[order[i]]} times',
+      '${naming.refer('$noun ${i + 1}', nameOf[order[i]]!)} '
+          '${counts[order[i]]} times, average rating '
+          '${factNumber(ratings[order[i]]! / counts[order[i]]!)}',
   ];
   return 'used in ${_pct(withAny, recent.length)}% of entries in the last '
-      '90 days: ${items.join(', ')}';
+      '90 days: ${items.join('; ')}';
 }
 
 /// The most partners, toys or positions listed on one fact line.
 const int _maxListed = 5;
 
-/// Purpose: Describe partners, toys and positions with anonymous labels.
+/// Purpose: Describe partners, toys and positions.
 /// Inputs: `recent` — past records of the last 90 days, oldest first;
-/// `today`; `now`; `partners`; `toys`; `positions`.
+/// `today`; `now`; `partners`; `toys`; `positions`; `naming`.
 /// Returns: `List<String>` — zero to four fact lines.
-/// Side effects: None.
-/// Notes: Internal helper used within this file only. Names, emoji, images,
-/// prices and links are never read; each partner is `partner A`,
-/// `partner B`, … by 90-day entries, at most five. Partnered records whose
-/// partner is unset or deleted count as `unspecified partner`.
+/// Side effects: Through `naming`, records labels or quoted names.
+/// Notes: Internal helper used within this file only. Only names are read
+/// — never emoji, images, prices or links. Items are ranked by 90-day use,
+/// at most five, and named (since 1.8.1) or labelled `partner A`,
+/// `partner B`, … and `toy 1`, `position 1`, … by rank. Partnered records
+/// whose partner is unset or deleted count as `unspecified partner`.
 List<String> _companions(
   List<IntimacyRecord> recent,
   DateTime today,
@@ -285,6 +337,7 @@ List<String> _companions(
   List<Partner> partners,
   List<Toy> toys,
   List<Position> positions,
+  _Naming naming,
 ) {
   final lines = <String>[];
   if (partners.isNotEmpty) {
@@ -293,10 +346,10 @@ List<String> _companions(
         .length;
     lines.add('- Partners: ${partners.length} on record, $active active');
   }
-  final known = {for (final p in partners) p.id};
+  final partnerNames = {for (final p in partners) p.id: p.name};
   final byPartner = <String, List<IntimacyRecord>>{};
   for (final r in recent.where((r) => !r.isSolo)) {
-    final id = known.contains(r.partnerId) ? r.partnerId! : '';
+    final id = partnerNames.containsKey(r.partnerId) ? r.partnerId! : '';
     byPartner.putIfAbsent(id, () => []).add(r);
   }
   if (byPartner.isNotEmpty) {
@@ -310,7 +363,10 @@ List<String> _companions(
       final rs = byPartner[id]!;
       final name = id.isEmpty
           ? 'unspecified partner'
-          : 'partner ${String.fromCharCode(0x41 + letter++)}';
+          : naming.refer(
+              'partner ${String.fromCharCode(0x41 + letter++)}',
+              partnerNames[id]!,
+            );
       final rating = _avg(rs, (r) => r.pleasureLevel.toDouble())!;
       final ago = today.difference(dateOnly(rs.last.datetime)).inDays;
       parts.add(
@@ -324,8 +380,8 @@ List<String> _companions(
   }
 
   final toyUse = _usage(recent, 'toy', (r) => r.toyIds, {
-    for (final t in toys) t.id,
-  });
+    for (final t in toys) t.id: t.name,
+  }, naming);
   if (toys.isNotEmpty) {
     final active = toys
         .where((t) => t.retiredDate == null || t.retiredDate!.isAfter(now))
@@ -336,8 +392,8 @@ List<String> _companions(
     );
   }
   final positionUse = _usage(recent, 'position', (r) => r.positionIds, {
-    for (final p in positions) p.id,
-  });
+    for (final p in positions) p.id: p.name,
+  }, naming);
   if (positionUse != null) lines.add('- Positions: $positionUse');
   return lines;
 }
@@ -352,10 +408,14 @@ List<String> _companions(
 /// facts. Slots, each only when its facts exist: `trend`, `chart`,
 /// `advice`, `partners`, `body`.
 /// Side effects: None.
-/// Notes: Only statistics are sent. Notes, locations, partner, toy and
-/// position names (and emoji, images, prices, links) and genital
-/// measurements never are; partners, toys and positions appear only as
-/// `partner A`, `toy 1`, `position 1`. Thrust figures and the porn-watched
+/// `useNames` — false for the labelled variant the store tries after a
+/// guardrail refusal of the named one.
+/// Notes: Only statistics and names are sent. Since 1.8.1 partners, toys and
+/// positions are named (clipped to 24 characters, listed as quoted terms);
+/// with `useNames` false they appear as `partner A`, `toy 1`, `position 1`
+/// and `labelNames` maps each label back to its name. Notes, locations,
+/// emoji, images, prices, links and genital measurements are never sent.
+/// Everything stays on the device: MyDay has no online AI source. Thrust figures and the porn-watched
 /// share are sent since v1.5.3. A cycle phase is sent only when the user
 /// tracks their own cycle; predictions are estimates and the card says so.
 /// The page pairs this with [buildIntimacyFallbackInsightFacts].
@@ -369,6 +429,7 @@ InsightFacts? buildIntimacyInsightFacts({
   required List<Toy> toys,
   required List<Position> positions,
   required IntimacyChartSettings chartSettings,
+  bool useNames = true,
 }) => _intimacyFacts(
   now: now,
   records: records,
@@ -380,6 +441,7 @@ InsightFacts? buildIntimacyInsightFacts({
   positions: positions,
   chartSettings: chartSettings,
   detailed: true,
+  naming: _Naming(useNames),
 );
 
 /// Purpose: Build the Intimacy card's fallback facts: the v1.5.2 prompt.
@@ -411,11 +473,12 @@ InsightFacts? buildIntimacyFallbackInsightFacts({
   positions: const [],
   chartSettings: const IntimacyChartSettings(),
   detailed: false,
+  naming: _Naming(false),
 );
 
 /// Purpose: Build either version of the Intimacy card's facts.
 /// Inputs: as [buildIntimacyInsightFacts], plus `detailed` — true for the
-/// v1.5.3 facts, false for the v1.5.2 facts.
+/// v1.5.3 facts, false for the v1.5.2 facts; `naming` — names or labels.
 /// Returns: `InsightFacts?`.
 /// Side effects: None.
 /// Notes: Internal helper used within this file only. With `detailed`
@@ -431,6 +494,7 @@ InsightFacts? _intimacyFacts({
   required List<Position> positions,
   required IntimacyChartSettings chartSettings,
   required bool detailed,
+  required _Naming naming,
 }) {
   final today = dateOnly(now);
   final past = records.where((r) => !r.datetime.isAfter(now)).toList()
@@ -461,7 +525,15 @@ InsightFacts? _intimacyFacts({
     if (detailed) {
       chart = _chartSummary(past, chartSettings, now);
       if (chart != null) lines.add(chart);
-      companions = _companions(recent, today, now, partners, toys, positions);
+      companions = _companions(
+        recent,
+        today,
+        now,
+        partners,
+        toys,
+        positions,
+        naming,
+      );
       lines.addAll(companions);
     }
   }
@@ -524,38 +596,87 @@ InsightFacts? _intimacyFacts({
     module: InsightModule.intimacy,
     bucket: InsightTimeBucket.none,
     lines: lines,
+    quotedTerms: naming.quoted.toList(),
+    labelNames: Map.unmodifiable(naming.labelNames),
     slots: [
       if (past.isNotEmpty)
         const InsightSlot(
           'trend',
-          'Describe the trend of the last 30 days compared with the 30 '
-              'before.',
+          'Contrast the last 30 days against the prior 30 days in '
+              'frequency, solo-vs-partnered balance, and average '
+              'satisfaction.',
         ),
       if (chart != null)
         const InsightSlot(
           'chart',
-          'Describe what the chart being viewed shows for its metrics, '
-              'first half against second half.',
+          'Point out the most notable shift between the first and second '
+              'half of the viewed chart and how its metrics moved together.',
         ),
       if (past.isNotEmpty)
         const InsightSlot(
           'advice',
-          'One gentle, practical suggestion about wellbeing or safety.',
+          'Give one gentle, practical suggestion on pacing, communication, '
+              'or protection consistency based on the recent stats.',
         ),
       if (companions.isNotEmpty)
-        const InsightSlot(
+        InsightSlot(
           'partners',
-          'Sum up the partner, toy and position facts neutrally, using the '
-              'labels given.',
+          'Highlight which partner, toy, or position correlated with higher '
+              'ratings or frequency over the last 90 days instead of listing '
+              'raw counts'
+              '${naming.names ? '' : '; refer to each only by its label, written exactly as given (e.g. "partner A")'}.',
         ),
       if (body.isNotEmpty || cycleSent)
         InsightSlot(
           'body',
           cycleSent
-              ? 'Sum up the body facts neutrally, mention the cycle phase, '
-                    'and say that cycle predictions are estimates.'
-              : 'Sum up the body facts neutrally.',
+              ? 'Connect the current estimated cycle phase (explicitly noting '
+                    'it is an estimate) or body metrics to comfort and timing.'
+              : 'Relate the body measurements to comfort and fit, neutrally '
+                    'and without judging them.',
         ),
     ],
   );
+}
+
+/// How each label kind may appear in an answer: as given, or translated.
+const Map<String, String> _labelWords = {
+  'partner': r'(?:partner|伴侣|伴侶|パートナー)',
+  'toy': r'(?:toy|玩具|おもちゃ|トイ)',
+  'position': r'(?:position|体位|體位)',
+};
+
+/// Purpose: Explain the anonymous labels still shown in an Intimacy answer.
+/// Inputs: `lines` — the card's displayed sentences; `labelNames` — label
+/// (e.g. `partner A`) → name, from the labelled facts.
+/// Returns: `String?` — e.g. `Partner A = Alex · Toy 1 = Wand`, listing
+/// only labels found in `lines`, or null when none is.
+/// Side effects: None.
+/// Notes: The store already writes labels kept verbatim back as names, so
+/// this catches what is left: a label the model translated (`伴侣A`,
+/// `玩具1`, `パートナーA`). The card must never show an unexplained label
+/// (1.8.1).
+String? intimacyLabelLegend(
+  List<String> lines,
+  Map<String, String> labelNames,
+) {
+  if (lines.isEmpty || labelNames.isEmpty) return null;
+  final text = lines.join('\n');
+  final found = <String>[];
+  for (final e in labelNames.entries) {
+    final parts = e.key.split(' ');
+    final word = _labelWords[parts.first];
+    if (word == null || parts.length != 2) continue;
+    final pattern = RegExp(
+      '$word\\s*${RegExp.escape(parts[1])}(?![0-9A-Za-z])',
+      caseSensitive: false,
+    );
+    if (pattern.hasMatch(text)) {
+      final label =
+          '${parts.first[0].toUpperCase()}${parts.first.substring(1)} '
+          '${parts[1]}';
+      found.add('$label = ${e.value}');
+    }
+  }
+  return found.isEmpty ? null : found.join(' · ');
 }

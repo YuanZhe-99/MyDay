@@ -13,14 +13,16 @@ builders are [`todo_insight_facts.md`](../../todo/services/todo_insight_facts.md
 [On-device AI — What each card is given](../../../../on-device-ai.md#what-each-card-is-given) and
 [Cache and fingerprint](../../../../on-device-ai.md#cache-and-fingerprint).
 
+Since 1.8.1 (prompt version 4) `insightInstructions` casts the model as an analytical assistant that never restates counts or totals already on screen but synthesizes the key change, bottleneck or correlation with a concrete next step; `InsightFacts` gains `labelNames` (label → name for the Intimacy labelled variant, not in the canonical form); and `parseInsightReply` first removes reasoning blocks with MyApps-AI's `stripThinking`.
+
 ## Declarations
 
 | Declaration | Kind | Tier | Purpose |
 |---|---|---|---|
-| `insightPromptVersion` | top-level const (`int`) | B | Prompt version `3` (v1.5.3; `2` since v1.5.1), part of every fingerprint; bump when wording or builder output changes. |
+| `insightPromptVersion` | top-level const (`int`) | B | Prompt version `4` (1.8.1; `3` since v1.5.3, `2` since v1.5.1), part of every fingerprint; bump when wording or builder output changes. |
 | `insightLineMaxLength` | top-level const (`int`) | B | `200`: the longest line kept, in characters; longer lines are dropped (`160` before v1.5.1). |
 | `insightMaxOutputTokens` | top-level const (`int`) | B | `520`: the output budget for one card, sized for the Intimacy card's five slots (`400` before v1.5.3, `320` before v1.5.1). |
-| `InsightModule` (enum) | enum | B | `todo` / `finance` / `weight` / `intimacy`; the name is the key in `ai_insights.json`. |
+| `InsightModule` (enum) | enum | B | `todo` / `finance` / `weight` / `intimacy` / `financeAnalysis` (1.8.1); the name is the key in `ai_insights.json`. |
 | `InsightTimeBucket` (enum) | enum | B | `none` / `morning` / `afternoon` / `evening`; only Todo uses anything but `none`. |
 | [`todoBucketFor`](#todobucketfor) | top-level function | A | Pick the Todo card's time bucket for a local time. |
 | [`InsightSlot` (constructor)](#insightslot-new) | const constructor (`InsightSlot`) | A | Create one numbered request. |

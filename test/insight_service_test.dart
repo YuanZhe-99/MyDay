@@ -265,7 +265,7 @@ void main() {
       );
       expect(insightInstructions(_en), contains('English'));
       expect(insightInstructions(_en), contains('never invent numbers'));
-      expect(insightInstructions(_en), contains('Do not repeat'));
+      expect(insightInstructions(_en), contains('NEVER restate raw counts'));
     });
 
     test('period and bold numbering are read, not stripped as lists', () {
@@ -412,5 +412,94 @@ void main() {
       expect(store.stateOf(InsightModule.weight).phase, AiInsightPhase.failed);
       expect(generations(), 1);
     });
+  });
+
+  group('guardrail facts (labels instead of names)', () {
+    const named = InsightFacts(
+      module: InsightModule.intimacy,
+      bucket: InsightTimeBucket.none,
+      lines: ['- Partners in the last 90 days: Alex 3 entries'],
+      slots: [InsightSlot('partners', 'Which partner.')],
+      quotedTerms: ['Alex'],
+    );
+    const labelled = InsightFacts(
+      module: InsightModule.intimacy,
+      bucket: InsightTimeBucket.none,
+      lines: ['- Partners in the last 90 days: partner A 3 entries'],
+      slots: [InsightSlot('partners', 'Which partner.')],
+      labelNames: {'partner A': 'Alex', 'toy 1': 'Wand', 'toy 10': 'Ten'},
+    );
+    const plain = InsightFacts(
+      module: InsightModule.intimacy,
+      bucket: InsightTimeBucket.none,
+      lines: ['- Last 30 days: 3 entries'],
+      slots: [InsightSlot('partners', 'Which partner.')],
+    );
+    AiInsightRequest request() => AiInsightRequest(
+      facts: named,
+      language: _en,
+      now: DateTime(2026, 9, 28, 9),
+      fallbackFacts: plain,
+      guardrailFacts: labelled,
+    );
+
+    test('a refusal of names retries with labels, written back', () async {
+      backend.generateReplies.addAll([
+        const GenAiException(GenAiFailure.guardrail),
+        '1: Time with "partner A" rated highest.',
+      ]);
+      await store.ensure(request());
+      final entry = store.stateOf(InsightModule.intimacy).entry!;
+      expect(entry.lines, ['Time with Alex rated highest.']);
+      expect(generations(), 2);
+      expect(backend.calls.last, contains('partner A 3 entries'));
+    });
+
+    test('a refusal of the labels too falls back to the plain facts', () async {
+      backend.generateReplies.addAll([
+        const GenAiException(GenAiFailure.guardrail),
+        const GenAiException(GenAiFailure.guardrail),
+        '1: Plain answer.',
+      ]);
+      await store.ensure(request());
+      expect(
+        store.stateOf(InsightModule.intimacy).entry!.lines,
+        ['Plain answer.'],
+      );
+      expect(generations(), 3);
+    });
+
+    test('an unusable named reply skips the labels', () async {
+      backend.generateReplies.addAll(['', '1: Plain answer.']);
+      await store.ensure(request());
+      expect(generations(), 2);
+      expect(backend.calls.last, contains('- Last 30 days: 3 entries'));
+    });
+
+    test('labels are restored verbatim only, longest first', () {
+      expect(
+        restoreLabelNames('toy 10 and Toy 1 with partner A', {
+          'toy 1': 'Wand',
+          'toy 10': 'Ten',
+          'partner A': 'Alex',
+        }),
+        'Ten and Wand with Alex',
+      );
+      expect(
+        restoreLabelNames('和伴侣A一起', const {'partner A': 'Alex'}),
+        '和伴侣A一起',
+      );
+    });
+  });
+
+  test('a reasoning draft never wins over the answer', () {
+    expect(
+      parseInsightReply(
+        '<think>\n1: Draft.\n</think>\n1: Final answer.',
+        1,
+        'en',
+      ),
+      {1: 'Final answer.'},
+    );
   });
 }

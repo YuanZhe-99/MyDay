@@ -4,6 +4,8 @@
 
 只发送统计数据。伴侣、玩具和姿势只以 `partner A`、`toy 1`、`position 1` 的形式出现，按使用次数排序。备注、地点、名称、表情符号、图片、价格、链接、生殖器尺寸以及伴侣的周期绝不发送，这既为隐私，也为留在端侧模型的可接受使用规则之内。自 v1.5.3 起发送抽插次数与抽插速率以及观看色情内容的比例。图表摘要读取 [`intimacy_trend_chart.dart`](../widgets/intimacy_trend_chart.md) 中公开的 `IntimacyChartMetric` 和 `IntimacyChartRange` 枚举，并回退到相同的默认值，因此它描述的总是屏幕上的那张图。卡片本身是 [`AiInsightCard`](../../ai/widgets/ai_insight_card.md)，事实由 [`AiInsightStore`](../../ai/services/insight_service.md) 计算指纹。见 [端侧 AI — 每张卡片得到什么](../../../../on-device-ai.md#what-each-card-is-given)。
 
+自 1.8.1 起，`buildIntimacyInsightFacts` 接受 `useNames`（默认 true）：伴侣、玩具和姿势按名称发送，截断到 24 个字符并列为引用词，玩具和姿势的使用情况附带使用它们的记录的平均评分。`useNames` 为 false 时——即请求的 `guardrailFacts`——它们以 `partner A`、`toy 1`、`position 1` 出现，`partners` 问题要求原样保留标签，`labelNames` 把每个标签映射回名称。问题改为询问对比、变化和关联；`body` 问题把估算的周期阶段或测量值与舒适度和时机联系起来。
+
 ## 声明
 
 | 声明 | 种类 | Tier | 用途 |
@@ -24,6 +26,11 @@
 | [`buildIntimacyInsightFacts`](#buildintimacyinsightfacts) | 顶层函数 | A | 构建亲密卡片的事实。 |
 | [`buildIntimacyFallbackInsightFacts`](#buildintimacyfallbackinsightfacts) | 顶层函数 | A | 构建亲密卡片的后备事实：v1.5.2 的提示词。 |
 | [`_intimacyFacts`](#_intimacyfacts) | 顶层函数（私有） | A | 构建两种版本之一的亲密卡片事实。 |
+| `_Naming` | 私有类 | B | 事实如何指称伴侣、玩具和姿势：截断后的名称（同名编号）或标签加标签→名称映射（1.8.1）。 |
+| `_Naming`（构造函数） | 私有构造函数 | B | 为一次事实构建创建命名策略。 |
+| `refer` | 方法（`_Naming`） | B | 以名称或标签指称一项，并记录引用词或标签对应的名称。 |
+| `_labelWords` | 私有顶层常量 | B | 每种标签在回答中可能的写法，原样或翻译（中文/日文）。 |
+| `intimacyLabelLegend` | 顶层函数 | A | 把回答中仍显示的标签解释为 `Partner A = 名称 · Toy 1 = 名称`，或返回 null（1.8.1）。 |
 
 **对账：** `grep -c 'Purpose:' lib/features/intimacy/services/intimacy_insight_facts.dart` 报告 15，对应 16 行。多出的一行是 `_maxListed`，一个只带普通文档注释、没有 `Purpose:` 块的常量。两个局部函数 `perWeek` 和 `fmt` 各自带有 `Purpose:` 块，并各占一行。
 

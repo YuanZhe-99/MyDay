@@ -22,6 +22,8 @@ defaults, so it always describes the chart on screen. The card itself is
 [`AiInsightStore`](../../ai/services/insight_service.md). See
 [On-device AI — What each card is given](../../../../on-device-ai.md#what-each-card-is-given).
 
+Since 1.8.1 `buildIntimacyInsightFacts` takes `useNames` (default true): partners, toys and positions are sent by name, clipped to 24 characters and listed as quoted terms, and toy and position usage carries the average rating of the entries that used each. With `useNames` false — the request's `guardrailFacts` — they appear as `partner A`, `toy 1`, `position 1`, the `partners` question asks to keep the labels exactly, and `labelNames` maps each label back to its name. The questions now ask for contrasts, shifts and correlations; the `body` question connects the estimated cycle phase or the measurements to comfort and timing.
+
 ## Declarations
 
 | Declaration | Kind | Tier | Purpose |
@@ -42,6 +44,11 @@ defaults, so it always describes the chart on screen. The card itself is
 | [`buildIntimacyInsightFacts`](#buildintimacyinsightfacts) | top-level function | A | Build the Intimacy card's facts. |
 | [`buildIntimacyFallbackInsightFacts`](#buildintimacyfallbackinsightfacts) | top-level function | A | Build the Intimacy card's fallback facts: the v1.5.2 prompt. |
 | [`_intimacyFacts`](#_intimacyfacts) | top-level function (private) | A | Build either version of the Intimacy card's facts. |
+| `_Naming` | class (private) | B | How the facts refer to partners, toys and positions: clipped names (equal names numbered) or labels with a label → name map (1.8.1). |
+| `_Naming` (constructor) | constructor (private) | B | Create a naming policy for one facts build. |
+| `refer` | method (`_Naming`) | B | Refer to one item by name or label, recording the quoted term or the label's name. |
+| `_labelWords` | private top-level const | B | How each label kind may appear in an answer, verbatim or translated (zh/ja). |
+| `intimacyLabelLegend` | top-level function | A | Explain the labels still shown in an answer as `Partner A = name · Toy 1 = name`, or null (1.8.1). |
 
 **Reconciliation:** `grep -c 'Purpose:' lib/features/intimacy/services/intimacy_insight_facts.dart`
 reports 15 against 16 rows. The extra row is `_maxListed`, a constant with a plain doc comment and

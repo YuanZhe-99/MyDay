@@ -4,6 +4,8 @@
 
 尽管是视图文件，这里大多数非组件返回辅助都携带真实计算并被分类为 Tier A，按定级规则和本文件被点名"真实图表/明细计算逻辑"——时间范围过滤、饼图分类聚合、趋势刻度/趋势数据构建（含总资产趋势重建）和 `_TrendScale` 分桶辅助。纯组件组合方法（`build`、主要把已计算值组装进组件树的 `_build*` 方法）保持 Tier B。
 
+自 1.8.1 起，日期导航与标签视图之间有一张紧凑的端侧 AI 卡片（`InsightModule.financeAnalysis`，由 [`buildFinanceAnalysisInsightFacts`](../services/finance_analysis_insight_facts.md) 根据 `_periodBounds` 构建）；端侧 AI 关闭时不渲染任何内容。
+
 ## 声明
 
 | 声明 | 种类 | Tier | 用途 |
@@ -42,6 +44,7 @@
 | `_offset` | 方法（`_TrendScale`） | B | 计算 `start` 之后 `steps` 个桶的时刻（一天步进时按整日历日，v1.5.2）。 |
 | `_TrendData`（构造函数） | 构造函数（`_TrendData`） | B | 打包计算的支出/收入/资产点列表和 y 轴边界。 |
 | `_ChartSeries`（构造函数） | 构造函数（`_ChartSeries`） | B | 打包一条图表线的标签、颜色、点和填充标志。 |
+| `_periodBounds` | getter（`_AnalysisPageState`） | B | 所选时间段的日界（首日、末日次日），与交易筛选一致；自定义范围未选择时为 null（1.8.1）。 |
 
 `grep -c 'Purpose:' lib/features/finance/views/analysis_page.dart` 报告 33，但上面表格有 34 行。差异是一个**未文档化的真实声明**：`_chartBounds`（`_AnalysisPageState`，第 1052 行）完全没有 `/// Purpose:` 块——恰好结束在它上方（第 1073-1078 行，`_pointCount` 的块）的文档注释块位于*下一*个声明上方，不是这个，`_chartBounds` 正上方没有任何注释。它是真实方法（计算带内边距的轴边界，第 925 行从 `_buildLineChartPanel` 调用），因此尽管源码中未文档化仍在这里计为声明。其他每个 `/// Purpose:` 块经验证都恰好位于其文档化的真实声明正上方——未发现错附块（记录调用点而非声明的块）。`enum _TimeRange`（第 14 行）、静态 `_chartColors` 调色板（第 1136-1149 行）以及 `_TrendScale.dayStep` 常量（第 1154 行，v1.5.2；把分桶切换为本地日历日的一天步进）是无行为的普通数据声明，按本文档集其他文件使用的相同约定，不给表格行。
 

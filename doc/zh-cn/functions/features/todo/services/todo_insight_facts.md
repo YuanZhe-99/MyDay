@@ -2,6 +2,8 @@
 
 Todo 页端侧 AI 洞察卡片背后的纯事实构建器。`buildTodoInsightFacts` 把页面已加载的 [`Task`](../models/task.md) 列表、完成日志和评分日志按当前[时段](../../ai/services/insight_prompts.md)转成 [`InsightFacts`](../../ai/services/insight_prompts.md)：上午是计划，下午是进度，晚上是回顾和明天的建议。两个可见性辅助函数复述 [Todo 页](../views/todo_page.md)自己关于某日期显示哪些每日模板和一次性任务的规则。任务标题会被发送（经裁剪和限量，每个至多带一个限定语）；任务备注和子任务标题绝不发送。自 v1.5.1 起，同一构建器还产出一个只含计数的变体（`includeTitles: false`），Todo 页把它作为 `fallbackFacts` 交给存储。卡片本身是 [`AiInsightCard`](../../ai/widgets/ai_insight_card.md)，事实由 [`AiInsightStore`](../../ai/services/insight_service.md) 计算指纹。见 [端侧 AI — 每张卡片得到什么](../../../../on-device-ai.md#what-each-card-is-given)。
 
+自 1.8.1（提示词版本 4）起，两种变体都新增 `- Last 7 days habit completion: N%`（来自 `recentHabitCompletion`）和 `- Overdue share of open one-off tasks: a of b (p%)`，上午、下午和晚上的问题改为询问工作量平衡、最适合先做的任务、节奏策略、势头和明天的锚点；只有对应事实行存在时，问题才会提到昨天的自评、习惯趋势或提醒。
+
 ## 声明
 
 | 声明 | 种类 | Tier | 用途 |
@@ -13,6 +15,7 @@ Todo 页端侧 AI 洞察卡片背后的纯事实构建器。`buildTodoInsightFac
 | [`_list`](#_list) | 顶层函数（私有） | A | 为一条事实行连接任务标题，有上限。 |
 | `_overdue` | 顶层函数（私有） | B | 统计截止日早于某日期的任务数。 |
 | [`buildTodoInsightFacts`](#buildtodoinsightfacts) | 顶层函数 | A | 为当前时段构建 Todo 卡片的事实，带或不带标题。 |
+| `recentHabitCompletion` | 顶层函数 | A | 今天之前七天内每日习惯的完成率（整数百分比），没有显示任何习惯时为 null（1.8.1）。 |
 
 `grep -c 'Purpose:' lib/features/todo/services/todo_insight_facts.dart` 报告 7，与上面七个声明精确匹配；不存在未文档化声明。`_day`、`_hm` 和 `_overdue`（v1.5.1）是一行辅助函数（Tier B）——`_overdue` 只是对 `dueDate` 的一个 `where(...).length`，因此像两个格式化函数一样只有行而没有条目；其余四个承载真实规则。
 

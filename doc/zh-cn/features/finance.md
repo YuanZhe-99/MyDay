@@ -70,6 +70,8 @@
 
 端侧 AI 开启时（Android、iOS/macOS 26+），财务主页上即将续费横条之后会跟着一张洞察卡片。它有两个分区：*收入与支出*（本月及之前三个月的趋势，以及一条建议）和*订阅*（一段总结和一条建议）。在堆叠的手机布局中，它折叠为一行预览，点按后展开，使交易列表保持可见；在分栏布局中，它在左栏完整显示。事实由 `buildFinanceInsightFacts`（`services/finance_insight_facts.dart`）构建，使用与主页摘要相同的换算（每笔交易按其汇率快照，余额按当前汇率），外加 `summarizeSubscriptions` 和 `upcomingSubscriptions`。只发送默认货币的汇总、分类名称和订阅名称；**卡号、有效期、安全码、银行和账户名称以及备注绝不发送**。见 [端侧 AI](../on-device-ai.md)。
 
+自 1.8.1 起，卡片的问题要求说明数字背后的变化而不是数字本身（本月日均支出相对上月的节奏、推动它的分类、订阅占支出的比例、值得复查的最贵订阅），事实也带上在 Dart 侧算好的这些对比。分析页面有自己的紧凑卡片（`InsightModule.financeAnalysis`），位于日期导航与标签页之间：`buildFinanceAnalysisInsightFacts`（`services/finance_analysis_insight_facts.dart`）描述所选的年、月、日或自定义范围——合计、前三个分类及占比、支出最高的一天和一周，以及与上一个等长时间段相比的变化和变化最大的分类——卡片据此解释集中情况并建议一项预算调整。
+
 ## 相关页面
 
 - [数据格式](../data-formats.md) — 上面每个模型的精确 JSON 形态。

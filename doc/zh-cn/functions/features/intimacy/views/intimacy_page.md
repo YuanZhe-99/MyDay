@@ -13,6 +13,8 @@ P2：布局函数传入页面上下文并使用实际导航内容约束；
 
 自 v1.5.5 起，点击记录条目——在主页或伴侣/玩具详情页上——经 `_openRecordDetail` 打开 [记录详情页](record_detail_page.md)（一个单独的文件）；`_RecordTile` 为此获得了 `onTap`，两个 `_editRecord` 方法都返回保存后的记录，使详情页能就地显示编辑结果。滑动编辑和滑动删除不变。
 
+自 1.8.1 起，洞察卡片放在监听洞察存储的 `ListenableBuilder` 中，使脚注（`_intimacyFootnote`）跟随显示的回答，请求还带有来自 `_labelledInsightFacts` 的 `guardrailFacts`。
+
 ## 声明
 
 | 声明 | 种类 | Tier | 用途 |
@@ -203,6 +205,8 @@ P2：布局函数传入页面上下文并使用实际导航内容约束；
 | `_DatePickerTile.build` | 方法（组件） | B | 渲染带标签可点击日期字段。 |
 | `_IntimacyBody({...})` | 构造函数（`_IntimacyBody`） | B | 创建亲密主体排布器。 |
 | [`build`](#intimacybody-build) | 方法（`_IntimacyBody`） | A | 堆叠日历、图表和记录，或把日历和图表放进记录旁边的窗格里。 |
+| `_labelledInsightFacts` | 方法（`_IntimacyPageState`） | B | 构建亲密事实的带标签变体（`useNames: false`），供 `guardrailFacts` 和脚注对照使用（1.8.1）。 |
+| `_intimacyFootnote` | 方法（`_IntimacyPageState`） | B | 卡片脚注：周期免责声明以及仍显示标签的 `Partner A = …` 对照（1.8.1）。 |
 
 **行数对账：** 上面 186 行，与 `grep -c '/// Purpose:'` = 186 精确匹配（60 个 Tier A、126 个 Tier B）。v1.5.5 添加了两行 Tier A，`_IntimacyPageState` 和 `_FilteredRecordsPageState` 中各一个 `_openRecordDetail`。v1.3.2 在记录指标图移入 [`intimacy_trend_chart.dart`](../widgets/intimacy_trend_chart.md) 时移除了 27 行（17 个 Tier A、10 个 Tier B），并添加了一个（`_saveChartSettings`，Tier A）。重名声明（同一辅助名在多个类中重新实现，如 `_IntimacyPageState` 和 `_FilteredRecordsPageState` 中都有 `_filteredRecords`）如何在锚点中消歧见本页末尾说明。普通状态字段没有行，因此 v1.5.0 的 `_weightRecordsForInsight` 字段（第 85 行；一行 `///` 注释，没有 `Purpose:` 块）在 [`_loadDataNow`](#loaddatanow) 中说明，而不在表格中；v1.5.2 的 `_ioQueue` future 同样在 [`_io`](#io) 中说明。v1.5.0 没有改变行数。v1.5.2 添加了七行（`_io`、`_loadDataNow`、`_saveDataNow`、`_commitSubPage` 为 Tier A；`_applyIntimacyData`、`_currentIntimacyData`、`_showWriteBlocked` 为 Tier B）。
 

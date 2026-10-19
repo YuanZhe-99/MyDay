@@ -120,14 +120,20 @@ the lines (older lines dimmed while newer ones are generated), and the label and
 | Todo | After the daily score card; in the last column when sections sit side by side. Only while today is selected. | Morning (before 12:00): `plan`, `first`, `tip`. Afternoon (12:00–18:00): `progress`, `remaining`, `tip`. Evening (from 18:00): `summary`, `tomorrow`, `encouragement`. |
 | Finance | After the upcoming-renewals strip. Collapsed to one preview line in the stacked (phone) layout; full in the left pane of the split layout. | `flowSummary`, `flowAdvice` under *Income & spending*; `subSummary`, `subAdvice` under *Subscriptions*. |
 | Weight | Between the summary card and the charts. | `trend`, `advice` under *Trend*; `body` under *Body condition* (when there is a BMI, body fat or a measurement; since 1.5.3). |
-| Intimacy | After the trend chart, only while on-device AI is on. | `trend`, `chart` (when the chart has two entries in range; since 1.5.3), `advice` under *Trend* (when there are records); `partners` under *Partners & toys* (when there are partner, toy or position facts; since 1.5.3); `body` under *Body condition* (when there are body facts). A cycle disclaimer is shown when the user tracks their cycle. |
+| Intimacy | After the trend chart, only while on-device AI is on. | `trend`, `chart` (when the chart has two entries in range; since 1.5.3), `advice` under *Trend* (when there are records); `partners` under *Partners & toys* (when there are partner, toy or position facts; since 1.5.3); `body` under *Body condition* (when there are body facts). A cycle disclaimer is shown when the user tracks their cycle, and a `Partner A = …` legend whenever an answer still shows a label (since 1.8.1). |
+| Finance analysis (since 1.8.1) | On the Analysis page, between the date navigator and the tabs; collapsed to one preview line. Its own module (`financeAnalysis`), so it never replaces the Finance page's card underneath. | `periodPattern`, `periodAdvice`. |
 
 ### What each card is given
 
 Facts are English `- key: value` lines computed by a pure builder, rounded so that a fingerprint
 does not change with float noise. The model is asked to answer each numbered question with one
 sentence under 30 words in the UI language, using only the facts, with no medical, legal or
-investment advice and no invented numbers. The prompt is `Facts:`, the lines, `Questions:`, the
+investment advice and no invented numbers. Since prompt version 4 (1.8.1) it is told never to
+restate counts or totals the screen already shows but to synthesize the key change, bottleneck or
+correlation with a concrete next step, and every module's questions ask for that; the builders
+therefore work out rates, shares and comparisons in Dart, because a small model calculates badly.
+A question names an optional fact (yesterday's rating, the habit trend, upcoming reminders, the
+cycle phase) only when that fact is sent. The prompt is `Facts:`, the lines, `Questions:`, the
 numbered questions, and then the exact reply template (`1: <sentence>` …) — since 1.5.1, because
 a small model keeps to a shape it has just seen far better than to one described in prose.
 
@@ -137,19 +143,30 @@ at all is numbered — the first prose lines in order. It drops a line that mere
 a line over 200 characters, and a line in the wrong script. Until 1.5.1 the reply went through
 `stripMarkdown` first, which also removed `1. ` as a list marker; a reply numbered with periods
 therefore parsed to nothing and the Todo card, whose prompt invited exactly that style, showed
-*could not answer*. Bold and code marks are still removed; list markers are kept.
+*could not answer*. Bold and code marks are still removed; list markers are kept. Since 1.8.1
+reasoning blocks (`<think>`, `<|think|>`, `<|channel>thought`) are first removed from the whole
+reply with MyApps-AI's `stripThinking`, because a draft inside them reads like a numbered answer.
 
 | Card | Sent | Never sent |
 |---|---|---|
-| Todo | The date; titles of today's daily habits and one-off tasks (trimmed to 24 characters, at most 8 per line), each open one-off task with at most one qualifier — `overdue`, `due <date>` or its reminder time; done counts; the self-rating; tomorrow's tasks in the evening. If the model declines these or answers nothing usable, a second try sends the same facts as counts only, with no titles (`fallbackFacts`). | Task notes, subtask titles |
-| Finance | Income and spending per month for this month and the three before, in the default currency; the top three spending categories this month and last; the total across accounts; subscription count, cost and the costliest names; renewals in the next 7 days | Card numbers, expiry dates, security codes, bank or account names, transaction and subscription notes |
-| Weight | Latest weight and date, height, BMI with its band (underweight/normal/overweight/obese range, the page bar's cut-offs), change over 7/30/90 days, recent range, weigh-in count, tracking start and total count, body fat and its 90-day change, bust/waist/hip carried forward and their 90-day change, waist-to-hip ratio | Record notes |
-| Intimacy | For the last 30 days and the 30 before: counts (partnered vs solo), average rating, average timed length, climax rate, porn-watched share, average thrust count and rate, protection rate; 90-day count; days since the last entry; the trend chart as set up (range, entry count, and for each selected metric the average and the first-half and second-half averages); partners on record and active, per-partner 90-day entries, rating, climax and protection rates and days since the last entry; toys on record and in use, toy and position use over 90 days; the user's bust/waist/hip (from Weight), underbust and estimated bra size; when the user tracks their own cycle: typical length, last start, today's estimated phase and fertile window, days to the next estimated start | Notes, locations, partner, toy and position names, emoji, images, prices and links, genital measurements, partners' cycles |
+| Todo | The date; titles of today's daily habits and one-off tasks (trimmed to 24 characters, at most 8 per line), each open one-off task with at most one qualifier — `overdue`, `due <date>` or its reminder time; done counts; the self-rating; tomorrow's tasks in the evening; since 1.8.1 the daily-habit completion rate over the seven days before today and the overdue share of open one-off tasks. If the model declines these or answers nothing usable, a second try sends the same facts as counts only, with no titles (`fallbackFacts`). | Task notes, subtask titles |
+| Finance | Income and spending per month for this month and the three before, in the default currency; the top three spending categories this month and last; the total across accounts; subscription count, cost and the costliest names; renewals in the next 7 days; since 1.8.1 this month's daily spending pace against last month's, the top category's change against the same days of last month, and the subscriptions' share of average monthly spending | Card numbers, expiry dates, security codes, bank or account names, transaction and subscription notes |
+| Weight | Latest weight and date, height, BMI with its band (underweight/normal/overweight/obese range, the page bar's cut-offs), change over 7/30/90 days, recent range, weigh-in count, tracking start and total count, body fat and its 90-day change, bust/waist/hip carried forward and their 90-day change, waist-to-hip ratio; since 1.8.1 a trend pattern worked out in Dart (stable, steady, accelerating, slowing, plateau, fluctuation, reversal or a new movement) with the 7-day and 30-day (else 90-day) weekly rates | Record notes |
+| Intimacy | For the last 30 days and the 30 before: counts (partnered vs solo), average rating, average timed length, climax rate, porn-watched share, average thrust count and rate, protection rate; 90-day count; days since the last entry; the trend chart as set up (range, entry count, and for each selected metric the average and the first-half and second-half averages); partners on record and active, per-partner 90-day entries, rating, climax and protection rates and days since the last entry; toys on record and in use, toy and position use over 90 days with the average rating of the entries that used each; partner, toy and position names (clipped to 24 characters; since 1.8.1); the user's bust/waist/hip (from Weight), underbust and estimated bra size; when the user tracks their own cycle: typical length, last start, today's estimated phase and fertile window, days to the next estimated start | Notes, locations, emoji, images, prices and links, genital measurements, partners' cycles |
+| Finance analysis | The selected period (first and last day, kind, days, whether it is still in progress), spending and income totals with entry counts, their change against the previous period of the same length (only the days elapsed while a period is in progress), the top three spending and income categories with shares, the peak spending day (periods of 2 days or more) and 7-day week (14 days or more), and the category whose spending moved most against the previous period | Card numbers, account and bank names, transaction notes |
 
-Partners, toys and positions appear only under anonymous labels (`partner A`, `toy 1`,
-`position 1`), ranked by 90-day use with at most five of each; a partnered entry whose partner is
-unset or deleted counts as `unspecified partner`. The labels are not stable across time — they
-follow the ranking — and no user-typed name is sent, so `quotedTerms` stays empty. The chart line
+Partners, toys and positions are ranked by 90-day use with at most five of each; a partnered entry
+whose partner is unset or deleted counts as `unspecified partner`. Until 1.8.0 they appeared only
+under anonymous labels (`partner A`, `toy 1`, `position 1`), and the card showed those labels with
+no way to tell who or what they meant. Since 1.8.1 they are sent by name, clipped to 24 characters
+(an equal name gets ` 2`, ` 3`, …), and the names are quoted terms; everything stays on the device,
+since MyDay has no online AI source. If the model refuses the named facts on safety grounds
+(`guardrail`), the store retries once with the labelled facts (`guardrailFacts`), whose questions
+ask the model to keep each label exactly as given; labels kept verbatim are written back as names
+before the answer is cached (`restoreLabelNames`), and any label still shown — one the model
+translated, such as `伴侣A` — is explained by a `Partner A = …` legend in the card's footnote
+(`intimacyLabelLegend`). An unusable or refused labelled answer then falls back to the v1.5.2
+prompt as before. The labels are not stable across time — they follow the ranking. The chart line
 follows the persisted `IntimacyChartSettings`, falling back to the chart's defaults for unknown ids
 exactly as the widget does, so toggling a chip changes the fingerprint and regenerates the card.
 Thrust figures and the porn-watched share are sent since 1.5.3. The remaining exclusions are for

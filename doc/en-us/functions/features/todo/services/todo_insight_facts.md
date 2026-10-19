@@ -13,6 +13,8 @@ is [`AiInsightCard`](../../ai/widgets/ai_insight_card.md), and the facts are fin
 [`AiInsightStore`](../../ai/services/insight_service.md). See
 [On-device AI — What each card is given](../../../../on-device-ai.md#what-each-card-is-given).
 
+Since 1.8.1 (prompt version 4) both variants add `- Last 7 days habit completion: N%` (from `recentHabitCompletion`) and `- Overdue share of open one-off tasks: a of b (p%)`, and the morning, afternoon and evening questions ask for workload balance, the best first task, pacing tactics, momentum and an anchor for tomorrow; a question mentions yesterday's rating, the habit trend or reminders only when that line is present.
+
 ## Declarations
 
 | Declaration | Kind | Tier | Purpose |
@@ -24,6 +26,7 @@ is [`AiInsightCard`](../../ai/widgets/ai_insight_card.md), and the facts are fin
 | [`_list`](#_list) | top-level function (private) | A | Join task titles for one fact line, capped. |
 | `_overdue` | top-level function (private) | B | Count the tasks whose due day is before a date. |
 | [`buildTodoInsightFacts`](#buildtodoinsightfacts) | top-level function | A | Build the Todo card's facts for the current time of day, with or without titles. |
+| `recentHabitCompletion` | top-level function | A | Whole-percent daily-habit completion over the seven days before today, or null when none were shown (1.8.1). |
 
 `grep -c 'Purpose:' lib/features/todo/services/todo_insight_facts.dart` reports 7, matching the seven
 declarations above exactly; there are no undocumented declarations. `_day`, `_hm` and `_overdue`

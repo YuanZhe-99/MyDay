@@ -13,6 +13,8 @@ aggregates, category names and subscription names are sent. The card itself is
 [`AiInsightStore`](../../ai/services/insight_service.md). See
 [On-device AI — What each card is given](../../../../on-device-ai.md#what-each-card-is-given).
 
+Since 1.8.1 the builder adds `- Daily spending pace vs last month:` (this month's spending per elapsed day against last month's per day), `- Top category vs the same days last month:` (this month's largest category against the same category over the same days of last month) and `- Subscriptions share of monthly spending:` (projected monthly subscriptions against the average of the three complete months before this one), and the four questions ask about pace, the driving category, the subscription burden and the costliest subscription to review.
+
 ## Declarations
 
 | Declaration | Kind | Tier | Purpose |
@@ -20,6 +22,8 @@ aggregates, category names and subscription names are sent. The card itself is
 | `financeInsightPastMonths` | top-level `const int` | B | How many past months, besides the current one, the trend covers (3). |
 | `_money` | top-level function (private) | B | Format an amount as `<whole units> <currency>`. |
 | [`buildFinanceInsightFacts`](#buildfinanceinsightfacts) | top-level function | A | Build the Finance card's facts. |
+| `_signedPercent` | top-level function (private) | B | Format a ratio change as a signed whole percent (1.8.1). |
+| `_topExpenseCategory` | top-level function (private) | B | The expense category with the largest total in a period, with that total (1.8.1). |
 
 `grep -c 'Purpose:' lib/features/finance/services/finance_insight_facts.dart` reports 2, matching
 `_money` and `buildFinanceInsightFacts`.

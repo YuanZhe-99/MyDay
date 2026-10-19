@@ -7,8 +7,12 @@ import '../../../shared/utils/status_colors.dart';
 import '../../../shared/utils/adaptive_layout.dart';
 import '../../../shared/utils/week_grouping.dart';
 import '../../../shared/widgets/app_date_picker.dart';
+import '../../ai/services/insight_prompts.dart';
+import '../../ai/services/insight_service.dart';
+import '../../ai/widgets/ai_insight_card.dart';
 import '../models/finance.dart';
 import '../services/balance_util.dart';
+import '../services/finance_analysis_insight_facts.dart';
 import '../services/exchange_rate_storage.dart';
 import 'category_detail_page.dart';
 
@@ -144,6 +148,38 @@ class _AnalysisPageState extends State<AnalysisPage>
   /// Notes: Internal helper used within this file only.
   List<Transaction> get _filteredCategoryFlowTransactions =>
       _filteredTransactions.where((t) => t.type == _categoryFlowType).toList();
+
+  /// Purpose: Return the selected period as day bounds.
+  /// Inputs: None.
+  /// Returns: `({DateTime start, DateTime end})?` — the first day and the
+  /// day after the last, matching [_filteredTransactions]; null for a custom
+  /// range not picked yet.
+  /// Side effects: None.
+  /// Notes: Internal helper used within this file only. Feeds the AI card.
+  ({DateTime start, DateTime end})? get _periodBounds {
+    final d = _selectedMonth;
+    switch (_timeRange) {
+      case _TimeRange.year:
+        return (start: DateTime(d.year), end: DateTime(d.year + 1));
+      case _TimeRange.month:
+        return (
+          start: DateTime(d.year, d.month),
+          end: DateTime(d.year, d.month + 1),
+        );
+      case _TimeRange.day:
+        return (
+          start: DateTime(d.year, d.month, d.day),
+          end: DateTime(d.year, d.month, d.day + 1),
+        );
+      case _TimeRange.custom:
+        final r = _customRange;
+        if (r == null) return null;
+        return (
+          start: DateTime(r.start.year, r.start.month, r.start.day),
+          end: DateTime(r.end.year, r.end.month, r.end.day + 1),
+        );
+    }
+  }
 
   /// Purpose: Return range label.
   /// Inputs: `l10n`.
@@ -402,6 +438,35 @@ class _AnalysisPageState extends State<AnalysisPage>
                   ),
               ],
             ),
+          ),
+          // On-device AI reading of the selected period (1.8.1). Its own
+          // module, so it never replaces the Finance page's card underneath.
+          // Renders nothing unless the user turned on-device AI on.
+          AiInsightCard(
+            module: InsightModule.financeAnalysis,
+            compact: true,
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+            buildRequest: (language, now) {
+              final period = _periodBounds;
+              if (period == null) return null;
+              final facts = buildFinanceAnalysisInsightFacts(
+                now: now,
+                start: period.start,
+                end: period.end,
+                kind: _timeRange.name,
+                transactions: _transactions,
+                categories: widget.categories,
+                rateData: widget.rateData,
+                defaultCurrency: widget.defaultCurrency,
+              );
+              return facts == null
+                  ? null
+                  : AiInsightRequest(
+                      facts: facts,
+                      language: language,
+                      now: now,
+                    );
+            },
           ),
           Expanded(
             child: TabBarView(

@@ -3,7 +3,7 @@ import 'output_validation.dart';
 
 /// Bump when any wording below, or the facts a builder emits, changes in a
 /// way that should replace cached insights. Part of every fingerprint.
-const int insightPromptVersion = 3;
+const int insightPromptVersion = 4;
 
 /// The longest insight line shown, in characters. Longer lines are dropped,
 /// not truncated. Thirty English words with a task title or two can pass
@@ -17,7 +17,7 @@ const int insightMaxOutputTokens = 520;
 
 /// Which card an insight belongs to. The name is the key in
 /// `ai_insights.json`, so it must never be renamed.
-enum InsightModule { todo, finance, weight, intimacy }
+enum InsightModule { todo, finance, weight, intimacy, financeAnalysis }
 
 /// Todo's time-of-day modes. The other modules always use [none].
 enum InsightTimeBucket { none, morning, afternoon, evening }
@@ -73,6 +73,12 @@ class InsightFacts {
   /// English title is not discarded.
   final List<String> quotedTerms;
 
+  /// Anonymous label → real name (Intimacy's labelled variant, 1.8.1). The
+  /// model only ever sees the labels; an answer from these facts has each
+  /// label it kept written back as the name before it is cached. Not part of
+  /// the canonical form.
+  final Map<String, String> labelNames;
+
   /// Purpose: Create a facts value.
   /// Inputs: see fields.
   /// Returns: A new `InsightFacts`.
@@ -84,6 +90,7 @@ class InsightFacts {
     required this.lines,
     required this.slots,
     this.quotedTerms = const [],
+    this.labelNames = const {},
   });
 
   /// Purpose: Serialize the facts for fingerprinting.
@@ -108,13 +115,15 @@ class InsightFacts {
 /// on purpose: the reply shape is spelled out again at the end of the prompt.
 String insightInstructions(InsightLanguage language) =>
     "The person's locale is ${language.localeTag}. "
-    'You are a private assistant inside a personal daily-life app. '
+    'You are an analytical personal assistant inside a daily-life app. '
     'Using only the facts given, answer each numbered question with one '
-    'short sentence in ${language.name}, under 30 words, in the form '
-    '"<number>: <sentence>". Do not repeat the facts or the questions. '
-    'Be concrete, calm and kind. Never give medical, legal or investment '
-    'advice, never diagnose, and never invent numbers that are not in the '
-    'facts.';
+    'concise sentence in ${language.name}, under 30 words, in the form '
+    '"<number>: <sentence>". '
+    'NEVER restate raw counts or totals the screen already shows; instead '
+    'synthesize the key change, bottleneck, or correlation, and pair it '
+    'with a concrete, actionable next step. Be calm and kind. Never give '
+    'medical, legal or investment advice, never diagnose, and never invent '
+    'numbers.';
 
 /// Purpose: Build the prompt for one card.
 /// Inputs: `facts`.
@@ -157,7 +166,8 @@ final _inlineMarks = RegExp(r'(```[a-zA-Z]*|\*\*|__|`)');
 /// `asks` — the questions, so an echoed question is not taken as an answer.
 /// Returns: `Map<int, String>` — slot number (1-based) to sentence.
 /// Side effects: None.
-/// Notes: Bold and code marks are stripped first; list markers are kept
+/// Notes: Reasoning blocks (`stripThinking`), then bold and code marks are
+/// stripped first; list markers are kept
 /// because `1. ` is a numbering. Three shapes are accepted, in order of
 /// preference: `<number>: <sentence>`; a number alone on a line with the
 /// sentence on the next; and, only when no line is numbered at all, the first
@@ -190,7 +200,8 @@ Map<int, String> parseInsightReply(
   // Only inline marks are removed here: `stripMarkdown` would also drop a
   // `1. ` list marker, which is the very number being looked for. That is
   // why a reply numbered `1. …` parsed to nothing in v1.5.0.
-  final lines = reply.replaceAll(_inlineMarks, '').split('\n');
+  // Reasoning goes first: a draft inside it looks like a numbered answer.
+  final lines = stripThinking(reply).replaceAll(_inlineMarks, '').split('\n');
   final out = <int, String>{};
   var numbered = false;
   for (var i = 0; i < lines.length; i++) {

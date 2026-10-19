@@ -1,5 +1,22 @@
 # Version history
 
+## 1.8.1 — Sharper AI insights, named Intimacy companions and an Analysis card (2026-10-19)
+
+Pin MyApps-AI v0.6.2, whose `stripThinking` removes a model's reasoning blocks before a reply is
+read; `parseInsightReply` calls it first, so a numbered draft can no longer be shown as the answer.
+Insight prompts move to version 4: the instructions forbid restating numbers already on screen and
+ask for the key change, bottleneck or correlation with a next step, and every card gets new
+questions. The facts carry what a small model cannot calculate: Todo the 7-day habit completion
+rate and the overdue share; Finance this month's daily pace against last month's, the top
+category's change against the same days of last month and the subscriptions' share of spending;
+Weight a trend pattern (steady, accelerating, slowing, plateau, fluctuation, reversal). Intimacy
+now names partners, toys and positions instead of showing `partner A` / `toy 1` with no legend;
+after a safety refusal it retries with the labels, writes kept labels back as names, and explains
+any label still shown in the footnote. Toy and position usage carries average ratings. The
+Analysis page gets its own compact card (`financeAnalysis`) for the selected period: category
+shares, the peak day and week, and the change against the previous period. The privacy policy says
+what is now given to the on-device model.
+
 ## 1.8.0 — Friendly model names, GPU option, custom models (2026-10-08)
 
 Pin MyApps-AI v0.6.0: local models show friendly names (`Qwen: Qwen3.5 0.8B (Q4_K_M)`) that can be
