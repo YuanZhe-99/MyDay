@@ -283,7 +283,9 @@ List<FlSpot> buildEwmaSpots(
     final alpha = 1.0 - math.exp(-dtMs / tau);
     ewma = alpha * values[i] + (1 - alpha) * ewma;
     if (!record.datetime.isBefore(visibleFrom)) {
-      spots.add(FlSpot(record.datetime.millisecondsSinceEpoch.toDouble(), ewma));
+      spots.add(
+        FlSpot(record.datetime.millisecondsSinceEpoch.toDouble(), ewma),
+      );
     }
     prevTime = record.datetime;
   }
@@ -345,7 +347,9 @@ List<FlSpot> buildEwmaFrequencySpots(
       ewma = alpha * rate + (1 - alpha) * ewma;
     }
     if (!record.datetime.isBefore(visibleFrom)) {
-      spots.add(FlSpot(record.datetime.millisecondsSinceEpoch.toDouble(), ewma));
+      spots.add(
+        FlSpot(record.datetime.millisecondsSinceEpoch.toDouble(), ewma),
+      );
     }
     prevTime = record.datetime;
   }
@@ -462,8 +466,9 @@ class IntimacyTrendChart extends StatelessWidget {
   /// Notes: Keeps roughly five to eight labels across any range.
   double _dateInterval(List<IntimacyRecord> visible) {
     if (visible.length < 2) return 1;
-    final spanDays =
-        visible.last.datetime.difference(visible.first.datetime).inDays;
+    final spanDays = visible.last.datetime
+        .difference(visible.first.datetime)
+        .inDays;
     const day = 86400 * 1000.0;
     if (spanDays <= 7) return 2 * day;
     if (spanDays <= 30) return 7 * day;
@@ -636,14 +641,9 @@ class IntimacyTrendChart extends StatelessWidget {
           avatar: Container(
             width: 10,
             height: 2,
-            color: isSelected
-                ? spec.color
-                : spec.color.withValues(alpha: 0.35),
+            color: isSelected ? spec.color : spec.color.withValues(alpha: 0.35),
           ),
-          label: Text(
-            spec.label(l10n),
-            style: const TextStyle(fontSize: 11),
-          ),
+          label: Text(spec.label(l10n), style: const TextStyle(fontSize: 11)),
           selected: isSelected,
           onSelected: (_) => _toggleMetric(metric),
           visualDensity: VisualDensity.compact,
@@ -670,8 +670,9 @@ class IntimacyTrendChart extends StatelessWidget {
     final localeName = l10n.localeName;
     final primary = drawable.first;
     final secondary = drawable.length > 1 ? drawable[1] : null;
-    final spanDays =
-        visible.last.datetime.difference(visible.first.datetime).inDays;
+    final spanDays = visible.last.datetime
+        .difference(visible.first.datetime)
+        .inDays;
     final dateFormat = spanDays > 730
         ? DateFormat('yyyy', localeName)
         : spanDays > 365
@@ -744,9 +745,7 @@ class IntimacyTrendChart extends StatelessWidget {
               ),
             ),
           ),
-          leftTitles: AxisTitles(
-            sideTitles: _axisTitles(theme, primary, 36),
-          ),
+          leftTitles: AxisTitles(sideTitles: _axisTitles(theme, primary, 36)),
           rightTitles: AxisTitles(
             sideTitles: secondary == null
                 ? const SideTitles(showTitles: false)

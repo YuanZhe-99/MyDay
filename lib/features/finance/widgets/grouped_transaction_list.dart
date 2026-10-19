@@ -10,7 +10,7 @@ final DateFormat _dayKeyFormat = DateFormat('yyyy-MM-dd');
 
 /// Builds a date-grouped transaction list with date headers.
 /// Purpose: Implement the build grouped transaction list behavior for this file.
-/// Inputs: `context`, `sorted`, `tileBuilder`, `columns`.
+/// Inputs: `context`, `sorted`, `tileBuilder`, `columns`, `sliver`.
 /// Returns: `Widget`.
 /// Side effects: Creates UI widgets from grouped transaction data.
 /// Notes: `columns` defaults to 1, which builds exactly the flat header/tile
@@ -21,11 +21,15 @@ final DateFormat _dayKeyFormat = DateFormat('yyyy-MM-dd');
 /// column, so the `Dismissible` wrappers callers pass in are unaffected. The
 /// outer widget stays a `ListView.builder` at every column count, so the
 /// virtualization a long transaction history depends on is preserved.
+/// `sliver: true` (v1.8.2) returns the same rows as a lazily built
+/// `SliverList` instead, for a page that scrolls its header blocks and the
+/// list together in one `CustomScrollView`.
 Widget buildGroupedTransactionList(
   BuildContext context,
   List<Transaction> sorted,
   Widget Function(Transaction) tileBuilder, {
   int columns = 1,
+  bool sliver = false,
 }) {
   final perRow = columns < 1 ? 1 : columns;
   final items = <({bool isHeader, String? label, List<Transaction> group})>[];
@@ -64,33 +68,40 @@ Widget buildGroupedTransactionList(
 
   final theme = Theme.of(context);
 
-  return ListView.builder(
-    itemCount: items.length,
-    itemBuilder: (context, index) {
-      final item = items[index];
-      if (item.isHeader) {
-        return Container(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-          color: theme.colorScheme.surfaceContainerLow,
-          child: Text(
-            item.label!,
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-              fontWeight: FontWeight.w600,
-            ),
+  /// Purpose: Build one header or tile row of the grouped list.
+  /// Inputs: `context`, `index` — the row's position in `items`.
+  /// Returns: `Widget` — a date header or a row of transaction tiles.
+  /// Side effects: None.
+  /// Notes: Shared by the `ListView` and `SliverList` forms so both build
+  /// identical rows.
+  Widget itemBuilder(BuildContext context, int index) {
+    final item = items[index];
+    if (item.isHeader) {
+      return Container(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+        color: theme.colorScheme.surfaceContainerLow,
+        child: Text(
+          item.label!,
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+            fontWeight: FontWeight.w600,
           ),
-        );
-      }
-      final row = adaptiveTileRows(
-        columns: perRow,
-        itemCount: item.group.length,
-        itemBuilder: (i) => tileBuilder(item.group[i]),
+        ),
       );
-      if (perRow <= 1) return row.single;
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        child: row.single,
-      );
-    },
-  );
+    }
+    final row = adaptiveTileRows(
+      columns: perRow,
+      itemCount: item.group.length,
+      itemBuilder: (i) => tileBuilder(item.group[i]),
+    );
+    if (perRow <= 1) return row.single;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: row.single,
+    );
+  }
+
+  return sliver
+      ? SliverList.builder(itemCount: items.length, itemBuilder: itemBuilder)
+      : ListView.builder(itemCount: items.length, itemBuilder: itemBuilder);
 }

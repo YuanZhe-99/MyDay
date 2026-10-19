@@ -788,11 +788,14 @@ class _FinancePageState extends ConsumerState<FinancePage> {
                 ),
               ),
               transactionList: monthTransactions.isEmpty
-                  ? Center(
-                      child: Text(
-                        l10n.financeNoTransactions,
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
+                  ? SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: Center(
+                        child: Text(
+                          l10n.financeNoTransactions,
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
                         ),
                       ),
                     )
@@ -839,6 +842,7 @@ class _FinancePageState extends ConsumerState<FinancePage> {
                         ),
                       ),
                       columns: listColumns,
+                      sliver: true,
                     ),
             ),
       floatingActionButton: FloatingActionButton(
@@ -1128,6 +1132,8 @@ class _FinanceBody extends StatelessWidget {
   final double leftPaneWidth;
   final List<Widget> summaryBlocks;
   final Widget transactionHeader;
+
+  /// A sliver: the grouped list, or a fill-remaining empty message.
   final Widget transactionList;
 
   /// Purpose: Create a finance body instance.
@@ -1160,15 +1166,19 @@ class _FinanceBody extends StatelessWidget {
   /// Stacked, that summary spends up to a third of a phone's height before the
   /// first transaction appears. The left pane scrolls in its own right because
   /// a long renewal strip plus the summary can outgrow a compact height, which
-  /// the split rule still admits at 480.
+  /// the split rule still admits at 480. Stacked, the summary and the list
+  /// scroll as one page (v1.8.2), so the summary scrolls away instead of
+  /// squeezing the list; `transactionList` is a sliver for that reason.
   @override
   Widget build(BuildContext context) {
     if (!twoPane) {
-      return Column(
-        children: [
-          ...summaryBlocks,
-          transactionHeader,
-          Expanded(child: transactionList),
+      // One scroll for the whole page (v1.8.2): with the summary fixed above
+      // an `Expanded` list, an opened AI card or a short window left the list
+      // only a sliver of height to scroll in.
+      return CustomScrollView(
+        slivers: [
+          SliverList.list(children: [...summaryBlocks, transactionHeader]),
+          transactionList,
         ],
       );
     }
@@ -1184,7 +1194,7 @@ class _FinanceBody extends StatelessWidget {
           child: Column(
             children: [
               transactionHeader,
-              Expanded(child: transactionList),
+              Expanded(child: CustomScrollView(slivers: [transactionList])),
             ],
           ),
         ),

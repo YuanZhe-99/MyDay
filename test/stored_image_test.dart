@@ -22,8 +22,10 @@ void main() {
   setUpAll(() {
     dir = Directory.systemTemp.createTempSync('stored_image_');
     svg = File(p.join(dir.path, 'logo.svg'))
-      ..writeAsStringSync('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">'
-          '<rect width="10" height="10" fill="#c00"/></svg>');
+      ..writeAsStringSync(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">'
+        '<rect width="10" height="10" fill="#c00"/></svg>',
+      );
     png = File(p.join(dir.path, 'logo.PNG'))
       ..writeAsBytesSync(img.encodePng(img.Image(width: 4, height: 4)));
   });
@@ -36,23 +38,31 @@ void main() {
   });
 
   testWidgets('StoredImage picks the SVG or raster decoder', (tester) async {
-    await tester.pumpWidget(MaterialApp(
-      home: Column(children: [
-        StoredImage(svg, width: 20, height: 20),
-        StoredImage(png, width: 20, height: 20),
-      ]),
-    ));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Column(
+          children: [
+            StoredImage(svg, width: 20, height: 20),
+            StoredImage(png, width: 20, height: 20),
+          ],
+        ),
+      ),
+    );
     expect(find.byType(SvgPicture), findsOneWidget);
     expect(find.byType(Image), findsOneWidget);
   });
 
   testWidgets('StoredImageAvatar builds for both kinds', (tester) async {
-    await tester.pumpWidget(MaterialApp(
-      home: Row(children: [
-        StoredImageAvatar(svg, radius: 12),
-        StoredImageAvatar(png, backgroundColor: Colors.red),
-      ]),
-    ));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Row(
+          children: [
+            StoredImageAvatar(svg, radius: 12),
+            StoredImageAvatar(png, backgroundColor: Colors.red),
+          ],
+        ),
+      ),
+    );
     await tester.pump();
     expect(find.byType(CircleAvatar), findsNWidgets(2));
     expect(tester.takeException(), isNull);

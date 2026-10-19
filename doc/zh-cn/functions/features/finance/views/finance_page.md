@@ -258,11 +258,11 @@ P2：布局函数传入页面上下文并使用实际导航内容约束；
 - **来源：** `lib/features/finance/views/finance_page.dart`（第 1163 行）
 - **用途：** 把月度摘要和交易列表排成堆叠布局或双栏布局。
 - **输入：** `context`；以及组件自己的 `twoPane`、`leftPaneWidth`、`summaryBlocks`、`transactionHeader` 和 `transactionList` 字段。
-- **返回：** 堆叠时为 `Column`，分栏时为 `Row`。
+- **返回：** 堆叠时为 `CustomScrollView`，分栏时为 `Row`。
 - **副作用：** 除构建组件外无。
 - **算法：**
-  1. `!twoPane` → `Column(children: [...summaryBlocks, transactionHeader, Expanded(transactionList)])`，与 v1.4.1 之前页面的主体完全相同。
-  2. 否则是由 `SizedBox(width: leftPaneWidth, child: ListView(summaryBlocks))`、`VerticalDivider(width: 1)` 和承载标题及列表的 `Expanded` 右窗格组成的 `Row`。
+  1. `!twoPane` → `CustomScrollView(slivers: [SliverList.list([...summaryBlocks, transactionHeader]), transactionList])`，整页作为一个整体滚动（v1.8.2）。此前是 `Column` 把摘要固定在 `Expanded` 列表上方，AI 卡片展开或窗口较矮时，列表只剩几行高度可滚动。
+  2. 否则是由 `SizedBox(width: leftPaneWidth, child: ListView(summaryBlocks))`、`VerticalDivider(width: 1)` 和承载标题及 `CustomScrollView(slivers: [transactionList])` 的 `Expanded` 右窗格组成的 `Row`。两种排布中 `transactionList` 都是 sliver：`sliver: true` 的分组列表，或 `SliverFillRemaining` 空状态提示。
 - **用法：** 在分栏决策和窗格宽度解析完成后由 `_FinancePageState.build` 构建。
 - **备注：** 三个内容槽由页面构建一次、在这里以两种方式排布，因此两种布局不可能显示不同的内容——页面自己刻意做的一个例外除外：自 v1.4.3 起，订阅概览只在双栏排布中被加入 `summaryBlocks`，因为它填的是原本会空着的窗格，而堆叠时它会把手机上的第一笔交易推得更靠下。端侧 AI 卡片（v1.5.0）在两种排布中都有，但堆叠时为 `compact`（折叠为一行预览）。堆叠时，月度摘要本就在第一笔交易出现之前要花掉手机高度的三分之一；分栏时，交易列表——用户真正在读的东西——拿走摘要之外的一切。左窗格本身是 `ListView`，因为很长的续订条加上摘要可能超出紧凑高度，而分栏规则在 480 处仍然放行这种高度。见 [../../../../adaptive-layout.md](../../../../adaptive-layout.md)。
 

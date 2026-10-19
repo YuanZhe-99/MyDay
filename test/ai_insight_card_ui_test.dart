@@ -129,9 +129,7 @@ void main() {
     expect(find.text('Second.'), findsOneWidget);
   });
 
-  testWidgets('compact starts collapsed with one preview line', (
-    tester,
-  ) async {
+  testWidgets('compact starts collapsed with one preview line', (tester) async {
     backend.generateReplies.add('1: Spending is down.\n2: One subscription.');
     await pump(tester, compact: true);
     expect(find.text('Spending is down.'), findsOneWidget);

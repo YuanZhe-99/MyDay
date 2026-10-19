@@ -58,10 +58,7 @@ void main() {
       }),
     );
     final file = await AiInsightsCache.file();
-    expect(
-      p.dirname(file.path),
-      (await TodoStorage.getAppDir()).path,
-    );
+    expect(p.dirname(file.path), (await TodoStorage.getAppDir()).path);
     expect(p.basename(file.path), 'ai_insights.json');
     final raw = jsonDecode(await file.readAsString()) as Map;
     expect(raw['version'], 1);

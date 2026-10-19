@@ -20,8 +20,9 @@ import '../tool/gen_bank_logo_manifest.dart';
 /// Notes: Guards the three ways the bundle can drift: a manifest entry without a file, a file
 /// without a manifest entry, and a file flutter_svg / the image decoder cannot draw.
 void main() {
-  final presets = (jsonDecode(File('assets/banks.json').readAsStringSync()) as List)
-      .cast<Map<String, dynamic>>();
+  final presets =
+      (jsonDecode(File('assets/banks.json').readAsStringSync()) as List)
+          .cast<Map<String, dynamic>>();
   final presetKeys = {for (final b in presets) '${b['country']}/${b['id']}'};
 
   test('the committed manifest matches the logo directory exactly', () {
@@ -50,12 +51,16 @@ void main() {
     }
   });
 
-  testWidgets('every SVG logo parses and renders with flutter_svg', (tester) async {
+  testWidgets('every SVG logo parses and renders with flutter_svg', (
+    tester,
+  ) async {
     final failures = <String>[];
     for (final a in bankLogoAssets.values.where((a) => a.endsWith('.svg'))) {
       final source = File(a).readAsStringSync();
       try {
-        await tester.runAsync(() => vg.loadPicture(SvgStringLoader(source), null));
+        await tester.runAsync(
+          () => vg.loadPicture(SvgStringLoader(source), null),
+        );
       } catch (e) {
         failures.add('$a: $e');
       }
@@ -63,10 +68,14 @@ void main() {
     expect(failures, isEmpty, reason: failures.join('\n'));
 
     // One real widget render through the asset bundle.
-    final first = bankLogoAssets.values.firstWhere((a) => a.endsWith('.svg'),
-        orElse: () => '');
+    final first = bankLogoAssets.values.firstWhere(
+      (a) => a.endsWith('.svg'),
+      orElse: () => '',
+    );
     if (first.isNotEmpty) {
-      await tester.pumpWidget(MaterialApp(home: SvgPicture.asset(first, width: 40)));
+      await tester.pumpWidget(
+        MaterialApp(home: SvgPicture.asset(first, width: 40)),
+      );
       await tester.runAsync(() => rootBundle.load(first));
       await tester.pump();
       expect(tester.takeException(), isNull);

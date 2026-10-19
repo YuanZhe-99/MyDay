@@ -267,7 +267,9 @@ grep -rnE "maxWidth *[<>]=? *[0-9]|size\.width *[<>]=? *[0-9]" lib/
    content. The overview breaks that rule on purpose: split, it fills a pane that would otherwise
    sit empty below the month summary; stacked, it would push the first transaction further down a
    phone, which is the very cost the split exists to remove. It is also absent when there is no
-   active subscription — whenever a block can render to nothing, it belongs in the gate.
+   active subscription — whenever a block can render to nothing, it belongs in the gate. Since
+   v1.8.2 the stacked page scrolls as one `CustomScrollView`, so the summary scrolls away with
+   the transactions instead of holding a fixed share of the height above them.
 6. **The intimacy pane's floor did not move when its chart did.** Moving the trend chart into the
    calendar pane raised the pane's proportion and ceiling, because a chart keeps gaining from width
    where a calendar does not. The 320 floor stayed, because it is the calendar's and the narrowest

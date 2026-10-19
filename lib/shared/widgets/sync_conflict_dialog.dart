@@ -56,8 +56,10 @@ class _SyncConflictDialogState extends State<SyncConflictDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(loc.settingsWebDAVConflictDesc,
-                style: theme.textTheme.bodyMedium),
+            Text(
+              loc.settingsWebDAVConflictDesc,
+              style: theme.textTheme.bodyMedium,
+            ),
             const SizedBox(height: 16),
             Flexible(
               child: ListView.separated(
@@ -85,8 +87,9 @@ class _SyncConflictDialogState extends State<SyncConflictDialog> {
                                 label: loc.settingsWebDAVKeepLocal,
                                 icon: Icons.phone_android,
                                 selected: choice == true,
-                                onTap: () => setState(() =>
-                                    _choices[conflict.id] = true),
+                                onTap: () => setState(
+                                  () => _choices[conflict.id] = true,
+                                ),
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -95,8 +98,9 @@ class _SyncConflictDialogState extends State<SyncConflictDialog> {
                                 label: loc.settingsWebDAVKeepRemote,
                                 icon: Icons.cloud,
                                 selected: choice == false,
-                                onTap: () => setState(() =>
-                                    _choices[conflict.id] = false),
+                                onTap: () => setState(
+                                  () => _choices[conflict.id] = false,
+                                ),
                               ),
                             ),
                           ],
@@ -174,10 +178,13 @@ class _ChoiceButton extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 16,
-                  color: selected
-                      ? theme.colorScheme.onPrimaryContainer
-                      : theme.colorScheme.onSurfaceVariant),
+              Icon(
+                icon,
+                size: 16,
+                color: selected
+                    ? theme.colorScheme.onPrimaryContainer
+                    : theme.colorScheme.onSurfaceVariant,
+              ),
               const SizedBox(width: 4),
               Flexible(
                 child: Text(

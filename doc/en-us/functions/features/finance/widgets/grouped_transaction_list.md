@@ -12,14 +12,15 @@ inserted wherever the date changes. See [Finance](../../../../features/finance.m
 |---|---|---|---|
 | [`buildGroupedTransactionList`](#buildgroupedtransactionlist) | top-level function | A | Build a `ListView` that groups a sorted transaction list under date-header rows. |
 | `flush` | local function (inside `buildGroupedTransactionList`) | A | Emit the transactions collected for the current date as packed rows. |
+| `itemBuilder` | local function (inside `buildGroupedTransactionList`) | A | Build one header or tile row; shared by the `ListView` and `SliverList` forms. |
 
-`grep -c 'Purpose:' lib/features/finance/widgets/grouped_transaction_list.dart` reports 2,
-matching the single real declaration in this file. No misattachment or undocumented declarations
+`grep -c 'Purpose:' lib/features/finance/widgets/grouped_transaction_list.dart` reports 3,
+matching the three declarations in this file. No misattachment or undocumented declarations
 found.
 
 ## Documentation
 
-### `Widget buildGroupedTransactionList(BuildContext context, List<Transaction> sorted, Widget Function(Transaction) tileBuilder)` <a id="buildgroupedtransactionlist"></a>
+### `Widget buildGroupedTransactionList(BuildContext context, List<Transaction> sorted, Widget Function(Transaction) tileBuilder, {int columns = 1, bool sliver = false})` <a id="buildgroupedtransactionlist"></a>
 - **Kind:** top-level function
 - **Source:** `lib/features/finance/widgets/grouped_transaction_list.dart` (line 16)
 - **Purpose:** Render a date-sorted list of transactions as a scrollable list with a date-header row
@@ -27,8 +28,10 @@ found.
 - **Inputs:** `context` — used only to read the current `Theme`; `sorted` — the transactions,
   which the caller must already have sorted so that all transactions sharing a date are
   contiguous (this function does not sort); `tileBuilder` — callback that renders a single
-  transaction row, called once per transaction.
-- **Returns:** `Widget` — a `ListView.builder` covering both header rows and transaction rows.
+  transaction row, called once per transaction; `columns` — tiles per row within a date group;
+  `sliver` — return a sliver instead of a box (v1.8.2).
+- **Returns:** `Widget` — a `ListView.builder` covering both header rows and transaction rows, or
+  with `sliver: true` a `SliverList.builder` over the same rows.
 - **Side effects:** None beyond building widgets (no state, no I/O).
 - **Algorithm:**
   1. Walk `sorted` once, formatting each transaction's `date` as `yyyy-MM-dd` via
@@ -57,7 +60,9 @@ found.
   (`lib/features/finance/views/accounts_page.dart`, account detail transaction list; the same
   pattern is repeated in `category_detail_page.dart`, `subscription_detail_page.dart`, and
   `finance_page.dart`.)
-- **Notes:** Relies on the caller for sort order — this function has no knowledge of ascending vs.
+- **Notes:** `finance_page.dart` passes `sliver: true` (v1.8.2) so the stacked Finance page can
+  scroll its summary blocks and the list as one `CustomScrollView`; the other pages keep the
+  `ListView`. Relies on the caller for sort order — this function has no knowledge of ascending vs.
   descending date order and simply groups whatever contiguous run of same-day transactions it is
   given.
 
@@ -77,3 +82,14 @@ found.
   while its own transactions pack into columns; one date's tiles can never end up beside another
   date's. Each emitted entry therefore holds at most `perRow` items, which is why the builder can
   take `adaptiveTileRows(...).single`.
+
+### `Widget itemBuilder(BuildContext context, int index)` (local to `buildGroupedTransactionList`) <a id="itembuilder"></a>
+- **Kind:** nested local function
+- **Source:** `lib/features/finance/widgets/grouped_transaction_list.dart` (line 77)
+- **Purpose:** Build the row at `index` of `items`.
+- **Inputs:** `context`; `index` — the row's position in `items`.
+- **Returns:** `Widget` — a date header, or the row of tiles from `adaptiveTileRows(...).single`,
+  padded horizontally when `perRow > 1`.
+- **Side effects:** None.
+- **Usage:** Passed as the `itemBuilder` of either `ListView.builder` or `SliverList.builder`.
+- **Notes:** Added in v1.8.2 so the box and sliver forms build identical rows.

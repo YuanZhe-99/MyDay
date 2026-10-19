@@ -61,5 +61,5 @@ class IntimacyVisibilityNotifier extends StateNotifier<IntimacyVisibility> {
 
 final intimacyVisibilityProvider =
     StateNotifierProvider<IntimacyVisibilityNotifier, IntimacyVisibility>(
-  (ref) => IntimacyVisibilityNotifier(),
-);
+      (ref) => IntimacyVisibilityNotifier(),
+    );

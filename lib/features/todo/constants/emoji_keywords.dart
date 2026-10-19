@@ -309,14 +309,7 @@ const List<EmojiKeywordEntry> emojiKeywordTable = [
   ),
   EmojiKeywordEntry(
     '📅',
-    en: [
-      'calendar',
-      'schedule',
-      'booking',
-      'reservation',
-      'date',
-      'deadline',
-    ],
+    en: ['calendar', 'schedule', 'booking', 'reservation', 'date', 'deadline'],
     zhHans: ['日程', '日历', '预约', '安排', '截止', '行程'],
     zhHant: ['日程', '行事曆', '預約', '安排', '截止', '行程'],
     ja: ['予定', 'カレンダー', '予約', 'スケジュール', '締め切り', '日程'],

@@ -118,6 +118,47 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('a phone scrolls the summary away with the list', (tester) async {
+    // v1.8.2: stacked, the summary used to stay fixed above an `Expanded`
+    // list, so only the list scrolled and it could be left a few rows tall.
+    final today = DateTime.now();
+    final dir = await seedAppDir(tester, {
+      'finance_data.json': {
+        'accounts': <Object>[],
+        'categories': <Object>[],
+        'transactions': [
+          for (var i = 0; i < 40; i++)
+            {
+              'id': 'tx$i',
+              'type': 'expense',
+              'amount': 10.0 + i,
+              'currency': 'CNY',
+              'accountId': 'acc1',
+              'note': '交易$i',
+              'date': DateTime(
+                today.year,
+                today.month,
+                today.day,
+              ).toIso8601String(),
+            },
+        ],
+        'subscriptions': <Object>[],
+        'defaultCurrency': 'CNY',
+      },
+    });
+    addTearDown(() => deleteQuietly(dir));
+
+    await pumpAdaptivePage(tester, const FinancePage(), const Size(412, 915));
+
+    final header = find.byIcon(Icons.receipt_long);
+    expect(header, findsOneWidget);
+    final before = tester.getTopLeft(header).dy;
+    await tester.dragFrom(const Offset(206, 800), const Offset(0, -150));
+    await tester.pumpAndSettle();
+    expect(tester.getTopLeft(header).dy, lessThan(before - 100));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('a phone in landscape also stays stacked', (tester) async {
     final dir = await seedAppDir(tester, const {});
     addTearDown(() => deleteQuietly(dir));

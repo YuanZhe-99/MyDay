@@ -24,12 +24,17 @@ Future<bool> confirmDelete(BuildContext context, String itemLabel) async {
     context: context,
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, setDialogState) => AlertDialog(
-        title: Text(AppLocalizations.of(context)?.commonDelete ?? 'Confirm Delete'),
+        title: Text(
+          AppLocalizations.of(context)?.commonDelete ?? 'Confirm Delete',
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(AppLocalizations.of(context)?.commonDeleteConfirm(itemLabel) ?? 'Delete $itemLabel?'),
+            Text(
+              AppLocalizations.of(context)?.commonDeleteConfirm(itemLabel) ??
+                  'Delete $itemLabel?',
+            ),
             const SizedBox(height: 12),
             Row(
               children: [
@@ -46,7 +51,8 @@ Future<bool> confirmDelete(BuildContext context, String itemLabel) async {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    AppLocalizations.of(context)?.commonDontAskMinutes ?? "Don't ask for 5 minutes",
+                    AppLocalizations.of(context)?.commonDontAskMinutes ??
+                        "Don't ask for 5 minutes",
                     style: const TextStyle(fontSize: 13),
                   ),
                 ),

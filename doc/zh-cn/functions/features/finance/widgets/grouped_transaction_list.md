@@ -8,17 +8,18 @@
 |---|---|---|---|
 | [`buildGroupedTransactionList`](#buildgroupedtransactionlist) | 顶层函数 | A | 构建把排序交易列表分组到日期页头行下的 `ListView`。 |
 | `flush` | 局部函数（`buildGroupedTransactionList` 内） | A | 把当前日期收集到的交易作为打包好的行发出。 |
+| `itemBuilder` | 局部函数（`buildGroupedTransactionList` 内） | A | 构建一个页头行或图块行；`ListView` 与 `SliverList` 两种形式共用。 |
 
-`grep -c 'Purpose:' lib/features/finance/widgets/grouped_transaction_list.dart` 报告 2，与本文件全部两个真实声明匹配。未发现错附或未文档化声明。
+`grep -c 'Purpose:' lib/features/finance/widgets/grouped_transaction_list.dart` 报告 3，与本文件全部三个声明匹配。未发现错附或未文档化声明。
 
 ## 文档
 
-### `Widget buildGroupedTransactionList(BuildContext context, List<Transaction> sorted, Widget Function(Transaction) tileBuilder)` <a id="buildgroupedtransactionlist"></a>
+### `Widget buildGroupedTransactionList(BuildContext context, List<Transaction> sorted, Widget Function(Transaction) tileBuilder, {int columns = 1, bool sliver = false})` <a id="buildgroupedtransactionlist"></a>
 - **种类：** 顶层函数
 - **来源：** `lib/features/finance/widgets/grouped_transaction_list.dart`（第 16 行）
 - **用途：** 把按日期排序的交易列表渲染为可滚动列表，日历日期每次变化时插入日期页头行。
-- **输入：** `context` — 只用于读取当前 `Theme`；`sorted` — 交易，调用方必须已排序，使共享日期的所有交易连续（此函数不排序）；`tileBuilder` — 渲染单个交易行的回调，每笔交易调用一次。
-- **返回：** `Widget` — 覆盖页头行和交易行的 `ListView.builder`。
+- **输入：** `context` — 只用于读取当前 `Theme`；`sorted` — 交易，调用方必须已排序，使共享日期的所有交易连续（此函数不排序）；`tileBuilder` — 渲染单个交易行的回调，每笔交易调用一次；`columns` — 同一日期分组内每行的图块数；`sliver` — 返回 sliver 而不是盒子组件（v1.8.2）。
+- **返回：** `Widget` — 覆盖页头行和交易行的 `ListView.builder`；`sliver: true` 时为覆盖相同行的 `SliverList.builder`。
 - **副作用：** 除构建组件外无（无状态、无 I/O）。
 - **算法：**
   1. 单趟遍历 `sorted`，经 `DateFormat('yyyy-MM-dd')` 把每笔交易的 `date` 格式化为 `yyyy-MM-dd`。
@@ -37,7 +38,7 @@
     })
   ```
   （`lib/features/finance/views/accounts_page.dart`，账户详情交易列表；`category_detail_page.dart`、`subscription_detail_page.dart` 和 `finance_page.dart` 中重复相同模式。）
-- **备注：** 依赖调用方保证排序——此函数不知道升序还是降序日期顺序，只是对它得到的任意连续同日交易段分组。
+- **备注：** `finance_page.dart` 传入 `sliver: true`（v1.8.2），使堆叠的财务页能把摘要块和列表放在同一个 `CustomScrollView` 中一起滚动；其他页面仍使用 `ListView`。依赖调用方保证排序——此函数不知道升序还是降序日期顺序，只是对它得到的任意连续同日交易段分组。
 
 ### `void flush()`（`buildGroupedTransactionList` 内的局部函数） <a id="flush"></a>
 - **种类：** 嵌套局部函数
@@ -49,3 +50,13 @@
 - **算法：** 以 `perRow` 为步长遍历 `current`，每次把至多 `perRow` 条交易的 `sublist` 作为一个条目追加，最后 `current.clear()`。
 - **用法：** 扫描 `sorted` 时每次日期变化都调用，并在循环结束后再调用一次，以免丢掉最后一个日期。
 - **备注：** 在 flush **内部**分块，正是让日期标题横跨整个宽度、而它自己的交易打包成列的原因；一个日期的图块绝不会挨着另一个日期的。因此每个发出的条目至多持有 `perRow` 项，这也是构建器可以取 `adaptiveTileRows(...).single` 的原因。
+
+### `Widget itemBuilder(BuildContext context, int index)`（`buildGroupedTransactionList` 内的局部函数） <a id="itembuilder"></a>
+- **种类：** 嵌套局部函数
+- **来源：** `lib/features/finance/widgets/grouped_transaction_list.dart`（第 77 行）
+- **用途：** 构建 `items` 中第 `index` 行。
+- **输入：** `context`；`index` — 该行在 `items` 中的位置。
+- **返回：** `Widget` — 日期页头，或来自 `adaptiveTileRows(...).single` 的图块行（`perRow > 1` 时加水平内边距）。
+- **副作用：** 无。
+- **用法：** 作为 `ListView.builder` 或 `SliverList.builder` 的 `itemBuilder` 传入。
+- **备注：** v1.8.2 新增，使盒子与 sliver 两种形式构建完全相同的行。

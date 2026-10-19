@@ -432,13 +432,17 @@ this codebase's convention of documenting callable members rather than data fiel
 - **Purpose:** Arrange the month summary and the transaction list either stacked or in two panes.
 - **Inputs:** `context`; the widget's own `twoPane`, `leftPaneWidth`, `summaryBlocks`,
   `transactionHeader` and `transactionList` fields.
-- **Returns:** A `Column` when stacked, a `Row` when split.
+- **Returns:** A `CustomScrollView` when stacked, a `Row` when split.
 - **Side effects:** None beyond building widgets.
 - **Algorithm:**
-  1. `!twoPane` → `Column(children: [...summaryBlocks, transactionHeader,
-     Expanded(transactionList)])`, which is exactly the body the page had before v1.4.1.
+  1. `!twoPane` → `CustomScrollView(slivers: [SliverList.list([...summaryBlocks,
+     transactionHeader]), transactionList])`, so the whole page scrolls as one (v1.8.2). Before,
+     a `Column` held the summary fixed above an `Expanded` list, and an opened AI card or a short
+     window left the list only a few rows to scroll in.
   2. Otherwise `Row` of `SizedBox(width: leftPaneWidth, child: ListView(summaryBlocks))`, a
-     `VerticalDivider(width: 1)`, and an `Expanded` right pane holding the header above the list.
+     `VerticalDivider(width: 1)`, and an `Expanded` right pane holding the header above `CustomScrollView(slivers: [transactionList])`.
+  `transactionList` is a sliver in both arrangements: the `sliver: true` grouped list, or a
+  `SliverFillRemaining` empty message.
 - **Usage:** Built by `_FinancePageState.build` once the split decision and the pane width are
   resolved.
 - **Notes:** The three content slots are built once by the page and arranged two ways here, so the

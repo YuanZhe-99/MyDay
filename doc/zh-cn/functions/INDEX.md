@@ -88,7 +88,7 @@ WebDAVConfigPage.build 将通用设置控件委托给 myapps_data。声明数量
 | `lib/features/finance/widgets/add_transaction_dialog.dart` | [features/finance/widgets/add_transaction_dialog.md](features/finance/widgets/add_transaction_dialog.md) | 39 | 15 |
 | `lib/features/finance/widgets/bank_logo_image.dart` | [features/finance/widgets/bank_logo_image.md](features/finance/widgets/bank_logo_image.md) | 7 | 2 |
 | `lib/features/finance/widgets/bank_preset_picker.dart` | [features/finance/widgets/bank_preset_picker.md](features/finance/widgets/bank_preset_picker.md) | 11 | 1 |
-| `lib/features/finance/widgets/grouped_transaction_list.dart` | [features/finance/widgets/grouped_transaction_list.md](features/finance/widgets/grouped_transaction_list.md) | 2 | 2 |
+| `lib/features/finance/widgets/grouped_transaction_list.dart` | [features/finance/widgets/grouped_transaction_list.md](features/finance/widgets/grouped_transaction_list.md) | 3 | 3 |
 | `lib/features/finance/widgets/subscription_avatar.dart` | [features/finance/widgets/subscription_avatar.md](features/finance/widgets/subscription_avatar.md) | 4 | 1 |
 
 ## features/intimacy/

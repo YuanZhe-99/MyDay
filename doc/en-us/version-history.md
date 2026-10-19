@@ -1,5 +1,13 @@
 # Version history
 
+## 1.8.2 — Finance page scrolls as one (2026-10-19)
+
+On a phone the Finance page kept its month summary, renewal strip and AI card fixed above the
+transaction list, so only the list scrolled; with the AI card opened, or on a short window, the
+list was left a few rows tall. The stacked page is now one `CustomScrollView`: the summary scrolls
+away with the list and the list keeps the full height. `buildGroupedTransactionList` gains
+`sliver: true` for this. The two-pane layout is unchanged.
+
 ## 1.8.1 — Sharper AI insights, named Intimacy companions and an Analysis card (2026-10-19)
 
 Pin MyApps-AI v0.6.2, whose `stripThinking` removes a model's reasoning blocks before a reply is

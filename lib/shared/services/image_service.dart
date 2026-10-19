@@ -83,10 +83,14 @@ class ImageService {
   static Future<String?> copyAssetImage(String assetKey) async {
     try {
       final data = await rootBundle.load(assetKey);
-      final bytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+      final bytes = data.buffer.asUint8List(
+        data.offsetInBytes,
+        data.lengthInBytes,
+      );
       if (bytes.isEmpty) return null;
       final imgDir = await _getImageDir();
-      final newName = '${const Uuid().v4()}${p.extension(assetKey).toLowerCase()}';
+      final newName =
+          '${const Uuid().v4()}${p.extension(assetKey).toLowerCase()}';
       await File(p.join(imgDir.path, newName)).writeAsBytes(bytes, flush: true);
       return 'images/$newName';
     } catch (_) {
@@ -103,7 +107,10 @@ class ImageService {
   /// Returns: `Future<String?>`.
   /// Side effects: May read or mutate application state, storage, or service resources.
   /// Notes: The request times out after 15 seconds and then returns null.
-  static Future<String?> downloadAndSave(String url, {int minBytes = 500}) async {
+  static Future<String?> downloadAndSave(
+    String url, {
+    int minBytes = 500,
+  }) async {
     try {
       // A stalled server must not leave the caller waiting forever.
       final response = await http

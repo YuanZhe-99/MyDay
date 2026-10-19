@@ -30,10 +30,7 @@ void main() {
     debugDefaultTargetPlatformOverride = null;
   });
 
-  Future<void> pump(
-    WidgetTester tester, {
-    bool enabled = false,
-  }) async {
+  Future<void> pump(WidgetTester tester, {bool enabled = false}) async {
     if (enabled) await service.setEnabled(true);
     await tester.pumpWidget(
       ProviderScope(
@@ -47,16 +44,16 @@ void main() {
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           locale: const Locale('en'),
-          home: Scaffold(
-            body: ListView(children: [const AiSettingsTiles()]),
-          ),
+          home: Scaffold(body: ListView(children: [const AiSettingsTiles()])),
         ),
       ),
     );
     await tester.pumpAndSettle();
   }
 
-  testWidgets('Windows offers local AI without probing while disabled', (tester) async {
+  testWidgets('Windows offers local AI without probing while disabled', (
+    tester,
+  ) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
     await pump(tester);
     expect(find.byType(SwitchListTile), findsOneWidget);

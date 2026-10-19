@@ -90,17 +90,11 @@ void main() {
   });
 
   test('new facts, a new day, or a new model regenerate', () async {
-    backend.generateReplies.addAll([
-      '1: One.',
-      '1: Two.',
-      '1: Three.',
-    ]);
+    backend.generateReplies.addAll(['1: One.', '1: Two.', '1: Three.']);
     await store.ensure(_request('weight 60 kg'));
     await store.ensure(_request('weight 61 kg'));
     expect(generations(), 2);
-    await store.ensure(
-      _request('weight 61 kg', now: DateTime(2026, 9, 29, 9)),
-    );
+    await store.ensure(_request('weight 61 kg', now: DateTime(2026, 9, 29, 9)));
     expect(generations(), 3);
 
     final a = insightFingerprint(_request('x'), 'stable/full · nano-v3');
@@ -130,23 +124,26 @@ void main() {
     expect(generations(), 1);
   });
 
-  test('a failure keeps the previous text as stale and is not cached', () async {
-    backend.generateReplies.addAll([
-      '1: Old.',
-      const GenAiException(GenAiFailure.failed),
-    ]);
-    await store.ensure(_request('weight 60 kg'));
-    await store.ensure(_request('weight 61 kg'));
-    final state = store.stateOf(InsightModule.weight);
-    expect(state.phase, AiInsightPhase.failed);
-    expect(state.failure, GenAiFailure.failed);
-    expect(state.stale, isTrue);
-    expect(state.entry!.lines, ['Old.']);
-    expect(saves, 1);
-    // A real failure is not retried by another page build.
-    await store.ensure(_request('weight 61 kg'));
-    expect(generations(), 2);
-  });
+  test(
+    'a failure keeps the previous text as stale and is not cached',
+    () async {
+      backend.generateReplies.addAll([
+        '1: Old.',
+        const GenAiException(GenAiFailure.failed),
+      ]);
+      await store.ensure(_request('weight 60 kg'));
+      await store.ensure(_request('weight 61 kg'));
+      final state = store.stateOf(InsightModule.weight);
+      expect(state.phase, AiInsightPhase.failed);
+      expect(state.failure, GenAiFailure.failed);
+      expect(state.stale, isTrue);
+      expect(state.entry!.lines, ['Old.']);
+      expect(saves, 1);
+      // A real failure is not retried by another page build.
+      await store.ensure(_request('weight 61 kg'));
+      expect(generations(), 2);
+    },
+  );
 
   test('unusable output is a failure', () async {
     backend.generateReplies.add('这一行不是英文，所以不能用。');
@@ -288,21 +285,23 @@ void main() {
       expect(parsed, {1: 'The trend is down.', 2: 'Keep going.'});
     });
 
-    test('unnumbered prose is taken in order only when nothing is numbered', () {
-      expect(
-        parseInsightReply(
-          'Answer:\nThe trend is down.\n\nKeep going.\nExtra line.',
-          2,
-          'en',
-        ),
-        {1: 'The trend is down.', 2: 'Keep going.'},
-      );
-      // One numbered line means the model did number; the rest is ignored.
-      expect(
-        parseInsightReply('Intro line.\n2: Keep going.', 2, 'en'),
-        {2: 'Keep going.'},
-      );
-    });
+    test(
+      'unnumbered prose is taken in order only when nothing is numbered',
+      () {
+        expect(
+          parseInsightReply(
+            'Answer:\nThe trend is down.\n\nKeep going.\nExtra line.',
+            2,
+            'en',
+          ),
+          {1: 'The trend is down.', 2: 'Keep going.'},
+        );
+        // One numbered line means the model did number; the rest is ignored.
+        expect(parseInsightReply('Intro line.\n2: Keep going.', 2, 'en'), {
+          2: 'Keep going.',
+        });
+      },
+    );
 
     test('an echoed question is not an answer', () {
       final parsed = parseInsightReply(
@@ -374,8 +373,10 @@ void main() {
         const GenAiException(GenAiFailure.guardrail),
       ]);
       await store.ensure(withFallback());
-      expect(store.stateOf(InsightModule.weight).entry!.status,
-          AiInsightStatus.skipped);
+      expect(
+        store.stateOf(InsightModule.weight).entry!.status,
+        AiInsightStatus.skipped,
+      );
       await store.ensure(withFallback());
       expect(generations(), 2);
     });
@@ -462,10 +463,9 @@ void main() {
         '1: Plain answer.',
       ]);
       await store.ensure(request());
-      expect(
-        store.stateOf(InsightModule.intimacy).entry!.lines,
-        ['Plain answer.'],
-      );
+      expect(store.stateOf(InsightModule.intimacy).entry!.lines, [
+        'Plain answer.',
+      ]);
       expect(generations(), 3);
     });
 
