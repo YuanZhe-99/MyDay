@@ -18,7 +18,7 @@ in CI, so the default `GITHUB_TOKEN` is sufficient.
 | --- | --- | --- | --- |
 | `android` | `ubuntu-latest` | APK + AAB | Java 17, optional signing secrets, APK `--flavor full` + `FLAVOR=full`, then the bank-logo strip step, then AAB `--flavor store` + `FLAVOR=store`, asserted free of `bank_logos` |
 | `windows-x64` | `windows-latest` | Inno x64 installer | Stable Flutter `3.44.2`, `iscc installer.iss` |
-| `windows-arm64` | `windows-11-arm` | Inno ARM64 installer | Flutter master for ARM64 engine, `iscc /DARM64 installer.iss` |
+| `windows-arm64` | `windows-11-arm` | Inno ARM64 installer | Flutter stable tag cloned from git for the ARM64 engine, `iscc /DARM64 installer.iss` |
 | `ios` | `macos-latest` | Sideload IPA | Release, no codesign; then `tool/check_weak_link.sh` on `Runner.app` |
 | `macos` | `macos-latest` | DMG | `tool/check_weak_link.sh` on the built `.app`, then `create-dmg` |
 | `release` | `ubuntu-latest` | GitHub Release | Only on tag push, collects all artifacts |
@@ -32,7 +32,12 @@ in CI, so the default `GITHUB_TOKEN` is sufficient.
 - Windows x64 and ARM64 CI jobs set `CL=/D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS` as a
   temporary VS/MSVC 18 compatibility workaround while Windows plugin/WinRT dependencies still include
   deprecated `<experimental/coroutine>`.
-- Windows ARM64 uses Flutter master because stable may not include the needed ARM64 engine.
+- Windows ARM64 clones the Flutter stable tag `FLUTTER_VERSION` with git instead of using
+  `subosito/flutter-action`: the published Windows archive is x64-only and would build an x64 app,
+  while a git checkout downloads the engine matching the Arm runner (stable engines ship
+  `windows-arm64` artifacts). The fixed tag keeps DLL hashes stable for Windows Defender reputation.
+  Do not clone Flutter master: on 2026-10-29 its head failed to build `flutter_tools`, and
+  `flutter doctor` retried until the job timed out. `flutter doctor` now has a 15-minute timeout.
 - **Android flavors.** Android has real product flavors, so every Android `flutter run` and
   `flutter build` must pass `--flavor full` or `--flavor store` (also pass the matching
   `--dart-define=FLAVOR=`, as CI does). Flavored outputs are

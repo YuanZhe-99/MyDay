@@ -16,7 +16,7 @@ P2 使用公共导航和实际内容约束，见 [shared-ui.md](shared-ui.md)。
 | --- | --- | --- | --- |
 | `android` | `ubuntu-latest` | APK + AAB | Java 17、可选签名秘密、APK `--flavor full` + `FLAVOR=full`，然后银行标志剥离步骤，然后 AAB `--flavor store` + `FLAVOR=store`，并断言其中没有 `bank_logos` |
 | `windows-x64` | `windows-latest` | Inno x64 安装包 | Stable Flutter `3.44.2`、`iscc installer.iss` |
-| `windows-arm64` | `windows-11-arm` | Inno ARM64 安装包 | ARM64 引擎用 Flutter master、`iscc /DARM64 installer.iss` |
+| `windows-arm64` | `windows-11-arm` | Inno ARM64 安装包 | ARM64 引擎用从 git 克隆的 Flutter stable 标签、`iscc /DARM64 installer.iss` |
 | `ios` | `macos-latest` | 侧载 IPA | Release、无签名；然后对 `Runner.app` 运行 `tool/check_weak_link.sh` |
 | `macos` | `macos-latest` | DMG | 对构建出的 `.app` 运行 `tool/check_weak_link.sh`，然后 `create-dmg` |
 | `release` | `ubuntu-latest` | GitHub Release | 只在标签推送时，收集所有工件 |
@@ -27,7 +27,10 @@ P2 使用公共导航和实际内容约束，见 [shared-ui.md](shared-ui.md)。
 - 所有发布构建使用 `--no-tree-shake-icons`。
 - GitHub `secrets` 不能直接在步骤的 `if` 表达式中使用；要通过任务级 `env` 路由。
 - Windows x64 和 ARM64 CI 任务把 `CL=/D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS` 设为临时 VS/MSVC 18 兼容变通，而 Windows 插件/WinRT 依赖仍包含已弃用的 `<experimental/coroutine>`。
-- Windows ARM64 用 Flutter master，因为 stable 可能不含所需的 ARM64 引擎。
+- Windows ARM64 用 git 克隆 Flutter stable 标签 `FLUTTER_VERSION`，而不是使用 `subosito/flutter-action`：官方发布的 Windows
+  压缩包只有 x64，会构建出 x64 应用；git 检出则会下载与 Arm runner 匹配的引擎（stable 引擎提供 `windows-arm64` 产物）。固定的标签让
+  DLL 哈希保持稳定，便于累积 Windows Defender 信誉。不要克隆 Flutter master：2026-10-29 时其最新提交无法编译 `flutter_tools`，
+  `flutter doctor` 一直重试直到任务超时。`flutter doctor` 现设有 15 分钟超时。
 - **Android 构建风味。** Android 有真实的构建风味，因此每次 Android `flutter run` 和 `flutter build` 都必须传 `--flavor full` 或 `--flavor store`（并像 CI 一样同时传对应的 `--dart-define=FLAVOR=`）。带风味的输出是 `build/app/outputs/flutter-apk/app-full-release.apk` 和 `build/app/outputs/bundle/storeRelease/app-store-release.aab`；该任务把它们复制为 `dist/app-release.apk` 和 `dist/app-release.aab`，使发布的 release 资源名保持不变。两次上传都用 `if-no-files-found: error`，因此路径变化会让任务失败，而不是静默地什么都不发布。
 - **剥离步骤必须在完整版构建之后运行。** `dart run tool/strip_bank_logos.dart` 在 CI 的一次性检出中删除 `assets/bank_logos/`，从 `pubspec.yaml` 移除精确的 `- assets/bank_logos/` 行，并把标志清单重写为空映射。随后 `--verify` 在有任何残留时让任务失败；AAB 构建之后，`unzip -l` 检查在 AAB 含有 `bank_logos` 时让任务失败。不要在在意的工作树中不带 `--dry-run` 运行剥离；恢复用 `git checkout -- assets/bank_logos pubspec.yaml lib/features/finance/services/bank_logo_manifest.g.dart`。Windows、iOS 和 macOS 都是完整版构建，从不剥离。
 - **FoundationModels 必须保持弱链接（1.5.0）。** 端侧 AI 插件链接 Apple 的 FoundationModels，它只存在于 iOS/macOS 26+。iOS 和 macOS 构建之后，只要有任何链接它的二进制没有使用 `LC_LOAD_WEAK_DYLIB`，`bash tool/check_weak_link.sh <app>` 就让任务失败；没有任何二进制链接它时也会失败（插件没有进入构建，或 runner 的 Xcode 缺少 26 SDK——此时修 runner，而不是修代码）。macOS 包名含 `!!!!!`，因此它的路径用 `find` 查找并始终加引号。见 [on-device-ai.md](on-device-ai.md#weak-linking)。
