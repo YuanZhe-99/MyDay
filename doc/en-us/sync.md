@@ -161,6 +161,14 @@ overlapping triggers (timer/resume/debounce) are silently skipped instead of sur
 "Sync already in progress" failure banner. `notifySaved()` is ignored before `start()` so early
 storage writes cannot schedule a sync before the service observes the app lifecycle.
 
+## Home-screen widget taps
+
+A checkbox or timer tap on a home-screen widget is queued on the device and applied by
+`HomeWidgetService.drainActions()` the next time the app runs. Only then is it written to
+`todo_data.json` or `intimacy_data.json`, and from there it syncs like any other local edit. The
+queue and the widget snapshots never sync. See
+[features/home-screen-widgets.md](features/home-screen-widgets.md#interactive-controls).
+
 ## The profile file
 
 Since 1.6.0 the registry holds a sixth module, `profile.json` — the user's display name and avatar

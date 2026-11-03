@@ -2604,4 +2604,198 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get aiModelSave => '保存';
+
+  @override
+  String get hwOpenToUpdate => 'MyDay を開いて更新';
+
+  @override
+  String get hwNoRecords => 'まだ記録がありません';
+
+  @override
+  String hwTodayAt(String time) {
+    return '今日 $time';
+  }
+
+  @override
+  String hwDaysAgo(String count) {
+    return '$count 日前';
+  }
+
+  @override
+  String get hwTodoNew => '追加';
+
+  @override
+  String hwTodoLeft(String count) {
+    return '残り $count 件';
+  }
+
+  @override
+  String hwTodoProgress(String done, String total) {
+    return '$done/$total 完了';
+  }
+
+  @override
+  String get hwTodoTomorrow => '明日';
+
+  @override
+  String get hwTodoOverdue => '期限切れ';
+
+  @override
+  String get hwTodoAllDone => 'すべて完了';
+
+  @override
+  String get hwTodoNothing => '予定はありません';
+
+  @override
+  String get hwTodoScore => '今日のスコア';
+
+  @override
+  String get hwWeightTitle => '体重';
+
+  @override
+  String get hwWeightLog => '記録';
+
+  @override
+  String get hwWeight30Days => '30 日';
+
+  @override
+  String get hwWeightNotLogged => '今日はまだ記録していません';
+
+  @override
+  String get hwFinanceAdd => '記録';
+
+  @override
+  String get hwFinanceExpense => '今月の支出';
+
+  @override
+  String get hwFinanceIncome => '収入';
+
+  @override
+  String get hwFinanceNet => '収支';
+
+  @override
+  String get hwFinanceTop => '最大の支出';
+
+  @override
+  String hwFinanceBillsSoon(String count) {
+    return '$count 件の請求が近づいています';
+  }
+
+  @override
+  String get hwFinanceNoBills => '今週の請求はありません';
+
+  @override
+  String get hwFinanceUncategorized => '未分類';
+
+  @override
+  String get hwPrivateTitle => 'プライベート';
+
+  @override
+  String get hwPrivateAdd => '記録';
+
+  @override
+  String get hwPrivateDaysAgo => '日前';
+
+  @override
+  String get hwPrivateToday => '今日';
+
+  @override
+  String hwPrivateMonth(String count) {
+    return '今月 $count 回';
+  }
+
+  @override
+  String hwPrivateAvg(String minutes) {
+    return '平均 $minutes 分';
+  }
+
+  @override
+  String hwPrivateCycleIn(String count) {
+    return '周期まであと $count 日';
+  }
+
+  @override
+  String get hwPrivateCycleToday => '今日周期開始予定';
+
+  @override
+  String get hwTimerTitle => 'タイマー';
+
+  @override
+  String get hwTimerRunning => '計測中';
+
+  @override
+  String get hwTimerPaused => '一時停止中';
+
+  @override
+  String hwTimerCount(String count) {
+    return '回数 $count';
+  }
+
+  @override
+  String get hwTimerStart => '開始';
+
+  @override
+  String get hwTimerResume => '再開';
+
+  @override
+  String get hwTimerPause => '一時停止';
+
+  @override
+  String get hwTimerFinish => '終了';
+
+  @override
+  String hwTimerLast(String ago, String minutes) {
+    return '前回 $ago · $minutes 分';
+  }
+
+  @override
+  String hwTimerLastToday(String minutes) {
+    return '前回 今日 · $minutes 分';
+  }
+
+  @override
+  String get hwTimerIdle => '停止中';
+
+  @override
+  String get homeWidgetsTitle => 'ホーム画面ウィジェット';
+
+  @override
+  String get homeWidgetsSubtitle => '各ウィジェットの文字サイズとプライバシー';
+
+  @override
+  String get homeWidgetsHint =>
+      'ホーム画面のウィジェット一覧から追加できます。チェックボックスとタイマーのボタンは Android と iOS 17 以降で使えます。タップは次に MyDay を開いたときに保存されます。';
+
+  @override
+  String get homeWidgetKindTodo => 'ToDo';
+
+  @override
+  String get homeWidgetKindWeight => '体重';
+
+  @override
+  String get homeWidgetKindFinance => '家計';
+
+  @override
+  String get homeWidgetKindPrivate => 'プライベート記録';
+
+  @override
+  String get homeWidgetKindTimer => 'タイマー';
+
+  @override
+  String get homeWidgetTextSize => '文字サイズ';
+
+  @override
+  String get homeWidgetPrivacy => 'プライバシー';
+
+  @override
+  String get homeWidgetPrivacyShow => '表示';
+
+  @override
+  String get homeWidgetPrivacyMask => '数値を隠す';
+
+  @override
+  String get homeWidgetPrivacyIcon => 'アイコンのみ';
+
+  @override
+  String get homeWidgetPrivacyNote => 'iOS ではロック中も数値が隠されます。';
 }

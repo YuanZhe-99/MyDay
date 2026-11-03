@@ -51,10 +51,11 @@
 | [`copyWith`](#intimacychartsettings-copywith) | 方法（`IntimacyChartSettings`） | A | 返回所选字段替换后的图表视图偏好副本。 |
 | [`IntimacyData()`](#intimacydata-new) | 构造函数（`IntimacyData`） | A | 创建顶层亲密数据容器，默认三个独立 LWW 时间戳。 |
 | [`copyWith`](#intimacydata-copywith) | 方法（`IntimacyData`） | A | 返回一个副本，五个记录列表可选替换，其他所有字段和时间戳原样带过。 |
+| [`withTimerSession`](#intimacydata-withtimersession) | 方法（`IntimacyData`） | A | 返回替换了计时器会话及其 LWW 时间戳的副本，其他字段原样沿用（1.8.3）。 |
 | [`toJson`](#intimacydata-tojson) | 方法（`IntimacyData`） | A | 把整个亲密数据树序列化为 JSON。 |
 | [`IntimacyData.fromJson`](#intimacydata-fromjson) | 工厂构造函数（`IntimacyData`） | A | 从 JSON 解析整个亲密数据树。 |
 
-**对账：** `grep -c 'Purpose:' lib/features/intimacy/models/intimacy_record.dart` 报告 45，与上面 45 行精确匹配——每个 `/// Purpose:` 块都恰好位于其文档化的真实声明正上方（未发现错附块），文件中也不存在任何未文档化的真实声明。v1.3.2 添加了六个：两个派生抽插 getter 和四个 `IntimacyChartSettings` 成员；v1.5.2 又添加了一个，`IntimacyData.copyWith`；v1.5.5 添加了 `IntimacyRecord.hasThrustTimeline`。全部 45 个分类为 Tier A：每个都是模型构造函数/`toJson`/`fromJson`/`copyWith`（定级规则显式的 Tier A 桶）或携带别处使用的真实逻辑的 getter/方法（`isEmpty`、`day`、`formatDate`、四个 `Toy` 成本辅助、`elapsedAt`、`resolvedThrustCount`、`hasThrustTimeline`、`thrustsPerMinute`），与应用于 `finance/models/finance.md` 的 `firstBillingDate` getter 相同的标准。每个类的普通数据字段（如 `BodyProfile.bustCm`、`Partner.name`、`IntimacyRecord.pleasureLevel`，以及 v1.5.5 加到 `IntimacyRecord`、`TimerHistoryEntry` 和 `IntimacyTimerSession` 上的 `thrustTimeline` 字段）不计为单独声明，与本文档集其他每个模型页对待构造函数支撑字段的方式一致。
+**对账：** `grep -c 'Purpose:' lib/features/intimacy/models/intimacy_record.dart` 报告 46，与上面 46 行精确匹配——每个 `/// Purpose:` 块都恰好位于其文档化的真实声明正上方（未发现错附块），文件中也不存在任何未文档化的真实声明。v1.3.2 添加了六个：两个派生抽插 getter 和四个 `IntimacyChartSettings` 成员；v1.5.2 又添加了一个，`IntimacyData.copyWith`；v1.5.5 添加了 `IntimacyRecord.hasThrustTimeline`；v1.8.3 添加了 `IntimacyData.withTimerSession`。全部 46 个分类为 Tier A：每个都是模型构造函数/`toJson`/`fromJson`/`copyWith`（定级规则显式的 Tier A 桶）或携带别处使用的真实逻辑的 getter/方法（`isEmpty`、`day`、`formatDate`、四个 `Toy` 成本辅助、`elapsedAt`、`resolvedThrustCount`、`hasThrustTimeline`、`thrustsPerMinute`），与应用于 `finance/models/finance.md` 的 `firstBillingDate` getter 相同的标准。每个类的普通数据字段（如 `BodyProfile.bustCm`、`Partner.name`、`IntimacyRecord.pleasureLevel`，以及 v1.5.5 加到 `IntimacyRecord`、`TimerHistoryEntry` 和 `IntimacyTimerSession` 上的 `thrustTimeline` 字段）不计为单独声明，与本文档集其他每个模型页对待构造函数支撑字段的方式一致。
 
 ## 文档
 
@@ -694,6 +695,17 @@
 - **算法：** 用每个提供的列表（否则用当前列表）调用主构造函数，并把其他所有字段——`timerHistory`、`timerSession`、`timerSessionModifiedAt`、`userBody`、`userBodyModifiedAt`、`timerHistoryRetentionDays`、四个排序模式/自定义顺序映射、`chartSettings` 和 `settingsModifiedAt`——显式传过。
 - **用法：** `_IntimacyPageState._commitSubPage` 用 `base.copyWith(partners: partners?.applyTo(base.partners), ...)` 构建合并后的数据集（`lib/features/intimacy/views/intimacy_page.dart`）。
 - **备注：** 显式带过 `settingsModifiedAt`，否则构造函数会把它默认成 `DateTime.now().toUtc()`；按 id 合并的子页面保存不得推进通用设置时间戳。不同于 `Partner.copyWith`，不盖章任何时间戳。副本按引用共享未替换的列表。
+
+### `IntimacyData withTimerSession(IntimacyTimerSession? session, {required DateTime modifiedAt})` <a id="intimacydata-withtimersession"></a>
+- **种类：** `IntimacyData` 的方法
+- **来源：** `lib/features/intimacy/models/intimacy_record.dart`（第 947 行）
+- **用途：** 返回替换了计时器会话的副本。
+- **输入：** `session`——新会话，或 null 表示清除；`modifiedAt`——会话新的最后写入者胜出时间戳。
+- **返回：** 与本对象共享其他所有字段的新 `IntimacyData`。
+- **副作用：** 无。
+- **算法：** 以 `this` 的每个字段调用构造函数，只把 `timerSession` 换成 `session`、`timerSessionModifiedAt` 换成 `modifiedAt.toUtc()`。
+- **用法：** 计时器页关闭时应用桌面小组件计时器点击后，`HomeWidgetService._drain` 保存 `data.withTimerSession(result.data, modifiedAt: DateTime.now().toUtc())`。
+- **备注：** 其他时间戳（`userBodyModifiedAt`、`settingsModifiedAt`）原样沿用，因此下次合并只有计时器会话胜出。
 
 ### `Map<String, dynamic> toJson()` <a id="intimacydata-tojson"></a>
 - **种类：** `IntimacyData` 的方法

@@ -937,6 +937,38 @@ class IntimacyData {
     );
   }
 
+  /// Purpose: Return a copy with the timer session replaced.
+  /// Inputs: `session` — the new session, or null to clear it; `modifiedAt` —
+  /// the session's new LWW timestamp (UTC).
+  /// Returns: A new `IntimacyData` sharing every other field with this one.
+  /// Side effects: None.
+  /// Notes: Used when home-screen widget timer actions are applied while the
+  /// timer page is closed. Every other timestamp is carried over unchanged.
+  IntimacyData withTimerSession(
+    IntimacyTimerSession? session, {
+    required DateTime modifiedAt,
+  }) {
+    return IntimacyData(
+      partners: partners,
+      toys: toys,
+      positions: positions,
+      records: records,
+      timerHistory: timerHistory,
+      timerSession: session,
+      timerSessionModifiedAt: modifiedAt.toUtc(),
+      userBody: userBody,
+      userBodyModifiedAt: userBodyModifiedAt,
+      cycleRecords: cycleRecords,
+      timerHistoryRetentionDays: timerHistoryRetentionDays,
+      partnerSortModes: partnerSortModes,
+      partnerCustomOrders: partnerCustomOrders,
+      toySortModes: toySortModes,
+      toyCustomOrders: toyCustomOrders,
+      chartSettings: chartSettings,
+      settingsModifiedAt: settingsModifiedAt,
+    );
+  }
+
   /// Purpose: Serialize this value into a JSON-compatible map.
   /// Inputs: None.
   /// Returns: A JSON-compatible map.

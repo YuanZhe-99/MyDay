@@ -11,9 +11,10 @@ P2：布局函数传入页面上下文并使用实际导航内容约束；
 |---|---|---|---|
 | `TodoPage({super.key})` | 构造函数（`TodoPage`） | B | 创建 todo 页实例。 |
 | `createState` | 方法（`TodoPage`） | B | 为此组件创建可变状态对象。 |
-| `initState` | 方法（`_TodoPageState`） | B | 启动 `_loadData` 并注册自动同步监听器。 |
-| `dispose` | 方法（`_TodoPageState`） | B | 注销自动同步监听器。 |
+| `initState` | 方法（`_TodoPageState`） | B | 启动 `_loadData` 并注册自动同步和小组件启动监听器。 |
+| `dispose` | 方法（`_TodoPageState`） | B | 注销自动同步和小组件启动监听器。 |
 | [`_loadData`](#loaddata) | 方法（`_TodoPageState`） | A | 把 todo 数据从存储加载进状态，或浮出读取错误。 |
+| `_onWidgetLaunch` | 方法（`_TodoPageState`） | B | 加载完成后取走待处理的 `myday.todo` 小组件请求：`add` 打开添加任务对话框，`toggle` 切到今天并经应用内路径切换该任务（1.8.3）。 |
 | [`_saveData`](#savedata) | 方法（`_TodoPageState`） | A | 把当前内存 todo 状态持久化到存储。 |
 | `_syncReminders` | 方法（`_TodoPageState`） | B | 把当前任务/日志/提醒时间推给 `ReminderService`。 |
 | `_showDailyReminderSettings` | 方法（`_TodoPageState`） | B | 显示早间/完成提醒时间选择器底部面板。 |
@@ -84,7 +85,7 @@ P2：布局函数传入页面上下文并使用实际导航内容约束；
 | [`_buildTaskArea`](#buildtaskarea) | 方法（`_TodoPageState`） | A | 把任务分区按阅读顺序排成一列或并排的数列。 |
 | [`_taskSections`](#tasksections) | 方法（`_TodoPageState`） | A | 按显示顺序返回三个任务分区。 |
 
-**对账：** `grep -c 'Purpose:' lib/features/todo/views/todo_page.dart` 返回 74，与上面 74 行一致（34 个 Tier A、40 个 Tier B）。
+**对账：** `grep -c 'Purpose:' lib/features/todo/views/todo_page.dart` 返回 75，与上面 75 行一致（34 个 Tier A、41 个 Tier B）。v1.8.3 新增 `_onWidgetLaunch`。
 
 ## 文档
 

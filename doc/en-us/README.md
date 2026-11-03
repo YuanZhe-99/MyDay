@@ -57,6 +57,8 @@ The shared WebDAV sync, backup, and ZIP engines are not in this repository. They
 - [Intimacy](features/intimacy.md)
 - [Weight](features/weight.md)
 - [Settings](features/settings.md)
+- [Home-Screen Widgets](features/home-screen-widgets.md) — the Android/iOS widgets (1.8.3), their
+  interactive controls, deep links and snapshot formats.
 
 ### Algorithms (deep dives)
 

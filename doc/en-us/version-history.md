@@ -1,5 +1,20 @@
 # Version history
 
+## 1.8.3 — Home-screen widgets (2026-11-03)
+
+Android and iOS get five home-screen widget kinds built on MyApps-Widget v0.2.0 (new submodule
+`packages/myapps_widget`): **Todo** (2×2 to 4×4, a 2×1 strip and the iOS lock-screen rectangle),
+**Weight**, **Finance**, **Private** (Intimacy statistics under a neutral title) and **Timer** (the
+Intimacy stopwatch). Todo checkboxes and the timer's Start / Pause / Resume and **+100** buttons work
+on the widget itself — on every Android version and on iOS 17+ — through the shared pending-action
+queue: the tap shows at once and is written to the data file the next time the app runs, by
+`HomeWidgetService.drainActions`; while the timer page is open the taps go to the page. Every
+widget has an add button that opens the matching dialog through `myday://widget/<kind>?do=…`
+links. **Settings › Home-screen widgets** sets each kind's text size and privacy (*Show*, *Hide
+values*, *Icon only*; *Hide values* by default for Private), stored device-locally as
+`homeWidgets`. Private and Timer exist only while the Intimacy module is visible; hiding it
+clears both. See [features/home-screen-widgets.md](features/home-screen-widgets.md).
+
 ## 1.8.2 — Finance page scrolls as one (2026-10-19)
 
 On a phone the Finance page kept its month summary, renewal strip and AI card fixed above the

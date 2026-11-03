@@ -132,8 +132,9 @@ The release workflow itself does not run `flutter test`.
 
 ## Fresh clone
 
-The shared engine package is a git submodule, so a plain `git clone` leaves `packages/myapps_data`
-empty and `flutter pub get` fails:
+The shared packages are git submodules (`packages/myapps_data`, `packages/myapps_ui`,
+`packages/myapps_ai` and, since 1.8.3, `packages/myapps_widget`), so a plain `git clone` leaves
+them empty and `flutter pub get` fails:
 
 ```bash
 git clone --recurse-submodules <app-url>

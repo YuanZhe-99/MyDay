@@ -92,8 +92,8 @@ field comments without `Purpose:`.
 - **Side effects:** Reads `TodoStorage.getThemeMode()`, `getLocaleTag()`, `getWeekStartDay()`, the
   four `get...Columns()` getters, `getOnDeviceAiEnabled()` and `getOnDeviceAiPreferFast()`;
   overwrites `state`; calls `TrayService.instance.updateLocale(...)` and
-  `ReminderService.instance.updateLocale(...)`; awaits `OnDeviceAiService.instance.setPreferFast(...)`
-  and then `setEnabled(...)`.
+  `ReminderService.instance.updateLocale(...)`; awaits
+  `OnDeviceAiService.instance.setPreferFast(...)` and then `setEnabled(...)`.
 - **Algorithm:**
   1. Read the nine persisted values.
   2. Map the theme string to `ThemeMode` via a `switch`: `'light'` → `ThemeMode.light`, `'dark'` →
@@ -102,7 +102,8 @@ field comments without `Purpose:`.
      `'_'` and using a two-part `Locale(language, country)` constructor when a country part exists.
   4. Set `state` to a new `AppSettings` with all resolved values.
   5. Resolve the effective locale (`locale ?? PlatformDispatcher.instance.locale`) and push it to
-     both `TrayService.instance.updateLocale` and `ReminderService.instance.updateLocale`.
+     both `TrayService.instance.updateLocale` and `ReminderService.instance.updateLocale`, then
+     schedule a widget refresh with `HomeWidgetService.notifyDataChanged()`.
   6. Push the AI switches into `OnDeviceAiService.instance`: `setPreferFast` first, then
      `setEnabled`, so that switching on probes the platform with the model size already chosen.
 - **Usage:** Called once, from the default constructor.
@@ -135,7 +136,8 @@ field comments without `Purpose:`.
 - **Inputs:** `locale` — `null` means "follow system".
 - **Returns:** None.
 - **Side effects:** Updates `state`; calls `TrayService.instance.updateLocale` and
-  `ReminderService.instance.updateLocale`; calls `TodoStorage.setLocaleTag(...)`.
+  `ReminderService.instance.updateLocale`; calls `TodoStorage.setLocaleTag(...)`, then
+  `HomeWidgetService.notifyDataChanged()` so the widget wording follows the new language (1.8.3).
 - **Algorithm:**
   1. `state = state.copyWith(locale: locale, clearLocale: locale == null)` — the explicit
      `clearLocale` flag is needed because `copyWith`'s normal `??` pattern cannot distinguish

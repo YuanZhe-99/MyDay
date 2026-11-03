@@ -88,8 +88,10 @@ undocumented.
 - **Inputs:** `visible`.
 - **Returns:** None.
 - **Side effects:** Updates `state` via `copyWith`; calls `TodoStorage.setIntimacyVisible(visible)`
-  (fire-and-forget, not awaited).
-- **Algorithm:** `state = state.copyWith(visible: visible); TodoStorage.setIntimacyVisible(visible);`
+  (fire-and-forget, not awaited) and, once it completes, `HomeWidgetService.notifyDataChanged()`
+  so the Private and Timer widgets are cleared or restored (1.8.3).
+- **Algorithm:** `state = state.copyWith(visible: visible);` then
+  `TodoStorage.setIntimacyVisible(visible).then((_) => HomeWidgetService.notifyDataChanged());`
 - **Usage:**
   ```dart
   ref.read(intimacyVisibilityProvider.notifier).setVisible(value);

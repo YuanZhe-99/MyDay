@@ -2,9 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:myapps_widget/myapps_widget.dart' show WidgetAction;
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/services/home_widget_payloads.dart';
+import '../../../shared/services/home_widget_service.dart';
 import '../../../shared/utils/adaptive_layout.dart';
 import '../../todo/services/todo_storage.dart';
 import '../models/intimacy_record.dart';
@@ -181,16 +184,21 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
       if (_running) _ensureTicker();
     }
     unawaited(_loadKeepScreenAwakeSetting());
+    HomeWidgetService.timerActionHandler = _applyWidgetActions;
   }
 
   /// Purpose: Release listeners, controllers, and other owned resources.
   /// Inputs: None.
   /// Returns: None.
-  /// Side effects: Releases owned resources and unregisters listeners.
+  /// Side effects: Releases owned resources and unregisters listeners,
+  /// including the home-screen widget timer handler.
   /// Notes: Call the superclass implementation in the expected lifecycle order.
   @override
   void dispose() {
     _disposed = true;
+    if (HomeWidgetService.timerActionHandler == _applyWidgetActions) {
+      HomeWidgetService.timerActionHandler = null;
+    }
     WidgetsBinding.instance.removeObserver(this);
     _ticker?.cancel();
     _releaseWakelock();
@@ -284,6 +292,60 @@ class _TimerPageState extends State<TimerPage> with WidgetsBindingObserver {
   }
 
   // ── timer controls ─────────────────────────────────────────────────
+
+  /// Purpose: Apply timer taps queued by the home-screen widget while this
+  /// page is open.
+  /// Inputs: `actions` — `start`, `pause` and `add` actions, oldest first.
+  /// Returns: `Future<void>`.
+  /// Side effects: Updates the stopwatch state and persists the session.
+  /// Notes: Registered as `HomeWidgetService.timerActionHandler`, so the
+  /// page's in-memory session is never overwritten by a file write. Each
+  /// action takes effect at its tap instant, with the same semantics as
+  /// `HomeWidgetActions.applyTimer`.
+  Future<void> _applyWidgetActions(List<WidgetAction> actions) async {
+    var changed = false;
+    for (final action in actions) {
+      final at = action.at.toLocal();
+      switch (action.action) {
+        case 'start':
+          if (_running) continue;
+          _firstStartedAt ??= at;
+          _startedAt = at;
+          _running = true;
+          changed = true;
+        case 'pause':
+          final startedAt = _startedAt;
+          if (!_running || startedAt == null) continue;
+          final segment = at.difference(startedAt);
+          _accumulated += segment.isNegative ? Duration.zero : segment;
+          _startedAt = null;
+          _running = false;
+          changed = true;
+        case 'add':
+          if (_firstStartedAt == null) continue;
+          final startedAt = _startedAt;
+          final elapsed = _running && startedAt != null
+              ? _accumulated + at.difference(startedAt)
+              : _accumulated;
+          final n = action.args['n'];
+          final next = _timeline.add(
+            elapsed.inMilliseconds,
+            n is num ? n.toInt() : HomeWidgetPayloads.timerStep,
+          );
+          if (identical(next, _timeline)) continue;
+          _timeline = next;
+          changed = true;
+      }
+    }
+    if (!changed || _disposed) return;
+    if (_running) {
+      _ensureTicker();
+    } else {
+      _ticker?.cancel();
+    }
+    setState(() {});
+    await _persistState(timerSessionChanged: true);
+  }
 
   /// Purpose: Provide the internal start helper for this file.
   /// Inputs: None.

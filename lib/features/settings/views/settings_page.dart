@@ -17,6 +17,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../shared/providers/app_settings.dart';
 import '../../../shared/providers/intimacy_visibility.dart';
 import '../../../shared/services/auto_sync_service.dart';
+import '../../../shared/services/home_widget_service.dart';
 import '../../../shared/services/import_export_service.dart';
 import '../../../shared/services/local_api_server.dart';
 import '../../../shared/services/tray_service.dart';
@@ -31,6 +32,7 @@ import '../../ai/widgets/ai_settings_tiles.dart';
 import '../../finance/services/subscription_processor.dart';
 import '../../profile/views/profile_header.dart';
 import '../../todo/services/todo_storage.dart';
+import 'home_widget_settings_page.dart';
 import 'license_page.dart' as app_license;
 import 'privacy_policy_page.dart';
 
@@ -52,7 +54,7 @@ class SettingsPage extends ConsumerStatefulWidget {
 }
 
 /// The second-level pages a settings row can lead to.
-enum _SettingsDetail { webdav, backup, license, privacy }
+enum _SettingsDetail { widgets, webdav, backup, license, privacy }
 
 class _SettingsPageState extends ConsumerState<SettingsPage> {
   /// Whether the last build used the two-pane layout. Cached rather than
@@ -480,11 +482,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   /// Side effects: None beyond building widgets.
   /// Notes: Internal helper used within this file only. The same widget serves
   /// both modes: pushed full-screen on a narrow window, and hosted in the
-  /// detail pane on a wide one. None of the four pages needed a change to be
+  /// detail pane on a wide one. None of the five pages needed a change to be
   /// embeddable, because a nested `Navigator` holding one route reports
   /// `canPop == false` and their app bars therefore grow no back arrow.
   Widget _detailPage(_SettingsDetail detail) {
     return switch (detail) {
+      _SettingsDetail.widgets => const HomeWidgetSettingsPage(),
       _SettingsDetail.webdav => const WebDAVConfigPage(),
       _SettingsDetail.backup => const BackupPage(),
       _SettingsDetail.license => const app_license.LicensePage(),
@@ -715,6 +718,19 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             },
           ),
         ]),
+
+        // Home-screen widgets (1.8.3): Android and iOS only; one row leads to
+        // the per-widget text size, privacy and preview page.
+        if (HomeWidgetService.isSupported)
+          _buildSection(context, l10n.homeWidgetsTitle, [
+            ListTile(
+              leading: const Icon(Icons.widgets_outlined),
+              title: Text(l10n.homeWidgetsTitle),
+              subtitle: Text(l10n.homeWidgetsSubtitle),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _open(_SettingsDetail.widgets),
+            ),
+          ]),
 
         // On-device AI (v1.5.0): the full rows where a model can exist,
         // otherwise (Windows, Linux) a single note.

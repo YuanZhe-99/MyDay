@@ -104,7 +104,7 @@
 - **用途：** 在调用方已在写队列中轮到它之后，执行一次 `data` 对 `intimacy_data.json` 的实际写入。
 - **输入：** `data`。
 - **返回：** `Future<void>`。
-- **副作用：** 经 `DataFileSafety.writeValidatedDataJson` 通过校验临时文件写 `intimacy_data.json`。
+- **副作用：** 经 `DataFileSafety.writeValidatedDataJson` 通过校验临时文件写 `intimacy_data.json`，然后调用 `HomeWidgetService.notifyDataChanged()` 安排一次桌面小组件刷新（1.8.3）。
 - **算法：**
   1. 经 `_getFile()` 解析文件。
   2. `JsonPreservation.encodeForFile(file: file, next: data.toJson(), schema: dataFilePreservationSchemas[_fileName]!)`——读取当前磁盘内容并把其任何未知字段保留进 `data` 自己的序列化 JSON。

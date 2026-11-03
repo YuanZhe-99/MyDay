@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/providers/app_settings.dart';
 import '../../../shared/services/auto_sync_service.dart';
+import '../../../shared/services/home_widget_service.dart';
 import '../../../shared/services/reminder_service.dart';
 import '../../../shared/utils/adaptive_layout.dart';
 import '../../../shared/utils/week_grouping.dart';
@@ -78,6 +79,7 @@ class _TodoPageState extends ConsumerState<TodoPage> {
     super.initState();
     _loadData();
     AutoSyncService.instance.addOnLocalDataChanged(_loadData);
+    HomeWidgetLaunch.pending.addListener(_onWidgetLaunch);
   }
 
   /// Purpose: Release listeners, controllers, and other owned resources.
@@ -88,6 +90,7 @@ class _TodoPageState extends ConsumerState<TodoPage> {
   @override
   void dispose() {
     AutoSyncService.instance.removeOnLocalDataChanged(_loadData);
+    HomeWidgetLaunch.pending.removeListener(_onWidgetLaunch);
     super.dispose();
   }
 
@@ -148,6 +151,36 @@ class _TodoPageState extends ConsumerState<TodoPage> {
       _loaded = true;
     });
     _syncReminders();
+    _onWidgetLaunch();
+  }
+
+  /// Purpose: Act on a home-screen widget tap that opened this tab.
+  /// Inputs: None; reads `HomeWidgetLaunch.pending`.
+  /// Returns: None.
+  /// Side effects: Consumes the request and opens the matching flow after
+  /// the current frame.
+  /// Notes: Runs once data has loaded and whenever a new request arrives.
+  /// `toggle` switches to today first, so the in-app path (with the
+  /// next-occurrence prompt) applies to the widget's day.
+  void _onWidgetLaunch() {
+    if (!mounted || !_loaded || _loadError != null) return;
+    final request = HomeWidgetLaunch.take(const {HomeWidgetService.todoKind});
+    if (request == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      switch (request.action) {
+        case 'add':
+          _addTask();
+        case 'toggle':
+          setState(() => _selectedDate = DateTime.now());
+          final task = [
+            ..._dailyForDate,
+            ..._routineForDate,
+            ..._workForDate,
+          ].where((t) => t.id == request.id).firstOrNull;
+          if (task != null) _toggleTask(task);
+      }
+    });
   }
 
   /// Purpose: Provide the internal save data helper for this file.

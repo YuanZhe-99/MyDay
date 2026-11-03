@@ -25,12 +25,15 @@ repository layout, and the core storage/concurrency rules that every feature mod
    tab is active.
 6. `AutoSyncService.instance.start()` — the auto-sync lifecycle observer (only syncs once the user
    has configured and enabled WebDAV).
-7. `OnDeviceAiService.instance.start()` — registers the on-device AI lifecycle listener (1.5.0). It
+7. `HomeWidgetService.init()` (unawaited; Android and iOS only) — subscribes the home-screen
+   widgets to sync reloads, app resume and taps queued by their controls, applies any queued taps
+   and publishes every widget kind. See [Home-Screen Widgets](features/home-screen-widgets.md).
+8. `OnDeviceAiService.instance.start()` — registers the on-device AI lifecycle listener (1.5.0). It
    calls nothing on the model; `AppSettingsNotifier` later pushes the persisted switch into the
    service, and while the switch is off the method channel is never touched. See
    [On-device AI](on-device-ai.md).
-8. On desktop: `TrayService.instance.init()` — system tray icon/menu.
-9. `runApp(DevicePreview(enabled: kDebugMode, builder: (_) => const ProviderScope(child: MyDayApp())))`.
+9. On desktop: `TrayService.instance.init()` — system tray icon/menu.
+10. `runApp(DevicePreview(enabled: kDebugMode, builder: (_) => const ProviderScope(child: MyDayApp())))`.
 
 So the widget tree is `DevicePreview` → `ProviderScope` (Riverpod root) → `MyDayApp`
 (`lib/app/app.dart`, a `ConsumerWidget`).
@@ -48,7 +51,10 @@ navigation destinations:
   user; visibility is a UI-level concern, not a routing concern)
 - `/settings` → `SettingsPage`
 
-`initialLocation` is `/todo`.
+`initialLocation` is `/todo`. A top-level `redirect` turns home-screen widget links
+(`myday://widget/<kind>?do=…`, delivered as `/<kind>?do=…`) into the matching tab through
+`HomeWidgetLaunch.redirect`, leaving every other location alone; see
+[Home-Screen Widgets](features/home-screen-widgets.md#deep-links).
 
 The shell renders those destinations as a bottom `NavigationBar` on a narrow window and as a side
 `NavigationRail` from 600 logical pixels of width up, built from one destination list so the two
@@ -142,12 +148,17 @@ lib/
       services/weight_storage.dart
       views/weight_page.dart
     settings/views/
+      home_widget_settings_page.dart   # Settings › Home-screen widgets (1.8.3)
+    settings/widgets/home_widget_preview.dart
   shared/
     providers/app_settings.dart
     providers/intimacy_visibility.dart
     services/
       auto_sync_service.dart
       backup_service.dart
+      home_widget_actions.dart    # applies taps queued by widget controls (1.8.3)
+      home_widget_payloads.dart   # pure widget payload builders (1.8.3)
+      home_widget_service.dart    # widget facade over myapps_widget (1.8.3)
       image_service.dart
       import_export_service.dart
       local_api_server.dart
@@ -168,6 +179,7 @@ lib/
   l10n/
 packages/
   myapps_data/          # shared engines (git submodule)
+  myapps_widget/        # shared home-screen widget envelope, bridge and action queue (git submodule, 1.8.3)
   on_device_ai_apple/   # local plugin: Apple Foundation Models bridge (1.5.0)
 ```
 

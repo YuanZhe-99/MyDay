@@ -74,15 +74,16 @@ anchor rule.
 | [`copyWith`](#intimacychartsettings-copywith) | method (`IntimacyChartSettings`) | A | Return a copy of the chart view preferences with selected fields replaced. |
 | [`IntimacyData()`](#intimacydata-new) | constructor (`IntimacyData`) | A | Create the top-level intimacy data container, defaulting the three independent LWW timestamps. |
 | [`copyWith`](#intimacydata-copywith) | method (`IntimacyData`) | A | Return a copy with the five record lists optionally replaced, carrying every other field and timestamp over unchanged. |
+| [`withTimerSession`](#intimacydata-withtimersession) | method (`IntimacyData`) | A | Return a copy with the timer session and its LWW timestamp replaced, every other field carried over (1.8.3). |
 | [`toJson`](#intimacydata-tojson) | method (`IntimacyData`) | A | Serialize the entire intimacy data tree to JSON. |
 | [`IntimacyData.fromJson`](#intimacydata-fromjson) | factory constructor (`IntimacyData`) | A | Parse the entire intimacy data tree from JSON. |
 
 **Reconciliation:** `grep -c 'Purpose:' lib/features/intimacy/models/intimacy_record.dart` reports
-45, matching all 45 rows above exactly — every `/// Purpose:` block sits directly above the real
+46, matching all 46 rows above exactly — every `/// Purpose:` block sits directly above the real
 declaration it documents (no misattached blocks were found), and no undocumented real declaration
 exists anywhere in the file. v1.3.2 added six: the two derived thrust getters and the four
 `IntimacyChartSettings` members; v1.5.2 added one more, `IntimacyData.copyWith`; v1.5.5 added
-`IntimacyRecord.hasThrustTimeline`. All 45 are classified Tier A: every one is a model
+`IntimacyRecord.hasThrustTimeline`; v1.8.3 added `IntimacyData.withTimerSession`. All 46 are classified Tier A: every one is a model
 constructor/`toJson`/
 `fromJson`/`copyWith` (the tiering rule's explicit Tier A bucket) or a getter/method carrying real
 logic used elsewhere (`isEmpty`, `day`, `formatDate`, the four `Toy` cost helpers, `elapsedAt`,
@@ -929,6 +930,22 @@ constructor-backing fields.
   default it to `DateTime.now().toUtc()`; a merge-by-id sub-page save must not bump the general
   settings timestamp. Unlike `Partner.copyWith`, no timestamp is stamped. The copy shares the
   unreplaced lists by reference.
+
+### `IntimacyData withTimerSession(IntimacyTimerSession? session, {required DateTime modifiedAt})` <a id="intimacydata-withtimersession"></a>
+- **Kind:** method of `IntimacyData`
+- **Source:** `lib/features/intimacy/models/intimacy_record.dart` (line 947)
+- **Purpose:** Return a copy with the timer session replaced.
+- **Inputs:** `session` — the new session, or null to clear it; `modifiedAt` — the session's new
+  last-write-wins timestamp.
+- **Returns:** A new `IntimacyData` sharing every other field with this one.
+- **Side effects:** None.
+- **Algorithm:** Call the constructor with every field of `this`, except `timerSession: session`
+  and `timerSessionModifiedAt: modifiedAt.toUtc()`.
+- **Usage:** `HomeWidgetService._drain` saves `data.withTimerSession(result.data, modifiedAt:
+  DateTime.now().toUtc())` after applying home-screen widget timer taps while the timer page is
+  closed.
+- **Notes:** Every other timestamp (`userBodyModifiedAt`, `settingsModifiedAt`) is carried over
+  unchanged, so only the timer session wins the next merge.
 
 ### `Map<String, dynamic> toJson()` <a id="intimacydata-tojson"></a>
 - **Kind:** method of `IntimacyData`

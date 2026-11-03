@@ -16,15 +16,15 @@ mirroring the `lib/` tree (with `.dart` replaced by `.md`).
 
 | Measure | Count |
 |---|---|
-| `grep -r '/// Purpose:' lib --include=*.dart` | **1795** |
-| Declarations-table rows across all 113 pages | **1865** |
-| — of those rows, Tier A (full entry) | 1037 |
-| — of those rows, Tier B (index row only) | 828 |
+| `grep -r '/// Purpose:' lib --include=*.dart` | **1790** |
+| Declarations-table rows across all 122 pages | **1900** |
+| — of those rows, Tier A (full entry) | 1028 |
+| — of those rows, Tier B (index row only) | 872 |
 
 The **Declarations** and **Tier A** columns below count **rows in each page's Declarations
 table**, which is the mechanically checkable figure. A row is not always one `/// Purpose:` block,
-and the 70-row net excess of the table count over the grep count is fully itemized — every page whose row count
-differs from its own `grep` carries a `**Reconciliation:**` note saying exactly why. There are
+and the 110-row net excess of the table count over the grep count is the sum of per-page differences — a page whose row count
+differs from its own `grep` carries a `**Reconciliation:**` note saying why. There are
 three recurring reasons:
 
 - **File-level library comments** (`backup_service.dart`, `webdav_service.dart`,
@@ -96,7 +96,7 @@ drifted from the per-file rows.)
 | `lib/features/finance/views/categories_page.dart` | [features/finance/views/categories_page.md](features/finance/views/categories_page.md) | 22 | 5 |
 | `lib/features/finance/views/category_detail_page.dart` | [features/finance/views/category_detail_page.md](features/finance/views/category_detail_page.md) | 14 | 4 |
 | `lib/features/finance/views/exchange_rates_page.dart` | [features/finance/views/exchange_rates_page.md](features/finance/views/exchange_rates_page.md) | 19 | 9 |
-| `lib/features/finance/views/finance_page.dart` | [features/finance/views/finance_page.md](features/finance/views/finance_page.md) | 42 | 11 |
+| `lib/features/finance/views/finance_page.dart` | [features/finance/views/finance_page.md](features/finance/views/finance_page.md) | 43 | 11 |
 | `lib/features/finance/views/subscription_detail_page.dart` | [features/finance/views/subscription_detail_page.md](features/finance/views/subscription_detail_page.md) | 12 | 3 |
 | `lib/features/finance/views/subscriptions_page.dart` | [features/finance/views/subscriptions_page.md](features/finance/views/subscriptions_page.md) | 27 | 14 |
 | `lib/features/finance/widgets/add_subscription_dialog.dart` | [features/finance/widgets/add_subscription_dialog.md](features/finance/widgets/add_subscription_dialog.md) | 13 | 4 |
@@ -110,21 +110,21 @@ drifted from the per-file rows.)
 
 | Source file | Page | Declarations | Tier A |
 |---|---|---|---|
-| `lib/features/intimacy/models/intimacy_record.dart` | [features/intimacy/models/intimacy_record.md](features/intimacy/models/intimacy_record.md) | 45 | 45 |
+| `lib/features/intimacy/models/intimacy_record.dart` | [features/intimacy/models/intimacy_record.md](features/intimacy/models/intimacy_record.md) | 46 | 46 |
 | `lib/features/intimacy/services/body_metrics.dart` | [features/intimacy/services/body_metrics.md](features/intimacy/services/body_metrics.md) | 8 | 7 |
 | `lib/features/intimacy/services/cycle_predictor.dart` | [features/intimacy/services/cycle_predictor.md](features/intimacy/services/cycle_predictor.md) | 16 | 7 |
 | `lib/features/intimacy/services/intimacy_insight_facts.dart` | [features/intimacy/services/intimacy_insight_facts.md](features/intimacy/services/intimacy_insight_facts.md) | 21 | 10 |
 | `lib/features/intimacy/services/intimacy_storage.dart` | [features/intimacy/services/intimacy_storage.md](features/intimacy/services/intimacy_storage.md) | 7 | 6 |
 | `lib/features/intimacy/utils/thrust_timeline.dart` | [features/intimacy/utils/thrust_timeline.md](features/intimacy/utils/thrust_timeline.md) | 17 | 8 |
 | `lib/features/intimacy/views/body_page.dart` | [features/intimacy/views/body_page.md](features/intimacy/views/body_page.md) | 4 | 0 |
-| `lib/features/intimacy/views/intimacy_page.dart` | [features/intimacy/views/intimacy_page.md](features/intimacy/views/intimacy_page.md) | 188 | 60 |
+| `lib/features/intimacy/views/intimacy_page.dart` | [features/intimacy/views/intimacy_page.md](features/intimacy/views/intimacy_page.md) | 190 | 61 |
 | `lib/features/intimacy/views/record_detail_page.dart` | [features/intimacy/views/record_detail_page.md](features/intimacy/views/record_detail_page.md) | 19 | 4 |
 | `lib/features/intimacy/widgets/add_record_dialog.dart` | [features/intimacy/widgets/add_record_dialog.md](features/intimacy/widgets/add_record_dialog.md) | 9 | 2 |
 | `lib/features/intimacy/widgets/body_section.dart` | [features/intimacy/widgets/body_section.md](features/intimacy/widgets/body_section.md) | 35 | 18 |
 | `lib/features/intimacy/widgets/cycle_calendar.dart` | [features/intimacy/widgets/cycle_calendar.md](features/intimacy/widgets/cycle_calendar.md) | 9 | 1 |
 | `lib/features/intimacy/widgets/intimacy_trend_chart.dart` | [features/intimacy/widgets/intimacy_trend_chart.md](features/intimacy/widgets/intimacy_trend_chart.md) | 25 | 16 |
 | `lib/features/intimacy/widgets/thrust_timeline_chart.dart` | [features/intimacy/widgets/thrust_timeline_chart.md](features/intimacy/widgets/thrust_timeline_chart.md) | 6 | 3 |
-| `lib/features/intimacy/widgets/timer_page.dart` | [features/intimacy/widgets/timer_page.md](features/intimacy/widgets/timer_page.md) | 36 | 24 |
+| `lib/features/intimacy/widgets/timer_page.dart` | [features/intimacy/widgets/timer_page.md](features/intimacy/widgets/timer_page.md) | 37 | 25 |
 
 ## features/profile/
 
@@ -144,8 +144,10 @@ drifted from the per-file rows.)
 | Source file | Page | Declarations | Tier A |
 |---|---|---|---|
 | `lib/features/settings/views/license_page.dart` | [features/settings/views/license_page.md](features/settings/views/license_page.md) | 2 | 0 |
+| `lib/features/settings/views/home_widget_settings_page.dart` | [features/settings/views/home_widget_settings_page.md](features/settings/views/home_widget_settings_page.md) | 6 | 3 |
 | `lib/features/settings/views/privacy_policy_page.dart` | [features/settings/views/privacy_policy_page.md](features/settings/views/privacy_policy_page.md) | 3 | 0 |
 | `lib/features/settings/views/settings_page.dart` | [features/settings/views/settings_page.md](features/settings/views/settings_page.md) | 28 | 8 |
+| `lib/features/settings/widgets/home_widget_preview.dart` | [features/settings/widgets/home_widget_preview.md](features/settings/widgets/home_widget_preview.md) | 21 | 2 |
 
 ## features/todo/
 
@@ -157,7 +159,7 @@ drifted from the per-file rows.)
 | `lib/features/todo/services/todo_insight_facts.dart` | [features/todo/services/todo_insight_facts.md](features/todo/services/todo_insight_facts.md) | 8 | 5 |
 | `lib/features/todo/services/todo_storage.dart` | [features/todo/services/todo_storage.md](features/todo/services/todo_storage.md) | 57 | 56 |
 | `lib/features/todo/utils/emoji_suggester.dart` | [features/todo/utils/emoji_suggester.md](features/todo/utils/emoji_suggester.md) | 9 | 5 |
-| `lib/features/todo/views/todo_page.dart` | [features/todo/views/todo_page.md](features/todo/views/todo_page.md) | 74 | 34 |
+| `lib/features/todo/views/todo_page.dart` | [features/todo/views/todo_page.md](features/todo/views/todo_page.md) | 75 | 34 |
 | `lib/features/todo/widgets/add_task_dialog.dart` | [features/todo/widgets/add_task_dialog.md](features/todo/widgets/add_task_dialog.md) | 17 | 6 |
 | `lib/features/todo/widgets/edit_task_dialog.dart` | [features/todo/widgets/edit_task_dialog.md](features/todo/widgets/edit_task_dialog.md) | 18 | 6 |
 | `lib/features/todo/widgets/emoji_suggestion_row.dart` | [features/todo/widgets/emoji_suggestion_row.md](features/todo/widgets/emoji_suggestion_row.md) | 3 | 1 |
@@ -171,12 +173,12 @@ drifted from the per-file rows.)
 | `lib/features/weight/models/weight_record.dart` | [features/weight/models/weight_record.md](features/weight/models/weight_record.md) | 13 | 13 |
 | `lib/features/weight/services/weight_insight_facts.dart` | [features/weight/services/weight_insight_facts.md](features/weight/services/weight_insight_facts.md) | 8 | 8 |
 | `lib/features/weight/services/weight_storage.dart` | [features/weight/services/weight_storage.md](features/weight/services/weight_storage.md) | 6 | 5 |
-| `lib/features/weight/views/weight_page.dart` | [features/weight/views/weight_page.md](features/weight/views/weight_page.md) | 73 | 33 |
+| `lib/features/weight/views/weight_page.dart` | [features/weight/views/weight_page.md](features/weight/views/weight_page.md) | 74 | 33 |
 
 ## l10n/
 
 `lib/l10n/` is already documented at [l10n/INDEX.md](l10n/INDEX.md) (generated code, not part of
-the 1761 `Purpose:` blocks and 1833 table rows above).
+the 1790 `Purpose:` blocks and 1900 table rows above).
 
 ## shared/
 
@@ -187,6 +189,9 @@ the 1761 `Purpose:` blocks and 1833 table rows above).
 | `lib/shared/services/auto_sync_service.dart` | [shared/services/auto_sync_service.md](shared/services/auto_sync_service.md) | 11 | 11 |
 | `lib/shared/services/backup_service.dart` | [shared/services/backup_service.md](shared/services/backup_service.md) | 12 | 12 |
 | `lib/shared/services/data_file_safety.dart` | [shared/services/data_file_safety.md](shared/services/data_file_safety.md) | 6 | 6 |
+| `lib/shared/services/home_widget_actions.dart` | [shared/services/home_widget_actions.md](shared/services/home_widget_actions.md) | 4 | 3 |
+| `lib/shared/services/home_widget_payloads.dart` | [shared/services/home_widget_payloads.md](shared/services/home_widget_payloads.md) | 13 | 7 |
+| `lib/shared/services/home_widget_service.dart` | [shared/services/home_widget_service.md](shared/services/home_widget_service.md) | 27 | 17 |
 | `lib/shared/services/image_service.dart` | [shared/services/image_service.md](shared/services/image_service.md) | 6 | 6 |
 | `lib/shared/services/import_export_service.dart` | [shared/services/import_export_service.md](shared/services/import_export_service.md) | 2 | 2 |
 | `lib/shared/services/local_api_server.dart` | [shared/services/local_api_server.md](shared/services/local_api_server.md) | 67 | 62 |
@@ -219,16 +224,16 @@ the 1761 `Purpose:` blocks and 1833 table rows above).
 | Area | Files | Declarations | Tier A | Tier B |
 |---|---|---|---|---|
 | Root (`lib/`) | 1 | 1 | 1 | 0 |
-| `app/` | 5 | 30 | 25 | 5 |
+| `app/` | 5 | 26 | 21 | 5 |
 | `features/ai/` | 11 | 78 | 23 | 55 |
-| `features/finance/` | 26 | 429 | 206 | 223 |
-| `features/intimacy/` | 15 | 445 | 211 | 234 |
+| `features/finance/` | 26 | 431 | 207 | 224 |
+| `features/intimacy/` | 15 | 449 | 214 | 235 |
 | `features/profile/` | 8 | 65 | 30 | 35 |
-| `features/settings/` | 3 | 37 | 8 | 29 |
-| `features/todo/` | 12 | 241 | 153 | 88 |
-| `features/weight/` | 4 | 100 | 59 | 41 |
-| `shared/` | 32 | 403 | 280 | 123 |
-| **Total** | **117** | **1821** | **992** | **829** |
+| `features/settings/` | 5 | 60 | 13 | 47 |
+| `features/todo/` | 12 | 242 | 153 | 89 |
+| `features/weight/` | 4 | 101 | 59 | 42 |
+| `shared/` | 35 | 447 | 307 | 140 |
+| **Total** | **122** | **1900** | **1028** | **872** |
 
 Every row here is the arithmetic sum of the per-file rows above, re-derived in v1.5.0 and
 adjusted for the pages v1.5.1 through v1.5.5 touched (v1.5.2 added `id_list_delta.md`; v1.5.3 and
@@ -240,4 +245,11 @@ reconciliation note, which had claimed 17 `Purpose:` blocks and 56 rows against 
 source files, 113 pages, no file without a page and no page without a file. Version 1.6.0 then added the six `features/profile/` pages and `status_colors.md` and grew `theme.md`, `data_modules.md`, `shell_scaffold.md`, `app_settings.md`, `todo_storage.md` and `settings_page.md`; 
 
 Version 1.6.1 then added `avatar_image.md` and `avatar_editor.md` and grew `shell_scaffold.md`, `adaptive_layout.md`, `app_settings.md`, `todo_storage.md`, `settings_page.md`, `profile_store.md`, `profile_provider.md` and `profile_header.md`: the `grep` count is now 1795 against 1865 table rows across 113 pages, one per source file.
-Current per-file table sum: 117 files, 1821 declarations (992 Tier A, 829 Tier B).
+Version 1.8.3 added the five home-screen widget pages (`home_widget_service.md`,
+`home_widget_payloads.md`, `home_widget_actions.md`, `home_widget_settings_page.md`,
+`home_widget_preview.md`) and grew `intimacy_record.md`, `timer_page.md`, `intimacy_page.md`,
+`todo_page.md`, `weight_page.md` and `finance_page.md`. The area totals were re-derived from the
+per-file rows in the same change (`app/` had drifted to 30/25 against its rows' 26/21), and the
+headline table now reports the per-file sums: the `grep` count is 1790 against 1900 table rows
+across 122 pages, one per non-l10n source file.
+Current per-file table sum: 122 files, 1900 declarations (1028 Tier A, 872 Tier B).

@@ -81,7 +81,7 @@ iscc /DARM64 installer.iss
 
 ## 全新克隆
 
-共享引擎包是 git 子模块，因此普通 `git clone` 会留下空的 `packages/myapps_data`，`flutter pub get` 失败：
+共享包是 git 子模块（`packages/myapps_data`、`packages/myapps_ui`、`packages/myapps_ai`，以及自 1.8.3 起的 `packages/myapps_widget`），因此普通 `git clone` 会把它们留空，`flutter pub get` 失败：
 
 ```bash
 git clone --recurse-submodules <app-url>

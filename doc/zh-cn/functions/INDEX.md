@@ -14,12 +14,12 @@ WebDAVConfigPage.build 将通用设置控件委托给 myapps_data。声明数量
 
 | 度量 | 计数 |
 |---|---|
-| `grep -r '/// Purpose:' lib --include=*.dart` | **1795** |
-| 全部 113 页的声明表行 | **1865** |
-| ——其中 Tier A（完整条目） | 1037 |
-| ——其中 Tier B（仅索引行） | 828 |
+| `grep -r '/// Purpose:' lib --include=*.dart` | **1790** |
+| 全部 122 页的声明表行 | **1900** |
+| ——其中 Tier A（完整条目） | 1028 |
+| ——其中 Tier B（仅索引行） | 872 |
 
-下面的 **Declarations** 和 **Tier A** 列统计**每页声明表中的行**，这是可机械检查的数字。一行不总是一个 `/// Purpose:` 块，表行数超出 grep 计数的 70 行净差额被完整逐项列出——行数与自己的 `grep` 不同的每页都带一条 `**Reconciliation:**` 说明确切原因。有三个反复出现的原因：
+下面的 **Declarations** 和 **Tier A** 列统计**每页声明表中的行**，这是可机械检查的数字。一行不总是一个 `/// Purpose:` 块，表行数超出 grep 计数的 110 行净差额是各页差额之和——行数与自己的 `grep` 不同的页面带一条 `**Reconciliation:**` 说明原因。有三个反复出现的原因：
 
 - **文件级库注释**（`backup_service.dart`、`webdav_service.dart`、`import_export_service.dart`、`json_preservation.dart`、`sync_progress.dart`、`sync_wake_lock.dart`）：`import` 块上方的一个 `/// Purpose:` 块记录文件，不记录声明，因此被 `grep` 计数但得不到行。
 - **没有 `Purpose:` 块的真实声明**（枚举、typedef、顶层 `const`、Riverpod provider、`appRouter`）：无 `grep` 命中，但有一行，因为它们是文件表面的一部分。
@@ -81,7 +81,7 @@ WebDAVConfigPage.build 将通用设置控件委托给 myapps_data。声明数量
 | `lib/features/finance/views/categories_page.dart` | [features/finance/views/categories_page.md](features/finance/views/categories_page.md) | 22 | 5 |
 | `lib/features/finance/views/category_detail_page.dart` | [features/finance/views/category_detail_page.md](features/finance/views/category_detail_page.md) | 14 | 4 |
 | `lib/features/finance/views/exchange_rates_page.dart` | [features/finance/views/exchange_rates_page.md](features/finance/views/exchange_rates_page.md) | 19 | 9 |
-| `lib/features/finance/views/finance_page.dart` | [features/finance/views/finance_page.md](features/finance/views/finance_page.md) | 42 | 11 |
+| `lib/features/finance/views/finance_page.dart` | [features/finance/views/finance_page.md](features/finance/views/finance_page.md) | 43 | 11 |
 | `lib/features/finance/views/subscription_detail_page.dart` | [features/finance/views/subscription_detail_page.md](features/finance/views/subscription_detail_page.md) | 12 | 3 |
 | `lib/features/finance/views/subscriptions_page.dart` | [features/finance/views/subscriptions_page.md](features/finance/views/subscriptions_page.md) | 27 | 14 |
 | `lib/features/finance/widgets/add_subscription_dialog.dart` | [features/finance/widgets/add_subscription_dialog.md](features/finance/widgets/add_subscription_dialog.md) | 13 | 4 |
@@ -95,21 +95,21 @@ WebDAVConfigPage.build 将通用设置控件委托给 myapps_data。声明数量
 
 | 源文件 | 页面 | 声明数 | Tier A |
 |---|---|---|---|
-| `lib/features/intimacy/models/intimacy_record.dart` | [features/intimacy/models/intimacy_record.md](features/intimacy/models/intimacy_record.md) | 45 | 45 |
+| `lib/features/intimacy/models/intimacy_record.dart` | [features/intimacy/models/intimacy_record.md](features/intimacy/models/intimacy_record.md) | 46 | 46 |
 | `lib/features/intimacy/services/body_metrics.dart` | [features/intimacy/services/body_metrics.md](features/intimacy/services/body_metrics.md) | 8 | 7 |
 | `lib/features/intimacy/services/cycle_predictor.dart` | [features/intimacy/services/cycle_predictor.md](features/intimacy/services/cycle_predictor.md) | 16 | 7 |
 | `lib/features/intimacy/services/intimacy_insight_facts.dart` | [features/intimacy/services/intimacy_insight_facts.md](features/intimacy/services/intimacy_insight_facts.md) | 21 | 10 |
 | `lib/features/intimacy/services/intimacy_storage.dart` | [features/intimacy/services/intimacy_storage.md](features/intimacy/services/intimacy_storage.md) | 7 | 6 |
 | `lib/features/intimacy/utils/thrust_timeline.dart` | [features/intimacy/utils/thrust_timeline.md](features/intimacy/utils/thrust_timeline.md) | 17 | 8 |
 | `lib/features/intimacy/views/body_page.dart` | [features/intimacy/views/body_page.md](features/intimacy/views/body_page.md) | 4 | 0 |
-| `lib/features/intimacy/views/intimacy_page.dart` | [features/intimacy/views/intimacy_page.md](features/intimacy/views/intimacy_page.md) | 188 | 60 |
+| `lib/features/intimacy/views/intimacy_page.dart` | [features/intimacy/views/intimacy_page.md](features/intimacy/views/intimacy_page.md) | 190 | 61 |
 | `lib/features/intimacy/views/record_detail_page.dart` | [features/intimacy/views/record_detail_page.md](features/intimacy/views/record_detail_page.md) | 19 | 4 |
 | `lib/features/intimacy/widgets/add_record_dialog.dart` | [features/intimacy/widgets/add_record_dialog.md](features/intimacy/widgets/add_record_dialog.md) | 9 | 2 |
 | `lib/features/intimacy/widgets/body_section.dart` | [features/intimacy/widgets/body_section.md](features/intimacy/widgets/body_section.md) | 35 | 18 |
 | `lib/features/intimacy/widgets/cycle_calendar.dart` | [features/intimacy/widgets/cycle_calendar.md](features/intimacy/widgets/cycle_calendar.md) | 9 | 1 |
 | `lib/features/intimacy/widgets/intimacy_trend_chart.dart` | [features/intimacy/widgets/intimacy_trend_chart.md](features/intimacy/widgets/intimacy_trend_chart.md) | 25 | 16 |
 | `lib/features/intimacy/widgets/thrust_timeline_chart.dart` | [features/intimacy/widgets/thrust_timeline_chart.md](features/intimacy/widgets/thrust_timeline_chart.md) | 6 | 3 |
-| `lib/features/intimacy/widgets/timer_page.dart` | [features/intimacy/widgets/timer_page.md](features/intimacy/widgets/timer_page.md) | 36 | 24 |
+| `lib/features/intimacy/widgets/timer_page.dart` | [features/intimacy/widgets/timer_page.md](features/intimacy/widgets/timer_page.md) | 37 | 25 |
 
 ## features/profile/
 
@@ -129,8 +129,10 @@ WebDAVConfigPage.build 将通用设置控件委托给 myapps_data。声明数量
 | 源文件 | 页面 | 声明数 | Tier A |
 |---|---|---|---|
 | `lib/features/settings/views/license_page.dart` | [features/settings/views/license_page.md](features/settings/views/license_page.md) | 2 | 0 |
+| `lib/features/settings/views/home_widget_settings_page.dart` | [features/settings/views/home_widget_settings_page.md](features/settings/views/home_widget_settings_page.md) | 6 | 3 |
 | `lib/features/settings/views/privacy_policy_page.dart` | [features/settings/views/privacy_policy_page.md](features/settings/views/privacy_policy_page.md) | 3 | 0 |
 | `lib/features/settings/views/settings_page.dart` | [features/settings/views/settings_page.md](features/settings/views/settings_page.md) | 28 | 8 |
+| `lib/features/settings/widgets/home_widget_preview.dart` | [features/settings/widgets/home_widget_preview.md](features/settings/widgets/home_widget_preview.md) | 21 | 2 |
 
 ## features/todo/
 
@@ -142,7 +144,7 @@ WebDAVConfigPage.build 将通用设置控件委托给 myapps_data。声明数量
 | `lib/features/todo/services/todo_insight_facts.dart` | [features/todo/services/todo_insight_facts.md](features/todo/services/todo_insight_facts.md) | 8 | 5 |
 | `lib/features/todo/services/todo_storage.dart` | [features/todo/services/todo_storage.md](features/todo/services/todo_storage.md) | 57 | 56 |
 | `lib/features/todo/utils/emoji_suggester.dart` | [features/todo/utils/emoji_suggester.md](features/todo/utils/emoji_suggester.md) | 9 | 5 |
-| `lib/features/todo/views/todo_page.dart` | [features/todo/views/todo_page.md](features/todo/views/todo_page.md) | 74 | 34 |
+| `lib/features/todo/views/todo_page.dart` | [features/todo/views/todo_page.md](features/todo/views/todo_page.md) | 75 | 34 |
 | `lib/features/todo/widgets/add_task_dialog.dart` | [features/todo/widgets/add_task_dialog.md](features/todo/widgets/add_task_dialog.md) | 17 | 6 |
 | `lib/features/todo/widgets/edit_task_dialog.dart` | [features/todo/widgets/edit_task_dialog.md](features/todo/widgets/edit_task_dialog.md) | 18 | 6 |
 | `lib/features/todo/widgets/emoji_suggestion_row.dart` | [features/todo/widgets/emoji_suggestion_row.md](features/todo/widgets/emoji_suggestion_row.md) | 3 | 1 |
@@ -156,11 +158,11 @@ WebDAVConfigPage.build 将通用设置控件委托给 myapps_data。声明数量
 | `lib/features/weight/models/weight_record.dart` | [features/weight/models/weight_record.md](features/weight/models/weight_record.md) | 13 | 13 |
 | `lib/features/weight/services/weight_insight_facts.dart` | [features/weight/services/weight_insight_facts.md](features/weight/services/weight_insight_facts.md) | 8 | 8 |
 | `lib/features/weight/services/weight_storage.dart` | [features/weight/services/weight_storage.md](features/weight/services/weight_storage.md) | 6 | 5 |
-| `lib/features/weight/views/weight_page.dart` | [features/weight/views/weight_page.md](features/weight/views/weight_page.md) | 73 | 33 |
+| `lib/features/weight/views/weight_page.dart` | [features/weight/views/weight_page.md](features/weight/views/weight_page.md) | 74 | 33 |
 
 ## l10n/
 
-`lib/l10n/` 已在 [l10n/INDEX.md](l10n/INDEX.md) 中记录（生成代码，不属于上面 1761 个 `Purpose:` 块和 1833 个表行）。
+`lib/l10n/` 已在 [l10n/INDEX.md](l10n/INDEX.md) 中记录（生成代码，不属于上面 1790 个 `Purpose:` 块和 1900 个表行）。
 
 ## shared/
 
@@ -171,6 +173,9 @@ WebDAVConfigPage.build 将通用设置控件委托给 myapps_data。声明数量
 | `lib/shared/services/auto_sync_service.dart` | [shared/services/auto_sync_service.md](shared/services/auto_sync_service.md) | 11 | 11 |
 | `lib/shared/services/backup_service.dart` | [shared/services/backup_service.md](shared/services/backup_service.md) | 12 | 12 |
 | `lib/shared/services/data_file_safety.dart` | [shared/services/data_file_safety.md](shared/services/data_file_safety.md) | 6 | 6 |
+| `lib/shared/services/home_widget_actions.dart` | [shared/services/home_widget_actions.md](shared/services/home_widget_actions.md) | 4 | 3 |
+| `lib/shared/services/home_widget_payloads.dart` | [shared/services/home_widget_payloads.md](shared/services/home_widget_payloads.md) | 13 | 7 |
+| `lib/shared/services/home_widget_service.dart` | [shared/services/home_widget_service.md](shared/services/home_widget_service.md) | 27 | 17 |
 | `lib/shared/services/image_service.dart` | [shared/services/image_service.md](shared/services/image_service.md) | 6 | 6 |
 | `lib/shared/services/import_export_service.dart` | [shared/services/import_export_service.md](shared/services/import_export_service.md) | 2 | 2 |
 | `lib/shared/services/local_api_server.dart` | [shared/services/local_api_server.md](shared/services/local_api_server.md) | 67 | 62 |
@@ -203,18 +208,19 @@ WebDAVConfigPage.build 将通用设置控件委托给 myapps_data。声明数量
 | 区域 | 文件 | 声明数 | Tier A | Tier B |
 |---|---|---|---|---|
 | 根（`lib/`） | 1 | 1 | 1 | 0 |
-| `app/` | 5 | 30 | 25 | 5 |
+| `app/` | 5 | 26 | 21 | 5 |
 | `features/ai/` | 11 | 78 | 23 | 55 |
-| `features/finance/` | 26 | 429 | 206 | 223 |
-| `features/intimacy/` | 15 | 445 | 211 | 234 |
+| `features/finance/` | 26 | 431 | 207 | 224 |
+| `features/intimacy/` | 15 | 449 | 214 | 235 |
 | `features/profile/` | 8 | 65 | 30 | 35 |
-| `features/settings/` | 3 | 37 | 8 | 29 |
-| `features/todo/` | 12 | 241 | 153 | 88 |
-| `features/weight/` | 4 | 100 | 59 | 41 |
-| `shared/` | 32 | 403 | 280 | 123 |
-| **总计** | **117** | **1821** | **992** | **829** |
+| `features/settings/` | 5 | 60 | 13 | 47 |
+| `features/todo/` | 12 | 242 | 153 | 89 |
+| `features/weight/` | 4 | 101 | 59 | 42 |
+| `shared/` | 35 | 447 | 307 | 140 |
+| **总计** | **122** | **1900** | **1028** | **872** |
 
 这里的每行都是上面逐文件行的算术和，在 v1.5.0 中重新派生，并按 v1.5.1 至 v1.5.5 触及的页面调整（v1.5.2 新增了 `id_list_delta.md`；v1.5.3 和 v1.5.4 扩充了体重和亲密的洞察事实页；v1.5.5 新增了 `thrust_timeline.md`、`record_detail_page.md` 和 `thrust_timeline_chart.md`，扩充了 `intimacy_record.md`、`intimacy_page.md`、`timer_page.md` 和 `adaptive_layout.md`，并更正了 `adaptive_layout.md` 的对账说明——它曾声称 17 个 `Purpose:` 块和 56 行，而文件实际是 16 和 55）。文件计数也与 `find lib -name '*.dart' -not -path 'lib/l10n/*'` 完全匹配——113 个源文件、113 个页面，没有无页面的文件，也没有无文件的页面。1.6.0 又新增了六个 `features/profile/` 页面和 `status_colors.md`，并扩充了 `theme.md`、`data_modules.md`、`shell_scaffold.md`、`app_settings.md`、`todo_storage.md` 和 `settings_page.md`。
 
 1.6.1 又新增了 `avatar_image.md` 和 `avatar_editor.md`，并扩充了 `shell_scaffold.md`、`adaptive_layout.md`、`app_settings.md`、`todo_storage.md`、`settings_page.md`、`profile_store.md`、`profile_provider.md` 和 `profile_header.md`：`grep` 计数现为 1795，对应 113 页中的 1865 个表行，每个源文件一页。
-当前逐文件表合计：117 个文件、1821 个声明（Tier A 992，Tier B 829）。
+1.8.3 新增五个桌面小组件页面（`home_widget_service.md`、`home_widget_payloads.md`、`home_widget_actions.md`、`home_widget_settings_page.md`、`home_widget_preview.md`），并扩充了 `intimacy_record.md`、`timer_page.md`、`intimacy_page.md`、`todo_page.md`、`weight_page.md` 和 `finance_page.md`。区域总计在同一变更中由逐文件行重新派生（`app/` 曾漂移为 30/25，而其各行之和为 26/21），顶部表格现在报告逐文件合计：`grep` 计数为 1790，对应 122 页中的 1900 个表行，每个非 l10n 源文件一页。
+当前逐文件表合计：122 个文件、1900 个声明（Tier A 1028，Tier B 872）。

@@ -14,8 +14,8 @@ P2：布局函数传入页面上下文并使用实际导航内容约束；
 | [`_decimalInputFormatter`](#_decimalinputformatter) | 顶层函数 | A | 创建带固定精度限制的十进制文本输入格式化器。 |
 | `WeightPage`（构造函数） | 构造函数（`WeightPage`） | B | 创建体重页实例。 |
 | `WeightPage.createState` | 方法（`WeightPage`） | B | 创建 `_WeightPageState`。 |
-| `_WeightPageState.initState` | 方法（`_WeightPageState`） | B | 启动 `_loadData` 并订阅本地数据变更通知。 |
-| `_WeightPageState.dispose` | 方法（`_WeightPageState`） | B | 退订本地数据变更通知。 |
+| `_WeightPageState.initState` | 方法（`_WeightPageState`） | B | 启动 `_loadData` 并订阅本地数据变更和小组件启动通知。 |
+| `_WeightPageState.dispose` | 方法（`_WeightPageState`） | B | 退订本地数据变更和小组件启动通知。 |
 | [`_loadData`](#_loaddata) | 方法（`_WeightPageState`） | A | 把 `weight_data.json` 加载进状态，或浮出阻塞读取错误。 |
 | [`_saveData`](#_savedata) | 方法（`_WeightPageState`） | A | 把当前状态持久化为 `WeightData` 并通知同步/提醒服务。 |
 | [`_recordsNewestFirst`](#_recordsnewestfirst) | getter（`_WeightPageState`） | A | 返回按最新在前排序的记录，每次加载或编辑只排序一次。 |
@@ -58,6 +58,7 @@ P2：布局函数传入页面上下文并使用实际导航内容约束；
 | [`_formatReminderGraceHours`](#_formatremindergracehours) | 方法（`_WeightPageState`） | A | 把存储宽限分钟格式化为修剪小时字符串。 |
 | `_editReminderGrace` | 方法（组件辅助） | B | 打开宽限窗口编辑对话框。 |
 | [`_saveReminderGrace`](#_saveremindergrace) | 方法（`_WeightPageState`） | A | 验证并持久化新提醒宽限窗口（0-24h）。 |
+| `_onWidgetLaunch` | 方法（`_WeightPageState`） | B | 加载完成后取走待处理的 `myday.weight` 小组件请求，`add` 时打开添加记录对话框（1.8.3）。 |
 | [`_addRecord`](#_addrecord) | 方法（`_WeightPageState`） | A | 打开添加记录对话框，成功时追加并持久化。 |
 | [`_editRecord`](#_editrecord) | 方法（`_WeightPageState`） | A | 打开编辑记录对话框，成功时替换并持久化。 |
 | `_setHeight` | 方法（组件辅助） | B | 打开设身高对话框（验证委托给嵌套 `saveHeight`）。 |
@@ -85,7 +86,7 @@ P2：布局函数传入页面上下文并使用实际导航内容约束；
 | `weightSummaryFigureKey` | 顶层 `const ValueKey` | B | 标识摘要卡片的数字块。 |
 | `weightSummaryStatsKey` | 顶层 `const ValueKey` | B | 标识摘要卡片的统计格。 |
 
-`grep -c 'Purpose:' lib/features/weight/views/weight_page.dart` 报告 67，对应 73 行：六个顶层 `const ValueKey`——v1.4.1 新增的两个（`weightSummaryKey`、`weightChartKey`）和 v1.4.4 新增的四个（`weightTrendChartKey`、`weightMeasurementChartKey`、`weightSummaryFigureKey`、`weightSummaryStatsKey`）——带的是散文文档注释而不是 `Purpose:` 块，但它们是文件表面的一部分因而有对应行（33 个 Tier A、40 个 Tier B）。每个 `/// Purpose:` 块都恰好位于其文档化的真实声明正上方——未发现错附块（记录调用点而非声明的块）——也不存在未文档化真实声明：五个顶层 `const Color ...` 图表颜色常量（第 56-60 行）和 `_ChartRange` 枚举（第 92 行）是无行为的普通数据/类型声明，因此与 [`weight_record.md`](../models/weight_record.md) 处理普通类型别名的方式一致，刻意不给表格行。唯一嵌套本地函数 `_setHeight` 内的 `saveHeight`（第 2154 行）确实带自己的 `/// Purpose:` 块并被计为真实声明。状态字段（包括 v1.5.2 新增的 `_newestFirstCache` 字段，第 99 行）只带普通 `///` 注释，不列为行。
+`grep -c 'Purpose:' lib/features/weight/views/weight_page.dart` 报告 68，对应 74 行：六个顶层 `const ValueKey`——v1.4.1 新增的两个（`weightSummaryKey`、`weightChartKey`）和 v1.4.4 新增的四个（`weightTrendChartKey`、`weightMeasurementChartKey`、`weightSummaryFigureKey`、`weightSummaryStatsKey`）——带的是散文文档注释而不是 `Purpose:` 块，但它们是文件表面的一部分因而有对应行（33 个 Tier A、41 个 Tier B；v1.8.3 新增 `_onWidgetLaunch`）。每个 `/// Purpose:` 块都恰好位于其文档化的真实声明正上方——未发现错附块（记录调用点而非声明的块）——也不存在未文档化真实声明：五个顶层 `const Color ...` 图表颜色常量（第 56-60 行）和 `_ChartRange` 枚举（第 92 行）是无行为的普通数据/类型声明，因此与 [`weight_record.md`](../models/weight_record.md) 处理普通类型别名的方式一致，刻意不给表格行。唯一嵌套本地函数 `_setHeight` 内的 `saveHeight`（第 2154 行）确实带自己的 `/// Purpose:` 块并被计为真实声明。状态字段（包括 v1.5.2 新增的 `_newestFirstCache` 字段，第 99 行）只带普通 `///` 注释，不列为行。
 
 ## 文档
 

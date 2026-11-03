@@ -14,13 +14,14 @@
 | `_thrustCount` | getter（`_TimerPageState`） | B | 返回以实际次数计的活抽插次数——`_timeline.total`（v1.5.5；此前是 `int` 字段）。 |
 | [`_restoreTimeline`](#restoretimeline) | 方法（`_TimerPageState`） | A | 从存储的会话或历史条目恢复按下时间线，对 v1.5.5 之前的数据或总数不符时植入一个事件。 |
 | [`initState`](#initstate) | 方法（`_TimerPageState`） | A | 从 `widget.timerSession` 恢复被中断的计时器会话（运行/暂停，含按下时间线）并加载唤醒锁偏好。 |
-| `dispose` | 方法（`_TimerPageState`） | B | 取消滴答器、移除生命周期观察者并释放任何持有的唤醒锁。 |
+| `dispose` | 方法（`_TimerPageState`） | B | 注销桌面小组件计时器处理器、取消滴答器、移除生命周期观察者并释放任何持有的唤醒锁。 |
 | [`didChangeAppLifecycleState`](#didchangeapplifecyclestate) | 方法（`_TimerPageState`） | A | 应用在计时器运行中恢复时重新武装滴答器和唤醒锁。 |
 | [`_loadKeepScreenAwakeSetting`](#loadkeepscreenawakesetting) | 方法（`_TimerPageState`） | A | 加载仅本地保持屏幕唤醒偏好并应用它。 |
 | [`_setKeepScreenAwake`](#setkeepscreenawake) | 方法（`_TimerPageState`） | A | 持久化并应用新保持屏幕唤醒偏好。 |
 | [`_applyWakelock`](#applywakelock) | 方法（`_TimerPageState`） | A | 启用或禁用平台屏幕唤醒锁以匹配当前偏好。 |
 | [`_releaseWakelock`](#releasewakelock) | 方法（`_TimerPageState`） | A | 禁用唤醒锁，但只在本页是启用它的那个时。 |
 | [`_applyRetention`](#applyretention) | 方法（`_TimerPageState`） | A | 丢弃比配置保留窗口更旧的历史条目。 |
+| [`_applyWidgetActions`](#applywidgetactions) | 方法（`_TimerPageState`） | A | 在本页打开时应用桌面小组件排队的计时器点击，然后持久化会话（1.8.3）。 |
 | [`_start`](#start) | 方法（`_TimerPageState`） | A | 从零开始或从暂停恢复秒表，并持久化运行会话。 |
 | [`_pause`](#pause) | 方法（`_TimerPageState`） | A | 暂停秒表，把已流逝时间折进累积总计，并持久化暂停会话。 |
 | [`_changeThrustCount`](#changethrustcount) | 方法（`_TimerPageState`） | A | 在当前秒表时间记录一次按下，或对 `-100` 撤销最近的按下，并持久化会话。 |
@@ -43,7 +44,7 @@
 | `_TimerBody({...})` | 构造函数（`_TimerBody`） | B | 创建计时器主体排布器；`timer` 是裸秒表列，由此组件加上内边距和滚动。 |
 | [`build`](#timerbody-build) | 方法（`_TimerBody`） | A | 把秒表和历史放进同一个滚动视图，或把秒表放进历史旁边的窗格。 |
 
-`grep -c 'Purpose:' lib/features/intimacy/widgets/timer_page.dart` 报告 36，与上面 36 行精确匹配（未发现未文档化的真实声明，也没有 `/// Purpose:` 块错附在调用点而非真实声明上方）。几个块在源码中使用泛泛的自动生成式措辞（"Provide the internal ... helper for this file"、"Internal helper used within this file only"）——本页的 Purpose 列和文档条目按逐文件模板细化（不只复制）源码 `///` 注释的要求，用对照实际实现验证的描述替换那种措辞。Tier 划分：24 个 Tier A、12 个 Tier B。v1.5.5 新增两行：取代 `int _thrustCount` 字段的 `_thrustCount` getter，以及 `_restoreTimeline`。私有常量 `_TimerBody._timerPadding`（水平 16、垂直 24）没有 `Purpose:` 块，也不占行，与状态类自己的常量一样；它在 [`_TimerBody.build`](#timerbody-build) 中说明。
+`grep -c 'Purpose:' lib/features/intimacy/widgets/timer_page.dart` 报告 37，与上面 37 行精确匹配（未发现未文档化的真实声明，也没有 `/// Purpose:` 块错附在调用点而非真实声明上方）。几个块在源码中使用泛泛的自动生成式措辞（"Provide the internal ... helper for this file"、"Internal helper used within this file only"）——本页的 Purpose 列和文档条目按逐文件模板细化（不只复制）源码 `///` 注释的要求，用对照实际实现验证的描述替换那种措辞。Tier 划分：25 个 Tier A、12 个 Tier B。v1.5.5 新增两行：取代 `int _thrustCount` 字段的 `_thrustCount` getter，以及 `_restoreTimeline`；v1.8.3 新增 `_applyWidgetActions`。私有常量 `_TimerBody._timerPadding`（水平 16、垂直 24）没有 `Purpose:` 块，也不占行，与状态类自己的常量一样；它在 [`_TimerBody.build`](#timerbody-build) 中说明。
 
 ## 文档
 
@@ -98,12 +99,13 @@
 - **用途：** 恢复调用方传入的任何计时器会话——运行、暂停或无——并开始加载保持屏幕唤醒偏好。
 - **输入：** 无（读取 `widget.timerHistory`、`widget.timerHistoryRetentionDays`、`widget.timerSession`）。
 - **返回：** 无。
-- **副作用：** 把此状态注册为 `WidgetsBindingObserver`；可能标记历史已变；恢复运行会话时启动滴答器；启动 `_loadKeepScreenAwakeSetting()`。
+- **副作用：** 把此状态注册为 `WidgetsBindingObserver`；可能标记历史已变；恢复运行会话时启动滴答器；启动 `_loadKeepScreenAwakeSetting()`；把 [`_applyWidgetActions`](#applywidgetactions) 注册为 `HomeWidgetService.timerActionHandler`。
 - **算法：**
   1. `super.initState()`，然后注册为生命周期观察者。
   2. `_retentionDays = widget.timerHistoryRetentionDays`；经 `_applyRetention` 对 `widget.timerHistory` 副本应用保留；修剪了任何条目时设 `_historyChanged = true`（使调用方即使从未碰计时器也重新保存修剪后的列表）。
   3. `widget.timerSession` 非 null 时：恢复 `_firstStartedAt`，`session.running` 时才恢复 `_startedAt`（暂停会话没有活 `_startedAt`）；恢复 `_accumulated`、`_running`；经 [`_restoreTimeline`](#restoretimeline)`(session.thrustTimeline, session.thrustCount, session.thrustCountUnit, session.elapsedAt(DateTime.now()))` 恢复 `_timeline`——总数与存储的 x100/x1 计数相符时用存储的时间线，否则在会话当前已流逝时间植入一个事件；`_running` 时调用 `_ensureTicker()`，使显示立即开始推进。
   4. `unawaited(_loadKeepScreenAwakeSetting())`。
+  5. `HomeWidgetService.timerActionHandler = _applyWidgetActions`（1.8.3）；`dispose` 仅在它仍指向本页时将其清除。
 - **用法：**
   ```dart
   // views/intimacy_page.dart, lines 688-696 (opening the page restores whatever session was saved):
@@ -214,6 +216,20 @@
   _history = _applyRetention(_history);
   ```
 - **备注：** 保留在加载时（设置可能在页面关闭时变化）和用户选新保留值时立即都应用。
+
+### `Future<void> _applyWidgetActions(List<WidgetAction> actions)` <a id="applywidgetactions"></a>
+- **种类：** `_TimerPageState` 的方法
+- **来源：** `lib/features/intimacy/widgets/timer_page.dart`（第 305 行）
+- **用途：** 在本页打开时应用桌面小组件排队的计时器点击。
+- **输入：** `actions`——`start`、`pause` 和 `add` 动作，最早的在前。
+- **返回：** `Future<void>`。
+- **副作用：** 更新 `_firstStartedAt`、`_startedAt`、`_accumulated`、`_running` 和 `_timeline`；重启或取消滴答器；调用 `setState` 和 [`_persistState`](#persiststate)`(timerSessionChanged: true)`。
+- **算法：**
+  1. 对每个动作，在其点击时刻（本地时间）：`start`（未运行时）在缺失时设置首次开始并开始一段计时；`pause`（运行中）把这段计时并入 `_accumulated`，绝不为负；`add`（已开始后）在点击时的已用时间处向 `_timeline` 加 `n`（默认 `HomeWidgetPayloads.timerStep`），无变化则跳过。
+  2. 没有任何变化或页面已销毁时停止。
+  3. 运行中确保滴答器、否则取消它，重建并持久化会话。
+- **用法：** 在 [`initState`](#initstate) 中注册为 `HomeWidgetService.timerActionHandler`；`HomeWidgetService._drain` 把计时器动作交给它，而不是写文件。
+- **备注：** 经由页面应用，可避免页面的内存会话被文件写入覆盖。语义与 `HomeWidgetActions.applyTimer` 一致。
 
 ### `Future<void> _start()` <a id="start"></a>
 - **种类：** `_TimerPageState` 的方法

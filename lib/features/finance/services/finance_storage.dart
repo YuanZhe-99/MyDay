@@ -5,6 +5,7 @@ import 'dart:io';
 import '../../../shared/utils/json_preservation.dart';
 import '../../todo/services/todo_storage.dart';
 import '../models/finance.dart';
+import '../../../shared/services/home_widget_service.dart';
 import 'balance_util.dart';
 import 'exchange_rate_storage.dart';
 
@@ -273,7 +274,7 @@ class FinanceStorage {
   /// Purpose: Persist finance data after the caller has entered the write queue.
   /// Inputs: `data`.
   /// Returns: `Future<void>`.
-  /// Side effects: Writes `finance_data.json` through a validated temporary file.
+  /// Side effects: Writes `finance_data.json` through a validated temporary file, then schedules a home-screen widget refresh.
   /// Notes: Internal helper used within this file only.
   static Future<void> _saveNow(FinanceData data) async {
     final file = await _getFile();
@@ -283,6 +284,7 @@ class FinanceStorage {
       schema: dataFilePreservationSchemas[_fileName]!,
     );
     await _atomicWriteJson(file, jsonStr);
+    HomeWidgetService.notifyDataChanged();
   }
 
   /// Purpose: Replace a JSON file only after the replacement content validates.

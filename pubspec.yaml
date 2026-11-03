@@ -2,7 +2,7 @@ name: my_day
 description: "MyDay!!!!! — Your daily life companion"
 publish_to: 'none'
 
-version: 1.8.2+93
+version: 1.8.3+94
 
 environment:
   sdk: ^3.11.3
@@ -41,6 +41,12 @@ dependencies:
   # After a fresh clone: git submodule update --init
   myapps_data:
     path: packages/myapps_data
+  # Shared home-screen widget envelope, bridge and preview UI (submodule).
+  # See doc/en-us/features/home-screen-widgets.md.
+  myapps_widget:
+    path: packages/myapps_widget/packages/myapps_widget
+  myapps_widget_ui:
+    path: packages/myapps_widget/packages/myapps_widget_ui
   # Local plugin: Apple Foundation Models bridge for on-device AI (iOS and
   # macOS only). Copied from MyAnime!!!!!. See doc/en-us/on-device-ai.md.
 
@@ -152,7 +158,7 @@ msix_config:
   display_name: MyDay!!!!!
   publisher_display_name: yuanzhe
   identity_name: com.yuanzhe.myday
-  msix_version: 1.8.2.0
+  msix_version: 1.8.3.0
   logo_path: assets/icon/app_icon.png
   capabilities: internetClient
   install_certificate: false

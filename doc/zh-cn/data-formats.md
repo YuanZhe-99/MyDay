@@ -69,7 +69,9 @@ P3 公共资料实现与适配见 [shared-ui.md](shared-ui.md)，格式和模块
 
 ## `storage_config.json`
 
-总是留在默认应用目录（绝不随自定义存储路径移动）。保存：自定义存储路径、亲密可见性开关、主题、语言区域、周起始日、托盘设置、备份设置、本地 API 设置（`apiPort`、`apiListenAddress`、`apiEnabled`、`apiUsername`、`apiPassword`）、今天已触发的桌面提醒键（`reminderNotifiedKeys`）、仅本地的亲密计时器保持屏幕唤醒偏好（`intimacyTimerKeepScreenAwake`）、仅本地的体重同步警告退出（`intimacyBodyWeightSyncWarningDisabled`）、四个设备本地的列表列数偏好（`todoSectionColumns`、`financeListColumns`、`weightListColumns`、`intimacyListColumns`）、端侧 AI 开关（`onDeviceAiEnabled`、`onDeviceAiPreferFast`，v1.5.0）、界面风格（`uiStyle`，v1.6.0）以及两个导航位置键 `navPlacement` 和 `navRailRight`（v1.6.1）。
+总是留在默认应用目录（绝不随自定义存储路径移动）。保存：自定义存储路径、亲密可见性开关、主题、语言区域、周起始日、托盘设置、备份设置、本地 API 设置（`apiPort`、`apiListenAddress`、`apiEnabled`、`apiUsername`、`apiPassword`）、今天已触发的桌面提醒键（`reminderNotifiedKeys`）、仅本地的亲密计时器保持屏幕唤醒偏好（`intimacyTimerKeepScreenAwake`）、仅本地的体重同步警告退出（`intimacyBodyWeightSyncWarningDisabled`）、四个设备本地的列表列数偏好（`todoSectionColumns`、`financeListColumns`、`weightListColumns`、`intimacyListColumns`）、端侧 AI 开关（`onDeviceAiEnabled`、`onDeviceAiPreferFast`，v1.5.0）、界面风格（`uiStyle`，v1.6.0）两个导航位置键 `navPlacement` 和 `navRailRight`（v1.6.1），以及桌面小组件设置 `homeWidgets`（v1.8.3）。
+
+`homeWidgets` 把每种小组件类型（`myday.todo`、`myday.weight`、`myday.finance`、`myday.intimacy`、`myday.timer`）映射到 `{"textScale": 0.9–1.5, "privacy": "show" | "maskValues" | "iconOnly"}`。缺失或格式错误的条目读作默认值（100%、*显示*；`myday.intimacy` 为*隐藏数值*）。它与每项小组件设置一样只存在于本设备，因为放置了哪些小组件是设备的属性。小组件快照和待处理动作队列本身存放在平台小组件存储中（Android 私有偏好 `myapps_widget`、iOS App Group `group.com.yuanzhe.myDay`），位于应用目录之外：从不同步、备份或导出。见 [features/home-screen-widgets.md](features/home-screen-widgets.md)。
 
 这两个端侧 AI 键只在为 `true` 时写入，关闭时移除，因此键不存在即表示关闭。它们只存在于本设备，因为是否有模型是设备的属性——见 [on-device-ai.md](on-device-ai.md)。
 
@@ -85,7 +87,7 @@ P3 公共资料实现与适配见 [shared-ui.md](shared-ui.md)，格式和模块
 
 | 数据 | 文件 | 同步 | 备注 |
 | --- | --- | --- | --- |
-| 核心偏好 | `storage_config.json` | 否 | 自定义路径、亲密可见性、主题、语言区域、周起始日、托盘、备份、本地 API 设置、今天已触发的桌面提醒键（`reminderNotifiedKeys`）、仅本地的亲密计时器保持屏幕唤醒偏好（`intimacyTimerKeepScreenAwake`）、仅本地的体重同步警告退出（`intimacyBodyWeightSyncWarningDisabled`）、设备本地的列表列数偏好（`todoSectionColumns`、`financeListColumns`、`weightListColumns`、`intimacyListColumns`）、端侧 AI 开关（`onDeviceAiEnabled`、`onDeviceAiPreferFast`）、共享路由写入的设备本地 AI 来源键（`aiSourceSelection`、`aiComputePreference`、`aiGpuFailures`、`aiCustomModels`、`aiModelAliases`）、界面风格（`uiStyle`，1.6.0：仅在选择 Material 3 时写为 `"material3"`；缺省表示 Expressive，即默认风格，同时显示悬浮导航栏）、导航位置（`navPlacement`：`"sideOnWide"` 或 `"side"`，以及 `navRailRight: true`，1.6.1；缺省表示默认：任何窗口都用底栏，显示侧边导航栏时位于左侧） |
+| 核心偏好 | `storage_config.json` | 否 | 自定义路径、亲密可见性、主题、语言区域、周起始日、托盘、备份、本地 API 设置、今天已触发的桌面提醒键（`reminderNotifiedKeys`）、仅本地的亲密计时器保持屏幕唤醒偏好（`intimacyTimerKeepScreenAwake`）、仅本地的体重同步警告退出（`intimacyBodyWeightSyncWarningDisabled`）、设备本地的列表列数偏好（`todoSectionColumns`、`financeListColumns`、`weightListColumns`、`intimacyListColumns`）、端侧 AI 开关（`onDeviceAiEnabled`、`onDeviceAiPreferFast`）、共享路由写入的设备本地 AI 来源键（`aiSourceSelection`、`aiComputePreference`、`aiGpuFailures`、`aiCustomModels`、`aiModelAliases`）、界面风格（`uiStyle`，1.6.0：仅在选择 Material 3 时写为 `"material3"`；缺省表示 Expressive，即默认风格，同时显示悬浮导航栏）、导航位置（`navPlacement`：`"sideOnWide"` 或 `"side"`，以及 `navRailRight: true`，1.6.1；缺省表示默认：任何窗口都用底栏，显示侧边导航栏时位于左侧）、每种小组件的桌面小组件文字大小与隐私（`homeWidgets`，1.8.3） |
 | 待办 | `todo_data.json` | 是 | 任务、每日模板、完成日志、每日评分日志、提醒、任务排序/自定义顺序 |
 | 财务 | `finance_data.json` | 是 | 账户含可选免手续费标准、分类、交易、订阅、财务设置、交易账户选择器设置 |
 | 汇率 | `exchange_rates.json` | 是 | 汇率快照和 `lastFetchedAt` |

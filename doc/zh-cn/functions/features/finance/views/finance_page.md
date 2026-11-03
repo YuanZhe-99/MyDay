@@ -12,7 +12,7 @@ P2：布局函数传入页面上下文并使用实际导航内容约束；
 | `FinancePage({super.key})` | 构造函数（`FinancePage`） | B | 创建财务页实例。 |
 | `createState` | 方法（`FinancePage`） | B | 为此组件创建可变状态对象。 |
 | `initState` | 方法（`_FinancePageState`） | B | 注册续费/自动同步监听器，把所选月播种为当前月，并触发首次加载。 |
-| `dispose` | 方法（`_FinancePageState`） | B | 注销续费和自动同步监听器。 |
+| `dispose` | 方法（`_FinancePageState`） | B | 注销续费、自动同步和小组件启动监听器。 |
 | [`_io`](#_io) | 方法（`_FinancePageState`） | A | 在上一个操作完成后再运行一次财务加载、保存或子页面提交（本页的串行 I/O 队列，v1.5.2）。 |
 | `_applyFinanceData` | 方法（`_FinancePageState`） | B | 把加载或合并得到的 `FinanceData` 复制进页面状态字段（调用方把它包在 `setState` 中）。 |
 | `_currentFinanceData` | 方法（`_FinancePageState`） | B | 把页面当前财务状态快照为一个 `FinanceData`。 |
@@ -24,6 +24,7 @@ P2：布局函数传入页面上下文并使用实际导航内容约束；
 | [`_saveDataNow`](#_savedatanow) | 方法（`_FinancePageState`） | A | `_saveData` 的主体：持久化财务状态，加载的文件不可读时拒绝保存。 |
 | [`_commitSubPage`](#_commitsubpage) | 方法（`_FinancePageState`） | A | 把一次子页面回调的列表编辑按 id 合并进重新读取的文件并保存（v1.5.2）。 |
 | `_updateReminderService` | 方法（`_FinancePageState`） | B | 把当前订阅/提醒时间状态推给 `ReminderService`。 |
+| `_onWidgetLaunch` | 方法（`_FinancePageState`） | B | 加载完成后取走待处理的 `myday.finance` 小组件请求，`add` 时打开添加交易对话框（1.8.3）。 |
 | `_addTransaction` | 方法（`_FinancePageState`） | B | 打开添加交易对话框并把结果插入列表前部。 |
 | `_deleteTransaction` | 方法（`_FinancePageState`） | B | 从状态移除交易并保存。 |
 | `_editTransaction` | 方法（`_FinancePageState`） | B | 打开编辑对话框并在状态中替换交易。 |
@@ -52,7 +53,7 @@ P2：布局函数传入页面上下文并使用实际导航内容约束；
 | `_SubscriptionOverviewTile({...})` | 构造函数（`_SubscriptionOverviewTile`） | B | 创建订阅概览的一行只读行。 |
 | `build` | 方法（`_SubscriptionOverviewTile`） | B | 渲染紧凑的订阅行：头像、名称、周期与下次扣费、金额。 |
 
-**对账：** `grep -c 'Purpose:' lib/features/finance/views/finance_page.dart` 返回 42，与上面 42 行精确匹配——每个块都恰好位于其真实声明（构造函数、`createState`、生命周期方法、私有方法、`build` 覆盖或 `_buildLeading` 内的嵌套本地函数）正上方；未发现错附在调用点语句上方，也未发现未文档化的真实声明。六个类的普通组件字段（如 `_FinancePageState` 的 `_accounts`/`_categories`/`_transactions`/... 状态字段及其 `_ioQueue` future，以及 `StatelessWidget` 子类的构造函数参数）不带 `/// Purpose:` 块，与本代码库记录可调用成员而非数据字段的约定一致。
+**对账：** `grep -c 'Purpose:' lib/features/finance/views/finance_page.dart` 返回 43，与上面 43 行精确匹配（v1.8.3 新增 `_onWidgetLaunch`）——每个块都恰好位于其真实声明（构造函数、`createState`、生命周期方法、私有方法、`build` 覆盖或 `_buildLeading` 内的嵌套本地函数）正上方；未发现错附在调用点语句上方，也未发现未文档化的真实声明。六个类的普通组件字段（如 `_FinancePageState` 的 `_accounts`/`_categories`/`_transactions`/... 状态字段及其 `_ioQueue` future，以及 `StatelessWidget` 子类的构造函数参数）不带 `/// Purpose:` 块，与本代码库记录可调用成员而非数据字段的约定一致。
 
 ## 文档
 

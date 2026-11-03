@@ -797,7 +797,8 @@ trivial forwarding.
   taken its turn in the write queue.
 - **Inputs:** `data`.
 - **Returns:** `Future<void>`.
-- **Side effects:** Writes `todo_data.json` through a validated temporary file.
+- **Side effects:** Writes `todo_data.json` through a validated temporary file, then calls
+  `HomeWidgetService.notifyDataChanged()` to schedule a home-screen widget refresh (1.8.3).
 - **Algorithm:**
   1. Resolve the file via `_getFile()`.
   2. `JsonPreservation.encodeForFile(file: file, next: data.toJson(), schema:

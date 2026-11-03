@@ -53,18 +53,20 @@ Since 1.8.1 the insight card sits in a `ListenableBuilder` on the insight store 
 |---|---|---|---|
 | `IntimacyPage.new` | constructor | B | Trivial forwarding constructor. |
 | `IntimacyPage.createState` | method (`IntimacyPage`) | B | Create `_IntimacyPageState`. |
-| `_IntimacyPageState.initState` | method (lifecycle) | B | Load data and register the auto-sync listener. |
-| `_IntimacyPageState.dispose` | method (lifecycle) | B | Unregister the auto-sync listener. |
+| `_IntimacyPageState.initState` | method (lifecycle) | B | Load data and register the auto-sync and widget-launch listeners. |
+| `_IntimacyPageState.dispose` | method (lifecycle) | B | Unregister the auto-sync and widget-launch listeners. |
 | [`_io`](#io) | method (`_IntimacyPageState`) | A | Run one intimacy load, save, or sub-page commit after the previous one (the page's serial I/O queue, v1.5.2). |
 | `_applyIntimacyData` | method (`_IntimacyPageState`) | B | Copy a loaded or merged `IntimacyData` into the page's state fields (callers wrap it in `setState`). |
 | `_currentIntimacyData` | method (`_IntimacyPageState`) | B | Snapshot the page's current intimacy state as an `IntimacyData`. |
 | [`_loadData`](#loaddata) | method (`_IntimacyPageState`) | A | Enqueue a reload of `intimacy_data.json` on the I/O queue. |
 | [`_loadDataNow`](#loaddatanow) | method (`_IntimacyPageState`) | A | Body of `_loadData`: load `intimacy_data.json` into state, or surface a blocking read error. |
+| `_onWidgetLaunch` | method (`_IntimacyPageState`) | B | Take a pending `myday.intimacy`/`myday.timer` widget request once loaded and open the add-record dialog (`add`) or the timer (`timer`) after the frame (1.8.3). |
 | `_showWriteBlocked` | method (`_IntimacyPageState`) | B | Show the `intimacyDataWriteBlocked` snackbar when mounted. |
 | [`_saveData`](#savedata) | method (`_IntimacyPageState`) | A | Enqueue a save of the page's in-memory intimacy state on the I/O queue. |
 | [`_saveDataNow`](#savedatanow) | method (`_IntimacyPageState`) | A | Body of `_saveData`: persist current state and notify auto-sync, unless loading or unreadable. |
 | [`_commitSubPage`](#commitsubpage) | method (`_IntimacyPageState`) | A | Merge one sub-page callback's list edits by id into the freshly re-read file and save (v1.5.2). |
 | [`_saveTimerState`](#savetimerstate) | method (`_IntimacyPageState`) | A | Persist timer history/session changes streamed back from the open `TimerPage`. |
+| [`_openTimer`](#opentimer) | method (`_IntimacyPageState`) | A | Push `TimerPage` with the active partners/toys and apply the `TimerPageResult` it returns (1.8.3; was an inline app-bar closure). |
 | [`_saveChartSettings`](#savechartsettings) | method (`_IntimacyPageState`) | A | Persist a new trend-chart metric and range selection reported by any `IntimacyTrendChart`. |
 | `_markedDates` | getter (`_IntimacyPageState`) | B | Set of calendar days that have at least one record. |
 | [`_buildCycleOverlays`](#buildcycleoverlays) | method (`_IntimacyPageState`) | A | Build the per-person cycle overlay list shown on the home calendar. |
@@ -240,8 +242,9 @@ Since 1.8.1 the insight card sits in a `ListenableBuilder` on the insight store 
 | `_labelledInsightFacts` | method (`_IntimacyPageState`) | B | Build the labelled variant of the Intimacy facts (`useNames: false`) for `guardrailFacts` and the footnote legend (1.8.1). |
 | `_intimacyFootnote` | method (`_IntimacyPageState`) | B | The card footnote: the cycle disclaimer and a `Partner A = …` legend for labels still shown (1.8.1). |
 
-**Row count reconciliation:** 186 rows above, matching `grep -c '/// Purpose:'` = 186 exactly (60
-Tier A, 126 Tier B). v1.5.5 added two Tier A rows, one `_openRecordDetail` in each of
+**Row count reconciliation:** 190 rows above, matching `grep -c '/// Purpose:'` = 190 exactly (61
+Tier A, 129 Tier B). v1.8.3 added `_onWidgetLaunch` (Tier B) and `_openTimer` (Tier A), the
+app-bar timer button's former inline closure. v1.5.5 added two Tier A rows, one `_openRecordDetail` in each of
 `_IntimacyPageState` and `_FilteredRecordsPageState`. v1.3.2 removed 27 rows (17 Tier A, 10 Tier B) when the record-metric charts
 moved to [`intimacy_trend_chart.dart`](../widgets/intimacy_trend_chart.md), and added one
 (`_saveChartSettings`, Tier A). See the note at the end of this page for how duplicate-named
@@ -425,6 +428,24 @@ Tier A; `_applyIntimacyData`, `_currentIntimacyData`, `_showWriteBlocked` as Tie
   check `_loaded`: it writes the re-read file plus the deltas, falling back to the in-memory state
   only when no file exists yet.
 
+### `Future<void> _openTimer()` <a id="opentimer"></a>
+- **Kind:** method of `_IntimacyPageState`
+- **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 581)
+- **Purpose:** Open the stopwatch timer page and apply what it returns.
+- **Inputs:** None.
+- **Returns:** `Future<void>`.
+- **Side effects:** Pushes `TimerPage`; inserts a saved record, replaces timer history, session and
+  retention as reported, bumps `_timerSessionModifiedAt`/`_settingsModifiedAt` (UTC) for the
+  session and retention, and calls `_saveData()` once if anything changed.
+- **Algorithm:**
+  1. Push `TimerPage` with partners whose `endDate` is null, toys whose `retiredDate` is null, the
+     positions, timer history, session and retention, and `onStateChanged: _saveTimerState`.
+  2. If a result comes back while mounted, apply each changed part with `setState`.
+  3. Save once when any part changed.
+- **Usage:** The app-bar timer button (`onPressed: _loaded && _loadError == null ? _openTimer :
+  null`) and `_onWidgetLaunch` for the timer widget's *Finish* (`do=timer`).
+- **Notes:** Moved out of `build` in 1.8.3 so the widget deep link can reuse it.
+
 ### `Future<void> _saveTimerState({required List<TimerHistoryEntry> history, required IntimacyTimerSession? session, required bool historyChanged, required bool timerSessionChanged, required int? retentionDays, required bool retentionChanged})` <a id="savetimerstate"></a>
 - **Kind:** method of `_IntimacyPageState`
 - **Source:** `lib/features/intimacy/views/intimacy_page.dart` (line 344)
@@ -444,13 +465,13 @@ Tier A; `_applyIntimacyData`, `_currentIntimacyData`, `_showWriteBlocked` as Tie
   3. Only bump `_settingsModifiedAt` if `retentionChanged`.
   4. Call `_saveData()` only if history, session, or retention changed — a callback fired with no
      actual change performs no write.
-- **Usage:** Passed as the `onStateChanged`-style callback to `TimerPage` from
-  `_showManageMenu`/timer entry points elsewhere in `build()`; `TimerPage` invokes it on every
+- **Usage:** Passed as the `onStateChanged` callback to `TimerPage` by
+  [`_openTimer`](#opentimer); `TimerPage` invokes it on every
   timer tick/pause/save so the parent page's storage stays in sync while the timer UI is open.
 - **Notes:** Keeping the timer session's own modified-timestamp separate from
   `_settingsModifiedAt` matters for the three-way merge — see
   [Timer/stopwatch session persistence](../../../../features/intimacy.md#timerstopwatch-session-persistence).
-  When the timer page closes, `build`'s handler applies its `TimerPageResult` (new record,
+  When the timer page closes, [`_openTimer`](#opentimer) applies its `TimerPageResult` (new record,
   history, session, retention) and saves once — since v1.5.2 only while the page is still mounted.
 
 ### `Future<void> _saveChartSettings(IntimacyChartSettings settings)` <a id="savechartsettings"></a>

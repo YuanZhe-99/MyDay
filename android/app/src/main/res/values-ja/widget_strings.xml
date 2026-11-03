@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget picker text and the too-new fallback only; widget content strings come from the ARB files. -->
+<resources>
+    <string name="widget_todo_name">ToDo</string>
+    <string name="widget_todo_description">今日のタスクとチェックボックス</string>
+    <string name="widget_todo_strip_description">未完了のタスク数と次の時刻指定タスク</string>
+    <string name="widget_weight_name">体重</string>
+    <string name="widget_weight_description">最新の体重、30 日間の変化と推移</string>
+    <string name="widget_weight_strip_description">最新の体重と変化</string>
+    <string name="widget_finance_name">家計</string>
+    <string name="widget_finance_description">今月の支出・収入と近日の請求</string>
+    <string name="widget_intimacy_name">プライベート記録</string>
+    <string name="widget_intimacy_description">プライベート記録の概要</string>
+    <string name="widget_timer_name">タイマー</string>
+    <string name="widget_timer_description">開始・一時停止・+100 ができるタイマー</string>
+    <string name="widget_timer_strip_description">コンパクトなタイマー</string>
+    <string name="widget_open_app">MyDay を開く</string>
+</resources>

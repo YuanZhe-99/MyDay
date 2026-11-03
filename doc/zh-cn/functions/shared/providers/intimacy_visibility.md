@@ -69,8 +69,8 @@
 - **用途：** 从设置页切换亲密模块可见性并持久化选择。
 - **输入：** `visible`。
 - **返回：** 无。
-- **副作用：** 经 `copyWith` 更新 `state`；调用 `TodoStorage.setIntimacyVisible(visible)`（即发即忘，不 await）。
-- **算法：** `state = state.copyWith(visible: visible); TodoStorage.setIntimacyVisible(visible);`
+- **副作用：** 经 `copyWith` 更新 `state`；调用 `TodoStorage.setIntimacyVisible(visible)`（即发即忘，不 await），并在其完成后调用 `HomeWidgetService.notifyDataChanged()`，使私密和计时器小组件被清除或恢复（1.8.3）。
+- **算法：** `state = state.copyWith(visible: visible);` 然后 `TodoStorage.setIntimacyVisible(visible).then((_) => HomeWidgetService.notifyDataChanged());`
 - **用法：**
   ```dart
   ref.read(intimacyVisibilityProvider.notifier).setVisible(value);

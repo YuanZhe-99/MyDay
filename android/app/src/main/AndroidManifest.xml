@@ -46,6 +46,82 @@
             </intent-filter>
         </receiver>
 
+        <!-- Home-screen widgets fed by lib/shared/services/home_widget_service.dart; see
+             doc/en-us/features/home-screen-widgets.md. The MyApps-Widget plugin
+             contributes its own WidgetActionReceiver. -->
+        <receiver android:name=".widget.TodoWidgetProvider" android:exported="false"
+            android:label="@string/widget_todo_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_todo_info" />
+        </receiver>
+        <receiver android:name=".widget.TodoStripWidgetProvider" android:exported="false"
+            android:label="@string/widget_todo_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_todo_strip_info" />
+        </receiver>
+        <receiver android:name=".widget.WeightWidgetProvider" android:exported="false"
+            android:label="@string/widget_weight_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_weight_info" />
+        </receiver>
+        <receiver android:name=".widget.WeightStripWidgetProvider" android:exported="false"
+            android:label="@string/widget_weight_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_weight_strip_info" />
+        </receiver>
+        <receiver android:name=".widget.FinanceWidgetProvider" android:exported="false"
+            android:label="@string/widget_finance_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_finance_info" />
+        </receiver>
+        <receiver android:name=".widget.IntimacyWidgetProvider" android:exported="false"
+            android:label="@string/widget_intimacy_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_intimacy_info" />
+        </receiver>
+        <receiver android:name=".widget.TimerWidgetProvider" android:exported="false"
+            android:label="@string/widget_timer_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_timer_info" />
+        </receiver>
+        <receiver android:name=".widget.TimerStripWidgetProvider" android:exported="false"
+            android:label="@string/widget_timer_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_timer_strip_info" />
+        </receiver>
+
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

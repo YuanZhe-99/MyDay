@@ -195,6 +195,11 @@ Not copied to the other repos — no other app has these.
 | step line | 阶梯线 | the raw cumulative series of the thrust timeline chart |
 | moving average | 移动平均 | the smoothing of the thrust timeline chart's fit line; not the trend chart's EWMA |
 | smoothed (fit) line | 平滑线 | the dashed fit line drawn over the step line |
+| home-screen widget | 桌面小组件 | an Android/iOS widget on the home screen (1.8.3); distinct from a Flutter widget (组件). zh-TW 用「桌面小工具」，ja 用「ホーム画面ウィジェット」, as in MyAnime |
+| widget kind | 小组件类型 | one envelope kind such as `myday.todo` |
+| pending-action queue | 待处理动作队列 | MyApps-Widget queue of taps on widget controls, applied on the app's next run |
+| Hide values / Icon only | 隐藏数值 / 只显示图标 | the widget privacy choices; "Show" is 显示 |
+| Private (widget) | 私密 | the neutral title of the Intimacy widget; the settings section is 私密记录 |
 
 ## 6. Review checklist (run before committing a Chinese page)
 

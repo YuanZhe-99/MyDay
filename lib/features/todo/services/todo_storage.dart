@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../../shared/services/data_file_safety.dart';
 import '../../../shared/utils/adaptive_layout.dart';
 import '../../../shared/utils/json_preservation.dart';
+import '../../../shared/services/home_widget_service.dart';
 import '../models/task.dart';
 
 class TodoData {
@@ -738,7 +739,7 @@ class TodoStorage {
   /// Purpose: Persist todo data after the caller has entered the write queue.
   /// Inputs: `data`.
   /// Returns: `Future<void>`.
-  /// Side effects: Writes `todo_data.json` through a validated temporary file.
+  /// Side effects: Writes `todo_data.json` through a validated temporary file, then schedules a home-screen widget refresh.
   /// Notes: Internal helper used within this file only.
   static Future<void> _saveNow(TodoData data) async {
     final file = await _getFile();
@@ -748,6 +749,7 @@ class TodoStorage {
       schema: dataFilePreservationSchemas[_fileName]!,
     );
     await DataFileSafety.writeValidatedDataJson(file, jsonStr);
+    HomeWidgetService.notifyDataChanged();
   }
 
   /// Get the storage directory path for display.

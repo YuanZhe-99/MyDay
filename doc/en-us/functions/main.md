@@ -30,7 +30,8 @@ it — no misattachment or undocumented declarations found).
 - **Side effects:** Calls `WidgetsFlutterBinding.ensureInitialized()`; on Android/iOS initializes
   `MobileNotificationService`; on desktop calls `localNotifier.setup(...)`, configures
   `launch_at_startup`, and starts `LocalApiServer`; starts `ReminderService.instance`,
-  `AutoSyncService.instance`, and `OnDeviceAiService.instance` (which only registers its
+  `AutoSyncService.instance`, `HomeWidgetService.init()` (unawaited; a no-op off Android and iOS),
+  and `OnDeviceAiService.instance` (which only registers its
   app-lifecycle listener); on Windows/macOS/Linux initializes `TrayService.instance`; finally
   calls `runApp(...)`.
 - **Algorithm:**
@@ -46,12 +47,16 @@ it — no misattachment or undocumented declarations found).
      notification behavior).
   6. Start `AutoSyncService.instance` unconditionally (it only actually syncs once WebDAV is
      configured and enabled).
-  7. Start `OnDeviceAiService.instance` unconditionally
+  7. Start the home-screen widgets with `unawaited(HomeWidgetService.init())`
+     ([`home_widget_service.dart`](shared/services/home_widget_service.md#init)): on Android and
+     iOS it subscribes to sync reloads, app resume and queued widget taps, applies those taps and
+     publishes every widget kind; elsewhere it returns at once.
+  8. Start `OnDeviceAiService.instance` unconditionally
      ([`on_device_ai_service.dart`](features/ai/services/on_device_ai_service.md)): this only
      registers an `AppLifecycleListener` that pauses and resumes its request queue; it never
      touches the platform model while the user's "Use on-device AI" switch is off.
-  8. On desktop, await `TrayService.instance.init()`.
-  9. Call `runApp` wrapping `MyDayApp` in `DevicePreview` (enabled only in `kDebugMode`) and a
+  9. On desktop, await `TrayService.instance.init()`.
+  10. Call `runApp` wrapping `MyDayApp` in `DevicePreview` (enabled only in `kDebugMode`) and a
      Riverpod `ProviderScope`.
 - **Usage:** Not called from application code — invoked once by the Flutter/Dart launcher.
 - **Notes:** The two desktop platform checks are duplicated (`Platform.isWindows || Platform.isMacOS

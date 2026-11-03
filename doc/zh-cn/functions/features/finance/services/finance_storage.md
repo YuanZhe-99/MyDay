@@ -184,7 +184,7 @@
 - **用途：** 在调用方已在写队列中轮到它之后，执行一次 `data` 对 `finance_data.json` 的实际写入。
 - **输入：** `data`。
 - **返回：** `Future<void>`。
-- **副作用：** 经 [`_atomicWriteJson`](#atomicwritejson) 写 `finance_data.json`。
+- **副作用：** 经 [`_atomicWriteJson`](#atomicwritejson) 写 `finance_data.json`，然后调用 `HomeWidgetService.notifyDataChanged()` 安排一次桌面小组件刷新（1.8.3）。
 - **算法：**
   1. 经 `_getFile()` 解析文件。
   2. 对 `'finance_data.json'` 注册的模式运行 `JsonPreservation.encodeForFile`，重新注入新版应用写入的任何未知字段。

@@ -2582,6 +2582,200 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get aiModelSave => '保存';
+
+  @override
+  String get hwOpenToUpdate => '打开 MyDay 以更新';
+
+  @override
+  String get hwNoRecords => '还没有记录';
+
+  @override
+  String hwTodayAt(String time) {
+    return '今天 $time';
+  }
+
+  @override
+  String hwDaysAgo(String count) {
+    return '$count 天前';
+  }
+
+  @override
+  String get hwTodoNew => '新建';
+
+  @override
+  String hwTodoLeft(String count) {
+    return '还剩 $count 项';
+  }
+
+  @override
+  String hwTodoProgress(String done, String total) {
+    return '已完成 $done/$total';
+  }
+
+  @override
+  String get hwTodoTomorrow => '明天';
+
+  @override
+  String get hwTodoOverdue => '逾期';
+
+  @override
+  String get hwTodoAllDone => '全部完成';
+
+  @override
+  String get hwTodoNothing => '今天没有安排';
+
+  @override
+  String get hwTodoScore => '今日评分';
+
+  @override
+  String get hwWeightTitle => '体重';
+
+  @override
+  String get hwWeightLog => '记录';
+
+  @override
+  String get hwWeight30Days => '30 天';
+
+  @override
+  String get hwWeightNotLogged => '今天还没记录';
+
+  @override
+  String get hwFinanceAdd => '记一笔';
+
+  @override
+  String get hwFinanceExpense => '本月支出';
+
+  @override
+  String get hwFinanceIncome => '收入';
+
+  @override
+  String get hwFinanceNet => '结余';
+
+  @override
+  String get hwFinanceTop => '最大支出';
+
+  @override
+  String hwFinanceBillsSoon(String count) {
+    return '$count 笔订阅即将扣费';
+  }
+
+  @override
+  String get hwFinanceNoBills => '本周没有扣费';
+
+  @override
+  String get hwFinanceUncategorized => '未分类';
+
+  @override
+  String get hwPrivateTitle => '私密';
+
+  @override
+  String get hwPrivateAdd => '记录';
+
+  @override
+  String get hwPrivateDaysAgo => '天前';
+
+  @override
+  String get hwPrivateToday => '今天';
+
+  @override
+  String hwPrivateMonth(String count) {
+    return '本月 $count 次';
+  }
+
+  @override
+  String hwPrivateAvg(String minutes) {
+    return '平均 $minutes 分钟';
+  }
+
+  @override
+  String hwPrivateCycleIn(String count) {
+    return '周期预计 $count 天后';
+  }
+
+  @override
+  String get hwPrivateCycleToday => '周期预计今天开始';
+
+  @override
+  String get hwTimerTitle => '计时器';
+
+  @override
+  String get hwTimerRunning => '进行中';
+
+  @override
+  String get hwTimerPaused => '已暂停';
+
+  @override
+  String hwTimerCount(String count) {
+    return '次数 $count';
+  }
+
+  @override
+  String get hwTimerStart => '开始';
+
+  @override
+  String get hwTimerResume => '继续';
+
+  @override
+  String get hwTimerPause => '暂停';
+
+  @override
+  String get hwTimerFinish => '结束';
+
+  @override
+  String hwTimerLast(String ago, String minutes) {
+    return '上次 $ago · $minutes 分钟';
+  }
+
+  @override
+  String hwTimerLastToday(String minutes) {
+    return '上次 今天 · $minutes 分钟';
+  }
+
+  @override
+  String get hwTimerIdle => '未在计时';
+
+  @override
+  String get homeWidgetsTitle => '桌面小组件';
+
+  @override
+  String get homeWidgetsSubtitle => '每个小组件的字号和隐私';
+
+  @override
+  String get homeWidgetsHint =>
+      '在桌面的小组件选择器中添加小组件。复选框和计时器按钮在 Android 及 iOS 17 以上可用；点按会在 MyDay 下次运行时保存。';
+
+  @override
+  String get homeWidgetKindTodo => '待办';
+
+  @override
+  String get homeWidgetKindWeight => '体重';
+
+  @override
+  String get homeWidgetKindFinance => '财务';
+
+  @override
+  String get homeWidgetKindPrivate => '私密记录';
+
+  @override
+  String get homeWidgetKindTimer => '计时器';
+
+  @override
+  String get homeWidgetTextSize => '字号';
+
+  @override
+  String get homeWidgetPrivacy => '隐私';
+
+  @override
+  String get homeWidgetPrivacyShow => '显示';
+
+  @override
+  String get homeWidgetPrivacyMask => '隐藏数值';
+
+  @override
+  String get homeWidgetPrivacyIcon => '只显示图标';
+
+  @override
+  String get homeWidgetPrivacyNote => '在 iOS 上，设备锁定时数值也会被隐藏。';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -5162,4 +5356,198 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get aiModelSave => '儲存';
+
+  @override
+  String get hwOpenToUpdate => '打開 MyDay 以更新';
+
+  @override
+  String get hwNoRecords => '還沒有記錄';
+
+  @override
+  String hwTodayAt(String time) {
+    return '今天 $time';
+  }
+
+  @override
+  String hwDaysAgo(String count) {
+    return '$count 天前';
+  }
+
+  @override
+  String get hwTodoNew => '新增';
+
+  @override
+  String hwTodoLeft(String count) {
+    return '還剩 $count 項';
+  }
+
+  @override
+  String hwTodoProgress(String done, String total) {
+    return '已完成 $done/$total';
+  }
+
+  @override
+  String get hwTodoTomorrow => '明天';
+
+  @override
+  String get hwTodoOverdue => '逾期';
+
+  @override
+  String get hwTodoAllDone => '全部完成';
+
+  @override
+  String get hwTodoNothing => '今天沒有安排';
+
+  @override
+  String get hwTodoScore => '今日評分';
+
+  @override
+  String get hwWeightTitle => '體重';
+
+  @override
+  String get hwWeightLog => '記錄';
+
+  @override
+  String get hwWeight30Days => '30 天';
+
+  @override
+  String get hwWeightNotLogged => '今天還沒記錄';
+
+  @override
+  String get hwFinanceAdd => '記一筆';
+
+  @override
+  String get hwFinanceExpense => '本月支出';
+
+  @override
+  String get hwFinanceIncome => '收入';
+
+  @override
+  String get hwFinanceNet => '結餘';
+
+  @override
+  String get hwFinanceTop => '最大支出';
+
+  @override
+  String hwFinanceBillsSoon(String count) {
+    return '$count 筆訂閱即將扣款';
+  }
+
+  @override
+  String get hwFinanceNoBills => '本週沒有扣款';
+
+  @override
+  String get hwFinanceUncategorized => '未分類';
+
+  @override
+  String get hwPrivateTitle => '私密';
+
+  @override
+  String get hwPrivateAdd => '記錄';
+
+  @override
+  String get hwPrivateDaysAgo => '天前';
+
+  @override
+  String get hwPrivateToday => '今天';
+
+  @override
+  String hwPrivateMonth(String count) {
+    return '本月 $count 次';
+  }
+
+  @override
+  String hwPrivateAvg(String minutes) {
+    return '平均 $minutes 分鐘';
+  }
+
+  @override
+  String hwPrivateCycleIn(String count) {
+    return '週期預計 $count 天後';
+  }
+
+  @override
+  String get hwPrivateCycleToday => '週期預計今天開始';
+
+  @override
+  String get hwTimerTitle => '計時器';
+
+  @override
+  String get hwTimerRunning => '進行中';
+
+  @override
+  String get hwTimerPaused => '已暫停';
+
+  @override
+  String hwTimerCount(String count) {
+    return '次數 $count';
+  }
+
+  @override
+  String get hwTimerStart => '開始';
+
+  @override
+  String get hwTimerResume => '繼續';
+
+  @override
+  String get hwTimerPause => '暫停';
+
+  @override
+  String get hwTimerFinish => '結束';
+
+  @override
+  String hwTimerLast(String ago, String minutes) {
+    return '上次 $ago · $minutes 分鐘';
+  }
+
+  @override
+  String hwTimerLastToday(String minutes) {
+    return '上次 今天 · $minutes 分鐘';
+  }
+
+  @override
+  String get hwTimerIdle => '未在計時';
+
+  @override
+  String get homeWidgetsTitle => '桌面小工具';
+
+  @override
+  String get homeWidgetsSubtitle => '每個小工具的字級和隱私';
+
+  @override
+  String get homeWidgetsHint =>
+      '在桌面的小工具選擇器中新增小工具。核取方塊和計時器按鈕在 Android 及 iOS 17 以上可用；點按會在 MyDay 下次執行時儲存。';
+
+  @override
+  String get homeWidgetKindTodo => '待辦';
+
+  @override
+  String get homeWidgetKindWeight => '體重';
+
+  @override
+  String get homeWidgetKindFinance => '財務';
+
+  @override
+  String get homeWidgetKindPrivate => '私密記錄';
+
+  @override
+  String get homeWidgetKindTimer => '計時器';
+
+  @override
+  String get homeWidgetTextSize => '字級';
+
+  @override
+  String get homeWidgetPrivacy => '隱私';
+
+  @override
+  String get homeWidgetPrivacyShow => '顯示';
+
+  @override
+  String get homeWidgetPrivacyMask => '隱藏數值';
+
+  @override
+  String get homeWidgetPrivacyIcon => '只顯示圖示';
+
+  @override
+  String get homeWidgetPrivacyNote => '在 iOS 上，裝置鎖定時數值也會被隱藏。';
 }

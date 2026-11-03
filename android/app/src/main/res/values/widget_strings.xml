@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget picker text and the too-new fallback only; widget content strings come from the ARB files. -->
+<resources>
+    <string name="widget_todo_name">Todo</string>
+    <string name="widget_todo_description">Today\'s tasks with checkboxes</string>
+    <string name="widget_todo_strip_description">Open tasks and the next timed task</string>
+    <string name="widget_weight_name">Weight</string>
+    <string name="widget_weight_description">Latest weight, 30-day change and trend</string>
+    <string name="widget_weight_strip_description">Latest weight and change</string>
+    <string name="widget_finance_name">Finance</string>
+    <string name="widget_finance_description">This month\'s spending, income and upcoming bills</string>
+    <string name="widget_intimacy_name">Private</string>
+    <string name="widget_intimacy_description">A private summary of your records</string>
+    <string name="widget_timer_name">Timer</string>
+    <string name="widget_timer_description">Stopwatch with start, pause and +100</string>
+    <string name="widget_timer_strip_description">Compact stopwatch</string>
+    <string name="widget_open_app">Open MyDay</string>
+    <string name="widget_app_name" translatable="false">MyDay</string>
+</resources>

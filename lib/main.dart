@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:device_preview/device_preview.dart';
@@ -12,6 +13,7 @@ import 'app/app.dart';
 import 'features/ai/services/on_device_ai_service.dart';
 import 'shared/services/auto_sync_service.dart';
 import 'shared/services/local_api_server.dart';
+import 'shared/services/home_widget_service.dart';
 import 'shared/services/mobile_notification_service.dart';
 import 'shared/services/reminder_service.dart';
 import 'shared/services/tray_service.dart';
@@ -53,6 +55,10 @@ void main() async {
 
   // Start auto-sync lifecycle observer (syncs only when user opts in)
   AutoSyncService.instance.start();
+
+  // Feed the Android/iOS home-screen widgets and apply taps queued by their
+  // controls (a no-op on desktop)
+  unawaited(HomeWidgetService.init());
 
   // Track the app lifecycle for on-device AI (never touches the model while
   // the user's switch is off)

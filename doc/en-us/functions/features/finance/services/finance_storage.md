@@ -267,7 +267,8 @@ constructors/serialization, or real IO/branching logic in `FinanceStorage`'s sta
   already taken its turn in the write queue.
 - **Inputs:** `data`.
 - **Returns:** `Future<void>`.
-- **Side effects:** Writes `finance_data.json` through [`_atomicWriteJson`](#atomicwritejson).
+- **Side effects:** Writes `finance_data.json` through [`_atomicWriteJson`](#atomicwritejson),
+  then calls `HomeWidgetService.notifyDataChanged()` to schedule a home-screen widget refresh (1.8.3).
 - **Algorithm:**
   1. Resolve the file via `_getFile()`.
   2. Run `JsonPreservation.encodeForFile` against the schema registered for `'finance_data.json'`,

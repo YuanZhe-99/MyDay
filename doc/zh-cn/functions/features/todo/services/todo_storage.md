@@ -605,7 +605,7 @@
 - **用途：** 在调用方已在写队列中轮到自己后，执行一次 `data` 到 `todo_data.json` 的实际写入。
 - **输入：** `data`。
 - **返回：** `Future<void>`。
-- **副作用：** 经验证临时文件写 `todo_data.json`。
+- **副作用：** 经验证临时文件写 `todo_data.json`，然后调用 `HomeWidgetService.notifyDataChanged()` 安排一次桌面小组件刷新（1.8.3）。
 - **算法：**
   1. 经 `_getFile()` 解析文件。
   2. `JsonPreservation.encodeForFile(file: file, next: data.toJson(), schema: dataFilePreservationSchemas[_fileName]!)`——读取当前磁盘内容并把任何未知字段保留进 `data` 的序列化 JSON（见 [`json_preservation.dart`](../../../shared/utils/json_preservation.md#encodeforfile)）。

@@ -23,8 +23,9 @@
 - **副作用：** 除构建路由器对象图外无。
 - **算法：**
   1. 设 `initialLocation: '/todo'`。
-  2. 声明一个 `builder` 把路由的 `child` 组件包在 `ShellScaffold` 中的 `ShellRoute`。
-  3. 在该外壳下声明五个无路径参数的 `GoRoute`：`/todo` → `TodoPage`、`/finance` → `FinancePage`、`/weight` → `WeightPage`、`/intimacy` → `IntimacyPage`、`/settings` → `SettingsPage`。
+  2. 设顶层 `redirect`（1.8.3）：当 [`HomeWidgetLaunch.isWidgetLink`](../shared/services/home_widget_service.md#iswidgetlink) 接受该位置时，读取 `TodoStorage.getIntimacyVisible()` 并返回 [`HomeWidgetLaunch.redirect`](../shared/services/home_widget_service.md#redirect)`(uri, intimacyVisible: …)`——该小组件类型对应的标签页，并为页面记录任何 `do` 动作；其他所有位置同步得到 `null`（不重定向）。
+  3. 声明一个 `builder` 把路由的 `child` 组件包在 `ShellScaffold` 中的 `ShellRoute`。
+  4. 在该外壳下声明五个无路径参数的 `GoRoute`：`/todo` → `TodoPage`、`/finance` → `FinancePage`、`/weight` → `WeightPage`、`/intimacy` → `IntimacyPage`、`/settings` → `SettingsPage`。
 - **用法：**
   ```dart
   return MaterialApp.router(
@@ -33,4 +34,4 @@
   );
   ```
   （`lib/app/app.dart`，`MyDayApp.build` 内。）
-- **备注：** 即使亲密模块从设置中隐藏，`/intimacy` 也总是存在于路由表——可见性由 `ShellScaffold` 过滤它显示哪些目的地来强制（见 `shared/widgets/shell_scaffold.dart`），而不是移除路由。此路由器上没有重定向/守卫逻辑；任何能获得 `BuildContext` 的代码都可以 `context.go('/intimacy')`，无论可见性开关如何。
+- **备注：** 即使亲密模块从设置中隐藏，`/intimacy` 也总是存在于路由表——可见性由 `ShellScaffold` 过滤它显示哪些目的地来强制（见 `shared/widgets/shell_scaffold.dart`），而不是移除路由。唯一的重定向处理桌面小组件链接（`/<kind>?do=…`，iOS 上为 `myday://widget/<kind>?do=…`），并在模块隐藏时把亲密类型送往 `/todo`；没有其他守卫，因此任何能获得 `BuildContext` 的代码都可以 `context.go('/intimacy')`，无论可见性开关如何。见 [深层链接](../../features/home-screen-widgets.md#deep-links)。

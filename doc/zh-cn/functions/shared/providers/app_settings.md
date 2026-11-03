@@ -95,7 +95,7 @@
 - **用途：** 更新应用语言区域（或清除回系统）、持久化选择并把有效语言区域传播给 `TrayService`/`ReminderService`。
 - **输入：** `locale` — `null` 意为"跟随系统"。
 - **返回：** 无。
-- **副作用：** 更新 `state`；调用 `TrayService.instance.updateLocale` 和 `ReminderService.instance.updateLocale`；调用 `TodoStorage.setLocaleTag(...)`。
+- **副作用：** 更新 `state`；调用 `TrayService.instance.updateLocale` 和 `ReminderService.instance.updateLocale`；调用 `TodoStorage.setLocaleTag(...)`，随后调用 `HomeWidgetService.notifyDataChanged()`，让小组件文案跟随新语言（1.8.3）。
 - **算法：**
   1. `state = state.copyWith(locale: locale, clearLocale: locale == null)`——需要显式 `clearLocale` 标志，因为 `copyWith` 的普通 `??` 模式无法区分"不改变"与"设为 null"。
   2. 以与 `_loadPersisted` 相同方式解析有效语言区域并推给两个服务。

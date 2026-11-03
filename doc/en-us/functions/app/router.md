@@ -31,8 +31,14 @@ a misattachment; it is listed here as Tier A because it encodes the app's actual
 - **Side effects:** None beyond constructing the router object graph.
 - **Algorithm:**
   1. Set `initialLocation: '/todo'`.
-  2. Declare one `ShellRoute` whose `builder` wraps the routed `child` widget in `ShellScaffold`.
-  3. Under that shell, declare five `GoRoute`s with no path parameters: `/todo` → `TodoPage`,
+  2. Set a top-level `redirect` (1.8.3): when
+     [`HomeWidgetLaunch.isWidgetLink`](../shared/services/home_widget_service.md#iswidgetlink)
+     accepts the location, read `TodoStorage.getIntimacyVisible()` and return
+     [`HomeWidgetLaunch.redirect`](../shared/services/home_widget_service.md#redirect)`(uri,
+     intimacyVisible: …)` — the tab for the widget kind, recording any `do` action for the page;
+     every other location gets a synchronous `null` (no redirect).
+  3. Declare one `ShellRoute` whose `builder` wraps the routed `child` widget in `ShellScaffold`.
+  4. Under that shell, declare five `GoRoute`s with no path parameters: `/todo` → `TodoPage`,
      `/finance` → `FinancePage`, `/weight` → `WeightPage`, `/intimacy` → `IntimacyPage`,
      `/settings` → `SettingsPage`.
 - **Usage:**
@@ -45,6 +51,9 @@ a misattachment; it is listed here as Tier A because it encodes the app's actual
   (`lib/app/app.dart`, inside `MyDayApp.build`.)
 - **Notes:** `/intimacy` is always present in the route table even when the intimacy module is
   hidden from Settings — visibility is enforced by `ShellScaffold` filtering which destinations it
-  shows (see `shared/widgets/shell_scaffold.dart`), not by removing the route. There is no
-  redirect/guard logic on this router; any code that can obtain a `BuildContext` can `context.go(
-  '/intimacy')` regardless of the visibility toggle.
+  shows (see `shared/widgets/shell_scaffold.dart`), not by removing the route. The only
+  redirect handles home-screen widget links (`/<kind>?do=…`, or `myday://widget/<kind>?do=…` on
+  iOS), and it sends the Intimacy kinds to `/todo` while the module is hidden; there is no other
+  guard, so any code that can obtain a `BuildContext` can `context.go('/intimacy')` regardless of
+  the visibility toggle. See
+  [Deep links](../../features/home-screen-widgets.md#deep-links).

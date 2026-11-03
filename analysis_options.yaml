@@ -13,6 +13,7 @@ analyzer:
     - packages/myapps_ui/**
     - packages/myapps_ai/**
     - packages/myapps_data/**
+    - packages/myapps_widget/**
     - build/**
     - android/**
     - ios/**

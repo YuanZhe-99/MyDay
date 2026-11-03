@@ -215,7 +215,17 @@ body weight-sync warning opt-out (`intimacyBodyWeightSyncWarningDisabled`), the 
 device-local list column preferences (`todoSectionColumns`, `financeListColumns`,
 `weightListColumns`, `intimacyListColumns`), the on-device AI switches (`onDeviceAiEnabled`,
 `onDeviceAiPreferFast`, v1.5.0), the interface style (`uiStyle`, v1.6.0), and the two navigation
-placement keys `navPlacement` and `navRailRight` (v1.6.1).
+placement keys `navPlacement` and `navRailRight` (v1.6.1), and the home-screen widget settings
+`homeWidgets` (v1.8.3).
+
+`homeWidgets` maps each widget kind (`myday.todo`, `myday.weight`, `myday.finance`,
+`myday.intimacy`, `myday.timer`) to `{"textScale": 0.9–1.5, "privacy": "show" | "maskValues" |
+"iconOnly"}`. A missing or malformed entry reads as the defaults (100%, *Show*; *Hide values* for
+`myday.intimacy`). It is device-local like every widget setting, because which widgets are placed
+is a property of the device. The widget snapshots and the pending-action queue themselves live in
+the platform widget store (Android private preferences `myapps_widget`, iOS App Group
+`group.com.yuanzhe.myDay`), outside the app directory: never synced, backed up or exported. See
+[features/home-screen-widgets.md](features/home-screen-widgets.md).
 
 The two on-device AI keys are written only when `true` and removed when switched off, so an
 absent key means off. They are device-local because whether a model exists is a property of the
@@ -248,7 +258,7 @@ platform app documents directory on mobile; desktop users can choose a custom st
 
 | Data | File | Synced | Notes |
 | --- | --- | --- | --- |
-| Core preferences | `storage_config.json` | No | Custom path, intimacy visibility, theme, locale, week start day, tray, backup, local API settings, today's fired desktop reminder keys (`reminderNotifiedKeys`), local-only intimacy timer keep-screen-awake preference (`intimacyTimerKeepScreenAwake`), local-only body weight-sync warning opt-out (`intimacyBodyWeightSyncWarningDisabled`), device-local list column preferences (`todoSectionColumns`, `financeListColumns`, `weightListColumns`, `intimacyListColumns`), on-device AI switches (`onDeviceAiEnabled`, `onDeviceAiPreferFast`), device-local AI source keys written by the shared router (`aiSourceSelection`, `aiComputePreference`, `aiGpuFailures`, `aiCustomModels`, `aiModelAliases`), interface style (`uiStyle`, 1.6.0: written only as `"material3"` when Material 3 is chosen; absent means Expressive, the default, which also shows the floating navigation bar), navigation placement (`navPlacement`: `"sideOnWide"` or `"side"`, and `navRailRight: true`, 1.6.1; absent means the default: bottom bar everywhere, rail on the left when shown) |
+| Core preferences | `storage_config.json` | No | Custom path, intimacy visibility, theme, locale, week start day, tray, backup, local API settings, today's fired desktop reminder keys (`reminderNotifiedKeys`), local-only intimacy timer keep-screen-awake preference (`intimacyTimerKeepScreenAwake`), local-only body weight-sync warning opt-out (`intimacyBodyWeightSyncWarningDisabled`), device-local list column preferences (`todoSectionColumns`, `financeListColumns`, `weightListColumns`, `intimacyListColumns`), on-device AI switches (`onDeviceAiEnabled`, `onDeviceAiPreferFast`), device-local AI source keys written by the shared router (`aiSourceSelection`, `aiComputePreference`, `aiGpuFailures`, `aiCustomModels`, `aiModelAliases`), interface style (`uiStyle`, 1.6.0: written only as `"material3"` when Material 3 is chosen; absent means Expressive, the default, which also shows the floating navigation bar), navigation placement (`navPlacement`: `"sideOnWide"` or `"side"`, and `navRailRight: true`, 1.6.1; absent means the default: bottom bar everywhere, rail on the left when shown), home-screen widget text size and privacy per kind (`homeWidgets`, 1.8.3) |
 | Todo | `todo_data.json` | Yes | Tasks, daily templates, completion log, daily score log, reminders, task sort/custom order |
 | Finance | `finance_data.json` | Yes | Accounts including optional fee waiver criteria, categories, transactions, subscriptions, finance settings, transaction account picker settings |
 | Exchange rates | `exchange_rates.json` | Yes | Rate snapshots and `lastFetchedAt` |
@@ -267,37 +277,6 @@ platform app documents directory on mobile; desktop users can choose a custom st
 directories — through `migrateStorageContents` (copy-then-delete; an entry that already exists at
 the destination wins and is left alone). Only `storage_config.json` is skipped: it always stays in
 the default app directory because it holds the custom path itself.
-
-## `profile.json`
-
-`profile.json` (1.6.0) is the sixth registered module, so it also syncs, is backed up, is included in
-ZIP export, and has its own `.sync_base/profile.json`. It holds the user's display name and avatar
-(see [`features/profile.md`](features/profile.md)):
-
-```json
-{
-  "version": 1,
-  "displayName": "Yuan",
-  "displayNameUpdatedAt": "2026-10-01T14:06:42.530801Z",
-  "avatar": "images/avatar_2953ac52-337e-4271-a8e1-bcd97ee416ba.jpg",
-  "avatarUpdatedAt": "2026-10-01T14:08:59.163627Z"
-}
-```
-
-- `displayName` / `displayNameUpdatedAt` — the name and when it last changed (UTC). Trimmed on save;
-  clearing it writes `"displayName": null` with a new timestamp.
-- `avatar` / `avatarUpdatedAt` — the avatar as a path relative to the data directory
-  (`images/avatar_<uuid>.jpg`, a 512 x 512 JPEG) and when it last changed (UTC). A removed avatar is
-  written as an explicit `"avatar": null` with its timestamp, so the removal syncs.
-- A field is written only once it has a timestamp; a field with no timestamp means "never set" and
-  always loses a merge to one that was set. Each field merges by last writer wins, independently of
-  the other — see [`sync.md`](sync.md#the-profile-file). Unknown keys survive. `version` is `1`.
-- The avatar image is an ordinary file in `images/`, so it syncs through the engine's referenced-only
-  additive image phase (the module reports it through `profileReferencedImages`), and is backed up and
-  exported with the other images. Each new avatar gets a fresh file name, because image sync never
-  overwrites an existing file; replaced avatars are deleted locally only, so old ones remain on the
-  WebDAV server and other devices.
-- Builds older than 1.6.0 never request `profile.json`, so it does not affect them.
 
 ## `profile.json`
 

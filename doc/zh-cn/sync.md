@@ -84,6 +84,10 @@ for (final c in recordConflicts) {
 
 自动同步在内存中记录最近的成功、失败或待定冲突状态，并在设置和 WebDAV 页面浮出。失败绝不静默吞掉；冲突绝不在后台被 LWW 自动解决。`_trySync` 持有实例级 `_syncing` 守卫，使重叠触发（计时器/恢复/防抖）被静默跳过，而不是浮出虚假的"同步已在进行中"失败横幅。`notifySaved()` 在 `start()` 之前被忽略，使早期存储写入不可能在服务观察应用生命周期前安排同步。
 
+## 桌面小组件点击
+
+桌面小组件上的复选框或计时器点击先在设备上排队，在应用下次运行时由 `HomeWidgetService.drainActions()` 应用。只有那时它才写入 `todo_data.json` 或 `intimacy_data.json`，然后像其他本地编辑一样同步。队列和小组件快照从不同步。见 [features/home-screen-widgets.md](features/home-screen-widgets.md#interactive-controls)。
+
 ## 个人资料文件
 
 自 1.6.0 起，注册表包含第六个模块 `profile.json`——用户的名称和头像（schema 见 [`data-formats.md`](data-formats.md#profilejson)，功能见 [`features/profile.md`](features/profile.md)）。

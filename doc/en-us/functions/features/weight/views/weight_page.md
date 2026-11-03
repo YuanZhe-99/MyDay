@@ -41,8 +41,8 @@ branching or computation beyond widget composition, per the tiering rule.
 | [`_decimalInputFormatter`](#_decimalinputformatter) | top-level function | A | Create a decimal text input formatter with a fixed precision limit. |
 | `WeightPage` (constructor) | constructor (`WeightPage`) | B | Create a weight page instance. |
 | `WeightPage.createState` | method (`WeightPage`) | B | Create the `_WeightPageState`. |
-| `_WeightPageState.initState` | method (`_WeightPageState`) | B | Kick off `_loadData` and subscribe to local-data-changed notifications. |
-| `_WeightPageState.dispose` | method (`_WeightPageState`) | B | Unsubscribe from local-data-changed notifications. |
+| `_WeightPageState.initState` | method (`_WeightPageState`) | B | Kick off `_loadData` and subscribe to local-data-changed and widget-launch notifications. |
+| `_WeightPageState.dispose` | method (`_WeightPageState`) | B | Unsubscribe from local-data-changed and widget-launch notifications. |
 | [`_loadData`](#_loaddata) | method (`_WeightPageState`) | A | Load `weight_data.json` into state, or surface a blocking read error. |
 | [`_saveData`](#_savedata) | method (`_WeightPageState`) | A | Persist current state as `WeightData` and notify sync/reminder services. |
 | [`_recordsNewestFirst`](#_recordsnewestfirst) | getter (`_WeightPageState`) | A | Return the records sorted newest first, sorting once per load or edit. |
@@ -85,6 +85,7 @@ branching or computation beyond widget composition, per the tiering rule.
 | [`_formatReminderGraceHours`](#_formatremindergracehours) | method (`_WeightPageState`) | A | Format the stored grace minutes as a trimmed hours string. |
 | `_editReminderGrace` | method (widget helper) | B | Open the grace-window edit dialog. |
 | [`_saveReminderGrace`](#_saveremindergrace) | method (`_WeightPageState`) | A | Validate and persist a new reminder grace window (0-24h). |
+| `_onWidgetLaunch` | method (`_WeightPageState`) | B | Take a pending `myday.weight` widget request once loaded and open the add-record dialog for `add` (1.8.3). |
 | [`_addRecord`](#_addrecord) | method (`_WeightPageState`) | A | Open the add-record dialog and, on success, append and persist. |
 | [`_editRecord`](#_editrecord) | method (`_WeightPageState`) | A | Open the edit-record dialog and, on success, replace and persist. |
 | `_setHeight` | method (widget helper) | B | Open the set-height dialog (delegates validation to nested `saveHeight`). |
@@ -112,8 +113,8 @@ branching or computation beyond widget composition, per the tiering rule.
 | `weightSummaryFigureKey` | top-level `const ValueKey` | B | Identify the summary card's figure block. |
 | `weightSummaryStatsKey` | top-level `const ValueKey` | B | Identify the summary card's stat cells. |
 
-`grep -c 'Purpose:' lib/features/weight/views/weight_page.dart` reports 67 against 73 rows: the six `const ValueKey` declarations — two added in v1.4.1 (`weightSummaryKey`, `weightChartKey`) and four in v1.4.4 (`weightTrendChartKey`, `weightMeasurementChartKey`, `weightSummaryFigureKey`, `weightSummaryStatsKey`) — carry a prose doc comment rather than a `Purpose:` block, but are part of the file surface and get rows. All 67 documented real
-declarations counted above exactly (33 Tier A, 40 Tier B). Every `/// Purpose:` block sits directly
+`grep -c 'Purpose:' lib/features/weight/views/weight_page.dart` reports 68 against 74 rows: the six `const ValueKey` declarations — two added in v1.4.1 (`weightSummaryKey`, `weightChartKey`) and four in v1.4.4 (`weightTrendChartKey`, `weightMeasurementChartKey`, `weightSummaryFigureKey`, `weightSummaryStatsKey`) — carry a prose doc comment rather than a `Purpose:` block, but are part of the file surface and get rows. All 68 documented real
+declarations counted above exactly (33 Tier A, 41 Tier B; v1.8.3 added `_onWidgetLaunch`). Every `/// Purpose:` block sits directly
 above the real declaration it documents — no misattached blocks (blocks documenting a call site
 instead of a declaration) were found — and no undocumented real declaration exists either: the five
 top-level `const Color ...` chart-color constants (lines 56-60) and the `_ChartRange` enum (line 92)

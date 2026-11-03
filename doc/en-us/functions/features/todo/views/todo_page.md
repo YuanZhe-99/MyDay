@@ -22,9 +22,10 @@ Since v1.5.0 the task area also carries today's on-device AI insight card ([`_bu
 |---|---|---|---|
 | `TodoPage({super.key})` | constructor (`TodoPage`) | B | Create a todo page instance. |
 | `createState` | method (`TodoPage`) | B | Create the mutable state object for this widget. |
-| `initState` | method (`_TodoPageState`) | B | Kick off `_loadData` and register the auto-sync listener. |
-| `dispose` | method (`_TodoPageState`) | B | Unregister the auto-sync listener. |
+| `initState` | method (`_TodoPageState`) | B | Kick off `_loadData` and register the auto-sync and widget-launch listeners. |
+| `dispose` | method (`_TodoPageState`) | B | Unregister the auto-sync and widget-launch listeners. |
 | [`_loadData`](#loaddata) | method (`_TodoPageState`) | A | Load todo data from storage into state, or surface a read error. |
+| `_onWidgetLaunch` | method (`_TodoPageState`) | B | Take a pending `myday.todo` widget request once loaded: `add` opens the add-task dialog, `toggle` switches to today and toggles the task through the in-app path (1.8.3). |
 | [`_saveData`](#savedata) | method (`_TodoPageState`) | A | Persist the current in-memory todo state to storage. |
 | `_syncReminders` | method (`_TodoPageState`) | B | Push current tasks/logs/reminder times to `ReminderService`. |
 | `_showDailyReminderSettings` | method (`_TodoPageState`) | B | Show the morning/completion reminder time-picker bottom sheet. |
@@ -95,8 +96,8 @@ Since v1.5.0 the task area also carries today's on-device AI insight card ([`_bu
 | [`_buildTaskArea`](#buildtaskarea) | method (`_TodoPageState`) | A | Arrange the task sections in one column or several side by side, in reading order. |
 | [`_taskSections`](#tasksections) | method (`_TodoPageState`) | A | Return the three task sections in display order. |
 
-**Reconciliation:** `grep -c 'Purpose:' lib/features/todo/views/todo_page.dart` returns 74, matching
-the 74 rows above (34 Tier A, 40 Tier B).
+**Reconciliation:** `grep -c 'Purpose:' lib/features/todo/views/todo_page.dart` returns 75, matching
+the 75 rows above (34 Tier A, 41 Tier B). v1.8.3 added `_onWidgetLaunch`.
 
 ## Documentation
 

@@ -15,6 +15,14 @@
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
+		4D59A7C10000000000000001 /* MyDayWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D59A7C10000000000000011 /* MyDayWidgets.swift */; };
+		4D59A7C10000000000000002 /* MyDayTodoWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D59A7C10000000000000012 /* MyDayTodoWidget.swift */; };
+		4D59A7C10000000000000003 /* MyDayWeightWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D59A7C10000000000000013 /* MyDayWeightWidget.swift */; };
+		4D59A7C10000000000000004 /* MyDayFinanceWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D59A7C10000000000000014 /* MyDayFinanceWidget.swift */; };
+		4D59A7C10000000000000005 /* MyDayIntimacyWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D59A7C10000000000000015 /* MyDayIntimacyWidget.swift */; };
+		4D59A7C10000000000000006 /* MyDayTimerWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D59A7C10000000000000016 /* MyDayTimerWidget.swift */; };
+		4D59A7C10000000000000007 /* MyAppsWidgetKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D59A7C10000000000000017 /* MyAppsWidgetKit.swift */; };
+		4D59A7C10000000000000008 /* MyDayWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 4D59A7C1000000000000001A /* MyDayWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -24,6 +32,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = 97C146ED1CF9000F007C117D;
 			remoteInfo = Runner;
+		};
+		4D59A7C10000000000000027 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 97C146E61CF9000F007C117D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4D59A7C10000000000000022;
+			remoteInfo = MyDayWidgets;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -36,6 +51,17 @@
 			files = (
 			);
 			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4D59A7C10000000000000026 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				4D59A7C10000000000000008 /* MyDayWidgets.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
@@ -57,10 +83,28 @@
 		97C146FD1CF9000F007C117D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		97C147001CF9000F007C117D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		97C147021CF9000F007C117D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		4D59A7C10000000000000011 /* MyDayWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyDayWidgets.swift; sourceTree = "<group>"; };
+		4D59A7C10000000000000012 /* MyDayTodoWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyDayTodoWidget.swift; sourceTree = "<group>"; };
+		4D59A7C10000000000000013 /* MyDayWeightWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyDayWeightWidget.swift; sourceTree = "<group>"; };
+		4D59A7C10000000000000014 /* MyDayFinanceWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyDayFinanceWidget.swift; sourceTree = "<group>"; };
+		4D59A7C10000000000000015 /* MyDayIntimacyWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyDayIntimacyWidget.swift; sourceTree = "<group>"; };
+		4D59A7C10000000000000016 /* MyDayTimerWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyDayTimerWidget.swift; sourceTree = "<group>"; };
+		4D59A7C10000000000000017 /* MyAppsWidgetKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MyAppsWidgetKit.swift; path = ../packages/myapps_widget/apple/MyAppsWidgetKit/MyAppsWidgetKit.swift; sourceTree = SOURCE_ROOT; };
+		4D59A7C10000000000000018 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		4D59A7C10000000000000019 /* MyDayWidgets.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MyDayWidgets.entitlements; sourceTree = "<group>"; };
+		4D59A7C1000000000000001A /* MyDayWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MyDayWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		4D59A7C1000000000000001B /* Runner.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Runner.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		97C146EB1CF9000F007C117D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4D59A7C10000000000000024 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -96,6 +140,7 @@
 				97C146F01CF9000F007C117D /* Runner */,
 				97C146EF1CF9000F007C117D /* Products */,
 				331C8082294A63A400263BE5 /* RunnerTests */,
+				4D59A7C10000000000000021 /* MyDayWidgets */,
 			);
 			sourceTree = "<group>";
 		};
@@ -104,6 +149,7 @@
 			children = (
 				97C146EE1CF9000F007C117D /* Runner.app */,
 				331C8081294A63A400263BE5 /* RunnerTests.xctest */,
+				4D59A7C1000000000000001A /* MyDayWidgets.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -120,8 +166,25 @@
 				74858FAE1ED2DC5600515810 /* AppDelegate.swift */,
 				7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
+				4D59A7C1000000000000001B /* Runner.entitlements */,
 			);
 			path = Runner;
+			sourceTree = "<group>";
+		};
+		4D59A7C10000000000000021 /* MyDayWidgets */ = {
+			isa = PBXGroup;
+			children = (
+				4D59A7C10000000000000011 /* MyDayWidgets.swift */,
+				4D59A7C10000000000000012 /* MyDayTodoWidget.swift */,
+				4D59A7C10000000000000013 /* MyDayWeightWidget.swift */,
+				4D59A7C10000000000000014 /* MyDayFinanceWidget.swift */,
+				4D59A7C10000000000000015 /* MyDayIntimacyWidget.swift */,
+				4D59A7C10000000000000016 /* MyDayTimerWidget.swift */,
+				4D59A7C10000000000000017 /* MyAppsWidgetKit.swift */,
+				4D59A7C10000000000000018 /* Info.plist */,
+				4D59A7C10000000000000019 /* MyDayWidgets.entitlements */,
+			);
+			path = MyDayWidgets;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -153,16 +216,35 @@
 				97C146EB1CF9000F007C117D /* Frameworks */,
 				97C146EC1CF9000F007C117D /* Resources */,
 				9705A1C41CF9048500538489 /* Embed Frameworks */,
+				4D59A7C10000000000000026 /* Embed Foundation Extensions */,
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				4D59A7C10000000000000028 /* PBXTargetDependency */,
 			);
 			name = Runner;
 			productName = Runner;
 			productReference = 97C146EE1CF9000F007C117D /* Runner.app */;
 			productType = "com.apple.product-type.application";
+		};
+		4D59A7C10000000000000022 /* MyDayWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4D59A7C10000000000000029 /* Build configuration list for PBXNativeTarget "MyDayWidgets" */;
+			buildPhases = (
+				4D59A7C10000000000000023 /* Sources */,
+				4D59A7C10000000000000024 /* Frameworks */,
+				4D59A7C10000000000000025 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MyDayWidgets;
+			productName = MyDayWidgets;
+			productReference = 4D59A7C1000000000000001A /* MyDayWidgets.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -182,6 +264,9 @@
 						CreatedOnToolsVersion = 7.3.1;
 						LastSwiftMigration = 1100;
 					};
+					4D59A7C10000000000000022 = {
+						CreatedOnToolsVersion = 16.0;
+					};
 				};
 			};
 			buildConfigurationList = 97C146E91CF9000F007C117D /* Build configuration list for PBXProject "Runner" */;
@@ -199,6 +284,7 @@
 			targets = (
 				97C146ED1CF9000F007C117D /* Runner */,
 				331C8080294A63A400263BE5 /* RunnerTests */,
+				4D59A7C10000000000000022 /* MyDayWidgets */,
 			);
 		};
 /* End PBXProject section */
@@ -219,6 +305,13 @@
 				3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */,
 				97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */,
 				97C146FC1CF9000F007C117D /* Main.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4D59A7C10000000000000025 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -277,6 +370,20 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		4D59A7C10000000000000023 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4D59A7C10000000000000001 /* MyDayWidgets.swift in Sources */,
+				4D59A7C10000000000000002 /* MyDayTodoWidget.swift in Sources */,
+				4D59A7C10000000000000003 /* MyDayWeightWidget.swift in Sources */,
+				4D59A7C10000000000000004 /* MyDayFinanceWidget.swift in Sources */,
+				4D59A7C10000000000000005 /* MyDayIntimacyWidget.swift in Sources */,
+				4D59A7C10000000000000006 /* MyDayTimerWidget.swift in Sources */,
+				4D59A7C10000000000000007 /* MyAppsWidgetKit.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -284,6 +391,11 @@
 			isa = PBXTargetDependency;
 			target = 97C146ED1CF9000F007C117D /* Runner */;
 			targetProxy = 331C8085294A63A400263BE5 /* PBXContainerItemProxy */;
+		};
+		4D59A7C10000000000000028 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4D59A7C10000000000000022 /* MyDayWidgets */;
+			targetProxy = 4D59A7C10000000000000027 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -366,11 +478,17 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-weak_framework",
+					WidgetKit,
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.yuanzhe.myDay;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -545,11 +663,17 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-weak_framework",
+					WidgetKit,
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.yuanzhe.myDay;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -567,11 +691,17 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-weak_framework",
+					WidgetKit,
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.yuanzhe.myDay;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -580,6 +710,101 @@
 				VERSIONING_SYSTEM = "apple-generic";
 			};
 			name = Release;
+		};
+		4D59A7C1000000000000002A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9740EEB21CF90195004384FC /* Debug.xcconfig */;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = MyDayWidgets/MyDayWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MyDayWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = MyDay;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-weak_framework",
+					AppIntents,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.yuanzhe.myDay.MyDayWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		4D59A7C1000000000000002B /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7AFA3C8E1D35360C0083082E /* Release.xcconfig */;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = MyDayWidgets/MyDayWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MyDayWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = MyDay;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-weak_framework",
+					AppIntents,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.yuanzhe.myDay.MyDayWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		4D59A7C1000000000000002C /* Profile */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7AFA3C8E1D35360C0083082E /* Release.xcconfig */;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = MyDayWidgets/MyDayWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MyDayWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = MyDay;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-weak_framework",
+					AppIntents,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.yuanzhe.myDay.MyDayWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Profile;
 		};
 /* End XCBuildConfiguration section */
 
@@ -610,6 +835,16 @@
 				97C147061CF9000F007C117D /* Debug */,
 				97C147071CF9000F007C117D /* Release */,
 				249021D4217E4FDB00AE95B9 /* Profile */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4D59A7C10000000000000029 /* Build configuration list for PBXNativeTarget "MyDayWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4D59A7C1000000000000002A /* Debug */,
+				4D59A7C1000000000000002B /* Release */,
+				4D59A7C1000000000000002C /* Profile */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

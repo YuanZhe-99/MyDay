@@ -2652,4 +2652,199 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiModelSave => 'Save';
+
+  @override
+  String get hwOpenToUpdate => 'Open MyDay to update';
+
+  @override
+  String get hwNoRecords => 'No records yet';
+
+  @override
+  String hwTodayAt(String time) {
+    return 'Today $time';
+  }
+
+  @override
+  String hwDaysAgo(String count) {
+    return '$count days ago';
+  }
+
+  @override
+  String get hwTodoNew => 'New';
+
+  @override
+  String hwTodoLeft(String count) {
+    return '$count left';
+  }
+
+  @override
+  String hwTodoProgress(String done, String total) {
+    return '$done/$total done';
+  }
+
+  @override
+  String get hwTodoTomorrow => 'Tomorrow';
+
+  @override
+  String get hwTodoOverdue => 'Overdue';
+
+  @override
+  String get hwTodoAllDone => 'All done';
+
+  @override
+  String get hwTodoNothing => 'Nothing planned';
+
+  @override
+  String get hwTodoScore => 'Day score';
+
+  @override
+  String get hwWeightTitle => 'Weight';
+
+  @override
+  String get hwWeightLog => 'Log';
+
+  @override
+  String get hwWeight30Days => '30 days';
+
+  @override
+  String get hwWeightNotLogged => 'Not logged today';
+
+  @override
+  String get hwFinanceAdd => 'Add';
+
+  @override
+  String get hwFinanceExpense => 'Spent this month';
+
+  @override
+  String get hwFinanceIncome => 'Income';
+
+  @override
+  String get hwFinanceNet => 'Balance';
+
+  @override
+  String get hwFinanceTop => 'Top spending';
+
+  @override
+  String hwFinanceBillsSoon(String count) {
+    return '$count billing soon';
+  }
+
+  @override
+  String get hwFinanceNoBills => 'No bills this week';
+
+  @override
+  String get hwFinanceUncategorized => 'Uncategorized';
+
+  @override
+  String get hwPrivateTitle => 'Private';
+
+  @override
+  String get hwPrivateAdd => 'Log';
+
+  @override
+  String get hwPrivateDaysAgo => 'days ago';
+
+  @override
+  String get hwPrivateToday => 'Today';
+
+  @override
+  String hwPrivateMonth(String count) {
+    return '$count this month';
+  }
+
+  @override
+  String hwPrivateAvg(String minutes) {
+    return 'avg $minutes min';
+  }
+
+  @override
+  String hwPrivateCycleIn(String count) {
+    return 'Period in $count days';
+  }
+
+  @override
+  String get hwPrivateCycleToday => 'Period expected today';
+
+  @override
+  String get hwTimerTitle => 'Timer';
+
+  @override
+  String get hwTimerRunning => 'Running';
+
+  @override
+  String get hwTimerPaused => 'Paused';
+
+  @override
+  String hwTimerCount(String count) {
+    return 'Count $count';
+  }
+
+  @override
+  String get hwTimerStart => 'Start';
+
+  @override
+  String get hwTimerResume => 'Resume';
+
+  @override
+  String get hwTimerPause => 'Pause';
+
+  @override
+  String get hwTimerFinish => 'Finish';
+
+  @override
+  String hwTimerLast(String ago, String minutes) {
+    return 'Last $ago · $minutes min';
+  }
+
+  @override
+  String hwTimerLastToday(String minutes) {
+    return 'Last today · $minutes min';
+  }
+
+  @override
+  String get hwTimerIdle => 'Not running';
+
+  @override
+  String get homeWidgetsTitle => 'Home-screen widgets';
+
+  @override
+  String get homeWidgetsSubtitle => 'Text size and privacy of each widget';
+
+  @override
+  String get homeWidgetsHint =>
+      'Add widgets from your home screen\'s widget picker. Checkboxes and timer buttons work on Android and on iOS 17 or later; a tap is saved the next time MyDay runs.';
+
+  @override
+  String get homeWidgetKindTodo => 'Todo';
+
+  @override
+  String get homeWidgetKindWeight => 'Weight';
+
+  @override
+  String get homeWidgetKindFinance => 'Finance';
+
+  @override
+  String get homeWidgetKindPrivate => 'Private';
+
+  @override
+  String get homeWidgetKindTimer => 'Timer';
+
+  @override
+  String get homeWidgetTextSize => 'Text size';
+
+  @override
+  String get homeWidgetPrivacy => 'Privacy';
+
+  @override
+  String get homeWidgetPrivacyShow => 'Show';
+
+  @override
+  String get homeWidgetPrivacyMask => 'Hide values';
+
+  @override
+  String get homeWidgetPrivacyIcon => 'Icon only';
+
+  @override
+  String get homeWidgetPrivacyNote =>
+      'On iOS, values are also hidden while the device is locked.';
 }

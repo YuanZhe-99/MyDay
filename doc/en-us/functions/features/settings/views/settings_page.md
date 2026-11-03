@@ -15,7 +15,9 @@ The main Settings screen: General (language/week-start/theme), Privacy (Intimacy
 On-device AI (v1.5.0; the [`AiSettingsTiles`](../../ai/widgets/ai_settings_tiles.md) rows where a
 model can exist, otherwise a single "not supported here" note), Desktop (tray, launch-at-startup, local API server, custom storage location), Data (WebDAV sync,
 ZIP import/export, backup), About (version, license, privacy policy), and a debug-only subscription
-date-override section. `SettingsPage`/`_SettingsPageState` own the read/write plumbing for most of
+date-override section. On Android and iOS a Home-screen widgets section (1.8.3) holds one row
+that opens [`home_widget_settings_page.dart`](home_widget_settings_page.md) through
+`_open(_SettingsDetail.widgets)`; it is built only when `HomeWidgetService.isSupported`. `SettingsPage`/`_SettingsPageState` own the read/write plumbing for most of
 these settings directly (via `TodoStorage.readConfig`/`writeConfig`, `TrayService`, `launchAtStartup`,
 and `LocalApiServer`), while WebDAV sync and backup are delegated to
 [`webdav_config_page.dart`](../../../shared/views/webdav_config_page.md) and
@@ -53,15 +55,15 @@ page's WebDAV status tile reacts to.
 | `_navPlacementLabel` | method (`_SettingsPageState`) | B | Return the display name of a navigation placement (1.6.1). |
 | `_showWeekStartPicker` | method (`_SettingsPageState`) | B | Show the global week-start-day picker bottom sheet. |
 | [`_showLanguagePicker`](#showlanguagepicker) | method (`_SettingsPageState`) | A | Show the app-language picker, parsing the selection into a `Locale`. |
-| `_SettingsDetail` | top-level enum | B | The second-level pages a settings row can lead to. |
+| `_SettingsDetail` | top-level enum | B | The second-level pages a settings row can lead to: `widgets` (1.8.3), `webdav`, `backup`, `license`, `privacy`. |
 | [`_detailPage`](#detailpage) | method (`_SettingsPageState`) | A | Build the second-level page a settings row leads to. |
 | [`_open`](#open) | method (`_SettingsPageState`) | A | Open a second-level page the way the current layout calls for. |
 | [`_buildDetailPane`](#builddetailpane) | method (`_SettingsPageState`) | A | Build the right-hand pane of the two-pane layout. |
 | [`_buildSettingsList`](#buildsettingslist) | method (`_SettingsPageState`) | A | Build the first-level settings list. |
 
-**Reconciliation:** `grep -c 'Purpose:' lib/features/settings/views/settings_page.dart` returns 31
-against 32 rows; the extra row is the `_SettingsDetail` enum, which carries no `Purpose:` block.
-All 30 blocks document real declarations (26 methods/constructors/a getter, plus the nested local
+**Reconciliation:** `grep -c 'Purpose:' lib/features/settings/views/settings_page.dart` returns 27
+against 28 rows; the extra row is the `_SettingsDetail` enum, which carries no `Purpose:` block.
+All 27 blocks document real declarations (26 methods/constructors/a getter, plus the nested local
 function `signature()` declared inside `_showApiSettingsDialog`, which itself has its own `Purpose:`
 block) — no misattached blocks and no undocumented real declarations were found. The instance fields
 at the top of `_SettingsPageState` (`_storagePath`, `_apiPort`, etc.) have no `Purpose:` block,
@@ -226,11 +228,12 @@ consistent with them being state, not functions.
 - **Inputs:** `detail`.
 - **Returns:** `Widget` — a `Scaffold` with its own app bar.
 - **Side effects:** None beyond building widgets.
-- **Algorithm:** A `switch` over `_SettingsDetail` returning `WebDAVConfigPage`, `BackupPage`,
+- **Algorithm:** A `switch` over `_SettingsDetail` returning
+  [`HomeWidgetSettingsPage`](home_widget_settings_page.md), `WebDAVConfigPage`, `BackupPage`,
   `LicensePage` or `PrivacyPolicyPage`.
 - **Usage:** Called from `_open` when pushing, and from `_buildDetailPane` when hosting.
 - **Notes:** The same widget serves both modes: pushed full-screen on a narrow window, hosted in
-  the detail pane on a wide one. None of the four pages needed a change to be embeddable, because a
+  the detail pane on a wide one. None of the five pages needed a change to be embeddable, because a
   nested `Navigator` holding one route reports `canPop == false` and their app bars therefore grow
   no back arrow.
 
@@ -291,4 +294,4 @@ consistent with them being state, not functions.
   on a disposed state.
 
 
-Current integration uses MyApps-AI v0.6.2, explicit platform injection, the shared source router and the unified settings skeleton. WebDAV entry points require device-local notice acknowledgement before any network request; see [sync.md](../../../sync.md).
+Current integration uses MyApps-AI v0.6.2, explicit platform injection, the shared source router and the unified settings skeleton. WebDAV entry points require device-local notice acknowledgement before any network request; see [sync.md](../../../../sync.md).

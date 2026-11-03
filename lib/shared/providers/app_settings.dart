@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/theme.dart';
 import '../../features/ai/services/on_device_ai_service.dart';
 import '../../features/todo/services/todo_storage.dart';
+import '../services/home_widget_service.dart';
 import '../services/reminder_service.dart';
 import '../services/tray_service.dart';
 import '../utils/adaptive_layout.dart';
@@ -32,7 +33,7 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
   /// Purpose: Provide the internal load persisted helper for this file.
   /// Inputs: None.
   /// Returns: `Future<void>`.
-  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Side effects: Reads persisted settings into state, pushes the resolved locale to the tray and reminder services, and applies the on-device AI preferences.
   /// Notes: Internal helper used within this file only.
   Future<void> _loadPersisted() async {
     final modeStr = await TodoStorage.getThemeMode();
@@ -142,21 +143,21 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
   /// Purpose: Implement the set locale behavior for this file.
   /// Inputs: `locale`.
   /// Returns: None.
-  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Side effects: May read or mutate application state, storage, or service resources; once the tag is stored, schedules a home-screen widget refresh so widget wording follows the new language.
   /// Notes: None.
   void setLocale(Locale? locale) {
     state = state.copyWith(locale: locale, clearLocale: locale == null);
     final resolvedLocale = locale ?? PlatformDispatcher.instance.locale;
     TrayService.instance.updateLocale(resolvedLocale);
     ReminderService.instance.updateLocale(resolvedLocale);
-    if (locale == null) {
-      TodoStorage.setLocaleTag(null);
-    } else {
-      final tag = locale.countryCode != null
-          ? '${locale.languageCode}_${locale.countryCode}'
-          : locale.languageCode;
-      TodoStorage.setLocaleTag(tag);
-    }
+    final tag = locale == null
+        ? null
+        : locale.countryCode != null
+        ? '${locale.languageCode}_${locale.countryCode}'
+        : locale.languageCode;
+    TodoStorage.setLocaleTag(
+      tag,
+    ).then((_) => HomeWidgetService.notifyDataChanged());
   }
 
   /// Purpose: Update the first weekday used by app calendars and week grouping.

@@ -134,7 +134,8 @@ the "trivial getters/setters" Tier B bucket.
 - **Inputs:** `data`.
 - **Returns:** `Future<void>`.
 - **Side effects:** Writes `weight_data.json` through a validated temporary file (via
-  `DataFileSafety.writeValidatedDataJson`).
+  `DataFileSafety.writeValidatedDataJson`), then calls `HomeWidgetService.notifyDataChanged()` to
+  schedule a home-screen widget refresh (1.8.3).
 - **Algorithm:**
   1. Resolve the file via `_getFile()`.
   2. `JsonPreservation.encodeForFile(file: file, next: data.toJson(), schema:

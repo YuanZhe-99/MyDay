@@ -29,13 +29,14 @@ session, retention) so the caller only re-saves what's actually dirty.
 | `_thrustCount` | getter (`_TimerPageState`) | B | Return the live thrust count in actual repetitions — `_timeline.total` (v1.5.5; previously an `int` field). |
 | [`_restoreTimeline`](#restoretimeline) | method (`_TimerPageState`) | A | Recover a press timeline from a stored session or history entry, seeding one event for pre-1.5.5 data or a mismatched total. |
 | [`initState`](#initstate) | method (`_TimerPageState`) | A | Restore an interrupted timer session (running/paused, with its press timeline) from `widget.timerSession` and load the wakelock preference. |
-| `dispose` | method (`_TimerPageState`) | B | Cancel the ticker, remove the lifecycle observer, and release any held wakelock. |
+| `dispose` | method (`_TimerPageState`) | B | Unregister the home-screen widget timer handler, cancel the ticker, remove the lifecycle observer, and release any held wakelock. |
 | [`didChangeAppLifecycleState`](#didchangeapplifecyclestate) | method (`_TimerPageState`) | A | Re-arm the ticker and wakelock when the app resumes while the timer is running. |
 | [`_loadKeepScreenAwakeSetting`](#loadkeepscreenawakesetting) | method (`_TimerPageState`) | A | Load the local-only keep-screen-awake preference and apply it. |
 | [`_setKeepScreenAwake`](#setkeepscreenawake) | method (`_TimerPageState`) | A | Persist and apply a new keep-screen-awake preference. |
 | [`_applyWakelock`](#applywakelock) | method (`_TimerPageState`) | A | Enable or disable the platform screen wakelock to match the current preference. |
 | [`_releaseWakelock`](#releasewakelock) | method (`_TimerPageState`) | A | Disable the wakelock, but only if this page is the one that enabled it. |
 | [`_applyRetention`](#applyretention) | method (`_TimerPageState`) | A | Drop history entries older than the configured retention window. |
+| [`_applyWidgetActions`](#applywidgetactions) | method (`_TimerPageState`) | A | Apply timer taps queued by the home-screen widget while this page is open, then persist the session (1.8.3). |
 | [`_start`](#start) | method (`_TimerPageState`) | A | Start or resume the stopwatch and persist the running session. |
 | [`_pause`](#pause) | method (`_TimerPageState`) | A | Pause the stopwatch, folding elapsed time into the accumulated total, and persist the paused session. |
 | [`_changeThrustCount`](#changethrustcount) | method (`_TimerPageState`) | A | Record a press at the current stopwatch time, or undo the latest presses for `-100`, and persist the session. |
@@ -58,14 +59,14 @@ session, retention) so the caller only re-saves what's actually dirty.
 | `_TimerBody({...})` | constructor (`_TimerBody`) | B | Create the timer body arranger; `timer` is the bare stopwatch column, and this widget adds its padding and scrolling. |
 | [`build`](#timerbody-build) | method (`_TimerBody`) | A | Put the stopwatch and its history in one scroll view, or the stopwatch in a pane beside the history. |
 
-`grep -c 'Purpose:' lib/features/intimacy/widgets/timer_page.dart` reports 36, matching all 36 rows
+`grep -c 'Purpose:' lib/features/intimacy/widgets/timer_page.dart` reports 37, matching all 37 rows
 above exactly (no undocumented real declaration was found, and no `/// Purpose:` block is misattached
 above a call site rather than a real declaration). Several blocks use generic auto-generated-looking
 phrasing in the source ("Provide the internal ... helper for this file", "Internal helper used within
 this file only") — this page's Purpose column and Documentation entries replace that phrasing with
 descriptions verified against the actual implementation, per the per-file template's instruction to
-refine (not just copy) the source `///` comment. Tier split: 24 Tier A, 12 Tier B. v1.5.5 added two
-rows: `_thrustCount`, which replaced the `int _thrustCount` field, and `_restoreTimeline`. The
+refine (not just copy) the source `///` comment. Tier split: 25 Tier A, 12 Tier B. v1.5.5 added two
+rows: `_thrustCount`, which replaced the `int _thrustCount` field, and `_restoreTimeline`; v1.8.3 added `_applyWidgetActions`. The
 private constant `_TimerBody._timerPadding` (16 horizontal, 24 vertical) has no `Purpose:` block and
 no row, like the state class's own constants; it is covered under
 [`_TimerBody.build`](#timerbody-build).
@@ -140,7 +141,8 @@ no row, like the state class's own constants; it is covered under
   `widget.timerSession`).
 - **Returns:** None.
 - **Side effects:** Registers this state as a `WidgetsBindingObserver`; may mark history as changed;
-  starts the ticker if restoring a running session; kicks off `_loadKeepScreenAwakeSetting()`.
+  starts the ticker if restoring a running session; kicks off `_loadKeepScreenAwakeSetting()`;
+  registers [`_applyWidgetActions`](#applywidgetactions) as `HomeWidgetService.timerActionHandler`.
 - **Algorithm:**
   1. `super.initState()`, then register as a lifecycle observer.
   2. `_retentionDays = widget.timerHistoryRetentionDays`; apply retention to a copy of
@@ -155,6 +157,8 @@ no row, like the state class's own constants; it is covered under
      session's current elapsed time; if `_running`, call `_ensureTicker()` so the display starts
      advancing immediately.
   4. `unawaited(_loadKeepScreenAwakeSetting())`.
+  5. `HomeWidgetService.timerActionHandler = _applyWidgetActions` (1.8.3); `dispose` clears it again
+     only if it still points at this page.
 - **Usage:**
   ```dart
   // views/intimacy_page.dart, lines 688-696 (opening the page restores whatever session was saved):
@@ -297,6 +301,27 @@ no row, like the state class's own constants; it is covered under
   ```
 - **Notes:** Retention is applied both at load time (in case the setting changed while the page was
   closed) and immediately whenever the user picks a new retention value.
+
+### `Future<void> _applyWidgetActions(List<WidgetAction> actions)` <a id="applywidgetactions"></a>
+- **Kind:** method of `_TimerPageState`
+- **Source:** `lib/features/intimacy/widgets/timer_page.dart` (line 305)
+- **Purpose:** Apply timer taps queued by the home-screen widget while this page is open.
+- **Inputs:** `actions` — `start`, `pause` and `add` actions, oldest first.
+- **Returns:** `Future<void>`.
+- **Side effects:** Updates `_firstStartedAt`, `_startedAt`, `_accumulated`, `_running` and
+  `_timeline`; restarts or cancels the ticker; calls `setState` and
+  [`_persistState`](#persiststate)`(timerSessionChanged: true)`.
+- **Algorithm:**
+  1. For each action, at its tap instant (local time): `start` (when not running) sets the first
+     start if missing and starts a segment; `pause` (when running) folds the segment into
+     `_accumulated`, never negative; `add` (once started) adds `n` (default
+     `HomeWidgetPayloads.timerStep`) to `_timeline` at the elapsed time of the tap, skipping a no-op.
+  2. Stop when nothing changed or the page is disposed.
+  3. Ensure the ticker while running, cancel it otherwise, rebuild and persist the session.
+- **Usage:** Registered as `HomeWidgetService.timerActionHandler` in [`initState`](#initstate);
+  `HomeWidgetService._drain` hands it the timer actions instead of writing the file.
+- **Notes:** Going through the page keeps its in-memory session from being overwritten by a file
+  write. The semantics match `HomeWidgetActions.applyTimer`.
 
 ### `Future<void> _start()` <a id="start"></a>
 - **Kind:** method of `_TimerPageState`

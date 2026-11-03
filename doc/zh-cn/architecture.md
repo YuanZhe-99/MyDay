@@ -19,9 +19,10 @@ P2 使用公共导航和实际内容约束，见 [shared-ui.md](shared-ui.md)。
 4. 桌面上：`LocalApiServer.start()`——本地 HTTP API 服务器（仅桌面）。
 5. `ReminderService.instance.start()`——全局 30 秒提醒循环，与哪个标签激活无关。
 6. `AutoSyncService.instance.start()`——自动同步生命周期观察者（只在用户配置并启用 WebDAV 后同步）。
-7. `OnDeviceAiService.instance.start()`——注册端侧 AI 生命周期监听器（1.5.0）。它不调用模型；随后由 `AppSettingsNotifier` 把持久化的开关推入该服务，开关关闭期间从不触碰方法通道。见 [端侧 AI](on-device-ai.md)。
-8. 桌面上：`TrayService.instance.init()`——系统托盘图标/菜单。
-9. `runApp(DevicePreview(enabled: kDebugMode, builder: (_) => const ProviderScope(child: MyDayApp())))`。
+7. `HomeWidgetService.init()`（不 await；仅 Android 和 iOS）——让桌面小组件订阅同步重新加载、应用恢复和其控件排队的点击，应用所有已排队的点击，并发布每种小组件类型。见 [桌面小组件](features/home-screen-widgets.md)。
+8. `OnDeviceAiService.instance.start()`——注册端侧 AI 生命周期监听器（1.5.0）。它不调用模型；随后由 `AppSettingsNotifier` 把持久化的开关推入该服务，开关关闭期间从不触碰方法通道。见 [端侧 AI](on-device-ai.md)。
+9. 桌面上：`TrayService.instance.init()`——系统托盘图标/菜单。
+10. `runApp(DevicePreview(enabled: kDebugMode, builder: (_) => const ProviderScope(child: MyDayApp())))`。
 
 因此组件树是 `DevicePreview` → `ProviderScope`（Riverpod 根）→ `MyDayApp`（`lib/app/app.dart`，一个 `ConsumerWidget`）。
 
@@ -35,7 +36,7 @@ P2 使用公共导航和实际内容约束，见 [shared-ui.md](shared-ui.md)。
 - `/intimacy` → `IntimacyPage`（即使模块被用户隐藏也存在于路由表；可见性是 UI 层面的事，不是路由层面的事）
 - `/settings` → `SettingsPage`
 
-`initialLocation` 是 `/todo`。
+`initialLocation` 是 `/todo`。顶层 `redirect` 通过 `HomeWidgetLaunch.redirect` 把桌面小组件链接（`myday://widget/<kind>?do=…`，以 `/<kind>?do=…` 送达）转到对应的标签页，其他位置一律不动；见 [桌面小组件](features/home-screen-widgets.md#deep-links)。
 
 外壳在窄窗口上把这些目的地渲染成底部 `NavigationBar`，从 600 逻辑像素宽度起渲染成侧边 `NavigationRail`，两者由同一份目的地列表构建，因此不会彼此漂移。出现哪一种是仅看宽度的决策——为什么这条规则刻意不是全应用的分栏规则，以及应用如何使用平板或折叠屏多出来的空间，见 [自适应布局](adaptive-layout.md)。
 
@@ -71,7 +72,7 @@ lib/
       services/output_validation.dart
       widgets/ai_insight_card.dart
       widgets/ai_settings_tiles.dart
-    profile/                  # 同步的名称与头像 (1.6.0)
+    profile/                  # synced display name and avatar (1.6.0)
       models/profile_data.dart
       services/profile_merge.dart
       services/profile_store.dart
@@ -119,12 +120,17 @@ lib/
       services/weight_storage.dart
       views/weight_page.dart
     settings/views/
+      home_widget_settings_page.dart   # Settings › Home-screen widgets (1.8.3)
+    settings/widgets/home_widget_preview.dart
   shared/
     providers/app_settings.dart
     providers/intimacy_visibility.dart
     services/
       auto_sync_service.dart
       backup_service.dart
+      home_widget_actions.dart    # applies taps queued by widget controls (1.8.3)
+      home_widget_payloads.dart   # pure widget payload builders (1.8.3)
+      home_widget_service.dart    # widget facade over myapps_widget (1.8.3)
       image_service.dart
       import_export_service.dart
       local_api_server.dart
@@ -144,8 +150,9 @@ lib/
     widgets/
   l10n/
 packages/
-  myapps_data/          # 共享引擎（git 子模块）
-  on_device_ai_apple/   # 本地插件：Apple Foundation Models 桥接（1.5.0）
+  myapps_data/          # shared engines (git submodule)
+  myapps_widget/        # shared home-screen widget envelope, bridge and action queue (git submodule, 1.8.3)
+  on_device_ai_apple/   # local plugin: Apple Foundation Models bridge (1.5.0)
 ```
 
 每个功能模块（`todo`、`finance`、`intimacy`、`weight`）遵循相同的 `models/ + services/ + views/ + widgets/` 形态；`settings` 只有视图（它读写其他模块的存储，而不是拥有数据文件）。`ai` 同样不拥有数据文件：它包含端侧模型层和洞察卡片，每个模块各贡献一个纯函数的 `*_insight_facts.dart` 构建器（见 [端侧 AI](on-device-ai.md)）。`shared/` 保存一切跨领域内容：同步、备份、通知/提醒、本地 API 服务器、托盘/启动胶水和小的纯工具。

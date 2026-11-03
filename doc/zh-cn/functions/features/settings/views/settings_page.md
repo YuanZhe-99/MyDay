@@ -10,7 +10,7 @@ P5 内容委托 MyAppsPaneBody 做设计分区，实际分栏模式更新路由�
 由应用负责。shared_l10n_test 验证公共 ARB 值，见
 [../../../../shared-ui.md](../../../../shared-ui.md)。
 
-主设置屏：通用（语言/周起始/主题）、隐私（亲密模块隐藏/显示）、端侧 AI（v1.5.0；可能存在模型的平台上是 [`AiSettingsTiles`](../../ai/widgets/ai_settings_tiles.md) 各行，否则是一条"此处不支持"说明）、桌面（托盘、启动时启动、本地 API 服务器、自定义存储位置）、数据（WebDAV 同步、ZIP 导入/导出、备份）、关于（版本、许可证、隐私政策）和仅调试的订阅日期覆盖小节。`SettingsPage`/`_SettingsPageState` 直接拥有其中大多数设置的读写管道（经 `TodoStorage.readConfig`/`writeConfig`、`TrayService`、`launchAtStartup` 和 `LocalApiServer`），而 WebDAV 同步和备份委托给 [`webdav_config_page.dart`](../../../shared/views/webdav_config_page.md) 和 [`backup_page.dart`](../../../shared/views/backup_page.md)，关于小节链接到 [`license_page.dart`](license_page.md) 和 [`privacy_policy_page.dart`](privacy_policy_page.md)。逐小节完整功能描述见 [设置](../../../../features/settings.md)，本页暴露开关的仅桌面托盘/启动/本地 API 机制见 [平台说明](../../../../platform-notes.md)，本页 WebDAV 状态块响应的自动同步触发器见 [WebDAV 同步](../../../../sync.md)。
+主设置屏：通用（语言/周起始/主题）、隐私（亲密模块隐藏/显示）、端侧 AI（v1.5.0；可能存在模型的平台上是 [`AiSettingsTiles`](../../ai/widgets/ai_settings_tiles.md) 各行，否则是一条"此处不支持"说明）、桌面（托盘、启动时启动、本地 API 服务器、自定义存储位置）、数据（WebDAV 同步、ZIP 导入/导出、备份）、关于（版本、许可证、隐私政策）和仅调试的订阅日期覆盖小节。Android 和 iOS 上另有一个桌面小组件分区（1.8.3），其中一行经 `_open(_SettingsDetail.widgets)` 打开 [`home_widget_settings_page.dart`](home_widget_settings_page.md)；它只在 `HomeWidgetService.isSupported` 时构建。`SettingsPage`/`_SettingsPageState` 直接拥有其中大多数设置的读写管道（经 `TodoStorage.readConfig`/`writeConfig`、`TrayService`、`launchAtStartup` 和 `LocalApiServer`），而 WebDAV 同步和备份委托给 [`webdav_config_page.dart`](../../../shared/views/webdav_config_page.md) 和 [`backup_page.dart`](../../../shared/views/backup_page.md)，关于小节链接到 [`license_page.dart`](license_page.md) 和 [`privacy_policy_page.dart`](privacy_policy_page.md)。逐小节完整功能描述见 [设置](../../../../features/settings.md)，本页暴露开关的仅桌面托盘/启动/本地 API 机制见 [平台说明](../../../../platform-notes.md)，本页 WebDAV 状态块响应的自动同步触发器见 [WebDAV 同步](../../../../sync.md)。
 
 ## 声明
 
@@ -39,13 +39,13 @@ P5 内容委托 MyAppsPaneBody 做设计分区，实际分栏模式更新路由�
 | `_navPlacementLabel` | 方法（`_SettingsPageState`） | B | 返回导航栏位置选项的显示名称（1.6.1）。 |
 | `_showWeekStartPicker` | 方法（`_SettingsPageState`） | B | 显示全局周起始日选择器底部面板。 |
 | [`_showLanguagePicker`](#showlanguagepicker) | 方法（`_SettingsPageState`） | A | 显示应用语言选择器，把选择解析为 `Locale`。 |
-| `_SettingsDetail` | 顶层枚举 | B | 设置行可以通向的二级页面。 |
+| `_SettingsDetail` | 顶层枚举 | B | 设置行可以通向的二级页面：`widgets`（1.8.3）、`webdav`、`backup`、`license`、`privacy`。 |
 | [`_detailPage`](#detailpage) | 方法（`_SettingsPageState`） | A | 构建设置行通向的二级页面。 |
 | [`_open`](#open) | 方法（`_SettingsPageState`） | A | 按当前布局所要求的方式打开二级页面。 |
 | [`_buildDetailPane`](#builddetailpane) | 方法（`_SettingsPageState`） | A | 构建双栏布局的右侧窗格。 |
 | [`_buildSettingsList`](#buildsettingslist) | 方法（`_SettingsPageState`） | A | 构建一级设置列表。 |
 
-**对账：** `grep -c 'Purpose:' lib/features/settings/views/settings_page.dart` 返回 31，对应 32 行；多出的一行是不带 `Purpose:` 块的 `_SettingsDetail` 枚举。30 个块都文档化真实声明（26 个方法/构造函数/getter，加在 `_showApiSettingsDialog` 内声明的嵌套本地函数 `signature()`，它自己有 `Purpose:` 块）——无错附块、未发现未文档化真实声明。`_SettingsPageState` 顶部的实例字段（`_storagePath`、`_apiPort` 等）无 `Purpose:` 块，与它们是状态而非函数一致。
+**对账：** `grep -c 'Purpose:' lib/features/settings/views/settings_page.dart` 返回 27，对应 28 行；多出的一行是不带 `Purpose:` 块的 `_SettingsDetail` 枚举。27 个块都文档化真实声明（26 个方法/构造函数/getter，加在 `_showApiSettingsDialog` 内声明的嵌套本地函数 `signature()`，它自己有 `Purpose:` 块）——无错附块、未发现未文档化真实声明。`_SettingsPageState` 顶部的实例字段（`_storagePath`、`_apiPort` 等）无 `Purpose:` 块，与它们是状态而非函数一致。
 
 ## 文档
 
@@ -160,9 +160,9 @@ P5 内容委托 MyAppsPaneBody 做设计分区，实际分栏模式更新路由�
 - **输入：** `detail`。
 - **返回：** `Widget`——一个带自己 app bar 的 `Scaffold`。
 - **副作用：** 除构建组件外无。
-- **算法：** 对 `_SettingsDetail` 的 `switch`，返回 `WebDAVConfigPage`、`BackupPage`、`LicensePage` 或 `PrivacyPolicyPage`。
+- **算法：** 对 `_SettingsDetail` 的 `switch`，返回 [`HomeWidgetSettingsPage`](home_widget_settings_page.md)、`WebDAVConfigPage`、`BackupPage`、`LicensePage` 或 `PrivacyPolicyPage`。
 - **用法：** 推入时由 `_open` 调用，托管时由 `_buildDetailPane` 调用。
-- **备注：** 同一个组件服务两种模式：窄窗口上整屏推入，宽窗口上托管在详情窗格里。四个页面都无需改动即可被嵌入，因为只持有一条路由的嵌套 `Navigator` 报告 `canPop == false`，因此它们的 app bar 不会长出返回箭头。
+- **备注：** 同一个组件服务两种模式：窄窗口上整屏推入，宽窗口上托管在详情窗格里。五个页面都无需改动即可被嵌入，因为只持有一条路由的嵌套 `Navigator` 报告 `canPop == false`，因此它们的 app bar 不会长出返回箭头。
 
 ### `Future<void> _open(_SettingsDetail detail)` <a id="open"></a>
 - **种类：** `_SettingsPageState` 的方法

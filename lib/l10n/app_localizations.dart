@@ -4978,6 +4978,348 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Save'**
   String get aiModelSave;
+
+  /// No description provided for @hwOpenToUpdate.
+  ///
+  /// In en, this message translates to:
+  /// **'Open MyDay to update'**
+  String get hwOpenToUpdate;
+
+  /// No description provided for @hwNoRecords.
+  ///
+  /// In en, this message translates to:
+  /// **'No records yet'**
+  String get hwNoRecords;
+
+  /// No description provided for @hwTodayAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Today {time}'**
+  String hwTodayAt(String time);
+
+  /// No description provided for @hwDaysAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} days ago'**
+  String hwDaysAgo(String count);
+
+  /// No description provided for @hwTodoNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New'**
+  String get hwTodoNew;
+
+  /// No description provided for @hwTodoLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} left'**
+  String hwTodoLeft(String count);
+
+  /// No description provided for @hwTodoProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{done}/{total} done'**
+  String hwTodoProgress(String done, String total);
+
+  /// No description provided for @hwTodoTomorrow.
+  ///
+  /// In en, this message translates to:
+  /// **'Tomorrow'**
+  String get hwTodoTomorrow;
+
+  /// No description provided for @hwTodoOverdue.
+  ///
+  /// In en, this message translates to:
+  /// **'Overdue'**
+  String get hwTodoOverdue;
+
+  /// No description provided for @hwTodoAllDone.
+  ///
+  /// In en, this message translates to:
+  /// **'All done'**
+  String get hwTodoAllDone;
+
+  /// No description provided for @hwTodoNothing.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing planned'**
+  String get hwTodoNothing;
+
+  /// No description provided for @hwTodoScore.
+  ///
+  /// In en, this message translates to:
+  /// **'Day score'**
+  String get hwTodoScore;
+
+  /// No description provided for @hwWeightTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Weight'**
+  String get hwWeightTitle;
+
+  /// No description provided for @hwWeightLog.
+  ///
+  /// In en, this message translates to:
+  /// **'Log'**
+  String get hwWeightLog;
+
+  /// No description provided for @hwWeight30Days.
+  ///
+  /// In en, this message translates to:
+  /// **'30 days'**
+  String get hwWeight30Days;
+
+  /// No description provided for @hwWeightNotLogged.
+  ///
+  /// In en, this message translates to:
+  /// **'Not logged today'**
+  String get hwWeightNotLogged;
+
+  /// No description provided for @hwFinanceAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get hwFinanceAdd;
+
+  /// No description provided for @hwFinanceExpense.
+  ///
+  /// In en, this message translates to:
+  /// **'Spent this month'**
+  String get hwFinanceExpense;
+
+  /// No description provided for @hwFinanceIncome.
+  ///
+  /// In en, this message translates to:
+  /// **'Income'**
+  String get hwFinanceIncome;
+
+  /// No description provided for @hwFinanceNet.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance'**
+  String get hwFinanceNet;
+
+  /// No description provided for @hwFinanceTop.
+  ///
+  /// In en, this message translates to:
+  /// **'Top spending'**
+  String get hwFinanceTop;
+
+  /// No description provided for @hwFinanceBillsSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} billing soon'**
+  String hwFinanceBillsSoon(String count);
+
+  /// No description provided for @hwFinanceNoBills.
+  ///
+  /// In en, this message translates to:
+  /// **'No bills this week'**
+  String get hwFinanceNoBills;
+
+  /// No description provided for @hwFinanceUncategorized.
+  ///
+  /// In en, this message translates to:
+  /// **'Uncategorized'**
+  String get hwFinanceUncategorized;
+
+  /// No description provided for @hwPrivateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Private'**
+  String get hwPrivateTitle;
+
+  /// No description provided for @hwPrivateAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Log'**
+  String get hwPrivateAdd;
+
+  /// No description provided for @hwPrivateDaysAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'days ago'**
+  String get hwPrivateDaysAgo;
+
+  /// No description provided for @hwPrivateToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get hwPrivateToday;
+
+  /// No description provided for @hwPrivateMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} this month'**
+  String hwPrivateMonth(String count);
+
+  /// No description provided for @hwPrivateAvg.
+  ///
+  /// In en, this message translates to:
+  /// **'avg {minutes} min'**
+  String hwPrivateAvg(String minutes);
+
+  /// No description provided for @hwPrivateCycleIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Period in {count} days'**
+  String hwPrivateCycleIn(String count);
+
+  /// No description provided for @hwPrivateCycleToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Period expected today'**
+  String get hwPrivateCycleToday;
+
+  /// No description provided for @hwTimerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Timer'**
+  String get hwTimerTitle;
+
+  /// No description provided for @hwTimerRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'Running'**
+  String get hwTimerRunning;
+
+  /// No description provided for @hwTimerPaused.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get hwTimerPaused;
+
+  /// No description provided for @hwTimerCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Count {count}'**
+  String hwTimerCount(String count);
+
+  /// No description provided for @hwTimerStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get hwTimerStart;
+
+  /// No description provided for @hwTimerResume.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume'**
+  String get hwTimerResume;
+
+  /// No description provided for @hwTimerPause.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get hwTimerPause;
+
+  /// No description provided for @hwTimerFinish.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish'**
+  String get hwTimerFinish;
+
+  /// No description provided for @hwTimerLast.
+  ///
+  /// In en, this message translates to:
+  /// **'Last {ago} · {minutes} min'**
+  String hwTimerLast(String ago, String minutes);
+
+  /// No description provided for @hwTimerLastToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Last today · {minutes} min'**
+  String hwTimerLastToday(String minutes);
+
+  /// No description provided for @hwTimerIdle.
+  ///
+  /// In en, this message translates to:
+  /// **'Not running'**
+  String get hwTimerIdle;
+
+  /// No description provided for @homeWidgetsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Home-screen widgets'**
+  String get homeWidgetsTitle;
+
+  /// No description provided for @homeWidgetsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Text size and privacy of each widget'**
+  String get homeWidgetsSubtitle;
+
+  /// No description provided for @homeWidgetsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Add widgets from your home screen\'s widget picker. Checkboxes and timer buttons work on Android and on iOS 17 or later; a tap is saved the next time MyDay runs.'**
+  String get homeWidgetsHint;
+
+  /// No description provided for @homeWidgetKindTodo.
+  ///
+  /// In en, this message translates to:
+  /// **'Todo'**
+  String get homeWidgetKindTodo;
+
+  /// No description provided for @homeWidgetKindWeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Weight'**
+  String get homeWidgetKindWeight;
+
+  /// No description provided for @homeWidgetKindFinance.
+  ///
+  /// In en, this message translates to:
+  /// **'Finance'**
+  String get homeWidgetKindFinance;
+
+  /// No description provided for @homeWidgetKindPrivate.
+  ///
+  /// In en, this message translates to:
+  /// **'Private'**
+  String get homeWidgetKindPrivate;
+
+  /// No description provided for @homeWidgetKindTimer.
+  ///
+  /// In en, this message translates to:
+  /// **'Timer'**
+  String get homeWidgetKindTimer;
+
+  /// No description provided for @homeWidgetTextSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Text size'**
+  String get homeWidgetTextSize;
+
+  /// No description provided for @homeWidgetPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy'**
+  String get homeWidgetPrivacy;
+
+  /// No description provided for @homeWidgetPrivacyShow.
+  ///
+  /// In en, this message translates to:
+  /// **'Show'**
+  String get homeWidgetPrivacyShow;
+
+  /// No description provided for @homeWidgetPrivacyMask.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide values'**
+  String get homeWidgetPrivacyMask;
+
+  /// No description provided for @homeWidgetPrivacyIcon.
+  ///
+  /// In en, this message translates to:
+  /// **'Icon only'**
+  String get homeWidgetPrivacyIcon;
+
+  /// No description provided for @homeWidgetPrivacyNote.
+  ///
+  /// In en, this message translates to:
+  /// **'On iOS, values are also hidden while the device is locked.'**
+  String get homeWidgetPrivacyNote;
 }
 
 class _AppLocalizationsDelegate

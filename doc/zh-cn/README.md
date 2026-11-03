@@ -34,6 +34,7 @@ MyDay!!!!! 是一款隐私优先的 Flutter 日常生活伴侣应用，覆盖待
 - [亲密](features/intimacy.md)
 - [体重](features/weight.md)
 - [设置](features/settings.md)
+- [桌面小组件](features/home-screen-widgets.md) — Android/iOS 桌面小组件（1.8.3）、其交互控件、深层链接和快照格式。
 
 ### 算法（深入探讨）
 

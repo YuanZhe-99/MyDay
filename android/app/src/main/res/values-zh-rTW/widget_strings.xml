@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget picker text and the too-new fallback only; widget content strings come from the ARB files. -->
+<resources>
+    <string name="widget_todo_name">待辦</string>
+    <string name="widget_todo_description">今日任務與勾選框</string>
+    <string name="widget_todo_strip_description">未完成任務數與下一個定時任務</string>
+    <string name="widget_weight_name">體重</string>
+    <string name="widget_weight_description">最新體重、30 天變化與趨勢</string>
+    <string name="widget_weight_strip_description">最新體重與變化</string>
+    <string name="widget_finance_name">財務</string>
+    <string name="widget_finance_description">本月支出、收入與即將扣款的帳單</string>
+    <string name="widget_intimacy_name">私密紀錄</string>
+    <string name="widget_intimacy_description">私密紀錄摘要</string>
+    <string name="widget_timer_name">計時器</string>
+    <string name="widget_timer_description">可開始、暫停和 +100 的計時器</string>
+    <string name="widget_timer_strip_description">精簡計時器</string>
+    <string name="widget_open_app">開啟 MyDay</string>
+</resources>

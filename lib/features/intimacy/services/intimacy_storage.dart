@@ -4,6 +4,7 @@ import 'dart:io';
 
 import '../../../shared/services/data_file_safety.dart';
 import '../../../shared/utils/json_preservation.dart';
+import '../../../shared/services/home_widget_service.dart';
 import '../../todo/services/todo_storage.dart';
 import '../models/intimacy_record.dart';
 
@@ -85,7 +86,7 @@ class IntimacyStorage {
   /// Purpose: Persist intimacy data after the caller has entered the write queue.
   /// Inputs: `data`.
   /// Returns: `Future<void>`.
-  /// Side effects: Writes `intimacy_data.json` through a validated temporary file.
+  /// Side effects: Writes `intimacy_data.json` through a validated temporary file, then schedules a home-screen widget refresh.
   /// Notes: Internal helper used within this file only.
   static Future<void> _saveNow(IntimacyData data) async {
     final file = await _getFile();
@@ -95,6 +96,7 @@ class IntimacyStorage {
       schema: dataFilePreservationSchemas[_fileName]!,
     );
     await DataFileSafety.writeValidatedDataJson(file, jsonStr);
+    HomeWidgetService.notifyDataChanged();
   }
 
   /// Migrate old timer_history.json entries into IntimacyData, then delete old file.

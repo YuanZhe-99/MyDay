@@ -4,6 +4,7 @@ import 'dart:io';
 
 import '../../../shared/services/data_file_safety.dart';
 import '../../../shared/utils/json_preservation.dart';
+import '../../../shared/services/home_widget_service.dart';
 import '../../todo/services/todo_storage.dart';
 import '../models/weight_record.dart';
 
@@ -79,7 +80,7 @@ class WeightStorage {
   /// Purpose: Persist weight data after the caller has entered the write queue.
   /// Inputs: `data`.
   /// Returns: `Future<void>`.
-  /// Side effects: Writes `weight_data.json` through a validated temporary file.
+  /// Side effects: Writes `weight_data.json` through a validated temporary file, then schedules a home-screen widget refresh.
   /// Notes: Internal helper used within this file only.
   static Future<void> _saveNow(WeightData data) async {
     final file = await _getFile();
@@ -89,5 +90,6 @@ class WeightStorage {
       schema: dataFilePreservationSchemas[fileName]!,
     );
     await DataFileSafety.writeValidatedDataJson(file, jsonStr);
+    HomeWidgetService.notifyDataChanged();
   }
 }

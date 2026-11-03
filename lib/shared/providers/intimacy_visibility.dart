@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/todo/services/todo_storage.dart';
+import '../services/home_widget_service.dart';
 
 /// State for the intimacy module visibility.
 ///
@@ -51,11 +52,13 @@ class IntimacyVisibilityNotifier extends StateNotifier<IntimacyVisibility> {
   /// Purpose: Implement the set visible behavior for this file.
   /// Inputs: `visible`.
   /// Returns: None.
-  /// Side effects: May read or mutate application state, storage, or service resources.
+  /// Side effects: Updates provider state, persists the flag to `storage_config.json`, then schedules a home-screen widget refresh.
   /// Notes: None.
   void setVisible(bool visible) {
     state = state.copyWith(visible: visible);
-    TodoStorage.setIntimacyVisible(visible);
+    TodoStorage.setIntimacyVisible(visible).then(
+      (_) => HomeWidgetService.notifyDataChanged(),
+    );
   }
 }
 

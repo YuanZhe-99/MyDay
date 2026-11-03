@@ -21,18 +21,20 @@ P2：布局函数传入页面上下文并使用实际导航内容约束；
 |---|---|---|---|
 | `IntimacyPage.new` | 构造函数 | B | 平凡转发构造函数。 |
 | `IntimacyPage.createState` | 方法（`IntimacyPage`） | B | 创建 `_IntimacyPageState`。 |
-| `_IntimacyPageState.initState` | 方法（生命周期） | B | 加载数据并注册自动同步监听器。 |
-| `_IntimacyPageState.dispose` | 方法（生命周期） | B | 注销自动同步监听器。 |
+| `_IntimacyPageState.initState` | 方法（生命周期） | B | 加载数据并注册自动同步和小组件启动监听器。 |
+| `_IntimacyPageState.dispose` | 方法（生命周期） | B | 注销自动同步和小组件启动监听器。 |
 | [`_io`](#io) | 方法（`_IntimacyPageState`） | A | 在上一个操作完成后再运行一次亲密数据加载、保存或子页面提交（本页的串行 I/O 队列，v1.5.2）。 |
 | `_applyIntimacyData` | 方法（`_IntimacyPageState`） | B | 把加载或合并得到的 `IntimacyData` 复制进页面状态字段（调用方把它包在 `setState` 中）。 |
 | `_currentIntimacyData` | 方法（`_IntimacyPageState`） | B | 把页面当前亲密状态快照为一个 `IntimacyData`。 |
 | [`_loadData`](#loaddata) | 方法（`_IntimacyPageState`） | A | 在 I/O 队列上排入一次 `intimacy_data.json` 的重新加载。 |
 | [`_loadDataNow`](#loaddatanow) | 方法（`_IntimacyPageState`） | A | `_loadData` 的主体：把 `intimacy_data.json` 加载进状态，或浮出阻塞读取错误。 |
+| `_onWidgetLaunch` | 方法（`_IntimacyPageState`） | B | 加载完成后取走待处理的 `myday.intimacy`/`myday.timer` 小组件请求，并在当前帧之后打开添加记录对话框（`add`）或计时器（`timer`）（1.8.3）。 |
 | `_showWriteBlocked` | 方法（`_IntimacyPageState`） | B | 组件仍 mounted 时显示 `intimacyDataWriteBlocked` snackbar。 |
 | [`_saveData`](#savedata) | 方法（`_IntimacyPageState`） | A | 在 I/O 队列上排入一次页面内存亲密状态的保存。 |
 | [`_saveDataNow`](#savedatanow) | 方法（`_IntimacyPageState`） | A | `_saveData` 的主体：持久化当前状态并通知自动同步，除非加载中或不可读。 |
 | [`_commitSubPage`](#commitsubpage) | 方法（`_IntimacyPageState`） | A | 把一次子页面回调的列表编辑按 id 合并进重新读取的文件并保存（v1.5.2）。 |
 | [`_saveTimerState`](#savetimerstate) | 方法（`_IntimacyPageState`） | A | 持久化从打开 `TimerPage` 流回的计时器历史/会话变更。 |
+| [`_openTimer`](#opentimer) | 方法（`_IntimacyPageState`） | A | 以活跃伴侣/玩具推入 `TimerPage`，并应用它返回的 `TimerPageResult`（1.8.3；原为应用栏内联闭包）。 |
 | [`_saveChartSettings`](#savechartsettings) | 方法（`_IntimacyPageState`） | A | 持久化任何 `IntimacyTrendChart` 上报的新趋势图指标和范围选择。 |
 | `_markedDates` | getter（`_IntimacyPageState`） | B | 至少有一条记录的日历日集合。 |
 | [`_buildCycleOverlays`](#buildcycleoverlays) | 方法（`_IntimacyPageState`） | A | 构建主页日历显示的逐人周期叠加列表。 |
@@ -208,7 +210,7 @@ P2：布局函数传入页面上下文并使用实际导航内容约束；
 | `_labelledInsightFacts` | 方法（`_IntimacyPageState`） | B | 构建亲密事实的带标签变体（`useNames: false`），供 `guardrailFacts` 和脚注对照使用（1.8.1）。 |
 | `_intimacyFootnote` | 方法（`_IntimacyPageState`） | B | 卡片脚注：周期免责声明以及仍显示标签的 `Partner A = …` 对照（1.8.1）。 |
 
-**行数对账：** 上面 186 行，与 `grep -c '/// Purpose:'` = 186 精确匹配（60 个 Tier A、126 个 Tier B）。v1.5.5 添加了两行 Tier A，`_IntimacyPageState` 和 `_FilteredRecordsPageState` 中各一个 `_openRecordDetail`。v1.3.2 在记录指标图移入 [`intimacy_trend_chart.dart`](../widgets/intimacy_trend_chart.md) 时移除了 27 行（17 个 Tier A、10 个 Tier B），并添加了一个（`_saveChartSettings`，Tier A）。重名声明（同一辅助名在多个类中重新实现，如 `_IntimacyPageState` 和 `_FilteredRecordsPageState` 中都有 `_filteredRecords`）如何在锚点中消歧见本页末尾说明。普通状态字段没有行，因此 v1.5.0 的 `_weightRecordsForInsight` 字段（第 85 行；一行 `///` 注释，没有 `Purpose:` 块）在 [`_loadDataNow`](#loaddatanow) 中说明，而不在表格中；v1.5.2 的 `_ioQueue` future 同样在 [`_io`](#io) 中说明。v1.5.0 没有改变行数。v1.5.2 添加了七行（`_io`、`_loadDataNow`、`_saveDataNow`、`_commitSubPage` 为 Tier A；`_applyIntimacyData`、`_currentIntimacyData`、`_showWriteBlocked` 为 Tier B）。
+**行数对账：** 上面 190 行，与 `grep -c '/// Purpose:'` = 190 精确匹配（61 个 Tier A、129 个 Tier B）。v1.8.3 新增 `_onWidgetLaunch`（Tier B）和 `_openTimer`（Tier A，即应用栏计时器按钮原来的内联闭包）。v1.5.5 添加了两行 Tier A，`_IntimacyPageState` 和 `_FilteredRecordsPageState` 中各一个 `_openRecordDetail`。v1.3.2 在记录指标图移入 [`intimacy_trend_chart.dart`](../widgets/intimacy_trend_chart.md) 时移除了 27 行（17 个 Tier A、10 个 Tier B），并添加了一个（`_saveChartSettings`，Tier A）。重名声明（同一辅助名在多个类中重新实现，如 `_IntimacyPageState` 和 `_FilteredRecordsPageState` 中都有 `_filteredRecords`）如何在锚点中消歧见本页末尾说明。普通状态字段没有行，因此 v1.5.0 的 `_weightRecordsForInsight` 字段（第 85 行；一行 `///` 注释，没有 `Purpose:` 块）在 [`_loadDataNow`](#loaddatanow) 中说明，而不在表格中；v1.5.2 的 `_ioQueue` future 同样在 [`_io`](#io) 中说明。v1.5.0 没有改变行数。v1.5.2 添加了七行（`_io`、`_loadDataNow`、`_saveDataNow`、`_commitSubPage` 为 Tier A；`_applyIntimacyData`、`_currentIntimacyData`、`_showWriteBlocked` 为 Tier B）。
 
 ## 文档
 
@@ -321,6 +323,20 @@ P2：布局函数传入页面上下文并使用实际导航内容约束；
   接线于周期记录（`_openBodySettings`）、伴侣、记录和周期记录（`_openPartnerManagement`）、玩具和记录（`_openToyManagement`），以及姿势（`_openPositionManagement`）。
 - **备注：** 修复一个丢失更新：管理页持有它打开时的列表，因此它打开期间在别处添加的记录（同步、计时器页），过去会在它经 `_saveData` 交回过期的整个列表时被覆盖。现在只有子页面改动过的记录被重放到磁盘上的内容上，它没碰过的记录保留新值。`take` 必须在回调内同步运行，使每次回调只产出它自己的改动；合并规则（按 id upsert、丢弃被移除的 id、不捕获纯重排）记录在 [`id_list_delta.md`](../../../shared/utils/id_list_delta.md)。与 `_saveDataNow` 不同，它不检查 `_loaded`：它写入的是重新读取的文件加增量，只在还没有文件时才回退到内存状态。
 
+### `Future<void> _openTimer()` <a id="opentimer"></a>
+- **种类：** `_IntimacyPageState` 的方法
+- **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 581 行）
+- **用途：** 打开秒表计时器页并应用它返回的结果。
+- **输入：** 无。
+- **返回：** `Future<void>`。
+- **副作用：** 推入 `TimerPage`；按结果插入保存的记录、替换计时器历史、会话和保留期，为会话和保留期更新 `_timerSessionModifiedAt`/`_settingsModifiedAt`（UTC），有任何变化时调用一次 `_saveData()`。
+- **算法：**
+  1. 以 `endDate` 为 null 的伴侣、`retiredDate` 为 null 的玩具、姿势、计时器历史、会话和保留期以及 `onStateChanged: _saveTimerState` 推入 `TimerPage`。
+  2. 若在仍 mounted 时拿到结果，用 `setState` 应用每个变化的部分。
+  3. 任何部分有变化时保存一次。
+- **用法：** 应用栏计时器按钮（`onPressed: _loaded && _loadError == null ? _openTimer : null`），以及 `_onWidgetLaunch` 处理计时器小组件的*结束*（`do=timer`）。
+- **备注：** 1.8.3 把它移出 `build`，以便小组件深层链接复用。
+
 ### `Future<void> _saveTimerState({required List<TimerHistoryEntry> history, required IntimacyTimerSession? session, required bool historyChanged, required bool timerSessionChanged, required int? retentionDays, required bool retentionChanged})` <a id="savetimerstate"></a>
 - **种类：** `_IntimacyPageState` 的方法
 - **来源：** `lib/features/intimacy/views/intimacy_page.dart`（第 344 行）
@@ -333,8 +349,8 @@ P2：布局函数传入页面上下文并使用实际导航内容约束；
   2. `timerSessionChanged` 时才把 `_timerSessionModifiedAt` bump 到 `DateTime.now().toUtc()`——计时器会话有自己独立于通用设置的最后写入者胜出时间戳。
   3. `retentionChanged` 时才 bump `_settingsModifiedAt`。
   4. 历史、会话或保留变化时才调用 `_saveData()`——无实际变化的回调不执行写入。
-- **用法：** 作为 `onStateChanged` 风格回调从 `_showManageMenu`/`build()` 别处的计时器入口传给 `TimerPage`；`TimerPage` 在每次计时器滴答/暂停/保存时调用它，使父页面存储在计时器 UI 打开时保持同步。
-- **备注：** 让计时器会话自己的修改时间戳独立于 `_settingsModifiedAt` 对三方合并重要——见 [计时器/秒表会话持久化](../../../../features/intimacy.md#timerstopwatch-session-persistence)。计时器页关闭时，`build` 的处理器应用其 `TimerPageResult`（新记录、历史、会话、保留）并保存一次——自 v1.5.2 起仅在页面仍 mounted 时。
+- **用法：** 由 [`_openTimer`](#opentimer) 作为 `onStateChanged` 回调传给 `TimerPage`；`TimerPage` 在每次计时器滴答/暂停/保存时调用它，使父页面存储在计时器 UI 打开时保持同步。
+- **备注：** 让计时器会话自己的修改时间戳独立于 `_settingsModifiedAt` 对三方合并重要——见 [计时器/秒表会话持久化](../../../../features/intimacy.md#timerstopwatch-session-persistence)。计时器页关闭时，[`_openTimer`](#opentimer) 应用其 `TimerPageResult`（新记录、历史、会话、保留）并保存一次——自 v1.5.2 起仅在页面仍 mounted 时。
 
 ### `Future<void> _saveChartSettings(IntimacyChartSettings settings)` <a id="savechartsettings"></a>
 - **种类：** `_IntimacyPageState` 的方法

@@ -24,7 +24,7 @@ selectable-month home summaries and grouped monthly transactions described there
 | `FinancePage({super.key})` | constructor (`FinancePage`) | B | Create a finance page instance. |
 | `createState` | method (`FinancePage`) | B | Create the mutable state object for this widget. |
 | `initState` | method (`_FinancePageState`) | B | Register renewal/auto-sync listeners, seed the selected month to the current month, and trigger the first load. |
-| `dispose` | method (`_FinancePageState`) | B | Unregister the renewal and auto-sync listeners. |
+| `dispose` | method (`_FinancePageState`) | B | Unregister the renewal, auto-sync and widget-launch listeners. |
 | [`_io`](#_io) | method (`_FinancePageState`) | A | Run one finance load, save, or sub-page commit after the previous one (the page's serial I/O queue, v1.5.2). |
 | `_applyFinanceData` | method (`_FinancePageState`) | B | Copy a loaded or merged `FinanceData` into the page's state fields (callers wrap it in `setState`). |
 | `_currentFinanceData` | method (`_FinancePageState`) | B | Snapshot the page's current finance state as a `FinanceData`. |
@@ -36,6 +36,7 @@ selectable-month home summaries and grouped monthly transactions described there
 | [`_saveDataNow`](#_savedatanow) | method (`_FinancePageState`) | A | Body of `_saveData`: persist finance state, refusing while the loaded file is unreadable. |
 | [`_commitSubPage`](#_commitsubpage) | method (`_FinancePageState`) | A | Merge one sub-page callback's list edits by id into the freshly re-read file and save (v1.5.2). |
 | `_updateReminderService` | method (`_FinancePageState`) | B | Push current subscription/reminder-time state to `ReminderService`. |
+| `_onWidgetLaunch` | method (`_FinancePageState`) | B | Take a pending `myday.finance` widget request once loaded and open the add-transaction dialog for `add` (1.8.3). |
 | `_addTransaction` | method (`_FinancePageState`) | B | Open the add-transaction dialog and insert the result at the front of the list. |
 | `_deleteTransaction` | method (`_FinancePageState`) | B | Remove a transaction from state and save. |
 | `_editTransaction` | method (`_FinancePageState`) | B | Open the edit dialog and replace the transaction in state. |
@@ -64,8 +65,8 @@ selectable-month home summaries and grouped monthly transactions described there
 | `_SubscriptionOverviewTile({...})` | constructor (`_SubscriptionOverviewTile`) | B | Create one read-only row of the subscription overview. |
 | `build` | method (`_SubscriptionOverviewTile`) | B | Render a dense subscription row: avatar, name, cycle and next billing, amount. |
 
-**Reconciliation:** `grep -c 'Purpose:' lib/features/finance/views/finance_page.dart` returns 42,
-matching the 42 rows above exactly — every block sits immediately above its real declaration (a
+**Reconciliation:** `grep -c 'Purpose:' lib/features/finance/views/finance_page.dart` returns 43,
+matching the 43 rows above exactly (v1.8.3 added `_onWidgetLaunch`) — every block sits immediately above its real declaration (a
 constructor, `createState`, a lifecycle method, a private method, a `build` override, or the nested
 local function inside `_buildLeading`); none were found misattached above a call-site statement,
 and no undocumented real declaration was found. The six classes' plain widget fields (e.g.

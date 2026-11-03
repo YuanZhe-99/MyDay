@@ -118,6 +118,12 @@ the same change (per the project's maintenance rule).
   shrinking ML Kit into a failure that looks like an unsupported device; the manifest's `<queries>`
   lists `com.google.android.aicore`. Both flavors ship it.
 - Java 17 source/target compatibility and core library desugaring are enabled.
+- **Home-screen widgets (1.8.3):** eight `AppWidgetProvider` receivers in `AndroidManifest.xml`
+  (`com.yuanzhe.my_day.widget.*`, extending MyApps-Widget's `EnvelopeWidgetProvider`), RemoteViews
+  layouts `res/layout/widget_*.xml`, picker strings in `res/values*/widget_strings.xml`. The
+  `myapps_widget` plugin merges its own `WidgetActionReceiver`, which queues checkbox and timer taps
+  without starting Flutter. Widget links reach Flutter as the launch intent's data. See
+  [features/home-screen-widgets.md](features/home-screen-widgets.md).
 - **Dynamic color (1.6.0):** `MyDayApp` wraps `MaterialApp.router` in `dynamic_color`'s
   `DynamicColorBuilder` and uses the wallpaper-derived scheme (Material You) on **Android only**
   (Android 12+; older versions fall back to the seed color). The plugin also exists for Windows and
@@ -173,6 +179,15 @@ the same change (per the project's maintenance rule).
   Foundation Models, iOS 26+). The deployment target stays 13.0: FoundationModels is weakly linked,
   and CI's `tool/check_weak_link.sh` step fails the build otherwise. No entitlement or `Info.plist`
   key is needed. See [on-device-ai.md](on-device-ai.md).
+- **Home-screen widgets (1.8.3)** are the `MyDayWidgets` WidgetKit extension (`ios/MyDayWidgets/`,
+  bundle id `com.yuanzhe.myDay.MyDayWidgets`, deployment target iOS 14) embedded in Runner. It
+  compiles `packages/myapps_widget/apple/MyAppsWidgetKit/MyAppsWidgetKit.swift` by file reference
+  and weak-links `AppIntents`, whose interactive buttons need iOS 17. Runner and the extension both
+  carry the App Group `group.com.yuanzhe.myDay` (`Runner.entitlements`,
+  `MyDayWidgets.entitlements`); enable it on both App IDs before a signed build — an unsigned CI
+  build does not need it. `Info.plist` registers the `myday` URL scheme (`CFBundleURLTypes`) and
+  sets `FlutterDeepLinkingEnabled`, so widget taps open the matching tab. See
+  [features/home-screen-widgets.md](features/home-screen-widgets.md).
 
 ## macOS
 

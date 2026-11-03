@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/providers/app_settings.dart';
 import '../../../shared/services/auto_sync_service.dart';
+import '../../../shared/services/home_widget_service.dart';
 import '../../../shared/services/reminder_service.dart';
 import '../../../shared/utils/adaptive_layout.dart';
 import '../../../shared/utils/week_grouping.dart';
@@ -117,6 +118,7 @@ class _WeightPageState extends ConsumerState<WeightPage> {
     super.initState();
     _loadData();
     AutoSyncService.instance.addOnLocalDataChanged(_loadData);
+    HomeWidgetLaunch.pending.addListener(_onWidgetLaunch);
   }
 
   /// Purpose: Release listeners, controllers, and other owned resources.
@@ -127,6 +129,7 @@ class _WeightPageState extends ConsumerState<WeightPage> {
   @override
   void dispose() {
     AutoSyncService.instance.removeOnLocalDataChanged(_loadData);
+    HomeWidgetLaunch.pending.removeListener(_onWidgetLaunch);
     super.dispose();
   }
 
@@ -178,6 +181,7 @@ class _WeightPageState extends ConsumerState<WeightPage> {
       }
       _loaded = true;
     });
+    _onWidgetLaunch();
     ReminderService.instance.updateWeightData(
       records: _records,
       morningHour: _weightMorningReminder?.hour,
@@ -2095,6 +2099,23 @@ class _WeightPageState extends ConsumerState<WeightPage> {
     setState(() => _reminderGraceMinutes = (hours * 60).round());
     setSheetState(() {});
     _saveData();
+  }
+
+  /// Purpose: Act on a home-screen widget tap that opened this tab.
+  /// Inputs: None; reads `HomeWidgetLaunch.pending`.
+  /// Returns: None.
+  /// Side effects: Consumes the request and opens the matching flow after
+  /// the current frame.
+  /// Notes: Runs once data has loaded and whenever a new request arrives.
+  /// Only `add` is handled; other requests just open the tab.
+  void _onWidgetLaunch() {
+    if (!mounted || !_loaded || _loadError != null) return;
+    final request = HomeWidgetLaunch.take(const {HomeWidgetService.weightKind});
+    if (request == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (request.action == 'add') _addRecord();
+    });
   }
 
   /// Purpose: Provide the internal add record helper for this file.

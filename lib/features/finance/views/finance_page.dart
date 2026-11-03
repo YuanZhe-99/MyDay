@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/utils/status_colors.dart';
 import '../../../shared/services/auto_sync_service.dart';
+import '../../../shared/services/home_widget_service.dart';
 import '../../../shared/services/image_service.dart';
 import '../../../shared/widgets/stored_image.dart';
 import '../../../shared/providers/app_settings.dart';
@@ -90,6 +91,7 @@ class _FinancePageState extends ConsumerState<FinancePage> {
     ReminderService.instance.onRenewalsProcessed = _loadData;
     _loadData();
     AutoSyncService.instance.addOnLocalDataChanged(_loadData);
+    HomeWidgetLaunch.pending.addListener(_onWidgetLaunch);
   }
 
   /// Purpose: Release listeners, controllers, and other owned resources.
@@ -101,6 +103,7 @@ class _FinancePageState extends ConsumerState<FinancePage> {
   void dispose() {
     ReminderService.instance.onRenewalsProcessed = null;
     AutoSyncService.instance.removeOnLocalDataChanged(_loadData);
+    HomeWidgetLaunch.pending.removeListener(_onWidgetLaunch);
     super.dispose();
   }
 
@@ -195,6 +198,7 @@ class _FinancePageState extends ConsumerState<FinancePage> {
       _rateData = rateData;
       _loaded = true;
     });
+    _onWidgetLaunch();
     // Update subscription reminder data
     _updateReminderService();
     // Auto-generate subscription transactions for billing dates that have passed
@@ -317,6 +321,25 @@ class _FinancePageState extends ConsumerState<FinancePage> {
       reminderHour: _subscriptionReminderHour,
       reminderMinute: _subscriptionReminderMinute,
     );
+  }
+
+  /// Purpose: Act on a home-screen widget tap that opened this tab.
+  /// Inputs: None; reads `HomeWidgetLaunch.pending`.
+  /// Returns: None.
+  /// Side effects: Consumes the request and opens the matching flow after
+  /// the current frame.
+  /// Notes: Runs once data has loaded and whenever a new request arrives.
+  /// Only `add` is handled; other requests just open the tab.
+  void _onWidgetLaunch() {
+    if (!mounted || !_loaded || _loadError != null) return;
+    final request = HomeWidgetLaunch.take(const {
+      HomeWidgetService.financeKind,
+    });
+    if (request == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (request.action == 'add') _addTransaction();
+    });
   }
 
   /// Purpose: Provide the internal add transaction helper for this file.

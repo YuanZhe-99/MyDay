@@ -171,6 +171,11 @@
 | step line | 阶梯线 | 抽插时间线图表的原始累计序列 |
 | moving average | 移动平均 | 抽插时间线图表平滑线所用的平滑方法；不是趋势图的 EWMA |
 | smoothed (fit) line | 平滑线 | 叠加在阶梯线上的虚线拟合线 |
+| home-screen widget | 桌面小组件 | 主屏幕上的 Android/iOS 小组件（1.8.3）；有别于 Flutter widget（组件）。zh-TW 用「桌面小工具」，ja 用「ホーム画面ウィジェット」，与 MyAnime 一致 |
+| widget kind | 小组件类型 | 一种信封类型，例如 `myday.todo` |
+| pending-action queue | 待处理动作队列 | MyApps-Widget 中小组件控件点击的队列，在应用下次运行时应用 |
+| Hide values / Icon only | 隐藏数值 / 只显示图标 | 小组件的隐私选项；「Show」为「显示」 |
+| Private (widget) | 私密 | 亲密小组件的中性标题；设置分区为「私密记录」 |
 
 ## 6. 复查清单（提交中文页面之前运行）
 

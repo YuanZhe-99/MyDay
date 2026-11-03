@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/providers/app_settings.dart';
 import '../../../shared/services/auto_sync_service.dart';
+import '../../../shared/services/home_widget_service.dart';
 import '../../../shared/services/image_service.dart';
 import '../../../shared/utils/adaptive_layout.dart';
 import '../../../shared/utils/id_list_delta.dart';
@@ -110,6 +111,7 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
     super.initState();
     _loadData();
     AutoSyncService.instance.addOnLocalDataChanged(_loadData);
+    HomeWidgetLaunch.pending.addListener(_onWidgetLaunch);
   }
 
   /// Purpose: Release listeners, controllers, and other owned resources.
@@ -120,6 +122,7 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
   @override
   void dispose() {
     AutoSyncService.instance.removeOnLocalDataChanged(_loadData);
+    HomeWidgetLaunch.pending.removeListener(_onWidgetLaunch);
     super.dispose();
   }
 
@@ -233,6 +236,32 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
       _weightRecordsForInsight = weightRecords;
       if (data != null) _applyIntimacyData(data);
       _loaded = true;
+    });
+    _onWidgetLaunch();
+  }
+
+  /// Purpose: Act on a home-screen widget tap that opened this tab.
+  /// Inputs: None; reads `HomeWidgetLaunch.pending`.
+  /// Returns: None.
+  /// Side effects: Consumes the request and opens the matching flow after
+  /// the current frame.
+  /// Notes: Runs once data has loaded and whenever a new request arrives.
+  /// `timer` opens the stopwatch page (the timer widget's Finish).
+  void _onWidgetLaunch() {
+    if (!mounted || !_loaded || _loadError != null) return;
+    final request = HomeWidgetLaunch.take(const {
+      HomeWidgetService.intimacyKind,
+      HomeWidgetService.timerKind,
+    });
+    if (request == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      switch (request.action) {
+        case 'add':
+          _addRecord();
+        case 'timer':
+          _openTimer();
+      }
     });
   }
 
@@ -543,6 +572,55 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
     return list;
   }
 
+  /// Purpose: Open the stopwatch timer page and apply what it returns.
+  /// Inputs: None.
+  /// Returns: `Future<void>`.
+  /// Side effects: Pushes `TimerPage`; stores a saved record, timer history,
+  /// session and retention changes, then writes intimacy data.
+  /// Notes: Used by the app-bar button and by the timer home-screen widget.
+  Future<void> _openTimer() async {
+    final result = await Navigator.push<TimerPageResult>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => TimerPage(
+          partners: _partners.where((p) => p.endDate == null).toList(),
+          toys: _toys.where((t) => t.retiredDate == null).toList(),
+          positions: _positions,
+          timerHistory: _timerHistory,
+          timerSession: _timerSession,
+          timerHistoryRetentionDays: _timerHistoryRetentionDays,
+          onStateChanged: _saveTimerState,
+        ),
+      ),
+    );
+    if (result != null && mounted) {
+      bool needSave = false;
+      if (result.record != null) {
+        setState(() => _records.insert(0, result.record!));
+        needSave = true;
+      }
+      if (result.updatedHistory != null && result.historyChanged) {
+        setState(() => _timerHistory = result.updatedHistory!);
+        needSave = true;
+      }
+      if (result.timerSessionChanged) {
+        setState(() {
+          _timerSession = result.updatedTimerSession;
+          _timerSessionModifiedAt = DateTime.now().toUtc();
+        });
+        needSave = true;
+      }
+      if (result.retentionChanged) {
+        setState(() {
+          _timerHistoryRetentionDays = result.updatedRetentionDays;
+          _settingsModifiedAt = DateTime.now().toUtc();
+        });
+        needSave = true;
+      }
+      if (needSave) await _saveData();
+    }
+  }
+
   /// Purpose: Provide the internal add record helper for this file.
   /// Inputs: None.
   /// Returns: `Future<void>`.
@@ -728,56 +806,7 @@ class _IntimacyPageState extends ConsumerState<IntimacyPage> {
           IconButton(
             icon: const Icon(Icons.timer_outlined),
             tooltip: l10n.intimacyTimer,
-            onPressed: _loaded && _loadError == null
-                ? () async {
-                    final result = await Navigator.push<TimerPageResult>(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => TimerPage(
-                          partners: _partners
-                              .where((p) => p.endDate == null)
-                              .toList(),
-                          toys: _toys
-                              .where((t) => t.retiredDate == null)
-                              .toList(),
-                          positions: _positions,
-                          timerHistory: _timerHistory,
-                          timerSession: _timerSession,
-                          timerHistoryRetentionDays: _timerHistoryRetentionDays,
-                          onStateChanged: _saveTimerState,
-                        ),
-                      ),
-                    );
-                    if (result != null && mounted) {
-                      bool needSave = false;
-                      if (result.record != null) {
-                        setState(() => _records.insert(0, result.record!));
-                        needSave = true;
-                      }
-                      if (result.updatedHistory != null &&
-                          result.historyChanged) {
-                        setState(() => _timerHistory = result.updatedHistory!);
-                        needSave = true;
-                      }
-                      if (result.timerSessionChanged) {
-                        setState(() {
-                          _timerSession = result.updatedTimerSession;
-                          _timerSessionModifiedAt = DateTime.now().toUtc();
-                        });
-                        needSave = true;
-                      }
-                      if (result.retentionChanged) {
-                        setState(() {
-                          _timerHistoryRetentionDays =
-                              result.updatedRetentionDays;
-                          _settingsModifiedAt = DateTime.now().toUtc();
-                        });
-                        needSave = true;
-                      }
-                      if (needSave) await _saveData();
-                    }
-                  }
-                : null,
+            onPressed: _loaded && _loadError == null ? _openTimer : null,
           ),
           IconButton(
             icon: const Icon(Icons.settings_outlined),
